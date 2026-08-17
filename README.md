@@ -25,23 +25,36 @@ A Compose Multiplatform calendar component for displaying and interacting with H
 
 ## Installation
 
+The library is distributed via [JitPack](https://jitpack.io/#muazdev26/HijriCalendar).
+
 ### Gradle
 
-Add the dependency to your module's `build.gradle.kts`:
+Add the JitPack repository and the dependency to your module's `build.gradle.kts`:
 
 ```kotlin
+repositories {
+    maven("https://jitpack.io")
+}
+
 dependencies {
-    implementation("com.muazdev.hijricalendar:calendar-ui:<version>")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha01")
 }
 ```
 
 ### Maven
 
 ```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
 <dependency>
-    <groupId>com.muazdev.hijricalendar</groupId>
-    <artifactId>calendar-ui</artifactId>
-    <version>LATEST_VERSION</version>
+    <groupId>com.github.muazdev26.HijriCalendar</groupId>
+    <artifactId>hijri-calendar-compose</artifactId>
+    <version>1.0.0-alpha01</version>
 </dependency>
 ```
 
@@ -205,7 +218,7 @@ Days outside the range will be visually disabled and non-clickable.
 
 ## Underlying Library
 
-This library uses [HijrahDateTime](https://github.com/nicholasgasior/hijrah-datetime) for Hijri date calculations and [kotlinx-datetime](https://github.com/Kotlin/kotlinx-datetime) for date/time operations.
+This library uses [HijrahDateTime](https://github.com/abdulrahman-b0/HijrahDateTime) for Hijri date calculations and [kotlinx-datetime](https://github.com/Kotlin/kotlinx-datetime) for date/time operations.
 
 ## License
 
