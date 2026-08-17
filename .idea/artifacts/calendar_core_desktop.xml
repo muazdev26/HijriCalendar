@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="calendar-core-desktop">
+    <output-path>$PROJECT_DIR$/calendar-core/build/libs</output-path>
+    <root id="archive" name="calendar-core-desktop.jar" />
+  </artifact>
+</component>
