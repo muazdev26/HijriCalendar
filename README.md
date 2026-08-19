@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha01")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha02")
 }
 ```
 
@@ -54,7 +54,7 @@ dependencies {
 <dependency>
     <groupId>com.github.muazdev26.HijriCalendar</groupId>
     <artifactId>hijri-calendar-compose</artifactId>
-    <version>1.0.0-alpha01</version>
+    <version>1.0.0-alpha02</version>
 </dependency>
 ```
 
