@@ -61,6 +61,11 @@ dependencies {
 ## Quick Start
 
 ```kotlin
+import androidx.compose.runtime.Composable
+import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.ui.HijriCalendar
+import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
+
 @Composable
 fun MyScreen() {
     val state = rememberHijriCalendarState(
@@ -132,7 +137,11 @@ class HijriCalendarState(
 
 ### `rememberHijriCalendarState`
 
-A composable helper to create and remember a `HijriCalendarState`:
+A composable helper to create and remember a `HijriCalendarState`. It lives in `com.muazdev.hijricalendar.core` and is re-exported from `com.muazdev.hijricalendar.ui`, so you can import it from either package:
+
+```kotlin
+import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
+```
 
 ```kotlin
 @Composable

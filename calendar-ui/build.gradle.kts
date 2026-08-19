@@ -6,7 +6,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.calendarCore)
+            api(projects.calendarCore)
             implementation(libs.hijrah.datetime)
             implementation(libs.kotlinx.datetime)
             implementation(libs.material.icons.extended)
