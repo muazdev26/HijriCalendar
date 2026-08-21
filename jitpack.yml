@@ -1,2 +1,4 @@
 jdk:
-  - 21
+  - openjdk21
+install:
+  - ./gradlew --console=plain :calendar-core:publishToMavenLocal :calendar-ui:publishToMavenLocal -xtest -xlint
