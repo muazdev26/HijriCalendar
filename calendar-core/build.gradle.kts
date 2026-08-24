@@ -12,5 +12,8 @@ kotlin {
             api(libs.kotlinx.collections.immutable)
             api(libs.hijrah.datetime)
         }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }

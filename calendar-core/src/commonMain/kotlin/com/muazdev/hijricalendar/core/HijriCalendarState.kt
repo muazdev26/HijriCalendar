@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
+import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlinx.datetime.DateTimeUnit
@@ -22,6 +23,10 @@ import kotlinx.datetime.toLocalDateTime
  *   to compensate for local moon sighting: the observed Hijri date of a Gregorian day is
  *   the Umm al-Qura conversion of `(date + adjustmentDays)`. All generated cells,
  *   weekday alignment, [selectedDate] and today detection live in this adjusted space.
+ * @param initialSelectedDate The initially selected date. May be given as an unadjusted
+ *   (Umm al-Qura) [HijrahDate]; it is normalized into adjusted space at construction, so
+ *   passing `today.toHijrahDate()` with `adjustmentDays != 0` still highlights the same
+ *   real-world day that `isToday` highlights.
  */
 @Stable
 class HijriCalendarState(
@@ -33,7 +38,16 @@ class HijriCalendarState(
     val adjustmentDays: Int = 0,
 ) {
     private var _currentMonth by mutableStateOf(initialMonth)
-    private var _selectedDate by mutableStateOf(initialSelectedDate)
+    private var _selectedDate by mutableStateOf(initialSelectedDate.adjustToAdjustedSpace())
+
+    private fun HijrahDate?.adjustToAdjustedSpace(): HijrahDate? {
+        if (this == null || adjustmentDays == 0) return this
+        return try {
+            toLocalDate().plus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate()
+        } catch (_: Exception) {
+            this
+        }
+    }
 
     val currentMonth: HijrahYearMonth get() = _currentMonth
     val selectedDate: HijrahDate? get() = _selectedDate
