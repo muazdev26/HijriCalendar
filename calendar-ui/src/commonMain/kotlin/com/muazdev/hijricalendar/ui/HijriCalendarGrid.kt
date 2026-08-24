@@ -93,12 +93,14 @@ fun HijriCalendarGrid(
                 state.selectedDate,
                 state.minDate,
                 state.maxDate,
+                state.adjustmentDays,
             ) {
                 month.toCalendarMonth(
                     firstDayOfWeek = state.firstDayOfWeek,
                     selectedDate = state.selectedDate,
                     minDate = state.minDate,
                     maxDate = state.maxDate,
+                    adjustmentDays = state.adjustmentDays,
                 )
             }
             MonthGrid(

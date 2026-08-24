@@ -67,10 +67,12 @@ fun rememberHijriCalendarState(
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
+    adjustmentDays: Int = 0,
 ): HijriCalendarState = coreRememberHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
     firstDayOfWeek = firstDayOfWeek,
     minDate = minDate,
     maxDate = maxDate,
+    adjustmentDays = adjustmentDays,
 )

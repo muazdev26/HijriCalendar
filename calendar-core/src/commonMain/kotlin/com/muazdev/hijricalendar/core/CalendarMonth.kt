@@ -5,13 +5,16 @@ import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 
 @Immutable
 data class CalendarMonth(
     val yearMonth: HijrahYearMonth,
     val days: ImmutableList<CalendarDay>,
     val firstDayOfWeek: WeekDay,
+    val adjustmentDays: Int = 0,
 ) {
     val numberOfWeeks: Int get() = days.size / DAYS_IN_WEEK
 
@@ -23,9 +26,9 @@ data class CalendarMonth(
 
     val lastDay: HijrahDate get() = yearMonth.lastDay
 
-    val gregorianFirstDay: LocalDate get() = firstDay.toLocalDate()
+    val gregorianFirstDay: LocalDate get() = firstDay.toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY)
 
-    val gregorianLastDay: LocalDate get() = lastDay.toLocalDate()
+    val gregorianLastDay: LocalDate get() = lastDay.toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY)
 
     val gregorianMonthRange: String
         get() {

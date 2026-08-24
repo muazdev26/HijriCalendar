@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha02")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha03")
 }
 ```
 
@@ -54,7 +54,7 @@ dependencies {
 <dependency>
     <groupId>com.github.muazdev26.HijriCalendar</groupId>
     <artifactId>hijri-calendar-compose</artifactId>
-    <version>1.0.0-alpha02</version>
+    <version>1.0.0-alpha03</version>
 </dependency>
 ```
 
@@ -118,14 +118,16 @@ class HijriCalendarState(
     firstDayOfWeek: WeekDay = WeekDay.SATURDAY,
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
+    adjustmentDays: Int = 0,
 )
 ```
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `currentMonth` | `HijrahYearMonth` | The currently displayed month |
-| `selectedDate` | `HijrahDate?` | The currently selected date |
+| `selectedDate` | `HijrahDate?` | The currently selected date (adjusted, see below) |
 | `calendarMonth` | `CalendarMonth` | Computed month grid with all day data |
+| `adjustmentDays` | `Int` | Moon-sighting adjustment applied to the whole grid |
 
 | Method | Description |
 |--------|-------------|
@@ -151,6 +153,7 @@ fun rememberHijriCalendarState(
     firstDayOfWeek: WeekDay = WeekDay.SATURDAY,
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
+    adjustmentDays: Int = 0,
 ): HijriCalendarState
 ```
 
@@ -224,6 +227,40 @@ val state = rememberHijriCalendarState(
 ```
 
 Days outside the range will be visually disabled and non-clickable.
+
+## Moon Sighting Adjustment (`adjustmentDays`)
+
+Locally observed Hijri dates often differ from the Umm al-Qura calculation by ±1 day
+depending on regional moon sighting. Pass `adjustmentDays` to compensate — the entire
+calendar shifts, not just labels:
+
+```kotlin
+// Wire it to a user setting of -1 / 0 / +1
+var adjustmentDays by rememberSaveable { mutableIntStateOf(0) }
+
+val state = rememberHijriCalendarState(
+    initialMonth = HijrahYearMonth(1447, 9),
+    adjustmentDays = adjustmentDays,
+)
+
+HijriCalendar(
+    state = state,
+    onDayClick = state.defaultOnDayClick(),
+)
+```
+
+Semantics:
+
+- The observed Hijri date of a Gregorian day is the Umm al-Qura conversion of
+  `(gregorianDate + adjustmentDays)`. With `+1`, a locally-observed community is one day
+  ahead: the Gregorian day Umm al-Qura calls *Ramadan 30* displays *Shawwal 1*.
+- The shift is applied where cells are generated, so everything stays consistent:
+  day numbers, weekday column alignment, `isToday`, selection, and month boundaries.
+- `state.selectedDate` (and each `CalendarDay.hijrahDate`) is the **adjusted** date —
+  display its `.day` directly; no manual correction needed.
+- `minDate`/`maxDate` are compared in adjusted space too.
+- Dates pushed outside the supported Umm al-Qura range (~1300–1600 AH) are rendered as
+  disabled placeholder cells clamped to the range boundary instead of crashing.
 
 ## Underlying Library
 

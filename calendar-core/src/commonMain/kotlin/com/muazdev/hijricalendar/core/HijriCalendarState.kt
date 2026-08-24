@@ -10,9 +10,19 @@ import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
+/**
+ * State holder for a Hijri calendar.
+ *
+ * @param adjustmentDays Shifts the whole calendar relative to the Umm al-Qura calculation
+ *   to compensate for local moon sighting: the observed Hijri date of a Gregorian day is
+ *   the Umm al-Qura conversion of `(date + adjustmentDays)`. All generated cells,
+ *   weekday alignment, [selectedDate] and today detection live in this adjusted space.
+ */
 @Stable
 class HijriCalendarState(
     initialMonth: HijrahYearMonth,
@@ -20,6 +30,7 @@ class HijriCalendarState(
     val firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     val minDate: HijrahDate? = null,
     val maxDate: HijrahDate? = null,
+    val adjustmentDays: Int = 0,
 ) {
     private var _currentMonth by mutableStateOf(initialMonth)
     private var _selectedDate by mutableStateOf(initialSelectedDate)
@@ -33,6 +44,7 @@ class HijriCalendarState(
             selectedDate = _selectedDate,
             minDate = minDate,
             maxDate = maxDate,
+            adjustmentDays = adjustmentDays,
         )
 
     fun goToNextMonth() {
@@ -68,7 +80,7 @@ class HijriCalendarState(
         return try {
             val now = kotlin.time.Clock.System.now()
             val localDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
-            localDate.toHijrahDate()
+            localDate.plus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate()
         } catch (_: Exception) {
             null
         }
@@ -88,6 +100,7 @@ fun rememberHijriCalendarState(
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
+    adjustmentDays: Int = 0,
 ): HijriCalendarState {
     return remember {
         HijriCalendarState(
@@ -96,6 +109,7 @@ fun rememberHijriCalendarState(
             firstDayOfWeek = firstDayOfWeek,
             minDate = minDate,
             maxDate = maxDate,
+            adjustmentDays = adjustmentDays,
         )
     }
 }
