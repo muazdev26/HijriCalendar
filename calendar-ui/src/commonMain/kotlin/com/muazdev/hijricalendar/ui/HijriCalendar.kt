@@ -10,6 +10,7 @@ import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
+import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 
 @Composable
@@ -19,6 +20,7 @@ fun HijriCalendar(
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    dayCellSize: Dp? = null,
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
@@ -51,6 +53,7 @@ fun HijriCalendar(
             colors = colors,
             useArabicIndicNumerals = useArabicIndicNumerals,
             dateDisplayMode = dateDisplayMode,
+            dayCellSize = dayCellSize,
             dayContent = dayContent,
         )
     }

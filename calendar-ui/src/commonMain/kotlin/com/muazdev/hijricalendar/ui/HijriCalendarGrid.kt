@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
@@ -38,6 +39,7 @@ fun HijriCalendarGrid(
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    dayCellSize: Dp? = null,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
     val initialMonth = remember { calendarMonth.yearMonth }
@@ -109,6 +111,7 @@ fun HijriCalendarGrid(
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,
                 dateDisplayMode = dateDisplayMode,
+                dayCellSize = dayCellSize,
                 dayContent = dayContent,
             )
         }
@@ -146,6 +149,7 @@ private fun MonthGrid(
     colors: HijriCalendarColors,
     useArabicIndicNumerals: Boolean,
     dateDisplayMode: DateDisplayMode,
+    dayCellSize: Dp?,
     dayContent: (@Composable (CalendarDay) -> Unit)?,
 ) {
     val weeks = remember(days) { days.chunked(CalendarMonth.DAYS_IN_WEEK) }

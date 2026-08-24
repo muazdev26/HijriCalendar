@@ -1,11 +1,20 @@
 package com.muazdev.hijricalendar.ui.preview
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
@@ -196,6 +205,67 @@ fun HijriCalendarPreview() {
 @Preview
 @Composable
 fun HijriCalendarWithBothDatesPreview() {
+    val state = HijriCalendarState(
+        initialMonth = HijrahYearMonth(1447, 9),
+        firstDayOfWeek = WeekDay.SATURDAY,
+    )
+    MaterialTheme {
+        Surface {
+            Column(modifier = Modifier.padding(16.dp)) {
+                HijriCalendar(
+                    state = state,
+                    onDayClick = state.defaultOnDayClick(),
+                    dateDisplayMode = DateDisplayMode.BOTH,
+                )
+            }
+        }
+    }
+}
+
+private val ConsumerDarkColors = darkColorScheme(
+    primary = Color(0xFF4FB286),
+    onPrimary = Color.White,
+    surface = Color(0xFF1C2B2A),
+    onSurface = Color(0xFFE8EFEA),
+    onSurfaceVariant = Color(0xFFA9BDB3),
+    error = Color(0xFFE57373),
+)
+
+@Preview
+@Composable
+fun HijriCalendarConsumerRtlDarkGlassyPreview() {
+    val state = HijriCalendarState(
+        initialMonth = HijrahYearMonth(1447, 9),
+        firstDayOfWeek = WeekDay.SATURDAY,
+    )
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        MaterialTheme(colorScheme = ConsumerDarkColors) {
+            Surface(color = Color(0xFF101D1C)) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.06f),
+                    ),
+                ) {
+                    HijriCalendar(
+                        state = state,
+                        modifier = Modifier.padding(12.dp),
+                        dateDisplayMode = DateDisplayMode.BOTH,
+                        useArabicIndicNumerals = true,
+                        onDayClick = state.defaultOnDayClick(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview(fontScale = 1.5f)
+@Composable
+fun HijriCalendarBothDatesFontScale150Preview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,

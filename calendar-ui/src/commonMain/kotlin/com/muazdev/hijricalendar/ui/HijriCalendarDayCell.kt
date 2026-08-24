@@ -21,7 +21,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.max
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.ui.util.calendarDayCell
@@ -34,8 +37,18 @@ fun HijriCalendarDayCell(
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    dayCellSize: Dp? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    val baseCellSize = dayCellSize
+        ?: if (dateDisplayMode == DateDisplayMode.BOTH) {
+            HijriCalendarDefaults.BothModeCellSize
+        } else {
+            HijriCalendarDefaults.SingleLineCellSize
+        }
+    val cellSize = baseCellSize * max(1f, fontScale.coerceAtMost(HijriCalendarDefaults.MaxFontScaleFactor))
+
     val hijriText = if (useArabicIndicNumerals) {
         day.dayOfMonth.toArabicIndicNumerals()
     } else {
@@ -83,7 +96,7 @@ fun HijriCalendarDayCell(
 
     Box(
         modifier = modifier
-            .calendarDayCell()
+            .calendarDayCell(cellSize)
             .semantics {
                 contentDescription = clickLabel
                 if (enabled) role = Role.Button
@@ -117,6 +130,8 @@ fun HijriCalendarDayCell(
                         style = MaterialTheme.typography.bodyMedium,
                         color = contentColor,
                         textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
                 DateDisplayMode.GREGORIAN_ONLY -> {
@@ -125,6 +140,8 @@ fun HijriCalendarDayCell(
                         style = MaterialTheme.typography.bodyMedium,
                         color = contentColor,
                         textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
                 DateDisplayMode.BOTH -> {
@@ -134,12 +151,16 @@ fun HijriCalendarDayCell(
                             style = MaterialTheme.typography.bodySmall,
                             color = contentColor,
                             textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                         Text(
                             text = gregorianText,
                             style = MaterialTheme.typography.labelSmall,
                             color = gregorianColor,
                             textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
                 }

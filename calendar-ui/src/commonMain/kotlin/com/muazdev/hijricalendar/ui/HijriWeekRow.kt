@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 
@@ -16,6 +17,7 @@ fun HijriWeekRow(
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    dayCellSize: Dp? = null,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
     require(days.size == 7) { "HijriWeekRow requires exactly 7 days, got ${days.size}" }
@@ -32,6 +34,7 @@ fun HijriWeekRow(
                     colors = colors,
                     useArabicIndicNumerals = useArabicIndicNumerals,
                     dateDisplayMode = dateDisplayMode,
+                    dayCellSize = dayCellSize,
                     content = dayContent?.let { { it(day) } },
                 )
             }

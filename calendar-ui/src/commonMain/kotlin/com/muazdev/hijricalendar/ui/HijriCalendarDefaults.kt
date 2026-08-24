@@ -9,6 +9,9 @@ import androidx.compose.ui.unit.dp
 @Immutable
 object HijriCalendarDefaults {
     val TodayBorderWidth = 2.dp
+    val SingleLineCellSize = 48.dp
+    val BothModeCellSize = 56.dp
+    const val MaxFontScaleFactor = 1.5f
 
     @Composable
     fun colors(
@@ -23,7 +26,7 @@ object HijriCalendarDefaults {
         navigationIconColor: Color = MaterialTheme.colorScheme.onSurface,
         dayOfWeekLabelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         outsideMonthDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-        gregorianDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.54f),
+        gregorianDayContentColor: Color = dayContentColor.copy(alpha = 0.6f),
         gregorianHeaderColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     ): HijriCalendarColors = HijriCalendarColors(
         selectedDayContainerColor = selectedDayContainerColor,
