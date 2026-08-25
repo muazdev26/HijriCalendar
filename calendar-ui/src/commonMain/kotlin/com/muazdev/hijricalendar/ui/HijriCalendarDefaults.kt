@@ -44,4 +44,6 @@ object HijriCalendarDefaults {
         gregorianDayContentColor = gregorianDayContentColor,
         gregorianHeaderColor = gregorianHeaderColor,
     )
+
+    fun labels(labels: HijriCalendarLabels = HijriCalendarLabels()): HijriCalendarLabels = labels
 }

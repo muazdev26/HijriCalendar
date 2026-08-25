@@ -23,20 +23,36 @@ fun HijriCalendar(
     dayCellSize: Dp? = null,
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
 ) {
     val calendarMonth = state.calendarMonth
 
-    val headerContentDescription = remember(calendarMonth) {
-        "${calendarMonth.monthName} ${calendarMonth.year}"
+    val hijriMonthLabel = remember(calendarMonth, labels) {
+        labels.hijriMonthName(calendarMonth.year, calendarMonth.yearMonth.month.number)
     }
 
-    val gregorianMonthText = remember(calendarMonth) {
-        calendarMonth.gregorianMonthRange
+    val headerContentDescription = remember(hijriMonthLabel, calendarMonth) {
+        "$hijriMonthLabel ${calendarMonth.year}"
+    }
+
+    val gregorianMonthText = remember(calendarMonth, labels) {
+        val first = calendarMonth.gregorianFirstDay
+        val last = calendarMonth.gregorianLastDay
+        when {
+            first.month == last.month && first.year == last.year ->
+                "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year}"
+            first.year == last.year ->
+                "${labels.gregorianMonthName(first.month.ordinal + 1)} - " +
+                    "${labels.gregorianMonthName(last.month.ordinal + 1)} ${first.year}"
+            else ->
+                "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year} - " +
+                    "${labels.gregorianMonthName(last.month.ordinal + 1)} ${last.year}"
+        }
     }
 
     Column(modifier = modifier) {
         HijriCalendarHeader(
-            monthName = calendarMonth.monthName,
+            monthName = hijriMonthLabel,
             year = calendarMonth.year,
             onPreviousMonth = state::goToPreviousMonth,
             onNextMonth = state::goToNextMonth,
@@ -44,6 +60,8 @@ fun HijriCalendar(
             dateDisplayMode = dateDisplayMode,
             gregorianMonthText = gregorianMonthText,
             contentDescription = headerContentDescription,
+            previousMonthContentDescription = labels.previousMonthContentDescription,
+            nextMonthContentDescription = labels.nextMonthContentDescription,
         )
 
         HijriCalendarGrid(
@@ -55,6 +73,7 @@ fun HijriCalendar(
             dateDisplayMode = dateDisplayMode,
             dayCellSize = dayCellSize,
             dayContent = dayContent,
+            labels = labels,
         )
     }
 }

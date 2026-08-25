@@ -30,6 +30,10 @@ data class CalendarMonth(
 
     val gregorianLastDay: LocalDate get() = lastDay.toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY)
 
+    @Deprecated(
+        message = "Hard-coded English formatting. Use HijriCalendarLabels.gregorianMonthName " +
+            "in calendar-ui to build a localized range.",
+    )
     val gregorianMonthRange: String
         get() {
             val first = gregorianFirstDay

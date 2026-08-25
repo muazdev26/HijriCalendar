@@ -19,6 +19,7 @@ import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState
 import com.muazdev.hijricalendar.ui.HijriCalendar
+import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
@@ -32,6 +33,7 @@ fun CalendarScreen(
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     onDateDisplayModeChange: (DateDisplayMode) -> Unit = {},
     onJumpToToday: (() -> Unit)? = null,
+    labels: HijriCalendarLabels? = null,
 ) {
     val selectedDate = state.selectedDate
 
@@ -57,6 +59,7 @@ fun CalendarScreen(
             onDayClick = state.defaultOnDayClick(),
             dateDisplayMode = dateDisplayMode,
             modifier = Modifier.fillMaxWidth(),
+            labels = labels ?: HijriCalendarLabels(),
         )
 
         Spacer(modifier = Modifier.height(16.dp))

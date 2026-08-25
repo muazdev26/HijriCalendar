@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha03")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha04")
 }
 ```
 
@@ -54,7 +54,7 @@ dependencies {
 <dependency>
     <groupId>com.github.muazdev26.HijriCalendar</groupId>
     <artifactId>hijri-calendar-compose</artifactId>
-    <version>1.0.0-alpha03</version>
+    <version>1.0.0-alpha04</version>
 </dependency>
 ```
 
@@ -227,6 +227,35 @@ val state = rememberHijriCalendarState(
 ```
 
 Days outside the range will be visually disabled and non-clickable.
+
+## Localization (`HijriCalendarLabels`)
+
+All header and weekday text can be localized via `labels`. Defaults reproduce the
+built-in English output, so passing nothing changes nothing:
+
+```kotlin
+val urduLabels = HijriCalendarLabels(
+    hijriMonthName = { _, month ->
+        listOf(
+            "محرم", "صفر", "ربیع الاول", "ربیع الثانی", "جمادی الاول", "جمادی الثانی",
+            "رجب", "شعبان", "رمضان", "شوال", "ذی القعدہ", "ذی الحجہ",
+        )[month - 1]
+    },
+    gregorianMonthName = { month ->
+        listOf("جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون",
+               "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر")[month - 1]
+    },
+)
+
+HijriCalendar(
+    state = state,
+    labels = urduLabels,
+    onDayClick = state.defaultOnDayClick(),
+)
+```
+
+`HijriCalendarLabels` also exposes `weekdayShortName`, `previousMonthContentDescription`
+and `nextMonthContentDescription` for accessibility strings.
 
 ## Moon Sighting Adjustment (`adjustmentDays`)
 

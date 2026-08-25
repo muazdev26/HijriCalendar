@@ -41,6 +41,7 @@ fun HijriCalendarGrid(
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     dayCellSize: Dp? = null,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
 ) {
     val initialMonth = remember { calendarMonth.yearMonth }
 
@@ -81,6 +82,7 @@ fun HijriCalendarGrid(
         DayOfWeekLabels(
             firstDayOfWeek = calendarMonth.firstDayOfWeek,
             colors = colors,
+            labels = labels,
         )
 
         HorizontalPager(
@@ -122,17 +124,17 @@ fun HijriCalendarGrid(
 private fun DayOfWeekLabels(
     firstDayOfWeek: WeekDay,
     colors: HijriCalendarColors,
+    labels: HijriCalendarLabels,
 ) {
-    val dayLabels = remember(firstDayOfWeek) { generateDayOfWeekLabels(firstDayOfWeek) }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
     ) {
-        dayLabels.forEach { label ->
+        (0 until CalendarMonth.DAYS_IN_WEEK).forEach { offset ->
+            val index = (firstDayOfWeek.index + offset) % CalendarMonth.DAYS_IN_WEEK
             Text(
-                text = label,
+                text = labels.weekdayShortName(WeekDay.entries[index]),
                 style = MaterialTheme.typography.labelSmall,
                 color = colors.dayOfWeekLabelColor,
                 textAlign = TextAlign.Center,
@@ -164,18 +166,10 @@ private fun MonthGrid(
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,
                 dateDisplayMode = dateDisplayMode,
+                dayCellSize = dayCellSize,
                 dayContent = dayContent,
             )
         }
-    }
-}
-
-private fun generateDayOfWeekLabels(firstDayOfWeek: WeekDay): List<String> {
-    val allDays = WeekDay.entries
-    val startIndex = firstDayOfWeek.index
-    return (0 until CalendarMonth.DAYS_IN_WEEK).map { offset ->
-        val index = (startIndex + offset) % CalendarMonth.DAYS_IN_WEEK
-        allDays[index].shortName
     }
 }
 

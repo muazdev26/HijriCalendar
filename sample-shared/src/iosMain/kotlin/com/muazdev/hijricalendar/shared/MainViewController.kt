@@ -14,6 +14,7 @@ fun MainViewController() = ComposeUIViewController {
         CalendarScreen(
             dateDisplayMode = dateDisplayMode,
             onDateDisplayModeChange = { dateDisplayMode = it },
+            labels = UrduCalendarLabels,
         )
     }
 }

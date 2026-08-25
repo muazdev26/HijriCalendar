@@ -22,6 +22,7 @@ import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarDayCell
 import com.muazdev.hijricalendar.ui.HijriCalendarHeader
+import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import androidx.compose.ui.tooling.preview.Preview
@@ -278,6 +279,58 @@ fun HijriCalendarBothDatesFontScale150Preview() {
                     onDayClick = state.defaultOnDayClick(),
                     dateDisplayMode = DateDisplayMode.BOTH,
                 )
+            }
+        }
+    }
+}
+
+private val UrduHijriMonths = listOf(
+    "محرم", "صفر", "ربیع الاول", "ربیع الثانی",
+    "جمادی الاول", "جمادی الثانی", "رجب", "شعبان",
+    "رمضان", "شوال", "ذی القعدہ", "ذی الحجہ",
+)
+
+private val UrduGregorianMonths = listOf(
+    "جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون",
+    "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر",
+)
+
+private val UrduWeekdayNames = mapOf(
+    WeekDay.SATURDAY to "ہفتہ",
+    WeekDay.SUNDAY to "اتوار",
+    WeekDay.MONDAY to "پیر",
+    WeekDay.TUESDAY to "منگل",
+    WeekDay.WEDNESDAY to "بدھ",
+    WeekDay.THURSDAY to "جمعرات",
+    WeekDay.FRIDAY to "جمعہ",
+)
+
+@Preview
+@Composable
+fun HijriCalendarUrduRtlPreview() {
+    val state = HijriCalendarState(
+        initialMonth = HijrahYearMonth(1447, 9),
+        firstDayOfWeek = WeekDay.SATURDAY,
+    )
+    val urduLabels = HijriCalendarLabels(
+        hijriMonthName = { _, month -> UrduHijriMonths[month - 1] },
+        gregorianMonthName = { month -> UrduGregorianMonths[month - 1] },
+        weekdayShortName = { weekDay -> UrduWeekdayNames.getValue(weekDay) },
+        previousMonthContentDescription = "پچھلا مہینہ",
+        nextMonthContentDescription = "اگلا مہینہ",
+    )
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        MaterialTheme {
+            Surface {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    HijriCalendar(
+                        state = state,
+                        dateDisplayMode = DateDisplayMode.BOTH,
+                        useArabicIndicNumerals = true,
+                        labels = urduLabels,
+                        onDayClick = state.defaultOnDayClick(),
+                    )
+                }
             }
         }
     }
