@@ -7,11 +7,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.ComposeUIViewController
 import com.muazdev.hijricalendar.core.DateDisplayMode
+import com.muazdev.hijricalendar.core.rememberHijriCalendarState
+import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 
 fun MainViewController() = ComposeUIViewController {
     MaterialTheme {
         var dateDisplayMode by remember { mutableStateOf(DateDisplayMode.HIJRI_ONLY) }
+        val state = rememberHijriCalendarState(
+            initialMonth = HijrahYearMonth(1447, 9),
+            adjustmentDays = -1,
+        )
         CalendarScreen(
+            state = state,
             dateDisplayMode = dateDisplayMode,
             onDateDisplayModeChange = { dateDisplayMode = it },
             labels = UrduCalendarLabels,

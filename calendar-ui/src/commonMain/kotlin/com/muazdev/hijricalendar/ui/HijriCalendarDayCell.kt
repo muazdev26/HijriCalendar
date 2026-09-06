@@ -6,7 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,8 +23,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalDensity
-import kotlin.math.max
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.ui.util.calendarDayCell
@@ -40,14 +38,7 @@ fun HijriCalendarDayCell(
     dayCellSize: Dp? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
-    val fontScale = LocalDensity.current.fontScale
-    val baseCellSize = dayCellSize
-        ?: if (dateDisplayMode == DateDisplayMode.BOTH) {
-            HijriCalendarDefaults.BothModeCellSize
-        } else {
-            HijriCalendarDefaults.SingleLineCellSize
-        }
-    val cellSize = baseCellSize * max(1f, fontScale.coerceAtMost(HijriCalendarDefaults.MaxFontScaleFactor))
+    val cellSize = dayCellSize ?: HijriCalendarDefaults.SingleLineCellSize
 
     val hijriText = if (useArabicIndicNumerals) {
         day.dayOfMonth.toArabicIndicNumerals()
@@ -76,13 +67,17 @@ fun HijriCalendarDayCell(
         else -> colors.dayBackgroundColor
     }
 
+    val showTodayBorder = day.isToday && !day.isSelected
+
     val borderColor = when {
-        day.isToday -> colors.todayBorderColor
+        day.isSelected -> colors.selectedDayContainerColor
+        showTodayBorder -> colors.todayBorderColor
         else -> Color.Transparent
     }
 
     val borderWidth = when {
-        day.isToday -> colors.todayBorderWidth.dp
+        day.isSelected -> HijriCalendarDefaults.TodayBorderWidth
+        showTodayBorder -> colors.todayBorderWidth.dp
         else -> 0.dp
     }
 
@@ -116,8 +111,7 @@ fun HijriCalendarDayCell(
                 } else {
                     Modifier
                 }
-            )
-            .padding(4.dp),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         if (content != null) {
@@ -145,7 +139,10 @@ fun HijriCalendarDayCell(
                     )
                 }
                 DateDisplayMode.BOTH -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
                         Text(
                             text = hijriText,
                             style = MaterialTheme.typography.bodySmall,

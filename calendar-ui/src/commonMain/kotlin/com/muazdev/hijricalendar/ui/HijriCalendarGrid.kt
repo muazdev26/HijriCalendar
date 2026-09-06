@@ -157,7 +157,7 @@ private fun MonthGrid(
     val weeks = remember(days) { days.chunked(CalendarMonth.DAYS_IN_WEEK) }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         weeks.forEach { weekDays ->
             HijriWeekRow(

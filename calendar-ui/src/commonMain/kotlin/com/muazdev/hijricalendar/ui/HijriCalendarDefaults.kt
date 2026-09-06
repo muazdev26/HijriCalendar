@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.dp
 object HijriCalendarDefaults {
     val TodayBorderWidth = 2.dp
     val SingleLineCellSize = 48.dp
-    val BothModeCellSize = 56.dp
-    const val MaxFontScaleFactor = 1.5f
+    @Deprecated("Cells use a single fixed size regardless of DateDisplayMode.")
+    val BothModeCellSize = SingleLineCellSize
 
     @Composable
     fun colors(

@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha04")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha05")
 }
 ```
 
@@ -54,7 +54,7 @@ dependencies {
 <dependency>
     <groupId>com.github.muazdev26.HijriCalendar</groupId>
     <artifactId>hijri-calendar-compose</artifactId>
-    <version>1.0.0-alpha04</version>
+    <version>1.0.0-alpha05</version>
 </dependency>
 ```
 
@@ -227,6 +227,19 @@ val state = rememberHijriCalendarState(
 ```
 
 Days outside the range will be visually disabled and non-clickable.
+
+## Date Display Modes & Cell Sizing
+
+`dateDisplayMode` controls what each cell shows: `HIJRI_ONLY` (default), `GREGORIAN_ONLY`,
+or `BOTH` (Hijri number stacked over the Gregorian day). Day cells always use one fixed
+size (`48.dp` by default, override with `dayCellSize`) — switching to `BOTH` does **not**
+grow the grid. The two date lines pack tightly into the same cell with minimal vertical
+padding between cells, matching Google Calendar's dense layout.
+
+The calendar renders with a simple default font at its designed size. System-level font
+scaling (accessibility `fontScale`) is intentionally ignored so cells never inflate or
+shrink the grid; the `dayCellSize` you pass is the size you get on every display mode and
+every device.
 
 ## Localization (`HijriCalendarLabels`)
 

@@ -2,8 +2,11 @@ package com.muazdev.hijricalendar.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
@@ -50,31 +53,40 @@ fun HijriCalendar(
         }
     }
 
-    Column(modifier = modifier) {
-        HijriCalendarHeader(
-            monthName = hijriMonthLabel,
-            year = calendarMonth.year,
-            onPreviousMonth = state::goToPreviousMonth,
-            onNextMonth = state::goToNextMonth,
-            colors = colors,
-            dateDisplayMode = dateDisplayMode,
-            gregorianMonthText = gregorianMonthText,
-            contentDescription = headerContentDescription,
-            previousMonthContentDescription = labels.previousMonthContentDescription,
-            nextMonthContentDescription = labels.nextMonthContentDescription,
-        )
+    // Keep the entire calendar rendering at its designed size: ignore the system's
+    // font-scale so cells never inflate or shrink from accessibility text sizing.
+    val density = LocalDensity.current
+    val fixedDensity = remember(density.density) {
+        Density(density = density.density, fontScale = 1f)
+    }
 
-        HijriCalendarGrid(
-            state = state,
-            calendarMonth = calendarMonth,
-            onDayClick = onDayClick,
-            colors = colors,
-            useArabicIndicNumerals = useArabicIndicNumerals,
-            dateDisplayMode = dateDisplayMode,
-            dayCellSize = dayCellSize,
-            dayContent = dayContent,
-            labels = labels,
-        )
+    Column(modifier = modifier) {
+        CompositionLocalProvider(LocalDensity provides fixedDensity) {
+            HijriCalendarHeader(
+                monthName = hijriMonthLabel,
+                year = calendarMonth.year,
+                onPreviousMonth = state::goToPreviousMonth,
+                onNextMonth = state::goToNextMonth,
+                colors = colors,
+                dateDisplayMode = dateDisplayMode,
+                gregorianMonthText = gregorianMonthText,
+                contentDescription = headerContentDescription,
+                previousMonthContentDescription = labels.previousMonthContentDescription,
+                nextMonthContentDescription = labels.nextMonthContentDescription,
+            )
+
+            HijriCalendarGrid(
+                state = state,
+                calendarMonth = calendarMonth,
+                onDayClick = onDayClick,
+                colors = colors,
+                useArabicIndicNumerals = useArabicIndicNumerals,
+                dateDisplayMode = dateDisplayMode,
+                dayCellSize = dayCellSize,
+                dayContent = dayContent,
+                labels = labels,
+            )
+        }
     }
 }
 
