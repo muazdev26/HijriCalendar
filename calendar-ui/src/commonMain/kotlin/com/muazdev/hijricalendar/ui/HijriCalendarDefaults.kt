@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Immutable
@@ -18,6 +19,7 @@ object HijriCalendarDefaults {
         selectedDayContainerColor: Color = MaterialTheme.colorScheme.primary,
         selectedDayContentColor: Color = MaterialTheme.colorScheme.onPrimary,
         todayBorderColor: Color = MaterialTheme.colorScheme.primary,
+        todayBorderWidth: Dp = TodayBorderWidth,
         disabledDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
         weekendDayContentColor: Color = MaterialTheme.colorScheme.error,
         dayContentColor: Color = MaterialTheme.colorScheme.onSurface,
@@ -32,7 +34,7 @@ object HijriCalendarDefaults {
         selectedDayContainerColor = selectedDayContainerColor,
         selectedDayContentColor = selectedDayContentColor,
         todayBorderColor = todayBorderColor,
-        todayBorderWidth = TodayBorderWidth.value,
+        todayBorderWidth = todayBorderWidth,
         disabledDayContentColor = disabledDayContentColor,
         weekendDayContentColor = weekendDayContentColor,
         dayContentColor = dayContentColor,

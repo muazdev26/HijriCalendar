@@ -33,6 +33,8 @@ fun HijriCalendarHeader(
     contentDescription: String? = null,
     previousMonthContentDescription: String = "Previous month",
     nextMonthContentDescription: String = "Next month",
+    canGoToPreviousMonth: Boolean = true,
+    canGoToNextMonth: Boolean = true,
 ) {
     val showGregorian = dateDisplayMode != DateDisplayMode.HIJRI_ONLY && gregorianMonthText != null
 
@@ -42,18 +44,21 @@ fun HijriCalendarHeader(
             .padding(horizontal = 4.dp)
             .then(
                 if (contentDescription != null) {
-                    Modifier.semantics { this.contentDescription = contentDescription }
+                    Modifier.semantics(mergeDescendants = true) { this.contentDescription = contentDescription }
                 } else {
                     Modifier
                 }
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onPreviousMonth) {
+        IconButton(
+            onClick = onPreviousMonth,
+            enabled = canGoToPreviousMonth,
+        ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = previousMonthContentDescription,
-                tint = colors.navigationIconColor,
+                tint = if (canGoToPreviousMonth) colors.navigationIconColor else colors.navigationIconColor.copy(alpha = 0.38f),
             )
         }
 
@@ -77,11 +82,14 @@ fun HijriCalendarHeader(
             }
         }
 
-        IconButton(onClick = onNextMonth) {
+        IconButton(
+            onClick = onNextMonth,
+            enabled = canGoToNextMonth,
+        ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = nextMonthContentDescription,
-                tint = colors.navigationIconColor,
+                tint = if (canGoToNextMonth) colors.navigationIconColor else colors.navigationIconColor.copy(alpha = 0.38f),
             )
         }
     }

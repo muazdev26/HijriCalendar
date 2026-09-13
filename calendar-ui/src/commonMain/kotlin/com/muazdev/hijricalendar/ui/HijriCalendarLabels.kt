@@ -2,6 +2,7 @@ package com.muazdev.hijricalendar.ui
 
 import androidx.compose.runtime.Immutable
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.WeekDay
 
 private val DefaultHijriMonthNames = listOf(
@@ -34,4 +35,13 @@ data class HijriCalendarLabels(
     val weekdayShortName: (weekDay: WeekDay) -> String = { it.shortName },
     val previousMonthContentDescription: String = "Previous month",
     val nextMonthContentDescription: String = "Next month",
+    /**
+     * Returns the accessibility content description for a single day cell. The default
+     * reproduces the original built-in English output; pass a [CalendarDay]-aware lambda
+     * to localize or to disambiguate leading/trailing days from adjacent months.
+     */
+    val dayContentDescription: (CalendarDay) -> String = { day ->
+        val suffix = if (day.isDisabled) ", disabled" else ""
+        "Day ${day.dayOfMonth}$suffix"
+    },
 )

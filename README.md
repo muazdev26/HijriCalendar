@@ -119,6 +119,7 @@ class HijriCalendarState(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    weekendDays: Set<WeekDay> = setOf(WeekDay.FRIDAY, WeekDay.SATURDAY),
 )
 ```
 
@@ -128,6 +129,9 @@ class HijriCalendarState(
 | `selectedDate` | `HijrahDate?` | The currently selected date (adjusted, see below) |
 | `calendarMonth` | `CalendarMonth` | Computed month grid with all day data |
 | `adjustmentDays` | `Int` | Moon-sighting adjustment applied to the whole grid |
+| `weekendDays` | `Set<WeekDay>` | Which weekdays render with weekend styling (default: Fri/Sat) |
+| `canGoToPreviousMonth` | `Boolean` | Whether the previous month is within `minDate`/`maxDate` |
+| `canGoToNextMonth` | `Boolean` | Whether the next month is within `minDate`/`maxDate` |
 
 | Method | Description |
 |--------|-------------|
@@ -154,8 +158,85 @@ fun rememberHijriCalendarState(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    weekendDays: Set<WeekDay> = setOf(WeekDay.FRIDAY, WeekDay.SATURDAY),
 ): HijriCalendarState
 ```
+
+There is also a `rememberSaveableHijriCalendarState(...)` with the same signature that stores
+the current month and selection across configuration changes and process death — see
+[Persistence](#persistence) below.
+
+## Persistence
+
+`HijriCalendarState` is a plain state holder: it does **not** persist `currentMonth` /
+`selectedDate` across process death on its own. Unless you hoist persistence, the calendar
+silently resets to the `initialMonth`/`initialSelectedDate` you pass in when the process is
+recreated.
+
+The simplest way to keep the selection across configuration changes (rotation) and Android
+process death is the built-in saveable variant:
+
+```kotlin
+import androidx.compose.runtime.Composable
+import com.muazdev.hijricalendar.ui.HijriCalendar
+import com.muazdev.hijricalendar.ui.rememberSaveableHijriCalendarState
+
+@Composable
+fun MyScreen() {
+    val state = rememberSaveableHijriCalendarState(
+        initialMonth = HijrahYearMonth(1447, 9),
+    )
+
+    HijriCalendar(
+        state = state,
+        onDayClick = state.defaultOnDayClick(),
+    )
+}
+```
+
+`rememberSaveableHijriCalendarState` saves the current month and selected date as a small list
+of integers (via the `androidx.compose.runtime.saveable.Saver` machinery). The immutable range /
+weekend configuration (first day of week, `minDate`/`maxDate`, `adjustmentDays`, `weekendDays`)
+is captured at first composition and reapplied on restore.
+
+### Hoisting into a ViewModel / `SavedStateHandle`
+
+If you prefer to own persistence yourself (e.g. the state lives inside a `ViewModel`), mirror the
+pattern used by the sample app: keep a `SavedStateHandle` in sync with the state's snapshots.
+
+```kotlin
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+
+class CalendarViewModel(
+    private val savedStateHandle: SavedStateHandle,
+) : ViewModel() {
+
+    val state: HijriCalendarState = HijriCalendarState(
+        initialMonth = restoreMonth() ?: todayHijriMonth(),
+        initialSelectedDate = restoreSelectedDate() ?: todayHijriDate(),
+    )
+
+    init {
+        viewModelScope.launch {
+            snapshotFlow { state.currentMonth }
+                .distinctUntilChanged()
+                .collect { month ->
+                    savedStateHandle["current_month_year"] = month.year.toLong()
+                    savedStateHandle["current_month_value"] = month.month.number.toLong()
+                }
+        }
+        // ... and the selected year / month / day keys.
+    }
+}
+```
+
+Note: when you hoist the state into a `ViewModel`, the `HorizontalPager` inside the grid is
+itself `rememberSaveable`-backed; the grid intentionally drops the pager's first restored page so
+the pager cannot overwrite the (correct) ViewModel state after a configuration change.
+
+`CalendarDay` is marked `@Serializable`, so if you persist day-level data of your own
+(e.g. an annotations map keyed by day), the model exposes a ready-made serializer for it.
 
 ## Customization
 
@@ -226,7 +307,10 @@ val state = rememberHijriCalendarState(
 )
 ```
 
-Days outside the range will be visually disabled and non-clickable.
+Days outside the range will be visually disabled and non-clickable, and month navigation is
+bounded by the range: the header's previous/next buttons disable once the adjacent month no
+longer contains any in-range day, and swiping the pager snaps back to the boundary month instead
+of paging past it.
 
 ## Date Display Modes & Cell Sizing
 
@@ -267,8 +351,38 @@ HijriCalendar(
 )
 ```
 
-`HijriCalendarLabels` also exposes `weekdayShortName`, `previousMonthContentDescription`
-and `nextMonthContentDescription` for accessibility strings.
+`HijriCalendarLabels` also exposes `weekdayShortName`, `previousMonthContentDescription`,
+`nextMonthContentDescription`, and `dayContentDescription` for accessibility strings:
+
+```kotlin
+val localizedLabels = HijriCalendarLabels(
+    weekdayShortName = { it.shortName },
+    previousMonthContentDescription = "پچھلا مہینہ",
+    nextMonthContentDescription = "اگلا مہینہ",
+    dayContentDescription = { day ->
+        // Disambiguate leading/trailing cells from adjacent months for screen readers.
+        val prefix = if (day.isCurrentMonth) "" else "خارجی "
+        val suffix = if (day.isDisabled) ", غیر فعال" else ""
+        "${prefix}دن ${day.dayOfMonth}$suffix"
+    },
+)
+```
+
+The default `dayContentDescription` reproduces the built-in `"Day N"` / `"Day N, disabled"`
+labels; supply your own lambda to localize or to disambiguate repeated day numbers from
+adjacent months.
+
+## Weekends
+
+The days styled with `weekendDayContentColor` default to Friday + Saturday (common across the
+Gulf and Levant). Change them per-region by passing `weekendDays`:
+
+```kotlin
+val state = rememberHijriCalendarState(
+    initialMonth = HijrahYearMonth(1447, 9),
+    weekendDays = setOf(WeekDay.FRIDAY), // Friday-only weekend
+)
+```
 
 ## Moon Sighting Adjustment (`adjustmentDays`)
 

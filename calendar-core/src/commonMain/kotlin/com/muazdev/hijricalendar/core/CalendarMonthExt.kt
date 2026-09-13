@@ -7,10 +7,8 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
 
 /**
  * Generates the 6-week grid for this Hijri month, optionally compensating for local
@@ -33,6 +31,7 @@ fun HijrahYearMonth.toCalendarMonth(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ): CalendarMonth {
     val today = todayHijriDate(adjustmentDays)
 
@@ -54,7 +53,7 @@ fun HijrahYearMonth.toCalendarMonth(
                 isToday = converted == today,
                 isSelected = converted == selectedDate,
                 isDisabled = converted.isDisabledByRange(minDate, maxDate),
-                isWeekend = anchor.dayOfWeek.isWeekend(),
+                isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
                 adjustmentDays = adjustmentDays,
             )
         } else {
@@ -66,7 +65,7 @@ fun HijrahYearMonth.toCalendarMonth(
                 isToday = false,
                 isSelected = false,
                 isDisabled = true,
-                isWeekend = anchor.dayOfWeek.isWeekend(),
+                isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
                 adjustmentDays = adjustmentDays,
             )
         }
@@ -78,16 +77,6 @@ fun HijrahYearMonth.toCalendarMonth(
         firstDayOfWeek = firstDayOfWeek,
         adjustmentDays = adjustmentDays,
     )
-}
-
-private fun todayHijriDate(adjustmentDays: Int): HijrahDate? {
-    return try {
-        val now = kotlin.time.Clock.System.now()
-        val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
-        today.plus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate()
-    } catch (_: Exception) {
-        null
-    }
 }
 
 private fun LocalDate.toHijrahDateOrNull(): HijrahDate? {
@@ -107,8 +96,4 @@ private fun HijrahDate.isDisabledByRange(min: HijrahDate?, max: HijrahDate?): Bo
     if (min != null && this < min) return true
     if (max != null && this > max) return true
     return false
-}
-
-private fun kotlinx.datetime.DayOfWeek.isWeekend(): Boolean {
-    return this == kotlinx.datetime.DayOfWeek.FRIDAY || this == kotlinx.datetime.DayOfWeek.SATURDAY
 }

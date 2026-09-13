@@ -2,8 +2,6 @@ package com.muazdev.hijricalendar.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.ui.util.calendarDayCell
+import com.muazdev.hijricalendar.ui.util.clickableIfEnabled
 
 @Composable
 fun HijriCalendarDayCell(
@@ -36,6 +35,7 @@ fun HijriCalendarDayCell(
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     dayCellSize: Dp? = null,
+    labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     content: (@Composable () -> Unit)? = null,
 ) {
     val cellSize = dayCellSize ?: HijriCalendarDefaults.SingleLineCellSize
@@ -77,40 +77,29 @@ fun HijriCalendarDayCell(
 
     val borderWidth = when {
         day.isSelected -> HijriCalendarDefaults.TodayBorderWidth
-        showTodayBorder -> colors.todayBorderWidth.dp
+        showTodayBorder -> colors.todayBorderWidth
         else -> 0.dp
     }
 
     val enabled = !day.isDisabled
 
-    val clickLabel = if (enabled) {
-        "Day ${day.dayOfMonth}"
-    } else {
-        "Day ${day.dayOfMonth}, disabled"
-    }
+    val clickLabel = remember(day, labels) { labels.dayContentDescription(day) }
 
     Box(
         modifier = modifier
             .calendarDayCell(cellSize)
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 contentDescription = clickLabel
                 if (enabled) role = Role.Button
             }
             .clip(CircleShape)
             .background(backgroundColor)
             .border(borderWidth, borderColor, CircleShape)
-            .then(
-                if (enabled) {
-                    Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClickLabel = clickLabel,
-                        role = Role.Button,
-                        onClick = onClick,
-                    )
-                } else {
-                    Modifier
-                }
+            .clickableIfEnabled(
+                enabled = enabled,
+                onClickLabel = clickLabel,
+                role = Role.Button,
+                onClick = onClick,
             ),
         contentAlignment = Alignment.Center,
     ) {

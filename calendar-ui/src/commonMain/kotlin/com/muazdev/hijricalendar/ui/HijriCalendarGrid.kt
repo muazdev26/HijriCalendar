@@ -25,6 +25,7 @@ import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.core.toCalendarMonth
+import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 
 internal const val PAGER_CENTER_PAGE = 500
@@ -45,8 +46,21 @@ fun HijriCalendarGrid(
 ) {
     val initialMonth = remember { calendarMonth.yearMonth }
 
+    // The navigable page window. Since minDate/maxDate are immutable on the state, the
+    // window is fixed: pages outside it (entirely out-of-range months) are rejected.
+    val minAllowedPage = remember(state.minDate, initialMonth) {
+        state.minDate?.yearMonth?.let {
+            PAGER_CENTER_PAGE + monthOffset(it, initialMonth)
+        } ?: 0
+    }
+    val maxAllowedPage = remember(state.maxDate, initialMonth) {
+        state.maxDate?.yearMonth?.let {
+            PAGER_CENTER_PAGE + monthOffset(it, initialMonth)
+        } ?: (PAGER_PAGE_COUNT - 1)
+    }
+
     val pagerState = rememberPagerState(
-        initialPage = PAGER_CENTER_PAGE,
+        initialPage = PAGER_CENTER_PAGE.coerceIn(minAllowedPage, maxAllowedPage),
         pageCount = { PAGER_PAGE_COUNT },
     )
 
@@ -54,7 +68,7 @@ fun HijriCalendarGrid(
     // compute the target page and animate the pager there.
     LaunchedEffect(calendarMonth.yearMonth) {
         val offset = monthOffset(calendarMonth.yearMonth, initialMonth)
-        val page = PAGER_CENTER_PAGE + offset
+        val page = (PAGER_CENTER_PAGE + offset).coerceIn(minAllowedPage, maxAllowedPage)
         if (page != pagerState.currentPage && page in 0 until PAGER_PAGE_COUNT) {
             pagerState.animateScrollToPage(page)
         }
@@ -67,7 +81,13 @@ fun HijriCalendarGrid(
         snapshotFlow { pagerState.settledPage }
             .drop(1)
             .collect { page ->
-                val offset = page - PAGER_CENTER_PAGE
+                // A swipe that overshoots the minDate/maxDate window snaps back to the
+                // boundary month instead of navigating out of range.
+                val clampedPage = page.coerceIn(minAllowedPage, maxAllowedPage)
+                if (clampedPage != page) {
+                    pagerState.animateScrollToPage(clampedPage)
+                }
+                val offset = clampedPage - PAGER_CENTER_PAGE
                 val month = initialMonth.plusPageOffset(offset)
                 if (month != state.currentMonth) {
                     state.goToMonth(month)
@@ -98,6 +118,7 @@ fun HijriCalendarGrid(
                 state.minDate,
                 state.maxDate,
                 state.adjustmentDays,
+                state.weekendDays,
             ) {
                 month.toCalendarMonth(
                     firstDayOfWeek = state.firstDayOfWeek,
@@ -105,6 +126,7 @@ fun HijriCalendarGrid(
                     minDate = state.minDate,
                     maxDate = state.maxDate,
                     adjustmentDays = state.adjustmentDays,
+                    weekendDays = state.weekendDays,
                 )
             }
             MonthGrid(
@@ -114,6 +136,7 @@ fun HijriCalendarGrid(
                 useArabicIndicNumerals = useArabicIndicNumerals,
                 dateDisplayMode = dateDisplayMode,
                 dayCellSize = dayCellSize,
+                labels = labels,
                 dayContent = dayContent,
             )
         }
@@ -152,6 +175,7 @@ private fun MonthGrid(
     useArabicIndicNumerals: Boolean,
     dateDisplayMode: DateDisplayMode,
     dayCellSize: Dp?,
+    labels: HijriCalendarLabels,
     dayContent: (@Composable (CalendarDay) -> Unit)?,
 ) {
     val weeks = remember(days) { days.chunked(CalendarMonth.DAYS_IN_WEEK) }
@@ -167,6 +191,7 @@ private fun MonthGrid(
                 useArabicIndicNumerals = useArabicIndicNumerals,
                 dateDisplayMode = dateDisplayMode,
                 dayCellSize = dayCellSize,
+                labels = labels,
                 dayContent = dayContent,
             )
         }

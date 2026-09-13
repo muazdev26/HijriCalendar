@@ -18,6 +18,7 @@ fun HijriWeekRow(
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     dayCellSize: Dp? = null,
+    labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
     require(days.size == 7) { "HijriWeekRow requires exactly 7 days, got ${days.size}" }
@@ -35,6 +36,7 @@ fun HijriWeekRow(
                     useArabicIndicNumerals = useArabicIndicNumerals,
                     dateDisplayMode = dateDisplayMode,
                     dayCellSize = dayCellSize,
+                    labels = labels,
                     content = dayContent?.let { { it(day) } },
                 )
             }

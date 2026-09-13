@@ -12,5 +12,8 @@ kotlin {
             implementation(libs.material.icons.extended)
             implementation("org.jetbrains.compose.ui:ui-tooling-preview:${libs.versions.composeMultiplatform.get()}")
         }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }

@@ -2,13 +2,14 @@ package com.muazdev.hijricalendar.ui
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 
 @Immutable
 data class HijriCalendarColors(
     val selectedDayContainerColor: Color,
     val selectedDayContentColor: Color,
     val todayBorderColor: Color,
-    val todayBorderWidth: Float,
+    val todayBorderWidth: Dp,
     val disabledDayContentColor: Color,
     val weekendDayContentColor: Color,
     val dayContentColor: Color,

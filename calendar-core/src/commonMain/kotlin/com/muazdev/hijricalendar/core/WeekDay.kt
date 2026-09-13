@@ -20,6 +20,9 @@ enum class WeekDay(
     companion object {
         val DEFAULT_FIRST_DAY: WeekDay = SATURDAY
 
+        /** Default weekend days (Friday + Saturday), used when none are configured. */
+        val WEEKEND_DAYS: Set<WeekDay> = setOf(FRIDAY, SATURDAY)
+
         fun fromDayOfWeek(dayOfWeek: DayOfWeek): WeekDay = when (dayOfWeek) {
             DayOfWeek.MONDAY -> MONDAY
             DayOfWeek.TUESDAY -> TUESDAY
