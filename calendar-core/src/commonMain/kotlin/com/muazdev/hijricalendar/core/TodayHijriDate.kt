@@ -10,13 +10,14 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * Computes today's Hijri date in the given [adjustmentDays]-shifted space.
  *
- * This is the single, shared implementation used both for "today" cell highlighting and
- * for `goToToday()`. It returns `null` instead of throwing when today's date cannot be
- * resolved (e.g. a broken system clock or a timezone provider failure); callers treat
- * `null` as "no today" and silently skip today-related behavior. The failure is echoed
- * to standard error so it is diagnosable in production logs.
+ * This is the single, shared implementation used for "today" cell highlighting,
+ * `goToToday()`, and as a building block for the `calendar-widget-data` projection API
+ * via [todayHijriWidgetData]. It returns `null` instead of throwing when today's date
+ * cannot be resolved (e.g. a broken system clock or a timezone provider failure);
+ * callers treat `null` as "no today" and silently skip today-related behavior. The
+ * failure is echoed so it is diagnosable in production logs.
  */
-internal fun todayHijriDate(adjustmentDays: Int): HijrahDate? {
+fun todayHijriDate(adjustmentDays: Int): HijrahDate? {
     return try {
         val now = kotlin.time.Clock.System.now()
         val localDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date

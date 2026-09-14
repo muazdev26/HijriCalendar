@@ -25,6 +25,8 @@ import kotlinx.datetime.plus
  *   to compensate for local moon sighting: the observed Hijri date of a Gregorian day is
  *   the Umm al-Qura conversion of `(date + adjustmentDays)`. All generated cells,
  *   weekday alignment, [selectedDate] and today detection live in this adjusted space.
+ *   Read it at runtime or change it with [setAdjustmentDays] (the selected date is kept on
+ *   the same real-world Gregorian day).
  * @param initialSelectedDate The initially selected date. May be given as an unadjusted
  *   (Umm al-Qura) [HijrahDate]; it is normalized into adjusted space at construction, so
  *   passing `today.toHijrahDate()` with `adjustmentDays != 0` still highlights the same
@@ -37,11 +39,24 @@ class HijriCalendarState(
     val firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     val minDate: HijrahDate? = null,
     val maxDate: HijrahDate? = null,
-    val adjustmentDays: Int = 0,
+    adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
+    initialSelectedPakistanDate: PakistanHijriDate? = null,
     val weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ) {
+    private var _adjustmentDays by mutableStateOf(adjustmentDays)
+    private var _pakistanDates by mutableStateOf(pakistanDates)
     private var _currentMonth by mutableStateOf(initialMonth)
     private var _selectedDate by mutableStateOf(initialSelectedDate.adjustToAdjustedSpace())
+    private var _selectedPakistanDate by mutableStateOf(initialSelectedPakistanDate)
+
+    val adjustmentDays: Int get() = _adjustmentDays
+
+    /**
+     * Whether the calendar shows Ruet-e-Hilal (Pakistan) dates instead of the Umm al-Qura
+     * calculation. Toggle at runtime with [setPakistanDates].
+     */
+    val pakistanDates: Boolean get() = _pakistanDates
 
     private fun HijrahDate?.adjustToAdjustedSpace(): HijrahDate? {
         if (this == null || adjustmentDays == 0) return this
@@ -54,6 +69,9 @@ class HijriCalendarState(
 
     val currentMonth: HijrahYearMonth get() = _currentMonth
     val selectedDate: HijrahDate? get() = _selectedDate
+
+    /** Selected date in Pakistan (Ruet-e-Hilal) space; non-null when a Pakistan-mode cell is selected. */
+    val selectedPakistanDate: PakistanHijriDate? get() = _selectedPakistanDate
 
     /**
      * Whether the previous month can be navigated to without leaving the
@@ -75,9 +93,11 @@ class HijriCalendarState(
         _currentMonth.toCalendarMonth(
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = _selectedDate,
+            selectedPakistanDate = _selectedPakistanDate,
             minDate = minDate,
             maxDate = maxDate,
             adjustmentDays = adjustmentDays,
+            pakistan = pakistanDates,
             weekendDays = weekendDays,
         )
     }
@@ -88,6 +108,31 @@ class HijriCalendarState(
 
     fun goToPreviousMonth() {
         _currentMonth = _currentMonth.minusMonthOrNull(1) ?: _currentMonth
+    }
+
+    /**
+     * Selects the given Pakistan (Ruet-e-Hilal) date. Falls back to navigating the month
+     * only when [minDate]/[maxDate] is configured (unbounded calendars never reject a date).
+     */
+    fun selectPakistanDate(date: PakistanHijriDate) {
+        _selectedPakistanDate = date
+        val yearMonth = HijrahYearMonth(date.year, date.month)
+        if (yearMonth != _currentMonth) {
+            _currentMonth = yearMonth
+        }
+    }
+
+    /**
+     * Routes a tapped cell to the selection space it belongs to (Umm al-Qura vs Pakistan),
+     * keeping the behavior identical whichever mode is active.
+     */
+    fun selectDay(day: CalendarDay) {
+        val pakistanDate = day.pakistanDate
+        if (pakistanDate != null) {
+            selectPakistanDate(pakistanDate)
+        } else {
+            day.hijrahDate?.let(::selectDate)
+        }
     }
 
     fun selectDate(date: HijrahDate) {
@@ -104,11 +149,63 @@ class HijriCalendarState(
     }
 
     fun goToToday() {
+        if (pakistanDates) {
+            val today = PakistanHijriCalendar.today()
+            if (today != null) {
+                _currentMonth = HijrahYearMonth(today.year, today.month)
+                _selectedPakistanDate = today
+            }
+            return
+        }
         val today = todayHijriDate(adjustmentDays)
         if (today != null) {
             _currentMonth = today.yearMonth
             _selectedDate = today
         }
+    }
+
+    /**
+     * Switches between the Umm al-Qura calculation and the Pakistan Ruet-e-Hilal calendar
+     * at runtime. The currently selected date is carried across the switch by its
+     * real-world Gregorian day.
+     */
+    fun setPakistanDates(enabled: Boolean) {
+        if (enabled == pakistanDates) return
+        if (enabled) {
+            _selectedPakistanDate = _selectedDate
+                ?.toLocalDate()
+                ?.let(PakistanHijriCalendar::gregorianToHijri)
+        } else {
+            _selectedDate = _selectedPakistanDate
+                ?.localDate
+                ?.minus(adjustmentDays, DateTimeUnit.DAY)
+                ?.let { runCatching { it.toHijrahDate() }.getOrNull() }
+        }
+        _pakistanDates = enabled
+    }
+
+    /**
+     * Changes the moon-sighting adjustment at runtime.
+     *
+     * The selected date (if any) is re-mapped so the same real-world Gregorian day stays
+     * selected — its Hijri representation in the new adjusted space — and the today
+     * highlight shifts accordingly. The current month is kept.
+     */
+    fun setAdjustmentDays(newAdjustmentDays: Int) {
+        val shift = newAdjustmentDays - adjustmentDays
+        if (shift == 0) {
+            _adjustmentDays = newAdjustmentDays
+            return
+        }
+        val remapped = _selectedDate?.let { current ->
+            try {
+                current.toLocalDate().plus(shift, DateTimeUnit.DAY).toHijrahDate()
+            } catch (_: Exception) {
+                current
+            }
+        }
+        _selectedDate = remapped
+        _adjustmentDays = newAdjustmentDays
     }
 
     private fun HijrahDate.isDisabledByRange(min: HijrahDate?, max: HijrahDate?): Boolean {
@@ -126,6 +223,8 @@ fun rememberHijriCalendarState(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
+    initialSelectedPakistanDate: PakistanHijriDate? = null,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ): HijriCalendarState {
     return remember {
@@ -136,6 +235,8 @@ fun rememberHijriCalendarState(
             minDate = minDate,
             maxDate = maxDate,
             adjustmentDays = adjustmentDays,
+            pakistanDates = pakistanDates,
+            initialSelectedPakistanDate = initialSelectedPakistanDate,
             weekendDays = weekendDays,
         )
     }
@@ -156,10 +257,12 @@ fun rememberSaveableHijriCalendarState(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
+    initialSelectedPakistanDate: PakistanHijriDate? = null,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ): HijriCalendarState {
-    val config = remember(firstDayOfWeek, minDate, maxDate, adjustmentDays, weekendDays) {
-        HijriCalendarStateConfig(firstDayOfWeek, minDate, maxDate, adjustmentDays, weekendDays)
+    val config = remember(firstDayOfWeek, minDate, maxDate, adjustmentDays, pakistanDates, weekendDays) {
+        HijriCalendarStateConfig(firstDayOfWeek, minDate, maxDate, adjustmentDays, pakistanDates, weekendDays)
     }
     val saver = remember(config) { hijriCalendarStateSaver(config) }
     return rememberSaveable(saver = saver) {
@@ -170,6 +273,8 @@ fun rememberSaveableHijriCalendarState(
             minDate = minDate,
             maxDate = maxDate,
             adjustmentDays = adjustmentDays,
+            pakistanDates = pakistanDates,
+            initialSelectedPakistanDate = initialSelectedPakistanDate,
             weekendDays = weekendDays,
         )
     }
@@ -180,14 +285,18 @@ internal data class HijriCalendarStateConfig(
     val minDate: HijrahDate?,
     val maxDate: HijrahDate?,
     val adjustmentDays: Int,
+    val pakistanDates: Boolean = false,
     val weekendDays: Set<WeekDay>,
 )
 
 /**
- * `Saver<HijriCalendarState, List<Int>>` encoding: `[year, month, (0|1), selYear, selMonth, selDay]`.
+ * `Saver<HijriCalendarState, List<Int>>` encoding:
+ * `[year, month, (0|1 pakistan), (0|1 hasSelection), selYear, selMonth, selDay]`.
  *
- * The selected date is saved in unadjusted space and re-normalized on restore because
- * [HijriCalendarState] always shifts `initialSelectedDate` by `adjustmentDays` at construction.
+ * The selected date is saved in its own space (Umm al-Qura unadjusted for the calculation
+ * calendar, Pakistan year/month/day for the Ruet-e-Hilal calendar) and re-normalized on
+ * restore because [HijriCalendarState] shifts `initialSelectedDate` by [HijriCalendarStateConfig.adjustmentDays]
+ * at construction.
  */
 internal fun hijriCalendarStateSaver(
     config: HijriCalendarStateConfig,
@@ -196,29 +305,48 @@ internal fun hijriCalendarStateSaver(
         buildList {
             add(state.currentMonth.year)
             add(state.currentMonth.month.number)
-            val selected = state.selectedDate.toUnadjustedSpace(config.adjustmentDays)
-            if (selected == null) {
+            add(if (config.pakistanDates) 1 else 0)
+            val selYear: Int?
+            val selMonth: Int?
+            val selDay: Int?
+            if (config.pakistanDates) {
+                val selected = state.selectedPakistanDate
+                selYear = selected?.year
+                selMonth = selected?.month
+                selDay = selected?.day
+            } else {
+                val selected = state.selectedDate.toUnadjustedSpace(config.adjustmentDays)
+                selYear = selected?.year
+                selMonth = selected?.month?.number
+                selDay = selected?.day
+            }
+            if (selYear == null) {
                 add(0)
             } else {
                 add(1)
-                add(selected.year)
-                add(selected.month.number)
-                add(selected.day)
+                add(selYear)
+                add(selMonth!!)
+                add(selDay!!)
             }
         }
     },
     restore = { saved ->
         val year = saved[0]
         val month = saved[1]
-        val hasSelection = saved[2] == 1
-        val selected = if (hasSelection) HijrahDate(saved[3], saved[4], saved[5]) else null
+        val pakistan = saved[2] == 1
+        val hasSelection = saved[3] == 1
+        val initialSelectedDate = if (hasSelection && !pakistan) HijrahDate(saved[4], saved[5], saved[6]) else null
+        val initialSelectedPakistanDate =
+            if (hasSelection && pakistan) PakistanHijriDate(saved[4], saved[5], saved[6]) else null
         HijriCalendarState(
             initialMonth = HijrahYearMonth(year, month),
-            initialSelectedDate = selected,
+            initialSelectedDate = initialSelectedDate,
             firstDayOfWeek = config.firstDayOfWeek,
             minDate = config.minDate,
             maxDate = config.maxDate,
             adjustmentDays = config.adjustmentDays,
+            pakistanDates = config.pakistanDates,
+            initialSelectedPakistanDate = initialSelectedPakistanDate,
             weekendDays = config.weekendDays,
         )
     },

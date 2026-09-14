@@ -115,17 +115,21 @@ fun HijriCalendarGrid(
                 month,
                 state.firstDayOfWeek,
                 state.selectedDate,
+                state.selectedPakistanDate,
                 state.minDate,
                 state.maxDate,
                 state.adjustmentDays,
+                state.pakistanDates,
                 state.weekendDays,
             ) {
                 month.toCalendarMonth(
                     firstDayOfWeek = state.firstDayOfWeek,
                     selectedDate = state.selectedDate,
+                    selectedPakistanDate = state.selectedPakistanDate,
                     minDate = state.minDate,
                     maxDate = state.maxDate,
                     adjustmentDays = state.adjustmentDays,
+                    pakistan = state.pakistanDates,
                     weekendDays = state.weekendDays,
                 )
             }

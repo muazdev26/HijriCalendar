@@ -3,7 +3,10 @@ package com.muazdev.hijricalendar.core
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
+import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -404,6 +407,79 @@ class HijriCalendarStateTest {
         assertEquals(max, state.maxDate)
     }
 
+    // ── setAdjustmentDays ──────────────────────────────────────────────
+
+    @Test
+    fun setAdjustmentDays_updatesProperty() {
+        val state = HijriCalendarState(initialMonth = HijrahYearMonth(1447, 9))
+        state.setAdjustmentDays(1)
+        assertEquals(1, state.adjustmentDays)
+    }
+
+    @Test
+    fun setAdjustmentDays_sameValue_keepsSelectionUnchanged() {
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1447, 9),
+            initialSelectedDate = HijrahDate(1447, 9, 15),
+            adjustmentDays = 1,
+        )
+        // 15 in unadjusted space → 16 observed with +1.
+        assertEquals(16, state.selectedDate!!.day)
+        state.setAdjustmentDays(1)
+        assertEquals(16, state.selectedDate!!.day)
+    }
+
+    @Test
+    fun setAdjustmentDays_keepsSelectedGregorianDay() {
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1447, 9),
+            initialSelectedDate = HijrahDate(1447, 9, 15),
+        )
+        // The real-world day back-mounted on the adjusted selection.
+        val gregorianBefore = state.selectedDate!!.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
+
+        state.setAdjustmentDays(1)
+
+        assertEquals(1, state.adjustmentDays)
+        // The selection re-expresses the same real-world day in the new adjusted space.
+        val gregorianAfter = state.selectedDate!!.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
+        assertEquals(gregorianBefore, gregorianAfter)
+    }
+
+    @Test
+    fun setAdjustmentDays_shiftsBackKeepsSelectedGregorianDay() {
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1447, 9),
+            initialSelectedDate = HijrahDate(1447, 9, 15),
+            adjustmentDays = 1,
+        )
+        val gregorianBefore = state.selectedDate!!.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
+
+        state.setAdjustmentDays(-1)
+
+        assertEquals(-1, state.adjustmentDays)
+        val gregorianAfter = state.selectedDate!!.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
+        assertEquals(gregorianBefore, gregorianAfter)
+    }
+
+    @Test
+    fun setAdjustmentDays_keepsTodayOnSameGregorianDay() {
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1445, 1),
+            adjustmentDays = 0,
+        )
+        state.goToToday()
+        val todayCellBefore = state.calendarMonth.days.first { it.isToday }
+
+        state.setAdjustmentDays(2)
+
+        assertEquals(2, state.adjustmentDays)
+        val todayCellAfter = state.calendarMonth.days.first { it.isToday }
+        // The highlighted cell still lands on the same real-world Gregorian day.
+        assertEquals(todayCellBefore.localDate, todayCellAfter.localDate)
+        assertEquals(todayCellBefore.dayOfWeek, todayCellAfter.dayOfWeek)
+    }
+
     // ── rememberSaveable Saver ─────────────────────────────────────────
 
     private val testSaverScope = object : SaverScope {
@@ -480,5 +556,62 @@ class HijriCalendarStateTest {
 
         assertEquals(HijrahYearMonth(1447, 9), restored.currentMonth)
         assertNull(restored.selectedDate)
+    }
+
+    // ── Pakistan (Ruet-e-Hilal) mode ────────────────────────────────────
+
+    @Test
+    fun pakistanMode_gridShowsTheThirtiethThatUmmAlQuraCannot() {
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 3),
+            pakistanDates = true,
+        )
+        val grid = state.calendarMonth.days
+        assertTrue(grid.any { it.pakistanDate == PakistanHijriDate(1448, 3, 30) })
+        assertNull(grid.first { it.pakistanDate == PakistanHijriDate(1448, 3, 30) }.hijrahDate)
+    }
+
+    @Test
+    fun pakistanMode_selectDay_selectsPakistanDate() {
+        val selected = PakistanHijriDate(1448, 3, 30)
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 3),
+            pakistanDates = true,
+        )
+        val day = state.calendarMonth.days.first { it.pakistanDate == selected }
+        state.selectDay(day)
+
+        assertEquals(selected, state.selectedPakistanDate)
+        assertEquals(HijrahYearMonth(1448, 3), state.currentMonth)
+    }
+
+    @Test
+    fun pakistanMode_goToToday_switchesToPakistanToday() {
+        val today = PakistanHijriCalendar.today()
+        if (today == null) {
+            return // Clock failure; nothing to assert.
+        }
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1447, 1),
+            pakistanDates = true,
+        )
+        state.goToToday()
+        assertEquals(today, state.selectedPakistanDate)
+    }
+
+    @Test
+    fun setPakistanDates_carriesSelectionAcrossToggle() {
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 3),
+            initialSelectedDate = HijrahDate(1448, 3, 15),
+        )
+        state.setPakistanDates(true)
+
+        assertEquals(HijrahDate(1448, 3, 15).toLocalDate(), state.selectedPakistanDate?.localDate)
+        assertTrue(state.pakistanDates)
+
+        state.setPakistanDates(false)
+        assertEquals(HijrahDate(1448, 3, 15).toLocalDate(), state.selectedDate?.toLocalDate())
+        assertFalse(state.pakistanDates)
     }
 }

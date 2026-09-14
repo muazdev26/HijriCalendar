@@ -13,12 +13,15 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.WeekDay
 import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 
 @Composable
 fun HijriCalendar(
@@ -44,18 +47,15 @@ fun HijriCalendar(
         "$hijriMonthLabel ${currentMonth.year}"
     }
 
-    val gregorianMonthText = remember(currentMonth, labels, state.adjustmentDays) {
-        val first = currentMonth.firstDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
-        val last = currentMonth.lastDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
-        when {
-            first.month == last.month && first.year == last.year ->
-                "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year}"
-            first.year == last.year ->
-                "${labels.gregorianMonthName(first.month.ordinal + 1)} - " +
-                    "${labels.gregorianMonthName(last.month.ordinal + 1)} ${first.year}"
-            else ->
-                "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year} - " +
-                    "${labels.gregorianMonthName(last.month.ordinal + 1)} ${last.year}"
+    val gregorianMonthText = remember(currentMonth, labels, state.adjustmentDays, state.pakistanDates) {
+        if (state.pakistanDates) {
+            val first = PakistanHijriCalendar.hijriToGregorian(currentMonth.year, currentMonth.month.number, 1)
+            val last = first.plus(PakistanHijriCalendar.lengthOfMonth(currentMonth.year, currentMonth.month.number) - 1, DateTimeUnit.DAY)
+            sameMonthRangeLabel(first, last, labels)
+        } else {
+            val first = currentMonth.firstDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
+            val last = currentMonth.lastDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
+            sameMonthRangeLabel(first, last, labels)
         }
     }
 
@@ -103,7 +103,7 @@ fun HijriCalendar(
 }
 
 fun HijriCalendarState.defaultOnDayClick(): (CalendarDay) -> Unit = { day ->
-    selectDate(day.hijrahDate)
+    selectDay(day)
 }
 
 @Composable
@@ -114,6 +114,7 @@ fun rememberHijriCalendarState(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ): HijriCalendarState = coreRememberHijriCalendarState(
     initialMonth = initialMonth,
@@ -122,6 +123,7 @@ fun rememberHijriCalendarState(
     minDate = minDate,
     maxDate = maxDate,
     adjustmentDays = adjustmentDays,
+    pakistanDates = pakistanDates,
     weekendDays = weekendDays,
 )
 
@@ -133,6 +135,7 @@ fun rememberSaveableHijriCalendarState(
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ): HijriCalendarState = coreRememberSaveableHijriCalendarState(
     initialMonth = initialMonth,
@@ -141,5 +144,18 @@ fun rememberSaveableHijriCalendarState(
     minDate = minDate,
     maxDate = maxDate,
     adjustmentDays = adjustmentDays,
+    pakistanDates = pakistanDates,
     weekendDays = weekendDays,
 )
+
+private fun sameMonthRangeLabel(first: LocalDate, last: LocalDate, labels: HijriCalendarLabels): String =
+    when {
+        first.month == last.month && first.year == last.year ->
+            "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year}"
+        first.year == last.year ->
+            "${labels.gregorianMonthName(first.month.ordinal + 1)} - " +
+                "${labels.gregorianMonthName(last.month.ordinal + 1)} ${first.year}"
+        else ->
+            "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year} - " +
+                "${labels.gregorianMonthName(last.month.ordinal + 1)} ${last.year}"
+    }

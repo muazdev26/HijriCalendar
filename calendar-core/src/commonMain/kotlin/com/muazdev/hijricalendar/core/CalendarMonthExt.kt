@@ -21,6 +21,11 @@ import kotlinx.datetime.plus
  * `isToday`, selection and month boundaries (a shifted day may belong to the previous
  * or next Hijri month).
  *
+ * With [pakistan] = true the grid is instead generated from the [PakistanHijriCalendar]
+ * Ruet-e-Hilal table: each cell's [CalendarDay.pakistanDate] is the true Pakistani date
+ * of that Gregorian day, and [adjustmentDays] is ignored (the table is already corrected).
+ * Selection and today highlight compare in that space.
+ *
  * Cells whose shifted date falls outside the supported Umm al-Qura range (~1300-1600 AH)
  * do not throw: they become disabled placeholders clamped to [HijrahDate.MIN] or
  * [HijrahDate.MAX].
@@ -28,11 +33,22 @@ import kotlinx.datetime.plus
 fun HijrahYearMonth.toCalendarMonth(
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     selectedDate: HijrahDate? = null,
+    selectedPakistanDate: PakistanHijriDate? = null,
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
+    pakistan: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
 ): CalendarMonth {
+    if (pakistan) {
+        return toPakistanCalendarMonth(
+            firstDayOfWeek = firstDayOfWeek,
+            selectedDate = selectedPakistanDate,
+            adjustmentDays = adjustmentDays,
+            weekendDays = weekendDays,
+        )
+    }
+
     val today = todayHijriDate(adjustmentDays)
 
     // Real-world Gregorian day the observed "1" of this month falls on.
@@ -61,6 +77,61 @@ fun HijrahYearMonth.toCalendarMonth(
             val clamped = if (shifted < HijrahDate.MIN.toLocalDate()) HijrahDate.MIN else HijrahDate.MAX
             CalendarDay(
                 hijrahDate = clamped,
+                isCurrentMonth = false,
+                isToday = false,
+                isSelected = false,
+                isDisabled = true,
+                isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
+                adjustmentDays = adjustmentDays,
+            )
+        }
+    }
+
+    return CalendarMonth(
+        yearMonth = this,
+        days = days.toImmutableList(),
+        firstDayOfWeek = firstDayOfWeek,
+        adjustmentDays = adjustmentDays,
+    )
+}
+
+/**
+ * Pakistan (Ruet-e-Hilal) variant of [toCalendarMonth]: each grid cell carries its true
+ * [PakistanHijriDate] for that real-world Gregorian day. The month under display stays the
+ * `HijrahYearMonth` acting purely as a (year, month) carrier, since month navigation runs
+ * on Hijri year-month numbers shared by both calendars.
+ */
+private fun HijrahYearMonth.toPakistanCalendarMonth(
+    firstDayOfWeek: WeekDay,
+    selectedDate: PakistanHijriDate?,
+    adjustmentDays: Int,
+    weekendDays: Set<WeekDay>,
+): CalendarMonth {
+    val today = PakistanHijriCalendar.today()
+
+    // Real-world Gregorian day the Pakistani "1" of this month falls on.
+    val monthStartAnchor = PakistanHijriCalendar.hijriToGregorian(year, month.number, 1)
+    val firstCellDow = WeekDay.fromDayOfWeek(monthStartAnchor.dayOfWeek)
+    val leadingDaysCount = daysBefore(firstCellDow, firstDayOfWeek)
+    val gridStart = monthStartAnchor.minus(leadingDaysCount, DateTimeUnit.DAY)
+
+    val days = (0 until CalendarMonth.TOTAL_DAYS).map { offset ->
+        val anchor = gridStart.plus(offset, DateTimeUnit.DAY)
+        val converted = PakistanHijriCalendar.gregorianToHijri(anchor)
+
+        if (converted != null && converted.year in PakistanHijriCalendar.MIN_YEAR..PakistanHijriCalendar.MAX_YEAR) {
+            CalendarDay(
+                pakistanDate = converted,
+                isCurrentMonth = converted.year == year && converted.month == month.number,
+                isToday = converted == today,
+                isSelected = converted == selectedDate,
+                isDisabled = false,
+                isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
+                adjustmentDays = adjustmentDays,
+            )
+        } else {
+            CalendarDay(
+                pakistanDate = null,
                 isCurrentMonth = false,
                 isToday = false,
                 isSelected = false,

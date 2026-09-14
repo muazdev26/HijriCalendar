@@ -11,7 +11,8 @@ import kotlinx.serialization.Serializable
 @Immutable
 @Serializable
 data class CalendarDay(
-    val hijrahDate: HijrahDate,
+    val hijrahDate: HijrahDate? = null,
+    val pakistanDate: PakistanHijriDate? = null,
     val isCurrentMonth: Boolean,
     val isToday: Boolean,
     val isSelected: Boolean,
@@ -19,7 +20,7 @@ data class CalendarDay(
     val isWeekend: Boolean,
     val adjustmentDays: Int = 0,
 ) {
-    val dayOfMonth: Int get() = hijrahDate.day
+    val dayOfMonth: Int get() = hijrahDate?.day ?: pakistanDate!!.day
 
     /**
      * The weekday of the real-world day this cell represents, i.e. the grid column it
@@ -30,7 +31,10 @@ data class CalendarDay(
     /**
      * The Gregorian day this cell represents in the real world.
      * With [adjustmentDays] != 0 this differs from `hijrahDate.toLocalDate()` by
-     * exactly [adjustmentDays] days.
+     * exactly [adjustmentDays] days. In Pakistan mode this is the [PakistanHijriDate]'s
+     * real-world day (no adjustment applies there — the table is already corrected).
      */
-    val localDate: LocalDate get() = hijrahDate.toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY)
+    val localDate: LocalDate
+        get() = hijrahDate?.toLocalDate()?.minus(adjustmentDays, DateTimeUnit.DAY)
+            ?: pakistanDate!!.localDate
 }
