@@ -18,8 +18,8 @@ import kotlin.test.assertTrue
  */
 class PakistanCalendarMonthTest {
 
-    private fun grid(year: Int, month: Int): CalendarMonth =
-        HijrahYearMonth(year, month).toCalendarMonth(pakistan = true)
+    private fun grid(year: Int, month: Int, adjustmentDays: Int = 0): CalendarMonth =
+        HijrahYearMonth(year, month).toCalendarMonth(pakistan = true, adjustmentDays = adjustmentDays)
 
     @Test
     fun monthsAfterLastFixResolveToAbsoluteGregorianDays() {
@@ -60,6 +60,37 @@ class PakistanCalendarMonthTest {
             d.day < length -> PakistanHijriDate(d.year, d.month, d.day + 1)
             d.month < 12 -> PakistanHijriDate(d.year, d.month + 1, 1)
             else -> PakistanHijriDate(d.year + 1, 1, 1)
+        }
+    }
+
+    @Test
+    fun adjustmentShiftsPakistanGridCells() {
+        val plusOne = grid(1448, 4, adjustmentDays = 1)
+        // Observed Pakistan date of the real Gregorian day 2026-09-14 is pakistan(2026-09-15) = 1448-04-02.
+        val shiftedCell = plusOne.days.first { it.localDate == LocalDate(2026, 9, 14) }
+        assertEquals(PakistanHijriDate(1448, 4, 2), shiftedCell.pakistanDate)
+        // The observed "1" of 1448-04 lands one Gregorian day earlier.
+        assertEquals(LocalDate(2026, 9, 13), plusOne.days.first { it.pakistanDate == PakistanHijriDate(1448, 4, 1) }.localDate)
+
+        // Unadjusted grid for the same real day still shows the 1st.
+        val plain = grid(1448, 4)
+        assertEquals(PakistanHijriDate(1448, 4, 1), plain.days.first { it.localDate == LocalDate(2026, 9, 14) }.pakistanDate)
+
+        // Negative adjustment mirrors the same day metadata but backwards.
+        val minusOne = grid(1448, 4, adjustmentDays = -1)
+        val shiftedBackCell = minusOne.days.first { it.localDate == LocalDate(2026, 9, 14) }
+        assertEquals(PakistanHijriDate(1448, 3, 30), shiftedBackCell.pakistanDate)
+    }
+
+    @Test
+    fun adjustmentKeepsGridGaplessAndReflectsTodayHighlight() {
+        for (adjustment in -1..1) {
+            val days = grid(1448, 4, adjustmentDays = adjustment).days
+            assertEquals(42, days.size)
+            val dates = days.mapNotNull { it.pakistanDate }
+            dates.zipWithNext().forEach { (a, b) ->
+                assertEquals(next(a), b, "adjusted grid must stay gapless (adj=$adjustment): $a -> $b")
+            }
         }
     }
 }

@@ -21,16 +21,19 @@ import kotlinx.datetime.plus
 /**
  * State holder for a Hijri calendar.
  *
- * @param adjustmentDays Shifts the whole calendar relative to the Umm al-Qura calculation
+ * @param adjustmentDays Shifts the whole calendar relative to the underlying calculation
  *   to compensate for local moon sighting: the observed Hijri date of a Gregorian day is
- *   the Umm al-Qura conversion of `(date + adjustmentDays)`. All generated cells,
- *   weekday alignment, [selectedDate] and today detection live in this adjusted space.
- *   Read it at runtime or change it with [setAdjustmentDays] (the selected date is kept on
- *   the same real-world Gregorian day).
+ *   the conversion of `(date + adjustmentDays)`. All generated cells, weekday alignment,
+ *   [selectedDate]/[selectedPakistanDate] and today detection live in this adjusted space.
+ *   In Pakistan (Ruet-e-Hilal) mode the same shift is applied on top of the Pakistan
+ *   table. Read it at runtime or change it with [setAdjustmentDays] (the selected date is
+ *   kept on the same real-world Gregorian day).
  * @param initialSelectedDate The initially selected date. May be given as an unadjusted
  *   (Umm al-Qura) [HijrahDate]; it is normalized into adjusted space at construction, so
  *   passing `today.toHijrahDate()` with `adjustmentDays != 0` still highlights the same
  *   real-world day that `isToday` highlights.
+ * @param initialSelectedPakistanDate The initially selected date in Pakistan space. It is
+ *   expected to be an observed date (already shifted by [adjustmentDays]).
  */
 @Stable
 class HijriCalendarState(
@@ -150,10 +153,13 @@ class HijriCalendarState(
 
     fun goToToday() {
         if (pakistanDates) {
-            val today = PakistanHijriCalendar.today()
-            if (today != null) {
-                _currentMonth = HijrahYearMonth(today.year, today.month)
-                _selectedPakistanDate = today
+            val todayObserved = PakistanHijriCalendar.today()
+                ?.localDate
+                ?.plus(adjustmentDays, DateTimeUnit.DAY)
+                ?.let(PakistanHijriCalendar::gregorianToHijri)
+            if (todayObserved != null) {
+                _currentMonth = HijrahYearMonth(todayObserved.year, todayObserved.month)
+                _selectedPakistanDate = todayObserved
             }
             return
         }
@@ -174,6 +180,7 @@ class HijriCalendarState(
         if (enabled) {
             _selectedPakistanDate = _selectedDate
                 ?.toLocalDate()
+                ?.plus(adjustmentDays, DateTimeUnit.DAY)
                 ?.let(PakistanHijriCalendar::gregorianToHijri)
         } else {
             _selectedDate = _selectedPakistanDate
@@ -194,6 +201,15 @@ class HijriCalendarState(
     fun setAdjustmentDays(newAdjustmentDays: Int) {
         val shift = newAdjustmentDays - adjustmentDays
         if (shift == 0) {
+            _adjustmentDays = newAdjustmentDays
+            return
+        }
+        if (pakistanDates) {
+            val remapped = _selectedPakistanDate
+                ?.localDate
+                ?.plus(shift, DateTimeUnit.DAY)
+                ?.let(PakistanHijriCalendar::gregorianToHijri)
+            _selectedPakistanDate = remapped
             _adjustmentDays = newAdjustmentDays
             return
         }

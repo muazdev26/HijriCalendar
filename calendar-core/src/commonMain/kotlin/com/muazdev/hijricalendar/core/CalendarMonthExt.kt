@@ -96,10 +96,11 @@ fun HijrahYearMonth.toCalendarMonth(
 }
 
 /**
- * Pakistan (Ruet-e-Hilal) variant of [toCalendarMonth]: each grid cell carries its true
- * [PakistanHijriDate] for that real-world Gregorian day. The month under display stays the
- * `HijrahYearMonth` acting purely as a (year, month) carrier, since month navigation runs
- * on Hijri year-month numbers shared by both calendars.
+ * Pakistan (Ruet-e-Hilal) variant of [toCalendarMonth]: each grid cell carries its observed
+ * [PakistanHijriDate]. Mirroring the Umm al-Qura semantics, the observed Pakistan date of a
+ * real-world Gregorian day [G] is `gregorianToHijri(G + adjustmentDays)`, so a moon-sighting
+ * adjustment (positive = dates one day ahead, negative = one day behind) shifts the whole
+ * grid, the today highlight, selection comparands and the weekday column alignment.
  */
 private fun HijrahYearMonth.toPakistanCalendarMonth(
     firstDayOfWeek: WeekDay,
@@ -107,23 +108,28 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
     adjustmentDays: Int,
     weekendDays: Set<WeekDay>,
 ): CalendarMonth {
-    val today = PakistanHijriCalendar.today()
+    val todayObserved = PakistanHijriCalendar.today()
+        ?.localDate
+        ?.plus(adjustmentDays, DateTimeUnit.DAY)
+        ?.let(PakistanHijriCalendar::gregorianToHijri)
 
-    // Real-world Gregorian day the Pakistani "1" of this month falls on.
+    // Real-world Gregorian day the observed Pakistani "1" of this month falls on.
     val monthStartAnchor = PakistanHijriCalendar.hijriToGregorian(year, month.number, 1)
+        .minus(adjustmentDays, DateTimeUnit.DAY)
     val firstCellDow = WeekDay.fromDayOfWeek(monthStartAnchor.dayOfWeek)
     val leadingDaysCount = daysBefore(firstCellDow, firstDayOfWeek)
     val gridStart = monthStartAnchor.minus(leadingDaysCount, DateTimeUnit.DAY)
 
     val days = (0 until CalendarMonth.TOTAL_DAYS).map { offset ->
         val anchor = gridStart.plus(offset, DateTimeUnit.DAY)
-        val converted = PakistanHijriCalendar.gregorianToHijri(anchor)
+        val shifted = anchor.plus(adjustmentDays, DateTimeUnit.DAY)
+        val converted = PakistanHijriCalendar.gregorianToHijri(shifted)
 
         if (converted != null && converted.year in PakistanHijriCalendar.MIN_YEAR..PakistanHijriCalendar.MAX_YEAR) {
             CalendarDay(
                 pakistanDate = converted,
                 isCurrentMonth = converted.year == year && converted.month == month.number,
-                isToday = converted == today,
+                isToday = converted == todayObserved,
                 isSelected = converted == selectedDate,
                 isDisabled = false,
                 isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,

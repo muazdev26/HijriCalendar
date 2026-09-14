@@ -31,10 +31,11 @@ data class CalendarDay(
     /**
      * The Gregorian day this cell represents in the real world.
      * With [adjustmentDays] != 0 this differs from `hijrahDate.toLocalDate()` by
-     * exactly [adjustmentDays] days. In Pakistan mode this is the [PakistanHijriDate]'s
-     * real-world day (no adjustment applies there — the table is already corrected).
+     * exactly [adjustmentDays] days. In Pakistan mode it differs from
+     * `pakistanDate.localDate` the same way, i.e. the observed `pakistanDate` of a
+     * real-world day [G] is `gregorianToHijri(G + adjustmentDays)`.
      */
     val localDate: LocalDate
         get() = hijrahDate?.toLocalDate()?.minus(adjustmentDays, DateTimeUnit.DAY)
-            ?: pakistanDate!!.localDate
+            ?: pakistanDate!!.localDate.minus(adjustmentDays, DateTimeUnit.DAY)
 }
