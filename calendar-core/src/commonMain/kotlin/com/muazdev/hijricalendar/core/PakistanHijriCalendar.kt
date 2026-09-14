@@ -91,12 +91,72 @@ object PakistanHijriCalendar {
 
     private val sortedFixes: List<Pair<Pair<Int, Int>, Fix>> = FIXES.toList().sortedBy { prolepticMonth(it.first.first, it.first.second) }
 
+    /**
+     * Absolute Gregorian epoch-day start of every Pakistani Hijri month in the supported
+     * range, keyed by [prolepticMonth]. Built once (lazily, thread-safe) by chaining the
+     * Umm al-Qura month lengths from the first official fix (1440-10) backward to
+     * [MIN_YEAR] and forward to [MAX_YEAR]. This turns the previous O(N²) `monthStart`
+     * (which re-summed the chain from the nearest fix on every call, freezing UI grids
+     * for months far from any fix) into an O(1) lookup.
+     */
+    private val monthStartTable: HashMap<Int, Long> by lazy { buildMonthStartTable() }
+
+    private fun buildMonthStartTable(): HashMap<Int, Long> {
+        val table = HashMap<Int, Long>((MAX_YEAR - MIN_YEAR + 1) * 12)
+        val firstFix = sortedFixes.first()
+        val anchorKey = prolepticMonth(firstFix.first.first, firstFix.first.second)
+        val anchorStart = firstFix.second.startEpochDays
+        val minKey = prolepticMonth(MIN_YEAR, 1)
+        val maxKey = prolepticMonth(MAX_YEAR, 12)
+        // Fast lookup: proleptic month → fix start (for re-anchoring the chain).
+        val fixStarts = sortedFixes.associate { prolepticMonth(it.first.first, it.first.second) to it.second.startEpochDays }
+        table[anchorKey] = anchorStart
+
+        // Walk backward from the first fix to MIN_YEAR: each month's start is the next
+        // month's start minus that month's length.
+        var running = anchorStart
+        for (key in anchorKey - 1 downTo minKey) {
+            val (y, m) = fromProleptic(key)
+            running -= lengthOfMonth(y, m)
+            // Re-anchor at any earlier fix so Umm al-Qura drift never accumulates.
+            fixStarts[key]?.let { running = it }
+            table[key] = running
+        }
+
+        // Walk forward from the first fix to MAX_YEAR: each month's start is the previous
+        // month's start plus that month's length. At every official fix the chain is
+        // snapped to the exact known start, eliminating accumulated Umm al-Qura drift.
+        running = anchorStart
+        for (key in anchorKey until maxKey) {
+            val (y, m) = fromProleptic(key)
+            running += lengthOfMonth(y, m)
+            fixStarts[key + 1]?.let { running = it }
+            table[key + 1] = running
+        }
+        return table
+    }
+
+/**
+     * Builds the [monthStartTable] (and, along the way, the [monthLengthTable]) eagerly.
+     * Call from a background thread at app startup so the one-time warm-up never runs on
+     * the main thread during a composition.
+     */
+    fun prewarm() {
+        // Touch the table so the one-time build happens here, not on a caller's thread.
+        monthStartTable.size
+    }
+
     /** Length of the Pakistani [year]/[month] (1-12), Umm al-Qura by default. */
     fun lengthOfMonth(year: Int, month: Int): Int {
         require(year in MIN_YEAR..MAX_YEAR) { "Year $year is out of the supported range $MIN_YEAR..$MAX_YEAR" }
-        return FIXES[year to month]?.length
-            ?: HijrahYearMonth(year, month).numberOfDays
+        return monthLengthTable.getOrPut(prolepticMonth(year, month)) {
+            FIXES[year to month]?.length
+                ?: HijrahYearMonth(year, month).numberOfDays
+        }
     }
+
+    /** Mirrors [lengthOfMonth], keyed by proleptic month, warmed during [prewarm]. */
+    private val monthLengthTable: HashMap<Int, Int> = HashMap((MAX_YEAR - MIN_YEAR + 1) * 12)
 
     /** The Gregorian day [day] of Pakistani [year]/[month] falls on. */
     fun hijriToGregorian(year: Int, month: Int, day: Int): LocalDate {
@@ -191,36 +251,9 @@ object PakistanHijriCalendar {
     }
 
     private fun monthStart(year: Int, month: Int): Long {
-        // Chain forward from the last fix at-or-before this month (backward for earlier
-        // months). Months with their own fix return the fix's absolute start; the sparse
-        // 1442..1448 window chains on Umm al-Qura lengths and the next fix re-syncs it.
-        val anchor = sortedFixes.lastOrNull { prolepticMonth(it.first.first, it.first.second) <= prolepticMonth(year, month) }
-            ?: sortedFixes.first()
-        val (fixYear, fixMonth) = anchor.first
-        val fixStart = anchor.second.startEpochDays
-        val deltaMonths = prolepticMonth(year, month) - prolepticMonth(fixYear, fixMonth)
-        return if (deltaMonths == 0) {
-            fixStart
-        } else if (deltaMonths > 0) {
-            // Sum the lengths of the fix month itself plus every month up to (but not
-            // including) the queried month. Including the fix month is essential: without
-            // it, the month immediately after a fix would reuse the fix's own start day,
-            // shifting every subsequent month a full 29-30 days early (reproduced as the
-            // "today leaks into the next month + whole months skipped" grid bug).
-            var days = 0L
-            for (i in prolepticMonth(fixYear, fixMonth) until prolepticMonth(year, month)) {
-                val (y, m) = fromProleptic(i)
-                days += lengthOfMonth(y, m)
-            }
-            fixStart + days
-        } else {
-            var days = 0L
-            for (i in prolepticMonth(year, month) until prolepticMonth(fixYear, fixMonth)) {
-                val (y, m) = fromProleptic(i)
-                days -= lengthOfMonth(y, m)
-            }
-            fixStart + days
-        }
+        require(year in MIN_YEAR..MAX_YEAR) { "Year $year is out of the supported range $MIN_YEAR..$MAX_YEAR" }
+        // O(1) lookup: the table is precomputed once from the nearest official fix.
+        return monthStartTable.getValue(prolepticMonth(year, month))
     }
 
     private fun prolepticMonth(year: Int, month: Int): Int = year * 12 + (month - 1)
