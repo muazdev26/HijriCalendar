@@ -418,6 +418,32 @@ Semantics:
 - Dates pushed outside the supported Umm al-Qura range (~1300–1600 AH) are rendered as
   disabled placeholder cells clamped to the range boundary instead of crashing.
 
+## Home-Screen Widgets
+
+The sample apps ship home-screen widgets backed by a shared, render-ready projection module
+(`calendar-widget-data`, published as the `WidgetCalendar` framework on iOS). It computes
+each Hijri month 6x7 grid plus a compact "today" projection without any native rendering
+code, so both platforms stay in sync on layout math, day accuracy, and the moon-sighting
+`adjustmentDays` convention.
+
+Android (Glance):
+
+- Month grid widget with today highlight and a small "today" card
+- Long-press configuration: `adjustmentDays` (moon sighting, -2..+2), numeral style
+  (Western / Arabic-Indic), first day of week, and an optional pinned Hijri year/month
+- Midnight + `TIME_CHANGED`/`TIMEZONE_CHANGED`/`BOOT_COMPLETED` refresh with a WorkManager
+  24h backstop; tapping today's cell deep-links the app to the current month
+
+iOS (WidgetKit, iOS 17+):
+
+- `systemSmall` (today card), `systemMedium` (4-row grid) and `systemLarge` (full grid)
+- One timeline entry per Hijri month day; anchor epochs are computed with a Gregorian
+  calendar in the user's timezone (never by dividing time by 86400)
+- Tap-through deep-links to `hijricalendar://today`
+
+The demo configuration screens are in `sample-android-app` and the `HijriWidgetExtension`
+target inside `iosApp/iosApp.xcodeproj`.
+
 ## Underlying Library
 
 This library uses [HijrahDateTime](https://github.com/abdulrahman-b0/HijrahDateTime) for Hijri date calculations and [kotlinx-datetime](https://github.com/Kotlin/kotlinx-datetime) for date/time operations.

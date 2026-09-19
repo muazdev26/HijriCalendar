@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget family palette (night theme) -->
+    <color name="widget_background">#1C1B1F</color>
+    <color name="widget_accent">#81C784</color>
+    <color name="widget_text_primary">#E6E1E5</color>
+    <color name="widget_text_secondary">#9E9A94</color>
+    <color name="widget_today_background">#81C784</color>
+    <color name="widget_text_on_today">#1C1B1F</color>
+</resources>

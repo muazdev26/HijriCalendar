@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.shared
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,6 +18,10 @@ fun MainViewController() = ComposeUIViewController {
             initialMonth = HijrahYearMonth(1447, 9),
             adjustmentDays = -1,
         )
+        val jumpTick by rememberDeepLinkJumpTick()
+        if (jumpTick > 0) {
+            LaunchedEffect(jumpTick) { state.goToToday() }
+        }
         CalendarScreen(
             state = state,
             dateDisplayMode = dateDisplayMode,
