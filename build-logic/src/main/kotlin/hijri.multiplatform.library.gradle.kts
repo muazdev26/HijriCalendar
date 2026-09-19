@@ -11,7 +11,7 @@ kotlin {
     android {
         namespace = project.findProperty("android.namespace") as? String
             ?: "com.muazdev.hijricalendar.${project.name.replace("-", ".")}"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
 
         compilerOptions {
