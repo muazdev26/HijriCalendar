@@ -32,6 +32,8 @@ import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import com.abdulrahman_b.hijrahdatetime.HijrahMonth
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 
 @Composable
 fun CalendarScreen(
@@ -53,11 +55,11 @@ fun CalendarScreen(
     val selectedDate = state.selectedDate
     val pakistanDate = state.selectedPakistanDate
 
-    val selectedDateText = remember(selectedDate, pakistanDate, dateDisplayMode) {
+    val selectedDateText = remember(selectedDate, pakistanDate, dateDisplayMode, state.adjustmentDays) {
         when {
             pakistanDate != null -> {
                 val hijriText = "${pakistanDate.day} ${HijrahMonth.entries[pakistanDate.month - 1].name} ${pakistanDate.year}"
-                val gregorianDate = pakistanDate.localDate
+                val gregorianDate = pakistanDate.localDate.minus(state.adjustmentDays, DateTimeUnit.DAY)
                 val gregorianText = "${gregorianDate.day} ${gregorianDate.month.name} ${gregorianDate.year}"
                 when (dateDisplayMode) {
                     DateDisplayMode.HIJRI_ONLY -> hijriText
@@ -67,7 +69,7 @@ fun CalendarScreen(
             }
             selectedDate != null -> {
                 val hijriText = "${selectedDate.day} ${selectedDate.month.name} ${selectedDate.year}"
-                val gregorianDate = selectedDate.toLocalDate()
+                val gregorianDate = selectedDate.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
                 val gregorianText = "${gregorianDate.day} ${gregorianDate.month.name} ${gregorianDate.year}"
                 when (dateDisplayMode) {
                     DateDisplayMode.HIJRI_ONLY -> hijriText
