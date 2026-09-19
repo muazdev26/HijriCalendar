@@ -2,6 +2,8 @@ package com.muazdev.hijricalendar.core
 
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -339,5 +341,57 @@ class CalendarMonthExtTest {
         val month = HijrahYearMonth(1447, 9).toCalendarMonth(selectedDate = selected)
         val selectedDay = month.days.single { it.isSelected }
         assertEquals(20, selectedDay.dayOfMonth)
+    }
+
+    // ── Null-safe accessors on placeholder cells (regression: P0 NPE) ───
+
+    @Test
+    fun placeholderCell_dayOfMonth_doesNotThrow() {
+        // Mirrors an out-of-range Pakistan cell: all date fields null, disabled.
+        val cell = CalendarDay(
+            hijrahDate = null,
+            pakistanDate = null,
+            observedDate = null,
+            isCurrentMonth = false,
+            isToday = false,
+            isSelected = false,
+            isDisabled = true,
+            isWeekend = false,
+        )
+        assertEquals(0, cell.dayOfMonth)
+    }
+
+    @Test
+    fun placeholderCell_localDate_doesNotThrow() {
+        // Regression for the `pakistanDate!!` NPE on out-of-range cells.
+        val today = kotlin.time.Clock.System.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val cell = CalendarDay(
+            hijrahDate = null,
+            pakistanDate = null,
+            observedDate = null,
+            isCurrentMonth = false,
+            isToday = false,
+            isSelected = false,
+            isDisabled = true,
+            isWeekend = false,
+        )
+        assertEquals(today, cell.localDate)
+    }
+
+    @Test
+    fun placeholderCell_dayOfWeek_doesNotThrow() {
+        // dayOfWeek reads through localDate, which must stay null-safe too.
+        val cell = CalendarDay(
+            hijrahDate = null,
+            pakistanDate = null,
+            observedDate = null,
+            isCurrentMonth = false,
+            isToday = false,
+            isSelected = false,
+            isDisabled = true,
+            isWeekend = false,
+        )
+        assertEquals(WeekDay.fromDayOfWeek(cell.localDate.dayOfWeek), cell.dayOfWeek)
     }
 }

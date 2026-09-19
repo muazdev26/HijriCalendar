@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -21,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.PakistanHijriCalendar
+import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
@@ -43,6 +47,8 @@ fun CalendarScreen(
     onAdjustmentDaysChange: ((Int) -> Unit)? = null,
     showPakistanToggle: Boolean = false,
     onPakistanDatesChange: ((Boolean) -> Unit)? = null,
+    showMonthLengthSettings: Boolean = false,
+    onMonthLengthOverridesChanged: (() -> Unit)? = null,
 ) {
     val selectedDate = state.selectedDate
     val pakistanDate = state.selectedPakistanDate
@@ -74,7 +80,9 @@ fun CalendarScreen(
     }
 
     Column(
-        modifier = modifier.padding(16.dp),
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         HijriCalendar(
@@ -111,6 +119,14 @@ fun CalendarScreen(
                     state.setPakistanDates(enabled)
                     onPakistanDatesChange?.invoke(enabled)
                 },
+            )
+        }
+
+        if (showMonthLengthSettings) {
+            Spacer(modifier = Modifier.height(16.dp))
+            MonthLengthSettingsPanel(
+                state = state,
+                onOverridesChanged = onMonthLengthOverridesChanged,
             )
         }
 
@@ -230,5 +246,131 @@ private fun AdjustmentSelector(
             },
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+/**
+ * Lets the user manually force the length (29 or 30 days) of the current, previous and next
+ * Hijri months — the Ruet-e-Hilal scenario of declaring a 30th (or clipping to a 29th)
+ * before the calculated month end. Overrides are recommended to be persisted by the caller
+ * via [onOverridesChanged] (they otherwise survive only for the process lifetime).
+ */
+@Composable
+private fun MonthLengthSettingsPanel(
+    state: HijriCalendarState,
+    onOverridesChanged: (() -> Unit)?,
+) {
+    val currentMonth = state.currentMonth
+    val months = remember(currentMonth) {
+        listOfNotNull(
+            currentMonth.minusMonthOrNull(1),
+            currentMonth,
+            currentMonth.plusMonthOrNull(1),
+        )
+    }
+    val hasOverrideForCurrentMonth = remember(state.overridesRevision, currentMonth) {
+        state.monthLengthOf(currentMonth.year, currentMonth.month.number) != null
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Month-end length overrides",
+            style = MaterialTheme.typography.titleSmall,
+        )
+        months.forEach { month ->
+            MonthLengthOverrideRow(
+                state = state,
+                month = month,
+                onOverridesChanged = onOverridesChanged,
+            )
+        }
+        Text(
+            text = if (hasOverrideForCurrentMonth) {
+                "Monthly override set — resets take effect immediately"
+            } else {
+                "No overrides set for this month"
+            },
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun MonthLengthOverrideRow(
+    state: HijriCalendarState,
+    month: HijrahYearMonth,
+    onOverridesChanged: (() -> Unit)?,
+) {
+    val year = month.year
+    val monthNumber = month.month.number
+
+    val lengths = remember(
+        state.overridesRevision,
+        state.pakistanDates,
+        year,
+        monthNumber,
+    ) {
+        if (state.pakistanDates) {
+            PakistanHijriCalendar.defaultLengthOfMonth(year, monthNumber) to
+                PakistanHijriCalendar.lengthOfMonth(year, monthNumber)
+        } else {
+            ObservedHijriCalendar.defaultLength(year, monthNumber) to
+                ObservedHijriCalendar.observedLength(year, monthNumber)
+        }
+    }
+    val defaultLength = lengths.first
+    val effectiveLength = lengths.second
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "${month.month.name} ${year}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = "calc ${defaultLength}d",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(29, 30).forEach { length ->
+                if (effectiveLength == length) {
+                    Button(onClick = {
+                        state.clearMonthLength(year, monthNumber)
+                        onOverridesChanged?.invoke()
+                    }) {
+                        Text("$length days")
+                    }
+                } else {
+                    OutlinedButton(onClick = {
+                        state.setMonthLength(year, monthNumber, length)
+                        onOverridesChanged?.invoke()
+                    }) {
+                        Text("$length days")
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun HijrahYearMonth.plusMonthOrNull(months: Int): HijrahYearMonth? {
+    return try {
+        plusMonth(months)
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun HijrahYearMonth.minusMonthOrNull(months: Int): HijrahYearMonth? {
+    return try {
+        minusMonth(months)
+    } catch (_: Exception) {
+        null
     }
 }

@@ -116,16 +116,19 @@ fun HijriCalendarGrid(
                 state.firstDayOfWeek,
                 state.selectedDate,
                 state.selectedPakistanDate,
+                state.selectedObservedDate,
                 state.minDate,
                 state.maxDate,
                 state.adjustmentDays,
                 state.pakistanDates,
                 state.weekendDays,
+                state.overridesRevision,
             ) {
                 month.toCalendarMonth(
                     firstDayOfWeek = state.firstDayOfWeek,
                     selectedDate = state.selectedDate,
                     selectedPakistanDate = state.selectedPakistanDate,
+                    selectedObservedDate = state.selectedObservedDate,
                     minDate = state.minDate,
                     maxDate = state.maxDate,
                     adjustmentDays = state.adjustmentDays,
@@ -202,7 +205,7 @@ private fun MonthGrid(
     }
 }
 
-private fun HijrahYearMonth.plusPageOffset(offset: Int): HijrahYearMonth {
+internal fun HijrahYearMonth.plusPageOffset(offset: Int): HijrahYearMonth {
     return if (offset >= 0) {
         this.plusMonth(offset)
     } else {
@@ -210,6 +213,6 @@ private fun HijrahYearMonth.plusPageOffset(offset: Int): HijrahYearMonth {
     }
 }
 
-private fun monthOffset(from: HijrahYearMonth, to: HijrahYearMonth): Int {
+internal fun monthOffset(from: HijrahYearMonth, to: HijrahYearMonth): Int {
     return (from.year - to.year) * 12 + (from.month.number - to.month.number)
 }

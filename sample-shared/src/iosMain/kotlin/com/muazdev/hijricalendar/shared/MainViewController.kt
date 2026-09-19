@@ -22,6 +22,8 @@ fun MainViewController() = ComposeUIViewController {
             dateDisplayMode = dateDisplayMode,
             onDateDisplayModeChange = { dateDisplayMode = it },
             labels = UrduCalendarLabels,
+            showAdjustmentSelector = true,
+            showPakistanToggle = true,
         )
     }
 }

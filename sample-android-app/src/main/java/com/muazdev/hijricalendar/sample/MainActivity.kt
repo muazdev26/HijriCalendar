@@ -28,6 +28,12 @@ class MainActivity : ComponentActivity() {
                         onDateDisplayModeChange = viewModel::onDateDisplayModeChange,
                         onJumpToToday = viewModel::goToToday,
                         labels = UrduCalendarLabels,
+                        showAdjustmentSelector = true,
+                        onAdjustmentDaysChange = viewModel::onAdjustmentDaysChange,
+                        showPakistanToggle = true,
+                        onPakistanDatesChange = viewModel::onPakistanDatesChange,
+                        showMonthLengthSettings = true,
+                        onMonthLengthOverridesChanged = viewModel::persistMonthLengthOverrides,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),

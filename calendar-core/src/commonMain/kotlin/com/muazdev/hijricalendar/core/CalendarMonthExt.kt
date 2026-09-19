@@ -34,6 +34,7 @@ fun HijrahYearMonth.toCalendarMonth(
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     selectedDate: HijrahDate? = null,
     selectedPakistanDate: PakistanHijriDate? = null,
+    selectedObservedDate: ObservedHijriDate? = null,
     minDate: HijrahDate? = null,
     maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
@@ -44,6 +45,16 @@ fun HijrahYearMonth.toCalendarMonth(
         return toPakistanCalendarMonth(
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = selectedPakistanDate,
+            adjustmentDays = adjustmentDays,
+            weekendDays = weekendDays,
+        )
+    }
+
+    // User month-length overrides turn the Umm al-Qura grid into the observed calendar.
+    if (HijriMonthOverrides.all().isNotEmpty()) {
+        return toObservedCalendarMonth(
+            firstDayOfWeek = firstDayOfWeek,
+            selectedDate = selectedObservedDate,
             adjustmentDays = adjustmentDays,
             weekendDays = weekendDays,
         )
@@ -162,6 +173,67 @@ private fun LocalDate.toHijrahDateOrNull(): HijrahDate? {
     } catch (_: Exception) {
         null
     }
+}
+
+/**
+ * Observed Umm al-Qura variant of [toCalendarMonth]: when the user forces month lengths
+ * via [HijriMonthOverrides], each grid cell carries its observed [ObservedHijriDate]. The
+ * real-world Gregorian day a cell represents stays `anchor`; the observed Hijri date of
+ * that day is computed from the override-shifted calendar, so a forced 30th (or a clipped
+ * 29th) realigns the "1 of the month" headings and the today/selection highlights.
+ */
+private fun HijrahYearMonth.toObservedCalendarMonth(
+    firstDayOfWeek: WeekDay,
+    selectedDate: ObservedHijriDate?,
+    adjustmentDays: Int,
+    weekendDays: Set<WeekDay>,
+): CalendarMonth {
+    val todayObserved = ObservedHijriCalendar.today(adjustmentDays)
+
+    // Real-world Gregorian day the observed "1" of this month falls on.
+    val monthStartAnchor = ObservedHijriCalendar.observedToGregorian(year, month.number, 1)
+        .minus(adjustmentDays, DateTimeUnit.DAY)
+    val firstCellDow = WeekDay.fromDayOfWeek(monthStartAnchor.dayOfWeek)
+    val leadingDaysCount = daysBefore(firstCellDow, firstDayOfWeek)
+    val gridStart = monthStartAnchor.minus(leadingDaysCount, DateTimeUnit.DAY)
+
+    val days = (0 until CalendarMonth.TOTAL_DAYS).map { offset ->
+        val anchor = gridStart.plus(offset, DateTimeUnit.DAY)
+        val shifted = anchor.plus(adjustmentDays, DateTimeUnit.DAY)
+        val observed = ObservedHijriCalendar.observedDateAt(shifted.toEpochDays())
+
+        if (observed != null) {
+            CalendarDay(
+                hijrahDate = shifted.toHijrahDateOrNull(),
+                observedDate = observed,
+                isCurrentMonth = observed.year == year && observed.month == month.number,
+                isToday = observed == todayObserved,
+                isSelected = observed == selectedDate,
+                isDisabled = false,
+                isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
+                adjustmentDays = adjustmentDays,
+            )
+        } else {
+            // Out of the supported Umm al-Qura range: clamp instead of crashing.
+            val clamped = if (shifted < HijrahDate.MIN.toLocalDate()) HijrahDate.MIN else HijrahDate.MAX
+            CalendarDay(
+                hijrahDate = clamped,
+                isCurrentMonth = false,
+                isToday = false,
+                isSelected = false,
+                isDisabled = true,
+                isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
+                adjustmentDays = adjustmentDays,
+            )
+        }
+    }
+
+    return CalendarMonth(
+        yearMonth = this,
+        days = days.toImmutableList(),
+        firstDayOfWeek = firstDayOfWeek,
+        adjustmentDays = adjustmentDays,
+    )
 }
 
 private fun daysBefore(actualFirstDay: WeekDay, desiredFirstDay: WeekDay): Int {

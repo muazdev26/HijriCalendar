@@ -13,6 +13,8 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.WeekDay
 import androidx.compose.ui.unit.Dp
@@ -47,10 +49,26 @@ fun HijriCalendar(
         "$hijriMonthLabel ${currentMonth.year}"
     }
 
-    val gregorianMonthText = remember(currentMonth, labels, state.adjustmentDays, state.pakistanDates) {
+    val gregorianMonthText = remember(
+        currentMonth,
+        labels,
+        state.adjustmentDays,
+        state.pakistanDates,
+        state.overridesRevision,
+    ) {
         if (state.pakistanDates) {
             val first = PakistanHijriCalendar.hijriToGregorian(currentMonth.year, currentMonth.month.number, 1)
             val last = first.plus(PakistanHijriCalendar.lengthOfMonth(currentMonth.year, currentMonth.month.number) - 1, DateTimeUnit.DAY)
+            sameMonthRangeLabel(first, last, labels)
+        } else if (com.muazdev.hijricalendar.core.HijriMonthOverrides.all().isNotEmpty()) {
+            val first = com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedToGregorian(
+                currentMonth.year, currentMonth.month.number, 1,
+            )
+            val last = com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedToGregorian(
+                currentMonth.year,
+                currentMonth.month.number,
+                com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedLength(currentMonth.year, currentMonth.month.number),
+            )
             sameMonthRangeLabel(first, last, labels)
         } else {
             val first = currentMonth.firstDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
@@ -148,7 +166,7 @@ fun rememberSaveableHijriCalendarState(
     weekendDays = weekendDays,
 )
 
-private fun sameMonthRangeLabel(first: LocalDate, last: LocalDate, labels: HijriCalendarLabels): String =
+internal fun sameMonthRangeLabel(first: LocalDate, last: LocalDate, labels: HijriCalendarLabels): String =
     when {
         first.month == last.month && first.year == last.year ->
             "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year}"
