@@ -58,17 +58,18 @@ fun HijriCalendar(
     ) {
         if (state.pakistanDates) {
             val first = PakistanHijriCalendar.hijriToGregorian(currentMonth.year, currentMonth.month.number, 1)
+                .minus(state.adjustmentDays, DateTimeUnit.DAY)
             val last = first.plus(PakistanHijriCalendar.lengthOfMonth(currentMonth.year, currentMonth.month.number) - 1, DateTimeUnit.DAY)
             sameMonthRangeLabel(first, last, labels)
         } else if (com.muazdev.hijricalendar.core.HijriMonthOverrides.all().isNotEmpty()) {
             val first = com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedToGregorian(
                 currentMonth.year, currentMonth.month.number, 1,
-            )
+            ).minus(state.adjustmentDays, DateTimeUnit.DAY)
             val last = com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedToGregorian(
                 currentMonth.year,
                 currentMonth.month.number,
                 com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedLength(currentMonth.year, currentMonth.month.number),
-            )
+            ).minus(state.adjustmentDays, DateTimeUnit.DAY)
             sameMonthRangeLabel(first, last, labels)
         } else {
             val first = currentMonth.firstDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
