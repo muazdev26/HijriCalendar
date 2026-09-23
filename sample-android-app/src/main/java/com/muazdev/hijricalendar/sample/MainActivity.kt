@@ -1,5 +1,6 @@
 package com.muazdev.hijricalendar.sample
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,26 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.muazdev.hijricalendar.sample.widget.HIJRI_DEEP_LINK_TODAY
-import com.muazdev.hijricalendar.sample.widget.HijriWidgetRefreshGate
+import com.muazdev.hijricalendar.widget.glance.HIJRI_DEEP_LINK_TODAY
 import com.muazdev.hijricalendar.shared.CalendarScreen
 import com.muazdev.hijricalendar.shared.UrduCalendarLabels
 import org.koin.compose.viewmodel.koinViewModel
 
 class MainActivity : ComponentActivity() {
-    override fun onStart() {
-        super.onStart()
-        HijriWidgetRefreshGate.setAppForeground(true)
-    }
-
-    override fun onStop() {
-        HijriWidgetRefreshGate.setAppForeground(false)
-        super.onStop()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -43,7 +37,14 @@ class MainActivity : ComponentActivity() {
                     if (deepLinkJumpsToToday) viewModel.goToToday()
                 }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        WidgetCatalogTopBar(onAddWidgetsClick = {
+                            startActivity(Intent(this, WidgetCatalogActivity::class.java))
+                        })
+                    },
+                ) { innerPadding ->
                     CalendarScreen(
                         state = viewModel.state,
                         dateDisplayMode = viewModel.dateDisplayMode,
@@ -64,4 +65,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@androidx.compose.runtime.Composable
+private fun WidgetCatalogTopBar(onAddWidgetsClick: () -> Unit) {
+    TopAppBar(
+        title = { Text("Hijri Calendar") },
+        actions = {
+            TextButton(onClick = onAddWidgetsClick) { Text("Add widget") }
+        },
+    )
 }

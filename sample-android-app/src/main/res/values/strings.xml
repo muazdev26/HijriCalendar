@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="hijri_widget_label">Hijri Calendar</string>
-    <string name="hijri_widget_description">Hijri month grid and today\'s date, in sync with the in-app calendar.</string>
-    <string name="hijri_widget_unavailable">Hijri date unavailable</string>
-</resources>

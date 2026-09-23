@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 import WidgetCalendar
@@ -35,7 +36,7 @@ private struct TodayView: View {
                 Text(today.hijriMonthName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(accent)
-                Text(String(today.hijriDay))
+                Text(today.hijriDayText)
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
                 HStack {
@@ -56,21 +57,35 @@ private struct TodayView: View {
 }
 
 private struct MonthGridView: View {
+    @Environment(\.layoutDirection) private var layoutDirection
     let entry: HijriEntry
     let rows: Int
 
     var body: some View {
         if let month = entry.month {
             VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(month.hijriMonthName)
-                        .font(.system(size: rows == 4 ? 15 : 13, weight: .semibold))
-                        .foregroundStyle(accent)
-                    Spacer()
-                    Text(month.gregorianRange)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    MonthNavButton(
+                        symbol: layoutDirection == .rightToLeft ? "chevron.right" : "chevron.left",
+                        intent: HijriPrevMonthIntent()
+                    )
+                    // Tapping the month name returns the grid to following today.
+                    Button(intent: HijriTodayResetIntent()) {
+                        Text(month.hijriMonthName)
+                            .font(.system(size: rows == 4 ? 15 : 13, weight: .semibold))
+                            .foregroundStyle(accent)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    MonthNavButton(
+                        symbol: layoutDirection == .rightToLeft ? "chevron.left" : "chevron.right",
+                        intent: HijriNextMonthIntent()
+                    )
                 }
+                Text(month.gregorianRange)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 Text(month.weekdayHeaders.joined(separator: " "))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -87,6 +102,21 @@ private struct MonthGridView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// One header chevron; tapping steps the grid one Hijri month in place.
+private struct MonthNavButton<Intent: AppIntent>: View {
+    let symbol: String
+    let intent: Intent
+
+    var body: some View {
+        Button(intent: intent) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(accent)
+        }
+        .buttonStyle(.plain)
     }
 }
 

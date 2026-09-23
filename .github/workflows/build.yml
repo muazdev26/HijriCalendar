@@ -33,8 +33,14 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Run core + UI unit tests
-        run: ./gradlew :calendar-core:desktopTest :calendar-ui:desktopTest :calendar-widget-data:desktopTest --console=plain
+      - name: Run core + UI + widget unit tests
+        run: |
+          ./gradlew \
+            :calendar-core:desktopTest \
+            :calendar-ui:desktopTest \
+            :calendar-widget-data:desktopTest \
+            :calendar-widget-glance:testDebugUnitTest \
+            --console=plain
 
       - name: Assemble sample debug APK
         run: ./gradlew :sample-android-app:assembleDebug --console=plain

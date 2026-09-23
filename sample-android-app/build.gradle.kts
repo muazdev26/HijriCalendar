@@ -26,13 +26,17 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
     implementation(project(":sample-shared"))
     implementation(project(":calendar-core"))
     implementation(project(":calendar-ui"))
-    implementation(project(":calendar-widget-data"))
+    implementation(project(":calendar-widget-glance"))
     implementation(libs.hijrah.datetime)
     implementation(libs.kotlinx.datetime)
     implementation(platform(libs.androidx.compose.bom))
@@ -42,8 +46,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.work.runtime)
     implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.compose.viewmodel)
@@ -53,4 +55,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.espresso.core)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

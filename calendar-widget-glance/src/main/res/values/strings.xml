@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hijri_widget_label">Hijri Calendar</string>
+    <string name="hijri_widget_description">Hijri month grid and today\'s date, in sync with the in-app calendar.</string>
+    <string name="hijri_widget_unavailable">Hijri date unavailable</string>
+    <string name="hijri_today_widget_label">Hijri Today</string>
+    <string name="hijri_today_widget_description">Today\'s Hijri date with the corresponding Gregorian date; fixed size, follows the Hijri Calendar widget\'s settings.</string>
+    <string name="hijri_date_widget_label">Hijri Date</string>
+    <string name="hijri_date_widget_description">Today\'s Hijri day and month as a compact tile; follows the Hijri Calendar widget\'s settings.</string>
+    <string name="gregorian_date_widget_label">Gregorian Date</string>
+    <string name="gregorian_date_widget_description">Today\'s Gregorian day and month as a compact tile; follows the Hijri Calendar widget\'s settings.</string>
+</resources>

@@ -2,6 +2,7 @@ package com.muazdev.hijricalendar.core
 
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlin.test.Test
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
@@ -49,5 +50,24 @@ class PakistanCalendarPerformanceTest {
                 "$ym took ${dur.inWholeMilliseconds}ms to generate a grid (was ~2000ms before the fix)",
             )
         }
+    }
+
+    /**
+     * [PakistanHijriCalendar.isWarmForCurrentOverrides] is the gate the warm-up coordinator (and
+     * any caller that wants to avoid being "the thread that builds") uses to skip an already-done
+     * build. It reports warmness against the *current* overrides revision: a table built for an
+     * older revision is cold again, because an override change re-anchors the month chain.
+     */
+    @Test
+    fun isWarmForCurrentOverridesTracksRevision() {
+        HijriMonthOverrides.setMonthLength(1450, 4, 29)
+        HijriMonthOverrides.clearMonthLength(1450, 4)
+        // The table (any previously-built one) is stale for the bumped revision.
+        assertFalse(PakistanHijriCalendar.isWarmForCurrentOverrides())
+        PakistanHijriCalendar.prewarm()
+        assertTrue(PakistanHijriCalendar.isWarmForCurrentOverrides())
+        // Still warm after a second prewarm: the build is one-time for a revision.
+        PakistanHijriCalendar.prewarm()
+        assertTrue(PakistanHijriCalendar.isWarmForCurrentOverrides())
     }
 }

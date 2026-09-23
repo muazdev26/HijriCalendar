@@ -161,6 +161,46 @@ class WidgetDataTest {
         val anchor = LocalDate(2026, 9, 13).toEpochDays()
         val today = assertNotNull(todayHijriWidgetData(anchorEpochDay = anchor, adjustmentDays = 0))
         assertEquals("13 September 2026", today.gregorianDate)
+        // The piecewise Gregorian fields must agree with the composed gregorianDate line and the
+        // unshifted anchor (adjustmentDays shifts only the Hijri projection).
+        assertEquals(13, today.gregorianDay)
+        assertEquals("13", today.gregorianDayText)
+        assertEquals(9, today.gregorianMonth)
+        assertEquals("September", today.gregorianMonthName)
+    }
+
+    @Test
+    fun today_gregorianFieldsFollowAdjustment() {
+        // adjustmentDays shifts the Hijri date but never the Gregorian day/month reported; the
+        // gregorianDate line and the piecewise fields both stay anchored to the real-world day.
+        val anchor = LocalDate(2026, 9, 13).toEpochDays()
+        val adjusted = assertNotNull(todayHijriWidgetData(anchorEpochDay = anchor, adjustmentDays = -2))
+        assertEquals(13, adjusted.gregorianDay)
+        assertEquals(9, adjusted.gregorianMonth)
+        assertEquals("13", adjusted.gregorianDayText)
+        assertEquals("13 September 2026", adjusted.gregorianDate)
+    }
+
+    @Test
+    fun today_gregorianYearMatchesAnchor() {
+        val anchor = LocalDate(2026, 9, 13).toEpochDays()
+        val today = assertNotNull(todayHijriWidgetData(anchorEpochDay = anchor, adjustmentDays = 0))
+        assertEquals(2026, today.gregorianYear)
+    }
+
+    @Test
+    fun grid_gregorianMonthTitleMatchesFirstGregorianDay() {
+        val defaultGregorianNames = listOf(
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        )
+        val data = month(1447, 11) // Shawwal 1447
+        val firstCurrent = data.days.first { it.isCurrentMonth }
+        val firstGregorian = LocalDate.fromEpochDays(firstCurrent.gregorianEpochDay)
+        assertEquals(
+            "${defaultGregorianNames[firstGregorian.month.ordinal]} ${firstGregorian.year}",
+            data.gregorianMonthTitle,
+        )
     }
 
     @Test

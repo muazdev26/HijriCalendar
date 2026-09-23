@@ -31,7 +31,15 @@ struct HijriTimelineProvider: AppIntentTimelineProvider {
     }
 
     private func todayProjection(at epochDay: Int64) -> TodayHijriWidgetData? {
-        WidgetDataApiKt.todayHijriWidgetData(anchorEpochDay: epochDay, adjustmentDays: adjustmentDays)
+        WidgetDataApiKt.todayHijriWidgetData(
+            anchorEpochDay: epochDay,
+            adjustmentDays: adjustmentDays,
+            localizedHijriMonthNames: nil,
+            localizedGregorianMonthNames: nil,
+            localizedWeekdayNames: nil,
+            numeralStyle: .western,
+            pakistan: false
+        )
     }
 
     func placeholder(in context: Context) -> HijriEntry {
@@ -78,14 +86,27 @@ struct HijriTimelineProvider: AppIntentTimelineProvider {
     }
 
     private func monthGrid(containing date: Date) -> HijriMonthWidgetData? {
+        // When the user navigated away from today the grid follows the remembered month for this
+        // widget; otherwise it follows the current Hijri month.
+        if let viewed = HijriWidgetStore.viewedMonth() {
+            return grid(year: viewed.year, month: viewed.month)
+        }
         guard let today = todayProjection(at: localEpochDay(for: date)) else { return nil }
-        return WidgetDataApiKt.buildHijriMonthWidgetData(
-            hijriYear: today.hijriYear,
-            hijriMonth: today.hijriMonth,
+        return grid(year: today.hijriYear, month: today.hijriMonth)
+    }
+
+    private func grid(year: Int32, month: Int32) -> HijriMonthWidgetData? {
+        WidgetDataApiKt.buildHijriMonthWidgetData(
+            hijriYear: year,
+            hijriMonth: month,
             adjustmentDays: adjustmentDays,
             firstDayOfWeekIndex: 0,
             numeralStyle: .western,
+            pakistan: false,
+            weekendDays: Calendar_coreWeekDay.companion.WEEKEND_DAYS,
+            rightToLeft: false,
             localizedHijriMonthNames: nil,
+            localizedGregorianMonthNames: nil,
             localizedWeekdayNames: nil
         )
     }

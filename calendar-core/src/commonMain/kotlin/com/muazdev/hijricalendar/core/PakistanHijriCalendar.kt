@@ -190,6 +190,18 @@ object PakistanHijriCalendar {
     }
 
     /**
+     * True when the century table is already built for the current
+     * [HijriMonthOverrides] revision, so a coordinator (e.g. a coroutine
+     * warm-up) can skip starting a build that has already happened. Pure read,
+     * never triggers a build; [prewarm] and the date math functions are the
+     * only entry points that construct the table.
+     */
+    fun isWarmForCurrentOverrides(): Boolean {
+        val current = monthTable.load()
+        return current != null && current.revision == HijriMonthOverrides.currentRevision
+    }
+
+    /**
      * Effective length of the Pakistani [year]/[month] (1-12): a user override wins, then
      * the [FIXES] table, then the Umm al-Qura default.
      */

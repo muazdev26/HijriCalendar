@@ -4,17 +4,16 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.kotlin.multiplatform")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("hijri.publish")
 }
 
 // Render-ready projection API shared by the native widget renderers (Glance RemoteViews
-// on Android, SwiftUI WidgetKit on iOS). Pure Kotlin, no Compose. Deliberately NOT
-// published ("hijri.publish" is not applied); it is an internal adapter over
-// calendar-core, and JitPack's publish command only touches calendar-core/calendar-ui.
+// on Android, SwiftUI WidgetKit on iOS). Pure Kotlin, no Compose. Published as a library.
 kotlin {
     android {
         namespace = project.findProperty("android.namespace") as? String
             ?: "com.muazdev.hijricalendar.${project.name.replace("-", ".")}"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
 
         compilerOptions {
