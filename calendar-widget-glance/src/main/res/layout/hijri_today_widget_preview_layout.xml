@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static preview shown in the Android 12-14 widget picker for the "today" strip widget.
+     Mirrors the live strip: Gregorian date (bold day over month+year) on the left and the
+     Hijri date (bold accent day over month+year) on the right, whatever the reading direction. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingLeft="12dp"
+    android:paddingTop="4dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="4dp"
+    tools:ignore="UnusedAttribute">
+
+    <!-- Gregorian half -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="18"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="September 2026"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Hijri half (always the right-hand side) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="۲۱"
+            android:textColor="@color/widget_accent"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="محرم ۱۴۴۸"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

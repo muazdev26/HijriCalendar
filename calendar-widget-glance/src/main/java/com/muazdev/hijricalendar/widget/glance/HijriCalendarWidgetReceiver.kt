@@ -20,6 +20,9 @@ class HijriCalendarWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // Picker previews are independent of re-render gating: publishing them is cheap, guarded
+        // to once per day, and a host update is the natural moment after a widget is added.
+        HijriWidgetPreviewPublisher.publishIfDueAsync(context)
         if (HijriWidgetRefreshGate.isAppForeground()) {
             HijriWidgetConfig.markRefreshPending(context, true)
             HijriWidgetRefreshLog.d("host-update", "skip: app foreground; marked pending")

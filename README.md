@@ -428,11 +428,41 @@ code, so both platforms stay in sync on layout math, day accuracy, and the moon-
 
 Android (Glance):
 
-- Month grid widget with today highlight and a small "today" card
-- Long-press configuration: `adjustmentDays` (moon sighting, -2..+2), numeral style
-  (Western / Arabic-Indic), first day of week, and an optional pinned Hijri year/month
-- Midnight + `TIME_CHANGED`/`TIMEZONE_CHANGED`/`BOOT_COMPLETED` refresh with a WorkManager
-  24h backstop; tapping today's cell deep-links the app to the current month
+- Month grid widget with today's highlighted cell, weekend tinting and faded out-of-month cells
+  matching the in-app calendar, plus a compact "today" card; the 1x1 size keeps the month name
+  visible and shrinks its type instead of dropping it
+- On-widget month navigation: big header arrows step the grid one Hijri month and tapping the
+  month title (Hijri + Gregorian month on the same line) returns to following today, remembered
+  per widget instance. The source (Umm al-Qura / Pakistan) is chosen from the settings screen,
+  not on the widget
+- Today's cell is a filled accent highlight like the in-app selected day
+- Language setting: Urdu by default (right-to-left, Arabic-Indic digits) or English; the widget's
+  reading direction always follows its own language, not the device locale. A separate "Month
+  names" option renders the Hijri/Gregorian month-name script independently (e.g. English month
+  names with Eastern digits)
+- Two standalone 1x1 date tiles (`HijriDateWidget`, `GregorianDateWidget`) showing today's Hijri
+  or Gregorian day + month; they follow the grid widget's settings through the shared family
+  options and open the app on tap
+- The "today" strip lays the Gregorian and Hijri dates side by side on one line (Hijri always on
+  the right, big bold day figures) and resizes down to a single cell (40dp min, flexible both
+  ways) instead of taking 2x2
+- Settings screen shows a live preview of the actual widget and applies every control immediately
+  — `adjustmentDays` (moon sighting, -2..+2), numeral style, first day of week, language, month
+  names, source, optional pinned Hijri year/month (grid only), and a manual "Refresh now" — with
+  no Save step. Every apply also refreshes the whole widget family (grid, today strip and both 1x1
+  tiles) immediately. The library ships the widgets without a settings activity; the sample has
+  one configure activity *per widget* (grid, today strip, Hijri tile, Gregorian tile), each
+  pointed at by its own `res/xml` widget-info override and built on the public `HijriWidgetConfig`
+  / `HijriWidgetRefresher` / live-preview API
+- An in-app "Add widget" catalog (`WidgetCatalogActivity`, reachable from the top app bar through
+  the "Add widget" button) lists all four widgets with live previews; tapping **Add to home**
+  calls `AppWidgetManager.requestPinAppWidget`, so the launcher runs that widget's own
+  configuration screen as part of the placement flow (a toast confirms placement, or falls back to
+  guidance when the launcher doesn't support direct pinning)
+- Midnight + `TIME_CHANGED`/`TIMEZONE_CHANGED`/`LOCALE_CHANGED`/`BOOT_COMPLETED` refresh with a
+  WorkManager 24h backstop; background renders are skipped while the app is foregrounded to avoid
+  stalling Glance and caught up on resume; tapping the widget deep-links the app to the current
+  month
 
 iOS (WidgetKit, iOS 17+):
 
@@ -441,8 +471,120 @@ iOS (WidgetKit, iOS 17+):
   calendar in the user's timezone (never by dividing time by 86400)
 - Tap-through deep-links to `hijricalendar://today`
 
-The demo configuration screens are in `sample-android-app` and the `HijriWidgetExtension`
-target inside `iosApp/iosApp.xcodeproj`.
+The demo configuration screen is in `sample-android-app`; the iOS widget's configuration
+(AppIntent selection) lives in the `HijriWidgetExtension` target inside `iosApp/iosApp.xcodeproj`.
+
+### Adding the Android widget to your app
+
+`calendar-widget-glance` is a published JitPack artifact containing everything for a working
+home-screen widget: the grid, "today" strip and the two 1x1 date tiles, the
+midnight/system-broadcast refresh pipeline (`HijriWidgetRefreshScheduler`,
+`HijriWidgetRefresher`, foreground gate, WorkManager backstop), the live previews, and a public
+settings API (`HijriWidgetConfig`, `widgetOptionsSaver()`, `WidgetOptions` with
+`WidgetLanguage`/`WidgetSource`/`NumeralStyle`). The library does **not** ship a settings
+activity — build your own against that API (see
+`sample-android-app`'s `HijriWidgetConfigureActivity` for a complete reference screen) or let
+the widgets run on their defaults. Your app wires the receivers + the app-onCreate hooks.
+
+1. Add the JitPack repository (already listed under [Installation](#installation)) and the
+   dependency:
+
+```kotlin
+dependencies {
+    implementation("com.github.muazdev26.HijriCalendar:calendar-widget-glance:1.0.0-alpha10")
+}
+```
+
+2. Declare the widget receivers in your manifest. The widget-info XMLs are provided by the
+   library (they ship without `android:configure`, so the widgets work out of the box), so only
+   the `<receiver>` wrappers are needed:
+
+```xml
+<receiver
+    android:name="com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hijri_calendar_widget_info" />
+</receiver>
+
+<receiver
+    android:name="com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver"
+    android:label="@string/hijri_today_widget_label"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hijri_today_widget_info" />
+</receiver>
+
+<receiver
+    android:name="com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver"
+    android:label="@string/hijri_date_widget_label"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hijri_date_widget_info" />
+</receiver>
+
+<receiver
+    android:name="com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver"
+    android:label="@string/gregorian_date_widget_label"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/gregorian_date_widget_info" />
+</receiver>
+```
+
+3. In your `Application`, start the refresh machinery and warm the Pakistan calendar so taps
+   never block on the century-table build:
+
+```kotlin
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        HijriWidgetRefreshScheduler.schedule(this)
+        registerActivityLifecycleCallbacks(HijriWidgetForegroundWatcher(this))
+        // Optional: warm the Pakistan (Ruet-e-Hilal) century table ahead of first tap
+        // (single-flight: safe to call from multiple places concurrently).
+        MyBackgroundScope.launch { PakistanWarmUp.ensureWarm() }
+    }
+}
+```
+
+4. Handle the tap-through deep link so a widget tap opens your calendar: the widgets open
+   `hijricalendar://today` (constant [`HIJRI_DEEP_LINK_TODAY`](calendar-widget-glance/src/main/java/com/muazdev/hijricalendar/widget/glance/HijriCalendarWidget.kt)). Add an
+   `intent-filter` for that scheme/host on your root activity and jump to today when it fires.
+
+5. *(Optional)* Add a settings screen. Persist `WidgetOptions` with
+   `HijriWidgetConfig.widgetOptionsSaver()` (a Bundle-safe `Saver` for
+   `rememberSaveable`), load/save the current widget's options with the suspend
+   `HijriWidgetConfig.load(context, glanceId)` / `save(context, glanceId, options)`, then re-render
+   with `HijriWidgetRefresher.refreshInstanceAsync(...)`. Embed `HijriWidgetLivePreview` /
+   `HijriTodayWidgetLivePreview` for a live, non-interactive widget preview. The 1x1 tiles and the
+   today strip read the shared family mirror (`HijriWidgetConfig.loadFamily`/`saveFamily`), which
+   every `save()` rewrites, so they follow whatever the grid's settings screen chose. To hand the
+   long-press → settings flow to your activity, override the grid's widget-info XML in your app
+   (same file name under `src/main/res/xml/`, plus the `xml-v28`/`xml-v31` qualifiers if you want
+   the `targetCellWidth`/`targetCellHeight` hints preserved) and set `android:configure` to your
+   activity class — the sample app does exactly this; see
+   `sample-android-app/src/main/res/xml/hijri_calendar_widget_info.xml`.
+
+The library manifest already declares `RECEIVE_BOOT_COMPLETED` and `USE_EXACT_ALARM`, the
+system-broadcast receiver, and the midnight alarm receiver. The widget itself re-arms the
+midnight alarm whenever the host `onCreate` runs, so boot-time refresh is handled end to end.
 
 ## Underlying Library
 

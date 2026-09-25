@@ -19,4 +19,8 @@ internal object HijriWidgetRefreshLog {
     fun d(reason: String, message: String) {
         Log.d(TAG, "[$reason] $message")
     }
+
+    fun e(reason: String, message: String, t: Throwable? = null) {
+        Log.e(TAG, "[$reason] $message", t)
+    }
 }

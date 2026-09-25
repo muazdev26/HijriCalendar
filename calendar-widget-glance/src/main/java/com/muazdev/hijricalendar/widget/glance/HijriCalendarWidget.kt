@@ -22,6 +22,7 @@ import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -88,6 +89,14 @@ class HijriCalendarWidget : GlanceAppWidget() {
         ),
     )
 
+    /**
+     * Picker previews are composed at the large grid size so the picker shows the month grid
+     * (not the compact card that the widget's own minimum size would render).
+     */
+    override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(
+        setOf(DpSize(260.dp, 280.dp)),
+    )
+
     @OptIn(ExperimentalGlanceApi::class)
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // One-shot, non-reactive peek for things that must not wait for the live state read: port
@@ -132,6 +141,34 @@ class HijriCalendarWidget : GlanceAppWidget() {
                 prevAction = prevAction,
                 nextAction = nextAction,
                 resetAction = resetAction,
+            )
+        }
+    }
+
+    /**
+     * Real picker preview for Android 15+: renders today's grid with the family's current options
+     * (language, numerals, source) through the same pipeline as the live widget, with all actions
+     * null so the preview is non-interactive. [HijriWidgetPreviewPublisher] publishes the result.
+     */
+    @OptIn(ExperimentalGlanceApi::class)
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val options = HijriWidgetConfig.loadFamily(context)
+        if (options.source.pakistan) {
+            PakistanWarmUp.ensureWarm()
+        }
+        val colors = WidgetColors.from(context)
+        provideContent {
+            val data = buildRenderData(context, options, viewedMonth = null)
+            HijriWidgetRoot(
+                monthData = data.monthData,
+                todayHijri = data.todayHijri,
+                todayEpochDay = data.todayEpochDay,
+                layoutRtl = data.layoutRtl,
+                colors = colors,
+                openAction = null,
+                prevAction = null,
+                nextAction = null,
+                resetAction = null,
             )
         }
     }
@@ -493,58 +530,48 @@ private fun MonthGrid(
             month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_NEXT,
         ) != null
 
-        // Header: arrows step the grid one Hijri month at a time; the Hijri + Gregorian month
-        // titles are on the same line and the month-name tap returns to following today; the
-        // Gregorian range line sits underneath.
-        Column(
+        // Header: arrows step the grid one Hijri month at a time; the centred title line carries
+        // the Hijri month + year and the Gregorian month + year on one line, and tapping it
+        // returns the grid to following today.
+        Row(
             modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp),
-            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+            verticalAlignment = Alignment.Vertical.CenterVertically,
         ) {
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
-            ) {
-                if (layoutRtl) {
-                    // In RTL "next" sits on the left and points left; "previous" sits on the
-                    // right and points right, matching the app's AutoMirrored header arrows.
-                    NavigationArrow(
-                        resId = R.drawable.ic_arrow_left,
-                        enabled = nextAvailable,
-                        action = nextAction,
-                        color = colors.primaryText,
-                        contentDescription = "Next month",
-                    )
-                    MonthTitle(month = month, resetAction = resetAction, colors = colors)
-                    NavigationArrow(
-                        resId = R.drawable.ic_arrow_right,
-                        enabled = prevAvailable,
-                        action = prevAction,
-                        color = colors.primaryText,
-                        contentDescription = "Previous month",
-                    )
-                } else {
-                    NavigationArrow(
-                        resId = R.drawable.ic_arrow_left,
-                        enabled = prevAvailable,
-                        action = prevAction,
-                        color = colors.primaryText,
-                        contentDescription = "Previous month",
-                    )
-                    MonthTitle(month = month, resetAction = resetAction, colors = colors)
-                    NavigationArrow(
-                        resId = R.drawable.ic_arrow_right,
-                        enabled = nextAvailable,
-                        action = nextAction,
-                        color = colors.primaryText,
-                        contentDescription = "Next month",
-                    )
-                }
+            if (layoutRtl) {
+                // In RTL "next" sits on the left and points left; "previous" sits on the
+                // right and points right, matching the app's AutoMirrored header arrows.
+                NavigationArrow(
+                    resId = R.drawable.ic_arrow_left,
+                    enabled = nextAvailable,
+                    action = nextAction,
+                    color = colors.primaryText,
+                    contentDescription = "Next month",
+                )
+                MonthTitle(month = month, resetAction = resetAction, colors = colors)
+                NavigationArrow(
+                    resId = R.drawable.ic_arrow_right,
+                    enabled = prevAvailable,
+                    action = prevAction,
+                    color = colors.primaryText,
+                    contentDescription = "Previous month",
+                )
+            } else {
+                NavigationArrow(
+                    resId = R.drawable.ic_arrow_left,
+                    enabled = prevAvailable,
+                    action = prevAction,
+                    color = colors.primaryText,
+                    contentDescription = "Previous month",
+                )
+                MonthTitle(month = month, resetAction = resetAction, colors = colors)
+                NavigationArrow(
+                    resId = R.drawable.ic_arrow_right,
+                    enabled = nextAvailable,
+                    action = nextAction,
+                    color = colors.primaryText,
+                    contentDescription = "Next month",
+                )
             }
-            Text(
-                text = month.gregorianRange,
-                style = TextStyle(color = ColorProvider(colors.secondaryText), fontSize = 10.sp, textAlign = TextAlign.Center),
-                maxLines = 1,
-            )
         }
 
         Row(
@@ -580,9 +607,10 @@ private fun MonthGrid(
 
 /**
  * The tappable month title in the header: the Hijri month + year and the Gregorian month + year
- * on the same line (urdu header order, e.g. "محرم ۱۴۴۸ · September 2026"). Tapping it returns
- * the grid to following today. Kept as a `RowScope` extension so it can take the header row's
- * remaining width and stay centred between the arrows in either reading direction.
+ * combined on one centred line (urdu header order, e.g. "محرم ۱۴۴۸ · September 2026"). The three
+ * spans are grouped in an inner row centred inside the box, so the *combined* title sits centred
+ * between the two arrows in either reading direction. Tapping it returns the grid to following
+ * today. Kept as a `RowScope` extension so it can take the header row's remaining width.
  */
 @Composable
 private fun RowScope.MonthTitle(
@@ -590,49 +618,52 @@ private fun RowScope.MonthTitle(
     resetAction: Action?,
     colors: WidgetColors,
 ) {
-    Row(
+    Box(
         modifier = GlanceModifier
             .defaultWeight()
             .clickableWhen(resetAction)
             .semantics { contentDescription = "Go to current month" },
-        verticalAlignment = Alignment.Vertical.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "${month.hijriMonthName} ${month.hijriYear}",
-            style = TextStyle(
-                color = ColorProvider(colors.primaryText),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-        )
-        Text(
-            text = " · ",
-            style = TextStyle(
-                color = ColorProvider(colors.secondaryText),
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-        )
-        Text(
-            text = month.gregorianMonthTitle,
-            style = TextStyle(
-                color = ColorProvider(colors.secondaryText),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-        )
+        Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+            Text(
+                text = "${month.hijriMonthName} ${month.hijriYear}",
+                style = TextStyle(
+                    color = ColorProvider(colors.primaryText),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+            )
+            Text(
+                text = " · ",
+                style = TextStyle(
+                    color = ColorProvider(colors.secondaryText),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+            )
+            Text(
+                text = month.gregorianMonthTitle,
+                style = TextStyle(
+                    color = ColorProvider(colors.secondaryText),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+            )
+        }
     }
 }
 
 /**
  * One header navigation arrow. At the supported-range edge the arrow is drawn dimmed and is not
- * clickable, so navigation degrades gracefully instead of hitting an invalid month. Sized larger
- * than the surrounding grid text so it stays an easy tap target.
+ * clickable, so navigation degrades gracefully instead of hitting an invalid month. Sized to the
+ * recommended 48.dp touch target (the icon itself is 40.dp) so it stays an easy tap target and
+ * visually reads as a distinct control next to the grid text.
  */
 @Composable
 private fun NavigationArrow(
@@ -644,7 +675,7 @@ private fun NavigationArrow(
 ) {
     val modifier = GlanceModifier
         .semantics { this.contentDescription = contentDescription }
-        .padding(horizontal = 2.dp, vertical = 2.dp)
+        .padding(horizontal = 4.dp, vertical = 4.dp)
     Box(
         modifier = if (enabled) modifier.clickableWhen(action) else modifier,
         contentAlignment = Alignment.Center,
@@ -655,7 +686,7 @@ private fun NavigationArrow(
             colorFilter = ColorFilter.tint(
                 ColorProvider(if (enabled) color else color.copy(alpha = 0.35f))
             ),
-            modifier = GlanceModifier.size(32.dp)
+            modifier = GlanceModifier.size(40.dp)
         )
     }
 }

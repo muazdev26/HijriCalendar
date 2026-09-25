@@ -80,6 +80,9 @@ object HijriWidgetRefresher {
         HijriWidgetRenderQueue.renderAll(context)
         HijriWidgetConfig.markUpdatedNow(context, todayEpochDay)
         HijriWidgetConfig.markRefreshPending(context, false)
+        // Best-effort: regenerate the Android 15+ picker previews so the picker always reflects
+        // today's date and the family's current options (once-daily, rate-limit guarded).
+        HijriWidgetPreviewPublisher.publishIfDue(context)
         HijriWidgetRefreshLog.d(reason, "render: done; cleared pending")
         return true
     }

@@ -63,6 +63,28 @@ class HijriDateWidget : GlanceAppWidget() {
             )
         }
     }
+
+    /**
+     * Real picker preview for Android 15+: today's Hijri date in the family's current options,
+     * non-interactive. [HijriWidgetPreviewPublisher] publishes the result.
+     */
+    @OptIn(ExperimentalGlanceApi::class)
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val options = HijriWidgetConfig.loadFamily(context)
+        if (options.source.pakistan) {
+            PakistanWarmUp.ensureWarm()
+        }
+        val colors = WidgetColors.from(context)
+        provideContent {
+            val data = buildRenderData(context, options, viewedMonth = null)
+            DateTileRoot(
+                dayText = data.todayHijri?.hijriDayText,
+                monthText = data.todayHijri?.hijriMonthName,
+                colors = colors,
+                openAction = null,
+            )
+        }
+    }
 }
 
 /**
@@ -95,6 +117,28 @@ class GregorianDateWidget : GlanceAppWidget() {
                 monthText = today?.gregorianMonthName,
                 colors = colors,
                 openAction = openAction,
+            )
+        }
+    }
+
+    /**
+     * Real picker preview for Android 15+: today's Gregorian date in the family's current options,
+     * non-interactive. [HijriWidgetPreviewPublisher] publishes the result.
+     */
+    @OptIn(ExperimentalGlanceApi::class)
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val options = HijriWidgetConfig.loadFamily(context)
+        if (options.source.pakistan) {
+            PakistanWarmUp.ensureWarm()
+        }
+        val colors = WidgetColors.from(context)
+        provideContent {
+            val data = buildRenderData(context, options, viewedMonth = null)
+            DateTileRoot(
+                dayText = data.todayHijri?.gregorianDayText,
+                monthText = data.todayHijri?.gregorianMonthName,
+                colors = colors,
+                openAction = null,
             )
         }
     }

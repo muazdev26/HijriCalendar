@@ -3,6 +3,7 @@ package com.muazdev.hijricalendar.widget.glance
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ExperimentalGlanceApi
@@ -12,6 +13,7 @@ import androidx.glance.LocalContext
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
@@ -45,6 +47,14 @@ class HijriTodayWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
 
+    /**
+     * Picker previews are composed at a realistic placed strip size (one screen row) instead of
+     * the widget's 40dp minimum, so the two date halves actually fit side by side.
+     */
+    override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(
+        setOf(DpSize(144.dp, 40.dp)),
+    )
+
     @OptIn(ExperimentalGlanceApi::class)
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // One-shot peek: port any legacy flat-file config (which seeds the family mirror once) and
@@ -71,6 +81,28 @@ class HijriTodayWidget : GlanceAppWidget() {
                 colors = colors,
                 openAction = openAction,
                 layoutRtl = computeLayoutRtl(context, options.language),
+            )
+        }
+    }
+
+    /**
+     * Real picker preview for Android 15+: today's Hijri + Gregorian dates in the family's current
+     * options, non-interactive. [HijriWidgetPreviewPublisher] publishes the result.
+     */
+    @OptIn(ExperimentalGlanceApi::class)
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val options = HijriWidgetConfig.loadFamily(context)
+        if (options.source.pakistan) {
+            PakistanWarmUp.ensureWarm()
+        }
+        val colors = WidgetColors.from(context)
+        provideContent {
+            val data = buildRenderData(context, options, viewedMonth = null)
+            HijriTodayRoot(
+                today = data.todayHijri,
+                colors = colors,
+                openAction = null,
+                layoutRtl = data.layoutRtl,
             )
         }
     }

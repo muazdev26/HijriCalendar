@@ -2,7 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Exact-midnight rollover permissions: USE_EXACT_ALARM (Android 13+, auto-granted to
+         calendar apps) plus SCHEDULE_EXACT_ALARM (Android 12, granted by default) so the widget
+         flips at the exact local-midnight boundary on every supported API level. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application>
         <!-- System-broadcast catch-up receiver provided by the library -->

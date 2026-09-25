@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/hijri_date_widget_description"
     android:configure="com.muazdev.hijricalendar.sample.HijriDateWidgetConfigureActivity"
     android:initialLayout="@layout/hijri_widget_loading"
     android:minWidth="40dp"
     android:minHeight="40dp"
     android:previewImage="@drawable/hijri_date_widget_preview"
+    android:previewLayout="@layout/hijri_date_widget_preview_layout"
     android:resizeMode="none"
     android:targetCellWidth="1"
     android:targetCellHeight="1"
-    android:updatePeriodMillis="0"
+    android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen"
-    android:widgetFeatures="reconfigurable|configuration_optional">
+    android:widgetFeatures="reconfigurable|configuration_optional"
+    tools:ignore="UnusedAttribute">
 </appwidget-provider>

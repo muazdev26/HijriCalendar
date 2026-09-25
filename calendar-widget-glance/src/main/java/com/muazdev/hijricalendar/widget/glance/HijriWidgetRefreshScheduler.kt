@@ -34,6 +34,10 @@ object HijriWidgetRefreshScheduler {
     fun schedule(context: Context) {
         enqueuePeriodic(context)
         armMidnightAlarm(context)
+        // Regenerate the Android 15+ picker previews on first launch / every app start (cheap:
+        // guarded to at most once per local day), so a fresh install immediately shows real
+        // previews in the widget picker.
+        HijriWidgetPreviewPublisher.publishIfDueAsync(context)
     }
 
     private fun enqueuePeriodic(context: Context) {

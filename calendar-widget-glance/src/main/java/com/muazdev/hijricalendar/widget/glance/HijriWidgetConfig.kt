@@ -61,6 +61,11 @@ object HijriWidgetConfig {
     private const val KEY_LAST_UPDATE_EPOCH_DAY = "last_update_epoch_day"
     private const val KEY_REFRESH_PENDING = "refresh_pending"
 
+    // Marks the last local day the generated (Android 15+) picker previews were published, so
+    // [HijriWidgetPreviewPublisher] regenerates them at most once per day — the system rate-limits
+    // widget-preview updates (~2/hour), so every app launch / refresh must not re-publish.
+    private const val KEY_PREVIEW_PUBLISHED_EPOCH_DAY = "previews_published_epoch_day"
+
     // Family-wide options mirror (SharedPreferences), consumed by widgets that have no settings
     // screen of their own (the Today strip): every [save] re-writes it, so those widgets follow
     // the most recent configure-screen save or on-widget source toggle.
@@ -309,6 +314,21 @@ object HijriWidgetConfig {
     fun lastUpdatedEpochDay(context: Context): Long {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_LAST_UPDATE_EPOCH_DAY, Long.MIN_VALUE)
+    }
+
+    // ── Generated-preview marker ────────────────────────────────────────────
+
+    /** The epoch-day the generated picker previews were last published, or [Long.MIN_VALUE]. */
+    fun lastPreviewPublishedEpochDay(context: Context): Long {
+        return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
+            .getLong(KEY_PREVIEW_PUBLISHED_EPOCH_DAY, Long.MIN_VALUE)
+    }
+
+    /** Records that the generated picker previews now reflect the given local calendar day. */
+    fun markPreviewsPublishedNow(context: Context, epochDay: Long) {
+        context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
+            putLong(KEY_PREVIEW_PUBLISHED_EPOCH_DAY, epochDay)
+        }
     }
 
     // ── Legacy SharedPreferences migration ───────────────────────────────────
