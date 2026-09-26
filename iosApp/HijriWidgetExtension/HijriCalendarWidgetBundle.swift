@@ -5,5 +5,8 @@ import SwiftUI
 struct HijriCalendarWidgetBundle: WidgetBundle {
     var body: some Widget {
         HijriCalendarWidget()
+        HijriTodayWidget()
+        HijriDateWidget()
+        GregorianDateWidget()
     }
 }

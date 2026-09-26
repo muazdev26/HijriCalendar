@@ -14,8 +14,15 @@ import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
+import com.muazdev.hijricalendar.widgetdata.WidgetOptionsJson
 import com.muazdev.hijricalendar.widgetdata.WidgetSource
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.put
 
 /**
  * Per-widget configuration persisted in Glance's preferences state store (one DataStore
@@ -45,7 +52,13 @@ object HijriWidgetConfig {
     private const val KEY_VIEWED = "viewed"
 
     private val OPTIONS_KEY = stringPreferencesKey(KEY_OPTIONS)
-    private val VIEWED_KEY = stringPreferencesKey(KEY_VIEWED)
+
+    /**
+     * `internal` rather than private so the local unit tests can round-trip the viewed month
+     * without a device: the encoding used to be `org.json`, which is a stubbed `android.jar` class
+     * in unit tests, so this pair was previously only verifiable on real hardware.
+     */
+    internal val VIEWED_KEY = stringPreferencesKey(KEY_VIEWED)
 
     // Legacy SharedPreferences keys (migration only).
     private const val KEY_ADJUSTMENT_DAYS = "adjustment_days"
@@ -71,24 +84,6 @@ object HijriWidgetConfig {
     // the most recent configure-screen save or on-widget source toggle.
     private const val KEY_FAMILY_OPTIONS = "family_options"
 
-    data class WidgetOptions(
-        val adjustmentDays: Int,
-        val numeralStyle: NumeralStyle,
-        val firstDayOfWeekIndex: Int,
-        val pinnedYear: Int?,
-        val pinnedMonth: Int?,
-        val source: WidgetSource,
-        val language: WidgetLanguage,
-        /**
-         * Which language the Hijri/Gregorian month names render in, independently of [language]
-         * (the latter also drives numerals, RTL and weekday names). Lets a widget show Eastern
-         * digits with English month names, or Western digits with Urdu month names. Defaults to
-         * [language] for widgets stored before this option existed, so old configs keep whatever
-         * month-name script they already had.
-         */
-        val monthNameLanguage: WidgetLanguage = language,
-    )
-
     /**
      * The widget is shown unless the app explicitly disables it; -1 is the "not pinned"
      * sentinel for both year and month.
@@ -99,15 +94,7 @@ object HijriWidgetConfig {
      * Fresh widgets default to Urdu names, Eastern Arabic-Indic digits and the Calculation
      * source, matching the app's Urdu labels. Existing widgets keep whatever they stored.
      */
-    val DEFAULTS = WidgetOptions(
-        adjustmentDays = 0,
-        numeralStyle = WidgetLocalization.defaultNumeralStyle(WidgetLanguage.URDU),
-        firstDayOfWeekIndex = WeekDay.DEFAULT_FIRST_DAY.index,
-        pinnedYear = null,
-        pinnedMonth = null,
-        source = WidgetSource.CALCULATION,
-        language = WidgetLanguage.URDU,
-    )
+    val DEFAULTS: WidgetOptions = WidgetOptions.DEFAULTS
 
     /**
      * A Bundle-safe [Saver] for [WidgetOptions] (enums as ordinals, nulls preserved), for host
@@ -124,7 +111,10 @@ object HijriWidgetConfig {
                 it.pinnedMonth,
                 it.source.ordinal,
                 it.language.ordinal,
-                it.monthNameLanguage.ordinal,
+                // Saved as the effective language, not the nullable field: `monthNameLanguage` is
+                // absent only in options written before the option existed, and restoring the
+                // resolved value keeps the screen showing what the widget will render.
+                it.effectiveMonthNameLanguage.ordinal,
             )
         },
         restore = {
@@ -211,10 +201,7 @@ object HijriWidgetConfig {
 
     suspend fun setViewedMonth(context: Context, glanceId: GlanceId, year: Int, month: Int) {
         updateAppWidgetState(context, glanceId) { mutable ->
-            mutable[VIEWED_KEY] = JSONObject()
-                .put("year", year)
-                .put("month", month)
-                .toString()
+            mutable[VIEWED_KEY] = encodeViewed(year, month)
         }
     }
 
@@ -235,47 +222,52 @@ object HijriWidgetConfig {
         return decodeOptionsJson(raw)
     }
 
-    /** Decodes an encoded options JSON blob, or `null` when it is absent/malformed. */
-    fun decodeOptionsJson(raw: String): WidgetOptions? {
-        return runCatching {
-            val json = JSONObject(raw)
-            val language = WidgetLanguage.entries.getOrElse(
-                json.optInt("language", DEFAULTS.language.ordinal),
-            ) { DEFAULTS.language }
-            // A widget that never stored a numeral style follows its language's default (Eastern
-            // for Urdu, Western for English) so a fresh Urdu widget shows Eastern digits.
-            val numeralDefault = WidgetLocalization.defaultNumeralStyle(language)
-            WidgetOptions(
-                adjustmentDays = json.optInt("adjustmentDays", DEFAULTS.adjustmentDays),
-                numeralStyle = NumeralStyle.entries.getOrElse(
-                    json.optInt("numeralStyle", numeralDefault.ordinal),
-                ) { numeralDefault },
-                firstDayOfWeekIndex = json
-                    .optInt("firstDayOfWeekIndex", DEFAULTS.firstDayOfWeekIndex)
-                    .coerceIn(0, 6),
-                pinnedYear = json.optIntOrNull("pinnedYear"),
-                pinnedMonth = json.optIntOrNull("pinnedMonth"),
-                source = WidgetSource.entries.getOrElse(
-                    json.optInt("source", DEFAULTS.source.ordinal),
-                ) { DEFAULTS.source },
-                language = language,
-                // Widgets stored before this option keep following their language's month names.
-                monthNameLanguage = WidgetLanguage.entries.getOrElse(
-                    json.optInt("monthNameLanguage", language.ordinal),
-                ) { language },
-            )
-        }.getOrNull()
+    /**
+     * Decodes an encoded options JSON blob, or `null` when it is absent/malformed.
+     *
+     * The current format is `calendar-widget-data`'s `WidgetOptionsJson` (enums by name), shared
+     * with every other native renderer. [decodeLegacyOrdinalJson] is tried second, so options
+     * written by an earlier version — which encoded the same fields as enum *ordinals* — still
+     * load, and are rewritten in the shared format by the next save.
+     */
+    fun decodeOptionsJson(raw: String): WidgetOptions? =
+        WidgetOptionsJson.decodeOrNull(raw) ?: decodeLegacyOrdinalJson(raw)
+
+    /**
+     * Reads the pre-1.0 storage format, which wrote the option fields as enum ordinals. Kept
+     * because ordinals are exactly what the shared named format fixed: reordering an enum entry
+     * used to silently reinterpret every stored widget.
+     */
+    private fun decodeLegacyOrdinalJson(raw: String): WidgetOptions? {
+        val json = raw.parseJsonObjectOrNull() ?: return null
+        val language = json.intOrNull("language")?.let { WidgetLanguage.entries.getOrNull(it) }
+            ?: DEFAULTS.language
+        // A widget that never stored a numeral style follows its language's default (Eastern for
+        // Urdu, Western for English) so a fresh Urdu widget shows Eastern digits.
+        val numeralDefault = WidgetLocalization.defaultNumeralStyle(language)
+        return WidgetOptions(
+            adjustmentDays = json.intOrNull("adjustmentDays") ?: DEFAULTS.adjustmentDays,
+            numeralStyle = json.intOrNull("numeralStyle")?.let { NumeralStyle.entries.getOrNull(it) }
+                ?: numeralDefault,
+            firstDayOfWeekIndex = (json.intOrNull("firstDayOfWeekIndex")
+                ?: DEFAULTS.firstDayOfWeekIndex).coerceIn(0, 6),
+            pinnedYear = json.intOrNull("pinnedYear"),
+            pinnedMonth = json.intOrNull("pinnedMonth"),
+            source = json.intOrNull("source")?.let { WidgetSource.entries.getOrNull(it) }
+                ?: DEFAULTS.source,
+            language = language,
+            // Widgets stored before this option keep following their language's month names.
+            monthNameLanguage = json.intOrNull("monthNameLanguage")
+                ?.let { WidgetLanguage.entries.getOrNull(it) } ?: language,
+        )
     }
 
     /** Decodes the viewed month, or `null` when the widget is following today. */
     fun decodeViewed(prefs: Preferences): Pair<Int, Int>? {
-        val raw = prefs[VIEWED_KEY] ?: return null
-        return runCatching {
-            val json = JSONObject(raw)
-            val year = json.optInt("year", NOT_PINNED)
-            val month = json.optInt("month", NOT_PINNED)
-            if (year == NOT_PINNED || month == NOT_PINNED) null else year to month
-        }.getOrNull()
+        val json = prefs[VIEWED_KEY]?.parseJsonObjectOrNull() ?: return null
+        val year = json.intOrNull("year")
+        val month = json.intOrNull("month")
+        return if (year == null || month == null) null else year to month
     }
 
     // ── Runtime markers (global SharedPreferences, not per-widget view state) ─
@@ -348,9 +340,7 @@ object HijriWidgetConfig {
         val viewed = readLegacyViewed(legacy, suffix)
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable[OPTIONS_KEY] = encodeOptions(options)
-            val viewedJson = viewed?.let {
-                JSONObject().put("year", it.first).put("month", it.second).toString()
-            }
+            val viewedJson = viewed?.let { encodeViewed(it.first, it.second) }
             if (viewedJson == null) {
                 mutable.remove(VIEWED_KEY)
             } else {
@@ -399,18 +389,23 @@ object HijriWidgetConfig {
         return year to month
     }
 
-    private fun encodeOptions(options: WidgetOptions): String =
-        JSONObject()
-            .put("adjustmentDays", options.adjustmentDays)
-            .put("numeralStyle", options.numeralStyle.ordinal)
-            .put("firstDayOfWeekIndex", options.firstDayOfWeekIndex)
-            .put("pinnedYear", options.pinnedYear ?: JSONObject.NULL)
-            .put("pinnedMonth", options.pinnedMonth ?: JSONObject.NULL)
-            .put("source", options.source.ordinal)
-            .put("language", options.language.ordinal)
-            .put("monthNameLanguage", options.monthNameLanguage.ordinal)
-            .toString()
+    private fun encodeOptions(options: WidgetOptions): String = WidgetOptionsJson.encode(options)
 
-    private fun JSONObject.optIntOrNull(key: String): Int? =
-        if (isNull(key)) null else optInt(key)
+    internal fun encodeViewed(year: Int, month: Int): String =
+        buildJsonObject { put("year", year); put("month", month) }.toString()
+
+    /**
+     * Parses [raw] as a JSON object, or `null` when it is absent or malformed.
+     *
+     * This module parses with kotlinx rather than `org.json` for two reasons: `org.json` is a
+     * stubbed `android.jar` class in local unit tests (every call throws or answers 0, which
+     * silently turns a decode into a bogus value), and the option/viewed formats are already
+     * kotlinx-serialized, so one codec covers the whole store.
+     */
+    private fun String.parseJsonObjectOrNull(): JsonObject? = runCatching {
+        Json.parseToJsonElement(this) as? JsonObject
+    }.getOrNull()
+
+    private fun JsonObject.intOrNull(key: String): Int? =
+        (this[key] as? JsonPrimitive)?.intOrNull
 }

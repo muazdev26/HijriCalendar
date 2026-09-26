@@ -22,15 +22,16 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.compose
 import androidx.glance.appwidget.provideContent
 import kotlinx.coroutines.CancellationException
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 
 /**
  * A non-interactive clone of [HijriCalendarWidget] used only for the settings-screen live preview.
- * It renders from an explicit [HijriWidgetConfig.WidgetOptions] instead of persisted per-widget
+ * It renders from an explicit [WidgetOptions] instead of persisted per-widget
  * config, so the preview reflects in-progress edits, and it passes no actions to
  * [HijriWidgetRoot], so tapping the preview cannot open the app or mutate the real widget.
  */
 internal class HijriCalendarWidgetPreview(
-    private val options: HijriWidgetConfig.WidgetOptions,
+    private val options: WidgetOptions,
     private val viewedMonth: Pair<Int, Int>?,
 ) : GlanceAppWidget() {
 
@@ -67,12 +68,12 @@ internal class HijriCalendarWidgetPreview(
  * settings touch updates the preview.
  *
  * Public so a host app's settings screen can show what the widget will look like live, with the
- * same [HijriWidgetConfig.WidgetOptions] its controls edit, without the settings screen and the
+ * same [WidgetOptions] its controls edit, without the settings screen and the
  * real widget ever drifting apart.
  */
 @Composable
 fun HijriWidgetLivePreview(
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     viewedMonth: Pair<Int, Int>?,
     size: DpSize,
     modifier: Modifier = Modifier,
@@ -104,7 +105,7 @@ fun HijriWidgetLivePreview(
 }
 
 internal class HijriTodayWidgetPreview(
-    private val options: HijriWidgetConfig.WidgetOptions
+    private val options: WidgetOptions
 ) : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
@@ -132,7 +133,7 @@ internal class HijriTodayWidgetPreview(
 
 @Composable
 fun HijriTodayWidgetLivePreview(
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     size: DpSize,
     modifier: Modifier = Modifier,
 ) {
@@ -164,7 +165,7 @@ fun HijriTodayWidgetLivePreview(
 
 /** Non-interactive clone of [HijriDateWidget] for the 1x1 Hijri tile's settings preview. */
 internal class HijriDateWidgetPreview(
-    private val options: HijriWidgetConfig.WidgetOptions
+    private val options: WidgetOptions
 ) : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
@@ -192,7 +193,7 @@ internal class HijriDateWidgetPreview(
 
 /** Non-interactive clone of [GregorianDateWidget] for the 1x1 Gregorian tile's settings preview. */
 internal class GregorianDateWidgetPreview(
-    private val options: HijriWidgetConfig.WidgetOptions
+    private val options: WidgetOptions
 ) : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
@@ -221,11 +222,11 @@ internal class GregorianDateWidgetPreview(
 /**
  * Live preview of the 1x1 Hijri date tile: composes the real [DateTileRoot] layout and hosts the
  * resulting [RemoteViews] in an [AndroidView]. Public so a host app's settings screen can show the
- * tile live from the same [HijriWidgetConfig.WidgetOptions] its controls edit.
+ * tile live from the same [WidgetOptions] its controls edit.
  */
 @Composable
 fun HijriDateWidgetLivePreview(
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     size: DpSize,
     modifier: Modifier = Modifier,
 ) {
@@ -261,7 +262,7 @@ fun HijriDateWidgetLivePreview(
  */
 @Composable
 fun GregorianDateWidgetLivePreview(
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     size: DpSize,
     modifier: Modifier = Modifier,
 ) {

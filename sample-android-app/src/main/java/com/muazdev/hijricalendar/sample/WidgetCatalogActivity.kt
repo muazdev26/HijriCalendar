@@ -48,6 +48,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 
 /**
  * "Add a widget" catalog: lists every home-screen widget the app ships with, shows each one's
@@ -212,7 +213,7 @@ private fun WidgetCatalogScreen(
 @Composable
 private fun WidgetCatalogCard(
     widget: CatalogWidget,
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     onAdd: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -252,7 +253,7 @@ private fun WidgetCatalogCard(
 @Composable
 private fun WidgetCatalogPreview(
     kind: WidgetKind,
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
 ) {
     val size = catalogPreviewSizes.getValue(kind)
     val rounded = remember { Modifier.clip(RoundedCornerShape(14.dp)) }

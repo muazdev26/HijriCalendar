@@ -49,6 +49,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.widget.glance.R
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
@@ -56,6 +57,7 @@ import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.buildHijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
@@ -196,22 +198,14 @@ internal data class HijriWidgetRenderData(
  */
 internal fun buildRenderData(
     context: Context,
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     viewedMonth: Pair<Int, Int>?,
 ): HijriWidgetRenderData {
     val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
     val language = options.language
-    // Month names follow `monthNameLanguage` (independent of `language`); digits, days-of-week and
-    // reading direction still follow `language`.
-    val todayHijri = todayHijriWidgetData(
-        anchorEpochDay = todayEpochDay,
-        adjustmentDays = options.adjustmentDays,
-        localizedHijriMonthNames = WidgetLocalization.hijriMonthNames(options.monthNameLanguage),
-        localizedGregorianMonthNames = WidgetLocalization.gregorianMonthNames(options.monthNameLanguage),
-        localizedWeekdayNames = WidgetLocalization.weekdayNames(language),
-        numeralStyle = options.numeralStyle,
-        pakistan = options.source.pakistan,
-    )
+    // The shared projection reads the adjustment, source, digit style and all three localized
+    // name lists straight off [WidgetOptions], so this call cannot drift from the settings screen.
+    val todayHijri = todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
     val layoutRtl = computeLayoutRtl(context, language)
     val monthData = buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
     return HijriWidgetRenderData(todayHijri, todayEpochDay, monthData, layoutRtl)
@@ -235,25 +229,23 @@ internal fun computeLayoutRtl(context: Context, language: WidgetLanguage): Boole
  * re-render path produces the same grid.
  */
 internal fun buildMonthData(
-    options: HijriWidgetConfig.WidgetOptions,
+    options: WidgetOptions,
     viewedMonth: Pair<Int, Int>?,
     todayHijri: TodayHijriWidgetData?,
     layoutRtl: Boolean,
 ): HijriMonthWidgetData? {
+    // Viewed month (navigation) > config-pinned > today. `resolveGridMonth` applies the pin, but a
+    // viewed month short-circuits it, so the fallback chain is spelled out here.
     val year = viewedMonth?.first ?: options.pinnedYear ?: todayHijri?.hijriYear ?: return null
     val month = viewedMonth?.second ?: options.pinnedMonth ?: todayHijri?.hijriMonth ?: return null
-    val language = options.language
     return buildHijriMonthWidgetData(
         hijriYear = year,
         hijriMonth = month,
-        adjustmentDays = options.adjustmentDays,
-        firstDayOfWeekIndex = options.firstDayOfWeekIndex,
-        numeralStyle = options.numeralStyle,
-        pakistan = options.source.pakistan,
+        options = options,
+        weekendDays = WeekDay.WEEKEND_DAYS,
+        // The projection is pre-reversed for the device's mirroring, so the net visual order is
+        // the option language's — which is what `layoutRtl` already encodes.
         rightToLeft = layoutRtl,
-        localizedHijriMonthNames = WidgetLocalization.hijriMonthNames(options.monthNameLanguage),
-        localizedGregorianMonthNames = WidgetLocalization.gregorianMonthNames(options.monthNameLanguage),
-        localizedWeekdayNames = WidgetLocalization.weekdayNames(language),
     )
 }
 
@@ -308,7 +300,7 @@ internal object HijriWidgetRenderCache {
      */
     fun render(
         glanceId: String,
-        options: HijriWidgetConfig.WidgetOptions,
+        options: WidgetOptions,
         viewedMonth: Pair<Int, Int>?,
         todayEpochDay: Long,
         layoutRtl: Boolean,
@@ -328,7 +320,7 @@ internal object HijriWidgetRenderCache {
                 options.firstDayOfWeekIndex,
                 options.numeralStyle,
                 options.language,
-                options.monthNameLanguage,
+                options.effectiveMonthNameLanguage,
                 options.source.pakistan,
                 layoutRtl,
                 revision,
@@ -354,7 +346,7 @@ internal object HijriWidgetRenderCache {
      */
     fun today(
         glanceId: String,
-        options: HijriWidgetConfig.WidgetOptions,
+        options: WidgetOptions,
         todayEpochDay: Long,
     ): TodayHijriWidgetData? {
         val key = TodayKey(
@@ -362,22 +354,14 @@ internal object HijriWidgetRenderCache {
             todayEpochDay,
             options.adjustmentDays,
             options.language,
-            options.monthNameLanguage,
+            options.effectiveMonthNameLanguage,
             options.numeralStyle,
             options.source.pakistan,
             HijriMonthOverrides.currentRevision,
         )
         synchronized(cacheLock) {
             return todayCache.getOrPut(key) {
-                todayHijriWidgetData(
-                    anchorEpochDay = todayEpochDay,
-                    adjustmentDays = options.adjustmentDays,
-                    localizedHijriMonthNames = WidgetLocalization.hijriMonthNames(options.monthNameLanguage),
-                    localizedGregorianMonthNames = WidgetLocalization.gregorianMonthNames(options.monthNameLanguage),
-                    localizedWeekdayNames = WidgetLocalization.weekdayNames(options.language),
-                    numeralStyle = options.numeralStyle,
-                    pakistan = options.source.pakistan,
-                )
+                todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
             }
         }
     }

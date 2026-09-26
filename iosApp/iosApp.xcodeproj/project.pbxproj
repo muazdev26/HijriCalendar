@@ -9,10 +9,13 @@
 /* Begin PBXBuildFile section */
 		7555FF7B242D4D6B0000000B /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000000E /* iOSApp.swift */; };
 		7555FF7B242D4D6B0000000C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000000F /* ContentView.swift */; };
+		7555FF7B242D4D6B00000034 /* WidgetCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B00000035 /* WidgetCatalogView.swift */; };
+		7555FF7C242D4D6B00000036 /* HijriSharedOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7C242D4D6B00000038 /* HijriSharedOptions.swift */; };
+		7555FF7C242D4D6B00000037 /* HijriSharedOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7C242D4D6B00000038 /* HijriSharedOptions.swift */; };
 		7555FF7B242D4D6B0000000D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B00000011 /* Assets.xcassets */; };
 		7555FF7B242D4D6B00000026 /* HijriCalendarWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B00000019 /* HijriCalendarWidgetBundle.swift */; };
 		7555FF7B242D4D6B00000027 /* HijriCalendarWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000001A /* HijriCalendarWidget.swift */; };
-		7555FF7B242D4D6B00000028 /* HijriWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000001B /* HijriWidgetIntent.swift */; };
+		7555FF7B242D4D6B00000028 /* HijriWidgetNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000001B /* HijriWidgetNavigation.swift */; };
 		7555FF7B242D4D6B00000029 /* HijriTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000001C /* HijriTimelineProvider.swift */; };
 		7555FF7B242D4D6B0000002A /* HijriWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B0000001D /* HijriWidgetView.swift */; };
 		7555FF7B242D4D6B00000033 /* HijriWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7555FF7B242D4D6B00000021 /* HijriWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -46,11 +49,13 @@
 		7555FF7B242D4D6B00000006 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7555FF7B242D4D6B0000000E /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
 		7555FF7B242D4D6B0000000F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		7555FF7B242D4D6B00000035 /* WidgetCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCatalogView.swift; sourceTree = "<group>"; };
+		7555FF7C242D4D6B00000038 /* HijriSharedOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriSharedOptions.swift; sourceTree = "<group>"; };
 		7555FF7B242D4D6B00000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7555FF7B242D4D6B00000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7555FF7B242D4D6B00000019 /* HijriCalendarWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriCalendarWidgetBundle.swift; sourceTree = "<group>"; };
 		7555FF7B242D4D6B0000001A /* HijriCalendarWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriCalendarWidget.swift; sourceTree = "<group>"; };
-		7555FF7B242D4D6B0000001B /* HijriWidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriWidgetIntent.swift; sourceTree = "<group>"; };
+		7555FF7B242D4D6B0000001B /* HijriWidgetNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriWidgetNavigation.swift; sourceTree = "<group>"; };
 		7555FF7B242D4D6B0000001C /* HijriTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriTimelineProvider.swift; sourceTree = "<group>"; };
 		7555FF7B242D4D6B0000001D /* HijriWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HijriWidgetView.swift; sourceTree = "<group>"; };
 		7555FF7B242D4D6B0000001E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -82,6 +87,7 @@
 			children = (
 				7555FF7B242D4D6B00000003 /* iosApp */,
 				7555FF7B242D4D6B00000022 /* HijriWidgetExtension */,
+				7555FF7C242D4D6B00000039 /* Shared */,
 				7555FF7B242D4D6B00000018 /* Frameworks */,
 				7555FF7B242D4D6B00000004 /* Products */,
 			);
@@ -92,6 +98,7 @@
 			children = (
 				7555FF7B242D4D6B0000000E /* iOSApp.swift */,
 				7555FF7B242D4D6B0000000F /* ContentView.swift */,
+				7555FF7B242D4D6B00000035 /* WidgetCatalogView.swift */,
 				7555FF7B242D4D6B00000011 /* Assets.xcassets */,
 				7555FF7B242D4D6B00000010 /* Info.plist */,
 				7555FF7B242D4D6B00000020 /* iosApp.entitlements */,
@@ -104,13 +111,21 @@
 			children = (
 				7555FF7B242D4D6B00000019 /* HijriCalendarWidgetBundle.swift */,
 				7555FF7B242D4D6B0000001A /* HijriCalendarWidget.swift */,
-				7555FF7B242D4D6B0000001B /* HijriWidgetIntent.swift */,
+				7555FF7B242D4D6B0000001B /* HijriWidgetNavigation.swift */,
 				7555FF7B242D4D6B0000001C /* HijriTimelineProvider.swift */,
 				7555FF7B242D4D6B0000001D /* HijriWidgetView.swift */,
 				7555FF7B242D4D6B0000001E /* Info.plist */,
 				7555FF7B242D4D6B0000001F /* HijriWidgetExtension.entitlements */,
 			);
 			path = HijriWidgetExtension;
+			sourceTree = "<group>";
+		};
+		7555FF7C242D4D6B00000039 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				7555FF7C242D4D6B00000038 /* HijriSharedOptions.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		7555FF7B242D4D6B00000004 /* Products */ = {
@@ -269,8 +284,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7555FF7C242D4D6B00000036 /* HijriSharedOptions.swift in Sources */,
 				7555FF7B242D4D6B0000000B /* iOSApp.swift in Sources */,
 				7555FF7B242D4D6B0000000C /* ContentView.swift in Sources */,
+				7555FF7B242D4D6B00000034 /* WidgetCatalogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,9 +295,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7555FF7C242D4D6B00000037 /* HijriSharedOptions.swift in Sources */,
 				7555FF7B242D4D6B00000026 /* HijriCalendarWidgetBundle.swift in Sources */,
 				7555FF7B242D4D6B00000027 /* HijriCalendarWidget.swift in Sources */,
-				7555FF7B242D4D6B00000028 /* HijriWidgetIntent.swift in Sources */,
+				7555FF7B242D4D6B00000028 /* HijriWidgetNavigation.swift in Sources */,
 				7555FF7B242D4D6B00000029 /* HijriTimelineProvider.swift in Sources */,
 				7555FF7B242D4D6B0000002A /* HijriWidgetView.swift in Sources */,
 			);
@@ -350,7 +368,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -384,7 +402,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -427,6 +445,7 @@
 					"$(inherited)",
 					"$(SRCROOT)/../calendar-widget-data/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
 				);
+				ENABLE_DEBUG_DYLIB = NO;
 				INFOPLIST_FILE = HijriWidgetExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -443,6 +462,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.muazdev.hijricalendar.iosApp.widget;
 				PRODUCT_NAME = HijriWidgetExtension;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_EXTENSION";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -478,6 +498,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.muazdev.hijricalendar.iosApp.widget;
 				PRODUCT_NAME = HijriWidgetExtension;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_EXTENSION";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

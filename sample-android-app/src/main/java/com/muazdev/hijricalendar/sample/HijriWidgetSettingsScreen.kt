@@ -43,6 +43,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshScheduler
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
@@ -92,15 +93,15 @@ private val TILE_PREVIEW_SIZE = DpSize(120.dp, 120.dp)
 @Composable
 internal fun HijriWidgetSettingsScreen(
     kind: WidgetKind,
-    initial: HijriWidgetConfig.WidgetOptions,
-    onApply: (HijriWidgetConfig.WidgetOptions) -> Unit,
+    initial: WidgetOptions,
+    onApply: (WidgetOptions) -> Unit,
     onRefreshNow: () -> Unit,
     onDone: () -> Unit,
 ) {
     var options by rememberSaveable(stateSaver = HijriWidgetConfig.widgetOptionsSaver()) { mutableStateOf(initial) }
     var compactPreview by rememberSaveable { mutableStateOf(false) }
 
-    fun update(newOptions: HijriWidgetConfig.WidgetOptions) {
+    fun update(newOptions: WidgetOptions) {
         if (newOptions == options) return
         options = newOptions
         onApply(newOptions)
@@ -232,7 +233,7 @@ internal fun HijriWidgetSettingsScreen(
             WidgetLanguage.entries.forEach { option ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
-                        selected = options.monthNameLanguage == option,
+                        selected = options.effectiveMonthNameLanguage == option,
                         onClick = { update(options.copy(monthNameLanguage = option)) },
                     )
                     Text(option.name.lowercase().replaceFirstChar { it.uppercase() })
@@ -333,7 +334,7 @@ internal fun HijriWidgetSettingsScreen(
                     Text("Month", style = MaterialTheme.typography.bodyMedium)
                     OutlinedButton(onClick = { update(options.stepPinned(-1)) }) { Text("◀") }
                     Text(
-                        options.hijriMonthLabel(pinnedMonth),
+                        options.hijriMonthName(pinnedMonth),
                         style = MaterialTheme.typography.titleMedium
                     )
                     OutlinedButton(onClick = { update(options.stepPinned(1)) }) { Text("▶") }
@@ -381,7 +382,7 @@ private fun SectionTitle(text: String) {
 }
 
 /** Switching language follows the new language's default digits unless a custom style was chosen. */
-private fun HijriWidgetConfig.WidgetOptions.withLanguage(language: WidgetLanguage): HijriWidgetConfig.WidgetOptions {
+private fun WidgetOptions.withLanguage(language: WidgetLanguage): WidgetOptions {
     if (language == this.language) return this
     val wasDefault = numeralStyle == WidgetLocalization.defaultNumeralStyle(this.language)
     return copy(
@@ -391,18 +392,11 @@ private fun HijriWidgetConfig.WidgetOptions.withLanguage(language: WidgetLanguag
 }
 
 /** Steps the pinned month by [months], wrapping the year and no-oping outside the supported range. */
-private fun HijriWidgetConfig.WidgetOptions.stepPinned(months: Int): HijriWidgetConfig.WidgetOptions {
+private fun WidgetOptions.stepPinned(months: Int): WidgetOptions {
     val year = pinnedYear ?: return this
     val month = pinnedMonth ?: return this
     val next = offsetHijriMonth(year, month, months) ?: return this
     return copy(pinnedYear = next.year, pinnedMonth = next.month.number)
-}
-
-/** The localized Hijri month name for a pinned month, matching what the widget renders. */
-private fun HijriWidgetConfig.WidgetOptions.hijriMonthLabel(month: Int): String {
-    val names = WidgetLocalization.hijriMonthNames(monthNameLanguage)
-        ?: WidgetLocalization.englishHijriMonthNames
-    return names.getOrNull(month - 1) ?: "Month $month"
 }
 
 private fun offsetLabel(offset: Int): String = when (offset) {

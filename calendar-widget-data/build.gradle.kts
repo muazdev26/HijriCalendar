@@ -37,6 +37,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.datetime)
+            // The widget option schema ([WidgetOptions]) is serialized so a native settings screen
+            // can persist it and hand it back to a renderer verbatim; the JSON codec is what makes
+            // that round-trip possible without re-declaring the schema per platform.
+            api(libs.kotlinx.serialization.json)
             api(projects.calendarCore)
         }
         commonTest.dependencies {

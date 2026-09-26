@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
  * driven by this value rather than the device locale so both widget stacks behave
  * identically.
  */
+@Serializable
 enum class NumeralStyle {
     WESTERN,
     ARABIC_INDIC
@@ -19,6 +20,7 @@ enum class NumeralStyle {
  * direction of the weekday header, the day grid and the header arrows so a widget renders
  * consistently regardless of the host's `layoutDirection`.
  */
+@Serializable
 enum class WidgetLanguage(val isRtl: Boolean) {
     URDU(isRtl = true),
     ENGLISH(isRtl = false),
@@ -30,6 +32,7 @@ enum class WidgetLanguage(val isRtl: Boolean) {
  * A widget carries this as a small tappable pill so the source can be switched from the
  * home screen without opening the app.
  */
+@Serializable
 enum class WidgetSource(val pakistan: Boolean) {
     CALCULATION(pakistan = false),
     PAKISTAN(pakistan = true),

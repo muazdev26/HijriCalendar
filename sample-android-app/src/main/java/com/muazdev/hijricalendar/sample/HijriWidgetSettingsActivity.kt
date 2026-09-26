@@ -24,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 
 /**
  * Base for every per-widget configuration activity owned by the sample app. The library ships no
@@ -69,7 +70,7 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // The stored options live in Glance's preferences state store and are read
                     // asynchronously; hold a null "not loaded yet" slot until the config has been read.
-                    var loaded by remember { mutableStateOf<HijriWidgetConfig.WidgetOptions?>(null) }
+                    var loaded by remember { mutableStateOf<WidgetOptions?>(null) }
                     LaunchedEffect(appWidgetId) {
                         loaded = resolveInitial()
                     }
@@ -94,11 +95,11 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun resolveInitial(): HijriWidgetConfig.WidgetOptions =
+    private suspend fun resolveInitial(): WidgetOptions =
         glanceId?.let { HijriWidgetConfig.load(this, it) }
             ?: HijriWidgetConfig.loadFamily(this)
 
-    private fun apply(options: HijriWidgetConfig.WidgetOptions) {
+    private fun apply(options: WidgetOptions) {
         scope.launch {
             val id = glanceId
             if (id != null) {

@@ -65,15 +65,7 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
     // a widget that has navigated once resolves straight from `viewed` and never touches
     // PakistanHijriCalendar on subsequent taps.
     val todayHijri by lazy {
-        todayHijriWidgetData(
-            anchorEpochDay = todayEpochDay,
-            adjustmentDays = options.adjustmentDays,
-            localizedHijriMonthNames = WidgetLocalization.hijriMonthNames(options.monthNameLanguage),
-            localizedGregorianMonthNames = WidgetLocalization.gregorianMonthNames(options.monthNameLanguage),
-            localizedWeekdayNames = WidgetLocalization.weekdayNames(options.language),
-            numeralStyle = options.numeralStyle,
-            pakistan = options.source.pakistan,
-        )
+        todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
     }
     val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
     val baseYear = viewed?.first ?: options.pinnedYear ?: todayHijri?.hijriYear ?: run {
