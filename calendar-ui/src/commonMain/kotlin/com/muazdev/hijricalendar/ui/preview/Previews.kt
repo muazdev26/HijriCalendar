@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.UrduCalendarNames
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarDayCell
@@ -284,27 +285,6 @@ fun HijriCalendarBothDatesFontScale150Preview() {
     }
 }
 
-private val UrduHijriMonths = listOf(
-    "محرم", "صفر", "ربیع الاول", "ربیع الثانی",
-    "جمادی الاول", "جمادی الثانی", "رجب", "شعبان",
-    "رمضان", "شوال", "ذی القعدہ", "ذی الحجہ",
-)
-
-private val UrduGregorianMonths = listOf(
-    "جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون",
-    "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر",
-)
-
-private val UrduWeekdayNames = mapOf(
-    WeekDay.SATURDAY to "ہفتہ",
-    WeekDay.SUNDAY to "اتوار",
-    WeekDay.MONDAY to "پیر",
-    WeekDay.TUESDAY to "منگل",
-    WeekDay.WEDNESDAY to "بدھ",
-    WeekDay.THURSDAY to "جمعرات",
-    WeekDay.FRIDAY to "جمعہ",
-)
-
 @Preview
 @Composable
 fun HijriCalendarUrduRtlPreview() {
@@ -313,9 +293,9 @@ fun HijriCalendarUrduRtlPreview() {
         firstDayOfWeek = WeekDay.SATURDAY,
     )
     val urduLabels = HijriCalendarLabels(
-        hijriMonthName = { _, month -> UrduHijriMonths[month - 1] },
-        gregorianMonthName = { month -> UrduGregorianMonths[month - 1] },
-        weekdayShortName = { weekDay -> UrduWeekdayNames.getValue(weekDay) },
+        hijriMonthName = { _, month -> UrduCalendarNames.hijriMonths[month - 1] },
+        gregorianMonthName = { month -> UrduCalendarNames.gregorianMonths[month - 1] },
+        weekdayShortName = { weekDay -> UrduCalendarNames.weekdays.getValue(weekDay) },
         previousMonthContentDescription = "پچھلا مہینہ",
         nextMonthContentDescription = "اگلا مہینہ",
     )

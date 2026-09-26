@@ -11,8 +11,26 @@ struct ComposeView: UIViewControllerRepresentable {
 }
 
 struct ContentView: View {
+    @State private var showingWidgetCatalog = false
+
     var body: some View {
-        ComposeView()
-            .ignoresSafeArea(.keyboard)
+        NavigationStack {
+            ComposeView()
+                .ignoresSafeArea(.keyboard)
+                .ignoresSafeArea(.container, edges: .horizontal)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingWidgetCatalog = true
+                        } label: {
+                            Text("Widgets")
+                        }
+                    }
+                }
+        }
+        .tint(Color(red: 0.13, green: 0.45, blue: 0.35))
+        .sheet(isPresented: $showingWidgetCatalog) {
+            WidgetCatalogView()
+        }
     }
 }

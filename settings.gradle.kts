@@ -30,6 +30,8 @@ rootProject.name = "HijriCalendar"
 
 include(":calendar-core")
 include(":calendar-ui")
+include(":calendar-widget-data")
+include(":calendar-widget-glance")
 include(":sample-android-app")
 include(":sample-shared")
 

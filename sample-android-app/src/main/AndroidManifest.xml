@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Calendar-app exact-alarm exemptions: auto-granted without a runtime prompt, lets the
+         widget roll over at the exact local-midnight boundary (USE_EXACT_ALARM on Android 13+,
+         SCHEDULE_EXACT_ALARM on Android 12). -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <application
         android:name=".HijriCalendarApp"
         android:allowBackup="true"
@@ -13,6 +22,112 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hijricalendar" android:host="today" />
+            </intent-filter>
         </activity>
+
+        <!-- Home-screen widget; the host/provider ID lives in res/xml. -->
+        <receiver
+            android:name="com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_calendar_widget_info" />
+        </receiver>
+
+        <!-- Fixed-size "today" strip widget. The sample overrides its provider info to point it at
+             its own configuration activity (the library declares none by default). -->
+        <receiver
+            android:name="com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver"
+            android:label="@string/hijri_today_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_today_widget_info" />
+        </receiver>
+
+        <!-- Fixed 1x1 "Hijri Date" tile; follows the family options mirror. -->
+        <receiver
+            android:name="com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver"
+            android:label="@string/hijri_date_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_date_widget_info" />
+        </receiver>
+
+        <!-- Fixed 1x1 "Gregorian Date" tile; follows the family options mirror. -->
+        <receiver
+            android:name="com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver"
+            android:label="@string/gregorian_date_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gregorian_date_widget_info" />
+        </receiver>
+
+        <!-- Widget catalog: add any of the app's widgets straight from the home screen. -->
+        <activity
+            android:name=".WidgetCatalogActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+
+        <!-- Per-widget configuration activities, owned by the sample and pointed at by the
+             res/xml*/widget-info overrides. The library ships no configure activity; each widget
+             type registers its own so the long-press and add-to-home flows both configure it. -->
+        <activity
+            android:name=".HijriWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".HijriTodayWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".HijriDateWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".GregorianDateWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- requestPinAppWidget success callback: confirms an added widget, so the add-to-home
+             flow from WidgetCatalogActivity gives feedback. -->
+        <receiver
+            android:name=".WidgetAddSuccessReceiver"
+            android:exported="false" />
     </application>
 </manifest>

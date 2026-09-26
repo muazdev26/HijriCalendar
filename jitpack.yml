@@ -1,4 +1,4 @@
 jdk:
   - openjdk21
 install:
-  - ./gradlew --console=plain :calendar-core:publishToMavenLocal :calendar-ui:publishToMavenLocal -xtest -xlint
+  - ./gradlew --console=plain :calendar-core:publishToMavenLocal :calendar-ui:publishToMavenLocal :calendar-widget-data:publishToMavenLocal :calendar-widget-glance:publishToMavenLocal -xtest -xlint

@@ -24,6 +24,17 @@
     <true/>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.muazdev.hijricalendar</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>hijricalendar</string>
+            </array>
+        </dict>
+    </array>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>UIApplicationSceneManifest</key>

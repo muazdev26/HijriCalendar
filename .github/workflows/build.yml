@@ -33,8 +33,14 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Run core + UI unit tests
-        run: ./gradlew :calendar-core:desktopTest :calendar-ui:desktopTest --console=plain
+      - name: Run core + UI + widget unit tests
+        run: |
+          ./gradlew \
+            :calendar-core:desktopTest \
+            :calendar-ui:desktopTest \
+            :calendar-widget-data:desktopTest \
+            :calendar-widget-glance:testDebugUnitTest \
+            --console=plain
 
       - name: Assemble sample debug APK
         run: ./gradlew :sample-android-app:assembleDebug --console=plain
@@ -69,4 +75,17 @@ jobs:
             :calendar-core:compileKotlinIosSimulatorArm64 \
             :calendar-ui:compileKotlinIosArm64 \
             :calendar-ui:compileKotlinIosSimulatorArm64 \
+            :calendar-widget-data:compileKotlinIosArm64 \
+            :calendar-widget-data:compileKotlinIosSimulatorArm64 \
             --console=plain
+
+      - name: Build iOS app + widget extension (unsigned simulator)
+        run: |
+          xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            -configuration Debug \
+            build
