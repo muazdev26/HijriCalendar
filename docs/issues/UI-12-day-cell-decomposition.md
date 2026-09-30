@@ -9,8 +9,8 @@
 
 ## Problem
 
-`HijriCalendarDayCell` is one 155-line composable with **six** sequential `when` blocks resolving
-colour and geometry before a single node is emitted
+`HijriCalendarDayCell` is a 177-line file whose single composable resolves **six** sequential `when`
+blocks (about 36 of those lines) before emitting a single node
 (`HijriCalendarDayCell.kt:50-85`):
 
 ```kotlin
@@ -24,6 +24,21 @@ val borderWidth       = when { isSelected -> TodayBorderWidth / showTodayBorder 
 
 detekt already flags it as both `LongMethod` and `CyclomaticComplexMethod`
 (`config/detekt/baseline-calendar-ui.xml:6,16`).
+
+### The precedence is not just undocumented — one branch is wrong
+
+`isSelected` is tested **before** `isDisabled` (`:50-56`), so a cell that is both selected and
+disabled renders with the *selected* treatment — filled accent container, `onPrimary` content — while
+being unclickable and stripped of `Role.Button`. It looks fully enabled and silently refuses taps.
+
+This is reachable, not theoretical. `isDisabled` comes from core's `DateWindow`, which is resolved
+against **`adjustmentDays`**, and that value is *mutable* (`setAdjustmentDays`), while `isSelected`
+is not cleared when the window moves past it. Call `setAdjustmentDays` so the selected day falls
+outside the bounded range and the cell lands in exactly this state.
+
+The `when` order is the whole contract, and nothing asserts it. The `DayCellStyle` extraction below
+is what makes it assertable — add a case per branch *and* one for selected+disabled, or the next
+reorder reintroduces this.
 
 Every one of these is a **pure function of `(CalendarDay, HijriCalendarColors)`**, and none of it is
 tested. The file's own test (`HijriCalendarDayCellTest.kt`) only covers
@@ -79,7 +94,7 @@ currently asserts.
 
 **3. Move the `require` out of composition.** Either drop it (the internal call site always passes
 7) or, better, make `HijriWeekRow` `internal` per
-[UI-14](UI-06-public-surface-and-docs.md) so a malformed list is not a consumer-reachable crash.
+[UI-06](UI-06-public-surface-and-docs.md) so a malformed list is not a consumer-reachable crash.
 
 **4. Give `DayOfWeekLabels` a `modifier` parameter** (`HijriCalendarGrid.kt:153`) so the weekday row
 can be padded and tested in isolation.
@@ -88,7 +103,7 @@ can be padded and tested in isolation.
 
 - [ ] `HijriCalendarDayCell.kt` has no composable longer than ~50 lines
 - [ ] `LongMethod` and `CyclomaticComplexMethod` are gone from `baseline-calendar-ui.xml` for this
-      file (see [UI-13](UI-14-stale-detekt-baseline.md))
+      file (see [UI-14](UI-14-stale-detekt-baseline.md))
 - [ ] Tests assert the colour precedence: selected > disabled > outside-month > weekend
 - [ ] A test asserts `GREGORIAN_ONLY` renders no Hijri numeral
 - [ ] No `require` executes inside a composable reachable from the public API

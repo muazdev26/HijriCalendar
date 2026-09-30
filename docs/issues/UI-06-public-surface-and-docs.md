@@ -9,20 +9,21 @@
 
 ## Problem
 
-Nine of twelve `commonMain` files have **zero** KDoc blocks:
+Ten of fourteen `commonMain` files have **zero** KDoc blocks:
 
 | File | KDoc | Lines |
 |---|---|---|
 | `DateDisplayMode.kt` | 4 | 23 |
-| `HijriCalendarLabels.kt` | 5 | 40 |
-| `HijriCalendar.kt` | **0** | 163 |
+| `HijriCalendarLabels.kt` | 5 | 50 |
+| `HijriCalendar.kt` | **0** | 160 |
 | `HijriCalendarDayCell.kt` | **0** | 177 |
-| `HijriCalendarGrid.kt` | **0** | 217 |
+| `HijriCalendarGrid.kt` | **0** | 205 |
 | `HijriCalendarHeader.kt` | **0** | 95 |
 | `HijriCalendarColors.kt` | **0** | 23 |
 | `HijriCalendarDefaults.kt` | **0** | 51 |
 | `HijriWeekRow.kt` | **0** | 44 |
 | `util/ModifierExtensions.kt` | **0** | 32 |
+| `preview/Previews.kt` | **0** | 317 | *(see UI-07)* |
 
 `README.md` does not mention `HijriCalendarGrid`, `HijriWeekRow`, `HijriCalendarHeader`,
 `HijriCalendarDayCell`, `calendarDayCell`, or `clickableIfEnabled`. So four public composables and
@@ -38,7 +39,7 @@ Four of these are not components; they are this component's internals that happe
 | `HijriCalendarGrid(state, calendarMonth, …)` | Demands a state *and* its resolved month, then discards the month. A caller who passes a stale `calendarMonth` gets a pager anchored to the wrong month with no compiler help. See [UI-03](UI-03-one-month-builder.md). |
 | `HijriWeekRow` | A layout primitive that `require`s exactly 7 days (`HijriWeekRow.kt:23`) and throws **from composition**. Its contract is an assertion, not documentation. |
 | `Modifier.calendarDayCell(size)` | Literally `this.size(size)`. One call site (`HijriCalendarDayCell.kt:89`). A public API obligation for a no-op wrapper. |
-| `Modifier.clickableIfEnabled(…)` | Internal helper with a `@Composable` receiver-ish signature and an undocumented `indication = null`. See [UI-07](UI-08-touch-feedback.md). |
+| `Modifier.clickableIfEnabled(…)` | Internal helper with a `@Composable` receiver-ish signature and an undocumented `indication = null`. See [UI-08](UI-08-touch-feedback.md). |
 | `HijriCalendarHeader` | Has real content, but its `canGoToPreviousMonth` / `canGoToNextMonth` mirror core's `isNavigableWithin` rule (`HijriCalendarState.kt:581-585`) with no way for a consumer to learn that. |
 
 ## Specific gaps
@@ -54,8 +55,15 @@ the 30-passing-argument wrappers that duplicate core's signatures.
 **`HijriWeekRow.kt:23`** — a `require` with no stated contract. Its message says what happened,
 not what the caller must do.
 
-**`DayOfWeekLabels`** (`HijriCalendarGrid.kt:153`) — takes no `modifier`, so the weekday row cannot
-be padded or reused.
+**One public signature is self-contradictory in shape.** `dayContent` is
+`(@Composable () -> Unit)?` on `HijriCalendarDayCell:38` but `(@Composable (CalendarDay) -> Unit)?` on
+`HijriWeekRow:21` and on `HijriCalendar`. `HijriWeekRow:39` bridges the two with
+`dayContent?.let { { it(day) } }`. So a consumer reading the *cell's* signature — the one named
+after the thing it replaces — sees the less useful of the two forms, with no `CalendarDay` to work
+from, while the slot's own name and the type at the call site disagree. One shape, carrying the
+day, is the answer; the bridge allocates two lambdas per cell per composition as a side effect.
+
+**`DayOfWeekLabels`** (`HijriCalendarGrid.kt:153`) — takes no `modifier`, so the weekday row cannot be padded or reused.
 
 ## Proposed change
 
@@ -95,5 +103,5 @@ supported surface is `HijriCalendar` + the colours/labels objects and the rest i
 - `explicitApi()` is already on for this module, so nothing slipped through accidentally. But
   `explicitApi()` requires *stating* `public`, not *justifying* it. That distinction is the whole
   gap.
-- `apiCheck` is what surfaced [UI-06](UI-07-previews-out-of-abi.md) — 14 preview composables in
+- `apiCheck` is what surfaced [UI-07](UI-07-previews-out-of-abi.md) — 14 preview composables in
   the published dump. Keep the BCV gate; it is doing real work.

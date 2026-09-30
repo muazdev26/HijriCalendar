@@ -9,7 +9,7 @@
 
 ## Problem
 
-`calendar-ui/src/commonTest` is 195 lines across three files and covers exactly four pure
+`calendar-ui/src/commonTest` was 193 lines across three files and covered exactly four pure
 functions and two integer constants:
 
 | File | Covers |
@@ -19,7 +19,9 @@ functions and two integer constants:
 | `HijriCalendarDayCellTest.kt` | `toArabicIndicNumerals` |
 
 **No test composes a single composable.** `desktopTest` runs green and proves the arithmetic
-helpers work. All four public composables — 652 of the module's 892 lines — are untested.
+helpers work. All four public composables — 652 of the module's 1202 `commonMain` lines — are
+untested. *(Both figures predate UI-01 and UI-05, which added `RenderMonth.kt` and `PageWindow.kt`;
+the module is now 1362 lines across 14 files and the suite is 674 lines / 50 tests.)*
 
 The repository's only Compose test is
 `sample-android-app/src/androidTest/kotlin/…/CalendarScreenDeviceUiTest.kt` (11 tests, 311 lines,

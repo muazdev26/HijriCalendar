@@ -78,7 +78,7 @@ existing script instead of adding a second one.
   deliberate choice. Confirm with `git log -p gradle/libs.versions.toml` before assuming.
 - **Related finding in the same area:** `ui-tooling-preview` is `implementation` in `commonMain`
   of a published module (`build.gradle.kts:13`). That is
-  [UI-06](UI-07-previews-out-of-abi.md) — same shape, different consequence, because its annotation
+  [UI-07](UI-07-previews-out-of-abi.md) — same shape, different consequence, because its annotation
   ends up on public signatures rather than merely bloating the graph.
 - Both dependencies are `implementation`, which is correct in principle: a Compose *library* should
   not force its consumers onto a specific Compose version. The problem is only that these two are

@@ -28,7 +28,7 @@ looks worse than it is and the record can no longer be trusted to distinguish "f
 
 ## The rest of the baseline
 
-The remaining 25 entries are almost entirely cosmetic — import ordering (8), trailing newline (6,
+The remaining 19 entries are almost entirely cosmetic — import ordering (5), trailing newline (6,
 duplicated as both `FinalNewline` and `NewLineAtEndOfFile`), and the two formatting nits at
 `HijriCalendarHeader.kt:60` and `HijriCalendarDefaults.kt:15`. That is the right shape for a
 baseline: noise that drains as files are touched.
@@ -42,16 +42,16 @@ Two entries are **real** debt being hidden rather than drained:
 <LongParameterList:HijriCalendarGrid.kt$(days, …)>  (:18)
 ```
 
-All four are [UI-11](UI-12-day-cell-decomposition.md) (three) and
-[UI-03](UI-03-one-month-builder.md) / [UI-14](UI-06-public-surface-and-docs.md) (one). They are
+All four are [UI-12](UI-12-day-cell-decomposition.md) (three) and
+[UI-03](UI-03-one-month-builder.md) / [UI-06](UI-06-public-surface-and-docs.md) (one). They are
 baseline entries, which means CI will never flag them and nothing schedules them. Leaving them
-baselined is how a 155-line composable and a 217-line composable with two divergent month builders
+baselined is how a long composable and a 217-line composable with two divergent month builders
 became the module's defining shape.
 
 ## Proposed change
 
 **1. Regenerate the baseline** after
-[UI-11](UI-12-day-cell-decomposition.md) lands, so the stale `NoUnusedImports` entry disappears.
+[UI-12](UI-12-day-cell-decomposition.md) lands, so the stale `NoUnusedImports` entry disappears.
 `./gradlew :calendar-ui:detektBaseline`.
 
 **2. Delete the four real entries by fixing them**, not by regenerating. Regenerating re-adds them.

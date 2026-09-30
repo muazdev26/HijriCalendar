@@ -104,7 +104,7 @@ correct, to avoid forcing the 42-cell build. But it should read `state.monthLeng
   cached per year-month so the second read is free.
 - A per-year-month cache on the state is the more complete version of this ticket (it would also
   fix the "visible month built twice" half). It is not required for correctness, only for the
-  duplicate build to go away. Keep it as a follow-up if [UI-11](UI-12-day-cell-decomposition.md)
+  duplicate build to go away. Keep it as a follow-up if [UI-12](UI-12-day-cell-decomposition.md)
   shows a profile.
 - `HijriCalendarState` is in `calendar-core`, so this ticket touches a module covered by
   `CORE-03`'s BCV gate. Run `apiCheck` on the macOS job.

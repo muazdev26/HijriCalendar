@@ -52,7 +52,17 @@ read_wrapper() {
   sed -n 's/^distributionUrl=.*gradle-\([0-9.]*\)-.*$/\1/p' "$WRAPPER" | head -1
 }
 
-echo "Checking hand-written version claims against $CATALOG and $WRAPPER"
+# read_publish_version -> the version `hijri.publish` stamps on every published module.
+# It is a findProperty default inside a convention plugin rather than a catalog entry, which is
+# exactly why the claims below went unchecked until this was added: the script only knew about
+# libs.versions.toml and the wrapper, so AGENTS.md sat on "1.0.0-alpha08" for a long while
+# after v1.0.0 was actually tagged.
+read_publish_version() {
+  sed -n 's/.*publishing\.version.*as? String ?: "\([^"]*\)".*/\1/p' \
+    "build-logic/src/main/kotlin/hijri.publish.gradle.kts" | head -1
+}
+
+echo "Checking hand-written version claims against $CATALOG, $WRAPPER and build-logic"
 
 check_doc_claim "AGENTS.md" "Kotlin" "$(read_catalog kotlin)" \
   "Kotlin $(read_catalog kotlin | sed 's/\./\\./g')"
@@ -65,5 +75,8 @@ check_doc_claim "AGENTS.md" "AGP" "$(read_catalog agp)" \
 
 check_doc_claim "AGENTS.md" "Gradle wrapper" "$(read_wrapper)" \
   "Gradle $(read_wrapper | sed 's/\./\\./g')"
+
+check_doc_claim "AGENTS.md" "publish version" "$(read_publish_version)" \
+  "version \`$(read_publish_version | sed 's/\./\\./g')\`"
 
 exit "$status"

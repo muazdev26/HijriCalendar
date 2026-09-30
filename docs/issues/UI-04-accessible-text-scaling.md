@@ -103,6 +103,6 @@ behaviour keeps it. A default of `false` inverts the current behaviour — call 
   indicator"*, so the `fontScale = 1f` override was a deliberate response to a real layout bug. Do
   not revert it wholesale — find the bug it fixed (likely `BOTH` mode overflow) and keep the fix
   scoped to it. `git show 337f631` is the place to look.
-- Related but separate: [UI-09](UI-10-localization-completion.md) notes the header year is never
+- Related but separate: [UI-10](UI-10-localization-completion.md) notes the header year is never
   rendered in Arabic-Indic digits. Both are localisation gaps that a screen reader or a
   large-text user hits together.

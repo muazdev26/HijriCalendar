@@ -1,106 +1,79 @@
-# Issue 11: `@Immutable` on `HijriCalendarLabels` is unsound
+# Issue 11: WITHDRAWN — `@Immutable` on `HijriCalendarLabels` is sound, not unsound
 
-**Severity:** Medium
+**Severity:** ~~Medium~~ None
 **Blocks:** —
 **Blocked by:** —
 **Module:** `calendar-ui`
+**Status:** Withdrawn 2026-09-30 — the premise was disproven. Kept as a record so it is not
+re-raised, and so the disproof is findable.
 
 ---
 
-## Problem
+## Why this was withdrawn
 
-`HijriCalendarLabels` is annotated `@Immutable` (`HijriCalendarLabels.kt:17`) and its four function
-fields are `kotlin.Function1` / `kotlin.Function2`, which the Compose stability inference rates
-**unstable**. The explicit annotation overrides the inference, so the compiler believes the class is
-stable when its fields are not.
+The ticket claimed that `@Immutable` on `HijriCalendarLabels` "overrides inference in the wrong
+direction", because its four fields are `kotlin.Function1` / `Function2`, which the Compose compiler
+was said to rate **unstable**. It cited `javap` on the compiled class as verification, and added a
+note that an earlier reading of the source had been wrong — so the claim had already survived one
+self-correction.
 
-Verified in the compiled bytecode:
+**It is still wrong.** Decompiling the compiler settles it:
 
 ```bash
-javap -v calendar-ui/build/classes/kotlin/desktop/main/\
-  com/muazdev/hijricalendar/ui/HijriCalendarLabels.class | grep -i immutable
-#   d2=[... "HijriCalendar:calendar-ui","Landroidx/compose/runtime/Immutable;"]
-javap -v .../HijriCalendarColors.class | grep -i 'stable\|Immutable'
-#   no Immutable annotation — $stable is emitted by *inference*
+# StabilityInferencer.stabilityOf  (kotlin-compose-compiler-plugin-embeddable 2.4.20)
+33: isUnit?                        ─┐
+41: isPrimitiveType?                │
+51: isFunctionOrKFunction?          ├─▶ 71: return Stable
+57: isSyntheticComposableFunction?  │
+64: isString?                      ─┘
 ```
 
-The asymmetry is the tell. `HijriCalendarColors` has **no** annotation and is nonetheless stable,
-because `Color` and `Dp` are inline value classes over primitives and the compiler infers
-stability. `HijriCalendarLabels` has an annotation that *overrides* inference in the wrong
-direction.
+Every branch from offset 33 funnels into the same `return Stable`, and `isFunctionOrKFunction` is
+one of them. **Compose infers function-typed fields as stable.** A class whose only non-value-class
+fields are lambdas is inferred stable, so `@Immutable` on `HijriCalendarLabels` is *redundant*, not
+unsound. Nothing is being lied to, so neither failure mode described in the original ticket can
+occur.
 
-## Why it matters
+The corroborating evidence was wrong too. The ticket said `HijriCalendarColors` "has no annotation
+and is nonetheless stable, because the compiler infers stability. **The asymmetry is the tell.**"
+`HijriCalendarColors.kt:7` carries `@Immutable`. Both classes show `$stable` and the annotation in
+`javap` output. There is no asymmetry, and no stable-by-inference case to contrast against.
 
-`@Immutable` promises the compiler "if the instance is equal, nothing observable has changed".
-With function fields, `data class` `equals` falls back to **reference** equality for lambdas, so
-there are two ways to be wrong:
+The ticket did correctly warn: *"Verify with the compiler, not by reading."* Reading was exactly
+what went wrong, on both counts.
 
-- **The label object is rebuilt each composition.** A consumer writing
-  `HijriCalendarLabels(hijriMonthName = { _, m -> … })` inline produces a new lambda identity every
-  recomposition, so the object is never equal to its predecessor and nothing skips. The class is
-  marked stable, so the compiler does not even warn.
-- **A lambda captures changing state.** A consumer writes
-  `HijriCalendarLabels(hijriMonthName = { _, m -> names[currentLocale] })` where `currentLocale`
-  is a snapshot state. The lambda identity never changes, so the label object compares equal, so the
-  consumer is skipped — and the month name goes stale until something *else* invalidates it.
+## What survives
 
-Neither is a compiler error and neither is a crash. Both are "the header shows the wrong month".
+One finding in the original ticket was real, and it is **not** about `@Immutable`. It is now
+recorded as a KDoc requirement on `HijriCalendarLabels` rather than as a ticket, because it is a
+sentence of documentation, not a defect:
 
-There is also a cost in the other direction: `remember(currentMonth, labels)` at
-`HijriCalendar.kt:37, 45, 85` uses `labels` as a key, so an unstable-by-identity `labels` throws
-away those caches on every recomposition.
+> `HijriCalendar` uses `labels` as a `remember` key at three sites (`HijriCalendar.kt:37, 45, 85`).
+> `HijriCalendarLabels` is a `data class` whose four function fields compare by **reference**, so a
+> consumer who constructs it inline in a composable produces a new object on every recomposition and
+> discards all three caches. Construct it once and hold it.
 
-## Proposed change
+That is a real recomposition cost, and it is a consumer-facing usage note. It is unaffected by the
+annotation question either way, which is why removing `@Immutable` would not have addressed it.
 
-**1. Remove `@Immutable` from `HijriCalendarLabels`** and let the compiler infer. Four `Function`
-fields → unstable → the compiler correctly refuses to skip, and warns at the consumer's call site
-where the fix belongs.
+## The genuine hazard, for the record
 
-**2. Leave `HijriCalendarColors` alone.** It is stable by inference and needs no annotation. Adding
-one is harmless but redundant; removing nothing is fine. Do **not** add `@Immutable` to
-`HijriCalendarDefaults` either — `colors()` is `@Composable` and its stability is about the
-composable, not the object.
-
-**3. If you want the skipping back, fix the type, not the annotation.** Offer a
-`@Composable`-free immutable variant for the common case — e.g. a `HijriCalendarLabels.of(...)`
-that resolves the lambdas to `String` tables eagerly:
+A label lambda that captures snapshot state —
 
 ```kotlin
-public data class HijriCalendarLabels(
-    val hijriMonthNames: List<String> = CalendarNames.englishHijriMonths,
-    val gregorianMonthNames: List<String> = CalendarNames.englishGregorianMonths,
-    val weekdayShortNames: Map<WeekDay, String> = …,
-    val dayContentDescription: (CalendarDay) -> String = …,   // still a function
-)
+HijriCalendarLabels(hijriMonthName = { _, m -> names[currentLocale] })
 ```
 
-A `List<String>` is stable, so a fully-table-driven label object is genuinely `@Immutable` and skips.
-Keep the lambda form for callers who need per-call computation, as a separate type or a documented
-escape hatch.
+— has a stable identity while `currentLocale` changes, so the object compares equal and the header
+can go stale until something else invalidates. That is a real Compose footgun with *any* lambda
+field, stable-annotated or not, and it is the kind of thing that surfaces as an unreproducible
+"the month name is wrong" report. It is not this ticket's finding either: it happens identically
+with and without `@Immutable`, so the ticket's proposed fix would not have touched it. If it is
+worth addressing, the address is the table-driven variant the original ticket sketched in its
+proposal §3 (resolve lambdas to `List<String>` eagerly, which *is* genuinely immutable), taken as
+its own piece of work with its own test — not as a stability-annotation fix.
 
-**4. Document the caching implication** at the `HijriCalendarLabels` KDoc: this object is used as
-a `remember` key at three sites, so **construct it once and hold it** — do not build it inline in a
-composable if you care about recomposition cost.
+## If you are here looking for the original
 
-## Done when
-
-- [ ] `rg "@Immutable" calendar-ui/src/commonMain` shows the annotation only on types whose fields
-      are genuinely stable (or is gone)
-- [ ] A Compose stability report (`./gradlew :calendar-ui:compileKotlinDesktop
-      -Pplugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=…`) shows
-      `HijriCalendarLabels` as unstable
-- [ ] The KDoc states the `remember`-key consequence
-
-## Notes
-
-- **Verify with the compiler, not by reading.** The Compose compiler plugin emits a stability report;
-  use it rather than reasoning from the annotation. This finding came from `javap`, and an earlier
-  reading of the source ("`HijriCalendarColors` has no `@Immutable`, so it is unstable and 42 cells
-  never skip") turned out to be **wrong** — inference makes it stable. Getting this backwards would
-  have produced a ticket for a bug that does not exist.
-- `CalendarDay` in `calendar-core` has the same annotation pattern (`CalendarDay.kt:3`) and is a
-  better-behaved case: its fields are `HijrahDate?` / `PakistanHijriDate?` / `ObservedHijriDate?` /
-  `LocalDate` / `Boolean` / `Int`, all stable. Worth a note there too, but it is not this module's
-  ticket.
-- Low blast radius, but it is the kind of thing that produces an unreproducible "the month name is
-  wrong" report two releases later.
+It is in this file's history. The substance was: *check whether `@Immutable` is a promise this class
+can keep, rather than assuming it.* The answer turned out to be yes, cheaply, and the class is fine.

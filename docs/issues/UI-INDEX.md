@@ -1,8 +1,8 @@
 # `calendar-ui` Architecture Review
 
 **Date:** 2026-09-30
-**Scope:** `calendar-ui/src/commonMain` (1202 lines, 12 files) and its test suite (193 lines, 20 tests)
-**Status:** Complete — 14 tickets, none shipped
+**Scope:** `calendar-ui/src/commonMain` (1362 lines, 14 files) and its test suite (674 lines, 50 tests)
+**Status:** In progress — 13 open tickets, 2 shipped, 1 withdrawn
 **Supersedes:** nothing. Companion to [`CORE-INDEX`](./INDEX.md), which reviews `calendar-core`.
 
 > This is an **architecture** review of the UI module. `docs/issues/INDEX.md` reviews `calendar-core`
@@ -25,7 +25,7 @@ unreachable.
 | Layering / boundary discipline | 8/10 | **Best dimension.** The three-way calendar branch is genuinely gone; `DateDisplayMode` correctly lives here. CORE-01/06 landed on this side. |
 | Performance craft | 7/10 | Real `remember`s, header decoupled from the grid build. Undercut by a duplicated month build and per-cell string work. |
 | Dependency hygiene | 6/10 | `material.icons.extended` for two core-set arrows, on a release train 5 minors behind the rest of Compose. |
-| Documentation | 5/10 | 10 of 12 files have zero KDoc blocks; README covers 4 of 8 public entry points. |
+| Documentation | 5/10 | 10 of 14 files have zero KDoc blocks; README covers 4 of 8 public entry points. |
 | API surface | 5/10 | 4 public composables + 2 public modifiers with no contract; one public signature is self-contradictory. |
 | Compose correctness | 5/10 | No touch feedback; `fontScale` forced to 1; two `LaunchedEffect`s unsynchronised; unsound `@Immutable`. |
 | Correctness vs. `calendar-core` | 5/10 | The render path and the state disagree about which override table is in force. |
@@ -119,29 +119,40 @@ Full tickets live in this directory. Summary and blocking edges:
    14. Stale detekt baseline [Low]
 ```
 
-**Execute in this order:** 1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.
+**Execute in this order:** ~~1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.~~ **1 and 5 are
+shipped.** For the rest, use: **2, 3, 4, 9, 7, 6, 10, 8, 12, 14, 13.**
 
-**1 is first** because it is a verified correctness defect and its minimal fix is two arguments.
-**2 is second** because it is the enabler for 4 and 9, which are behavioural changes that must not
-land without a test that fails first. **3 is third** because it deletes the mechanism that let 1
-happen. **5 is fourth** because it is a verified crash whose minimal fix is one function call; it
-goes before 6 because both touch `HijriCalendarGrid`'s signature. **6 is late** for the same reason
-as `CORE-03`: it documents whatever 1, 3, 5, 7 and 9 decide.
+The original order was wrong: it placed **6** sixth, while 6 is blocked by 1, 3, **4, 5, 7 and 9** —
+three of which it was scheduled ahead of. 6 is also last-by-design for the reason `CORE-03` gives
+(it documents whatever the others decide), so it cannot sit in the middle regardless. The corrected
+order puts 6 after all six of its blockers, keeps 14 after 12, and drops 11 entirely.
+
+**1 and 5 are shipped** (see the "Shipped" section of each ticket). **1 was first** because it was a
+verified correctness defect; its minimal fix was two arguments, and `RenderMonth.kt` is what makes it
+durable. **5 was second** because it was a verified crash, and because both touch
+`HijriCalendarGrid`'s signature — doing 6 first would have meant documenting code that was about to
+change.
+
+For the remaining eleven: **2 is next** because it is the enabler for 4 and 9, which are
+behavioural changes that must not land without a test that fails first. **3 follows 2** — it deletes
+the mechanism that let 1 happen, and its `calendarMonthFor` builder is best written against a
+harness. **4, 9, 7** are independent of each other. **6 is last** for the same reason as `CORE-03`: it
+documents whatever 3, 4, 7 and 9 decide, so writing it earlier guarantees writing it twice.
 
 | # | Finding | Severity | Ticket |
 |---|---|---|---|
-| 1 | Scoped overrides ignored by every render path | **Critical** | `UI-01-scoped-overrides-ignored.md` |
+| 1 | Scoped overrides ignored by every render path | **Critical** | `UI-01-scoped-overrides-ignored.md` · **shipped** |
 | 2 | No composable test harness; the only Compose test never runs in CI | High | `UI-02-compose-test-harness.md` |
 | 3 | The grid re-derives the month from a hand-listed subset of the state | High | `UI-03-one-month-builder.md` |
 | 4 | `fontScale` forced to 1 — text scaling off for the whole subtree | High | `UI-04-accessible-text-scaling.md` |
-| 5 | `minDate`/`maxDate` beyond ±500 months **crashes** on first composition | High | `UI-05-pager-window-crash.md` |
+| 5 | `minDate`/`maxDate` beyond ±500 months **crashes** on first composition | High | `UI-05-pager-window-crash.md` · **shipped** |
 | 6 | Four public composables + two public modifiers with no contract; 10/12 files undocumented | High | `UI-06-public-surface-and-docs.md` |
 | 7 | 14 `@Preview` composables ship in the published ABI | Medium | `UI-07-previews-out-of-abi.md` |
 | 8 | `indication = null` — 42 day cells with no touch feedback | Medium | `UI-08-touch-feedback.md` |
 | 9 | Two `LaunchedEffect`s unsynchronised; rotation animates the pager | Medium | `UI-09-pager-effect-sync.md` |
 | 10 | Header text and a11y strings are not localizable | Medium | `UI-10-localization-completion.md` |
-| 11 | `@Immutable` on `HijriCalendarLabels` is unsound | Medium | `UI-11-stability-honesty.md` |
-| 12 | 155-line day cell with six `when`s; `require` in composition | Low | `UI-12-day-cell-decomposition.md` |
+| 11 | ~~`@Immutable` on `HijriCalendarLabels` is unsound~~ — **withdrawn, premise disproven** | — | `UI-11-stability-honesty.md` |
+| 12 | Day cell resolves colour in six `when`s before emitting a node; `require` in composition | Low | `UI-12-day-cell-decomposition.md` |
 | 13 | Icons dependency on a stale release train | Low | `UI-13-dependency-hygiene.md` |
 | 14 | `baseline-calendar-ui.xml` no longer matches the code | Low | `UI-14-stale-detekt-baseline.md` |
 
@@ -290,7 +301,7 @@ is invisible in every demo. The bug requires a **scoped** table — the feature
 (`PreviewsKt` in both dumps) because signature changes are mechanical. It is signature-only, so it
 could never see finding 1.
 
-**detekt's baseline absorbed the complexity.** 25 entries, mostly cosmetic, but four of them are
+**detekt's baseline absorbed the complexity.** 20 entries, mostly cosmetic, but four of them are
 `LongMethod`/`CyclomaticComplexMethod`/`LongParameterList` on exactly the code that is hardest to
 test — so CI is green on the code most worth reviewing.
 
@@ -308,9 +319,9 @@ reviewer skimming for `TODO`/`FIXME` finds nothing; the module has neither.
 | File | Lines | KDoc blocks |
 |---|---|---|
 | `DateDisplayMode.kt` | 23 | 4 |
-| `HijriCalendarLabels.kt` | 40 | 5 |
-| `HijriCalendar.kt` | 163 | **0** |
-| `HijriCalendarGrid.kt` | 217 | **0** |
+| `HijriCalendarLabels.kt` | 50 | 5 |
+| `HijriCalendar.kt` | 160 | **0** |
+| `HijriCalendarGrid.kt` | 205 | **0** |
 | `HijriCalendarHeader.kt` | 95 | **0** |
 | `HijriCalendarDayCell.kt` | 177 | **0** |
 | `HijriWeekRow.kt` | 44 | **0** |
@@ -319,8 +330,10 @@ reviewer skimming for `TODO`/`FIXME` finds nothing; the module has neither.
 | `util/ModifierExtensions.kt` | 32 | **0** (2 public funcs) |
 | `preview/Previews.kt` | 317 | **0** (should not be published — [UI-07](#7--previews-in-the-published-abi)) |
 | `preview/PreviewData.kt` | 20 | **0** |
+| `PageWindow.kt` | 102 | 8 | *(added by UI-05)* |
+| `RenderMonth.kt` | 63 | 3 | *(added by UI-01)*
 
-**10 of 12 files have no KDoc at all**, and the two that do are the two that needed it least —
+**10 of 14 files have no KDoc at all**, and the two that do are the two that needed it least —
 `DateDisplayMode` and `HijriCalendarLabels` are both small, self-describing data types. Not one
 public composable explains a parameter, a default, or a precondition.
 

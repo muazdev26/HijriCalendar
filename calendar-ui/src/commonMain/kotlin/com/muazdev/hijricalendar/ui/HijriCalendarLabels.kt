@@ -13,6 +13,16 @@ import com.muazdev.hijricalendar.core.WeekDay
  *
  * The defaults come from [CalendarNames], which is the same source `calendar-widget-data` uses,
  * so an in-app header and a placed widget cannot show different month names.
+ *
+ * **Construct this once and hold it.** [HijriCalendar] uses `labels` as a `remember` key at three
+ * sites, and the four function fields compare by reference, so a `HijriCalendarLabels(...)` built
+ * inline inside a composable is a new object on every recomposition and discards all three caches.
+ * Pass a `val` held by the caller, or `remember` it.
+ *
+ * Related: a label lambda that *captures* changing state keeps a stable identity while its capture
+ * changes, so this object can compare equal and still render a stale month name. Read the capture
+ * through state inside the composable that uses the label, or supply a table-driven implementation
+ * instead of a lambda.
  */
 @Immutable
 public data class HijriCalendarLabels(
