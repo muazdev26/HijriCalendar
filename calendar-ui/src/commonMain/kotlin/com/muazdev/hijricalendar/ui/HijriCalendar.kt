@@ -13,7 +13,6 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
-import kotlinx.datetime.LocalDate
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
 
@@ -98,6 +97,13 @@ public fun HijriCalendar(
         labels.hijriMonthName(currentMonth.year, currentMonth.month.number)
     }
 
+    // The whole title line, so a locale controls its ordering and its digits. The header used to
+    // join these with a space itself and render the year in Western digits regardless of the
+    // calendar's numeral setting -- which the module's own Urdu preview demonstrated, in its own demo.
+    val headerTitle = remember(hijriMonthLabel, currentMonth, labels) {
+        labels.headerTitle(hijriMonthLabel, currentMonth.year)
+    }
+
     val headerContentDescription = remember(hijriMonthLabel, currentMonth) {
         "$hijriMonthLabel ${currentMonth.year}"
     }
@@ -117,7 +123,7 @@ public fun HijriCalendar(
         // does. Deliberately NOT state.calendarMonth: that would force the 42-cell grid to be
         // built for a header. gregorianRangeFor resolves the extent without the cells.
         val range = state.gregorianRangeFor(currentMonth)
-        sameMonthRangeLabel(range.first, range.last, labels)
+        labels.gregorianMonthRangeLabel(range.first, range.last)
     }
 
     // The current month's identity and weekday origin, used to label the header and to anchor the
@@ -154,16 +160,14 @@ public fun HijriCalendar(
 
     val defaultHeader: @Composable () -> Unit = {
         HijriCalendarHeader(
-            monthName = hijriMonthLabel,
-            year = currentMonth.year,
+            title = headerTitle,
             onPreviousMonth = state::goToPreviousMonth,
             onNextMonth = state::goToNextMonth,
             colors = colors,
             dateDisplayMode = dateDisplayMode,
             gregorianMonthText = gregorianMonthText,
             contentDescription = headerContentDescription,
-            previousMonthContentDescription = labels.previousMonthContentDescription,
-            nextMonthContentDescription = labels.nextMonthContentDescription,
+            labels = labels,
             canGoToPreviousMonth = state.canGoToPreviousMonth,
             canGoToNextMonth = state.canGoToNextMonth,
         )
@@ -239,15 +243,3 @@ public fun rememberSaveableHijriCalendarState(
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
 )
-
-internal fun sameMonthRangeLabel(first: LocalDate, last: LocalDate, labels: HijriCalendarLabels): String =
-    when {
-        first.month == last.month && first.year == last.year ->
-            "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year}"
-        first.year == last.year ->
-            "${labels.gregorianMonthName(first.month.ordinal + 1)} - " +
-                "${labels.gregorianMonthName(last.month.ordinal + 1)} ${first.year}"
-        else ->
-            "${labels.gregorianMonthName(first.month.ordinal + 1)} ${first.year} - " +
-                "${labels.gregorianMonthName(last.month.ordinal + 1)} ${last.year}"
-    }

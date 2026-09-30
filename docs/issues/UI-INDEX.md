@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-30
 **Scope:** `calendar-ui/src/commonMain` (1362 lines, 14 files) and its test suite (~1400 lines, 77 tests)
-**Status:** In progress — 4 open tickets, 9 shipped, 1 withdrawn
+**Status:** In progress — 3 open tickets, 10 shipped, 1 withdrawn
 **Supersedes:** nothing. Companion to [`CORE-INDEX`](./INDEX.md), which reviews `calendar-core`.
 
 > This is an **architecture** review of the UI module. `docs/issues/INDEX.md` reviews `calendar-core`
@@ -120,14 +120,14 @@ Full tickets live in this directory. Summary and blocking edges:
 ```
 
 **Execute in this order:** ~~1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.~~ **1 and 5 are
-shipped.** For the rest, use: **10, 8, 13.**
+shipped.** For the rest, use: **8, 13.**
 
 The original order was wrong: it placed **6** sixth, while 6 is blocked by 1, 3, **4, 5, 7 and 9** —
 three of which it was scheduled ahead of. 6 is also last-by-design for the reason `CORE-03` gives
 (it documents whatever the others decide), so it cannot sit in the middle regardless. The corrected
 order puts 6 after all six of its blockers, keeps 14 after 12, and drops 11 entirely.
 
-**1, 2, 3, 4, 5, 6, 7, 9, 12 and 14 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
+**1, 2, 3, 4, 5, 6, 7, 9, 10, 12 and 14 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
 proved its own worth on its first run: it found a missing `SemanticsProperties.Disabled` on day
 cells, and it showed that the pager's **page → state** direction had no coverage at all — deleting
 the swipe collector's state update left the whole suite green.
@@ -155,7 +155,7 @@ after that.
 | 7 | 14 `@Preview` composables ship in the published ABI | Medium | `UI-07-previews-out-of-abi.md` · **shipped** |
 | 8 | `indication = null` — 42 day cells with no touch feedback | Medium | `UI-08-touch-feedback.md` |
 | 9 | Two `LaunchedEffect`s unsynchronised; rotation animates the pager | Medium | `UI-09-pager-effect-sync.md` · **shipped** |
-| 10 | Header text and a11y strings are not localizable | Medium | `UI-10-localization-completion.md` |
+| 10 | Header text and a11y strings are not localizable | Medium | `UI-10-localization-completion.md` · **shipped** |
 | 11 | ~~`@Immutable` on `HijriCalendarLabels` is unsound~~ — **withdrawn, premise disproven** | — | `UI-11-stability-honesty.md` |
 | 12 | Day cell resolves colour in six `when`s before emitting a node; `require` in composition | Low | `UI-12-day-cell-decomposition.md` · **shipped** |
 | 13 | Icons dependency on a stale release train | Low | `UI-13-dependency-hygiene.md` |

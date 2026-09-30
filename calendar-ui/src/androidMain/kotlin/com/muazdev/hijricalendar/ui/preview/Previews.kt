@@ -14,19 +14,20 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.UrduCalendarNames
-import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarDayCell
 import com.muazdev.hijricalendar.ui.HijriCalendarHeader
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
-import androidx.compose.ui.tooling.preview.Preview
+import com.muazdev.hijricalendar.ui.toArabicIndicNumerals
 
 @Preview
 @Composable
@@ -34,8 +35,7 @@ public fun HijriCalendarHeaderPreview() {
     MaterialTheme {
         Surface {
             HijriCalendarHeader(
-                monthName = "Ramadan",
-                year = 1447,
+                title = HijriCalendarLabels().headerTitle("Ramadan", 1447),
                 onPreviousMonth = {},
                 onNextMonth = {},
                 modifier = Modifier.padding(16.dp),
@@ -50,8 +50,7 @@ public fun HijriCalendarHeaderWithGregorianPreview() {
     MaterialTheme {
         Surface {
             HijriCalendarHeader(
-                monthName = "Ramadan",
-                year = 1447,
+                title = HijriCalendarLabels().headerTitle("Ramadan", 1447),
                 onPreviousMonth = {},
                 onNextMonth = {},
                 dateDisplayMode = DateDisplayMode.BOTH,
@@ -347,6 +346,9 @@ public fun HijriCalendarUrduRtlPreview() {
         hijriMonthName = { _, month -> UrduCalendarNames.hijriMonths[month - 1] },
         gregorianMonthName = { month -> UrduCalendarNames.gregorianMonths[month - 1] },
         weekdayShortName = { weekDay -> UrduCalendarNames.weekdays.getValue(weekDay) },
+        // Writes the year in Arabic-Indic digits, which is what the header could not do before the
+        // title became a seam -- this preview used to show Urdu day figures under a Western year.
+        headerTitle = { monthName, year -> "$monthName ${year.toArabicIndicNumerals()}" },
         previousMonthContentDescription = "پچھلا مہینہ",
         nextMonthContentDescription = "اگلا مہینہ",
     )

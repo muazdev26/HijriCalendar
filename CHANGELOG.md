@@ -76,6 +76,17 @@ Remediation of the `calendar-core` architecture review — see
   Pass `ignoreFontScale = true` for the previous flat rendering; prefer the default.
   ([UI-04](docs/issues/UI-04-accessible-text-scaling.md))
 - **`HijriCalendar.ignoreFontScale` is new**, defaulting to `false`.
+- **`HijriCalendarHeader` takes a `title: String` and `labels` instead of `monthName`, `year` and two
+  English content-description defaults.** The header joined the title with a space itself and read
+  `"Previous month"` / `"Next month"` as parameter literals, so a locale could neither reorder the
+  title nor write the year in its own digits, and a direct caller shipped English screen-reader
+  output. `HijriCalendar` itself is unaffected — `HijriCalendarLabels.headerTitle` defaults to the
+  identical `"$monthName $year"`, so nothing visible changes.
+  ([UI-10](docs/issues/UI-10-localization-completion.md))
+- **`HijriCalendarLabels` gains `headerTitle` and `gregorianMonthRangeLabel`.** Both return the whole
+  formatted string so ordering, separator and numeral system are the consumer's. The defaults
+  reproduce the previous English output exactly, so existing label sets are unaffected. The module's
+  own Urdu preview previously showed Arabic-Indic day figures under a Western-numeral year.
 - **17 `@Preview` composables are no longer part of the published ABI.** They lived in `commonMain`
   of a published module, so they were compiled for iOS, embedded in both K/N frameworks and the
   Xcode app, and visible from Swift — and because `ui-tooling-preview` was a *non*-`api` dependency,

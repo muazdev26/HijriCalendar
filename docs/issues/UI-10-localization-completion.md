@@ -4,6 +4,7 @@
 **Blocks:** —
 **Blocked by:** —
 **Module:** `calendar-ui`
+**Status:** Shipped — see "Shipped" below.
 
 ---
 
@@ -92,11 +93,70 @@ through `DateTimeFormatter` in the caller's locale/numeral system.
 
 ## Done when
 
-- [ ] `rg '"Previous month"|"Next month"' calendar-ui/src/commonMain` returns at most one hit
-- [ ] A test asserts the Urdu header line renders the year in Arabic-Indic digits
-- [ ] `HijriCalendarLabels.headerTitle` and `.gregorianMonthRangeLabel` exist and are covered
-- [ ] `HijriCalendarHeader` reads its a11y strings from `labels`, not from parameter literals
-- [ ] `HijriCalendarUrduRtlPreview` (or its replacement) shows no Western numerals
+- [x] `rg '"Previous month"|"Next month"' calendar-ui/src/commonMain` returns at most one hit
+- [x] A test asserts the Urdu header line renders the year in Arabic-Indic digits
+- [x] `HijriCalendarLabels.headerTitle` and `.gregorianMonthRangeLabel` exist and are covered
+- [x] `HijriCalendarHeader` reads its a11y strings from `labels`, not from parameter literals
+- [x] `HijriCalendarUrduRtlPreview` (or its replacement) shows no Western numerals
+
+## Shipped
+
+Three gaps closed, and the label object's KDoc claim — *"All header and weekday text can be localized
+via `labels`"* — is now true rather than aspirational.
+
+- **`HijriCalendarLabels.headerTitle: (monthName, year) -> String`.** The header used to join the two
+  with a space itself, so a locale could neither reorder them nor write the year in its own digits.
+  The module's own Urdu preview demonstrated the consequence: Arabic-Indic **day figures** under a
+  **Western-numeral year**, in the module's own demo of its own feature. Returning the whole string
+  puts both decisions with the caller. The default reproduces `"$monthName $year"` exactly, so an
+  existing consumer sees no change.
+- **`HijriCalendarLabels.gregorianMonthRangeLabel: (first, last) -> String`.** The `" - "` separator,
+  the three-branch shape and the year rendering were hardcoded. The default delegates to a new
+  internal `defaultGregorianMonthRangeLabel`, which is still a directly tested pure function — so the
+  documented English output stays pinned while becoming overridable.
+- **`HijriCalendarHeader` takes `title: String` and `labels`, and no longer has English parameter
+  defaults.** `previousMonthContentDescription` / `nextMonthContentDescription` were parameter
+  defaults in the header *and* field defaults on the labels — two homes for the same two strings,
+  which is how they drift. The header now reads them from `labels`, so a direct caller gets the
+  consumer's strings rather than English it never asked for.
+
+### Tests: 8 new, and they reach the rendered header
+
+The object-level tests are necessary but weak — a seam can exist and be ignored. So three of them
+assert against the **rendered semantics tree**:
+
+- `aCustomHeaderTitleIsRendered` — `headerTitle = { m, y -> "$y / $m" }` renders `1447 / Ramadan`.
+- `aCustomRangeLabelIsRendered` — a custom range label appears in the header.
+- `localizedNavigationDescriptionsReplaceTheEnglishDefaults` — Urdu descriptions render, **and the
+  English literals are asserted absent**, so they are replaced rather than supplemented.
+- `urduLabelsLocalizeTheWholeHeaderLine` — `"رمضان ١٤٤٧"`, the exact defect this ticket is about.
+
+Plus `theDefaultHeaderTitleStaysWesternAndSpaceSeparated` and
+`theDefaultRangeLabelMatchesTheDocumentedEnglishOutput` (across all three shapes), so the defaults
+cannot drift silently.
+
+### Two bugs found while writing the tests, both mine
+
+1. **An off-by-one shifted every month by one and threw on December.** `gregorianMonthName` is
+   **1-based** by contract while `CalendarNames.englishGregorianMonths` is 0-based, so indexing the
+   list directly needed `month.ordinal`, not `ordinal + 1`. The symptom was a beautifully specific
+   `expected:<Septem>ber> but was:<Octo>ber>` plus `ArrayIndexOutOfBoundsException: Index 12`. The
+   comment in the function now says which is which.
+2. **The Urdu test asserted the wrong thing first.** It claimed the *default* `headerTitle` would
+   render Arabic-Indic digits — it does not, by design, and it should not. The whole point is that
+   the consumer supplies the formatter. The test now supplies one and asserts what it produces.
+
+### The sample's device test
+
+`CalendarScreenDeviceUiTest` matched on `"Next month"` / `"Previous month"` as literals. The defaults
+are unchanged, so it would have kept passing — but the ticket's point is that it *shouldn't* depend
+on that, and it breaks the moment the default does. Both call sites now read
+`HijriCalendarLabels().nextMonthContentDescription` / `…previousMonthContentDescription`, so they
+cannot drift. (This file is instrumented and still not in CI; see UI-02's "Not done".)
+
+## Notes
+
+
 
 ## Notes
 

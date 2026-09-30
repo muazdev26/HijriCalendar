@@ -27,10 +27,12 @@ import androidx.compose.ui.unit.dp
  * enabled/disabled gating. [HijriCalendar] also accepts a [HijriCalendar.header] slot, which is the
  * easier route when only the position needs to change.
  *
- * @param monthName Already-localized month name. This composable joins it to [year] with a space and
- *   does not reorder or translate; a locale that orders them differently needs its own title, which
- *   is what [HijriCalendarLabels] provides.
- * @param year Rendered with Western digits regardless of the calendar's numeral setting.
+ * @param title The already-formatted month title. [HijriCalendar] builds it from
+ *   [HijriCalendarLabels.headerTitle], so ordering and numeral system are the consumer's. This
+ *   composable renders it verbatim and never joins or translates it itself.
+ * @param labels Supplies the two navigation content descriptions. They used to be English parameter
+ *   defaults, which put the same two strings in two public places and left a direct caller shipping
+ *   English screen-reader output.
  * @param canGoToPreviousMonth / canGoToNextMonth Disable the arrows. [HijriCalendar] derives these
  *   from the state's own navigability rule, which accounts for [HijriCalendarState.minDate] and
  *   `maxDate`; a hand-rolled header must reproduce it or it will offer a month the grid cannot show.
@@ -41,8 +43,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 public fun HijriCalendarHeader(
-    monthName: String,
-    year: Int,
+    title: String,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     modifier: Modifier = Modifier,
@@ -50,8 +51,7 @@ public fun HijriCalendarHeader(
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     gregorianMonthText: String? = null,
     contentDescription: String? = null,
-    previousMonthContentDescription: String = "Previous month",
-    nextMonthContentDescription: String = "Next month",
+    labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     canGoToPreviousMonth: Boolean = true,
     canGoToNextMonth: Boolean = true,
 ) {
@@ -76,7 +76,7 @@ public fun HijriCalendarHeader(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = previousMonthContentDescription,
+                contentDescription = labels.previousMonthContentDescription,
                 tint = if (canGoToPreviousMonth) colors.navigationIconColor else colors.navigationIconColor.copy(alpha = 0.38f),
             )
         }
@@ -86,7 +86,7 @@ public fun HijriCalendarHeader(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "$monthName $year",
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.headerContentColor,
                 textAlign = TextAlign.Center,
@@ -107,7 +107,7 @@ public fun HijriCalendarHeader(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = nextMonthContentDescription,
+                contentDescription = labels.nextMonthContentDescription,
                 tint = if (canGoToNextMonth) colors.navigationIconColor else colors.navigationIconColor.copy(alpha = 0.38f),
             )
         }

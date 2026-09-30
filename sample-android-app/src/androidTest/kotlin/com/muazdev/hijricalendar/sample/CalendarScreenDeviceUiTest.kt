@@ -162,10 +162,12 @@ class CalendarScreenDeviceUiTest {
     fun navigationMovesHeaderForwardAndBack() {
         host()
 
-        compose.onNodeWithContentDescription("Next month").performClick()
+        compose.onNodeWithContentDescription(HijriCalendarLabels().nextMonthContentDescription)
+            .performClick()
         compose.onNodeWithContentDescription("Shawwal 1447").assertIsDisplayed()
 
-        compose.onNodeWithContentDescription("Previous month").performClick()
+        compose.onNodeWithContentDescription(HijriCalendarLabels().previousMonthContentDescription)
+            .performClick()
         compose.onNodeWithContentDescription("Ramadan 1447").assertIsDisplayed()
     }
 

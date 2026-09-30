@@ -9,6 +9,7 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runComposeUiTest
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
@@ -290,4 +291,45 @@ class HijriCalendarRenderAgreementTest {
 
     private fun rangeTextFor(first: LocalDate, last: LocalDate): String =
         expectedRangeLabel(first, last)
+
+    // ── the labels seam reaches the rendered header, not just the object ──
+
+    @Test
+    fun aCustomHeaderTitleIsRendered() = runComposeUiTest {
+        val state = stateFor()
+        val labels = probeLabels.copy(headerTitle = { month, year -> "$year / $month" })
+        setContent { host(state, labels = labels)() }
+
+        onNodeWithText("1447 / Ramadan").assertExists()
+    }
+
+    @Test
+    fun aCustomRangeLabelIsRendered() = runComposeUiTest {
+        val state = stateFor()
+        val labels = probeLabels.copy(
+            gregorianMonthRangeLabel = { _, _ -> "custom range" },
+        )
+        setContent { host(state, labels = labels)() }
+
+        onNodeWithText("custom range").assertExists()
+    }
+
+    @Test
+    fun localizedNavigationDescriptionsReplaceTheEnglishDefaults() = runComposeUiTest {
+        val state = stateFor()
+        val labels = probeLabels.copy(
+            previousMonthContentDescription = "پچھلا مہینہ",
+            nextMonthContentDescription = "اگلا مہینہ",
+        )
+        setContent { host(state, labels = labels)() }
+
+        onNodeWithContentDescription("پچھلا مہینہ").assertExists()
+        onNodeWithContentDescription("اگلا مہینہ").assertExists()
+        // The English literals must be gone, not merely supplemented.
+        assertEquals(
+            0,
+            onAllNodes(hasContentDescription("Previous month")).fetchSemanticsNodes().size,
+            "the English default is still being used somewhere",
+        )
+    }
 }
