@@ -55,6 +55,18 @@ the 30-passing-argument wrappers that duplicate core's signatures.
 **`HijriWeekRow.kt:23`** — a `require` with no stated contract. Its message says what happened,
 not what the caller must do.
 
+**Disabled day cells are not announced as disabled.** `clickableIfEnabled`
+(`ModifierExtensions.kt:22-29`) omits `Modifier.clickable` entirely when disabled, which removes the
+`OnClick` semantics action but never sets `SemanticsProperties.Disabled`. TalkBack therefore sees a
+target with *no action* rather than a *disabled* one — and `assertIsNotEnabled()` on such a node
+fails. The user only learns the day is disabled because the default
+`dayContentDescription` appends `", disabled"` to the string, a convention any custom label lambda
+is free to drop. Found by the UI-02 harness on its first run. The fix is `disabled()` in the cell's
+`semantics` block (`HijriCalendarDayCell.kt:90-93`); it belongs here because it changes an observable
+accessibility surface of a published composable. `HijriCalendarInteractionTest` pins both halves
+(`assertHasNoClickAction`, and the `", disabled"` string) so the mechanism that works today cannot
+regress unnoticed.
+
 **One public signature is self-contradictory in shape.** `dayContent` is
 `(@Composable () -> Unit)?` on `HijriCalendarDayCell:38` but `(@Composable (CalendarDay) -> Unit)?` on
 `HijriWeekRow:21` and on `HijriCalendar`. `HijriWeekRow:39` bridges the two with

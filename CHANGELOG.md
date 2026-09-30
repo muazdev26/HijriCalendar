@@ -37,6 +37,19 @@ Remediation of the `calendar-core` architecture review — see
   own declarations.
   ([CORE-03](docs/issues/CORE-03-api-stability.md))
 
+### Added
+
+- **`calendar-ui` has a composable test harness.** 28 new cases across 4 suites, run by
+  `./gradlew :calendar-ui:desktopTest` — the command the docs already name — so the module's
+  composables are covered on every CI push instead of only on a device. Previously the only
+  Compose test in the repository lived in the sample app's `androidTest`, which no CI job executed.
+  `calendar-ui` goes from 50 tests to 77. Two build changes: `org.jetbrains.compose.ui:ui-test` in
+  `commonTest`, and `compose.desktop.currentOs` in `desktopTest` because `compose.uiTest` supplies
+  Skiko's JVM API but not the platform natives. The tests assert *agreement* between paired values —
+  the header's range against the cells actually painted, and the pager's page against the state's
+  month in both directions — which is the gap the pre-existing suite left. No public API change.
+  ([UI-02](docs/issues/UI-02-compose-test-harness.md))
+
 ### Fixed
 
 - **Scoped month-length overrides were ignored by the entire render path.** `HijriCalendarState.monthLengths`
