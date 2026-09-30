@@ -7,16 +7,60 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
-import androidx.compose.ui.unit.Dp
+import kotlinx.datetime.LocalDate
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
-import kotlinx.datetime.LocalDate
 
+/**
+ * A Hijri (Islamic) calendar: month header, weekday row, and a swipeable month grid, all driven by
+ * one [HijriCalendarState].
+ *
+ * ## What this composable does not do
+ *
+ * Stated here because they are the questions a consumer arrives with, and discovering them by
+ * editing the library is worse than reading this:
+ *
+ * - **No year picker and no month picker.** Navigation is one month at a time through the header
+ *   arrows or a swipe. Set `state.goToMonth(...)` to jump programmatically.
+ * - **No range or multi-select.** [onDayClick] reports one [CalendarDay]; selection is whatever the
+ *   consumer does with it.
+ * - **No fixed-height mode.** The grid is a fixed-pitch six-week matrix by design: cells never grow,
+ *   including as the system font scale rises. The *text* scales up to a cap
+ *   ([HijriCalendarDefaults.maxFontScaleFor]) and the header is uncapped. Pass
+ *   [ignoreFontScale] for the previous fully flat behaviour.
+ * - **No bounds beyond [HijriCalendarState.minDate] / `maxDate`**, which also gate navigation and the
+ *   pager's reachable range.
+ *
+ * ## Reading the day
+ *
+ * A [CalendarDay] carries up to three date slots, because this library can render three calendars
+ * that legitimately disagree about a given real-world day. [CalendarDay.dayOfMonth] resolves them in
+ * order; [CalendarDay.localDate] is the Gregorian day every one of them describes, and is what a
+ * consumer should reach for when it wants a single unambiguous answer.
+ *
+ * @param state The state holder. Owns the current month, the selection, the calendar space and the
+ *   bounds; see [HijriCalendarState].
+ * @param dateDisplayMode How much of a date each cell draws. Does not affect cell size.
+ * @param dayCellSize The fixed cell size. Defaults to
+ *   [HijriCalendarDefaults.SingleLineCellSize] and does not change with the font scale.
+ * @param onDayClick Invoked with the tapped cell. The state is **not** updated for you: call
+ *   [HijriCalendarState.selectDay] (or [defaultOnDayClick]) from here unless the consumer owns
+ *   selection itself.
+ * @param dayContent Replaces the built-in cell contents. The cell keeps its own background, border,
+ *   clip, semantics and click handling, so this is responsible only for what it draws inside.
+ * @param header Replaces the built-in [HijriCalendarHeader], for a layout that needs the calendar
+ *   somewhere other than the top. A replacement must reproduce the navigability gating or it will
+ *   offer months the grid cannot show.
+ * @param ignoreFontScale Renders at a flat text size, ignoring the system accessibility font scale.
+ *   `false` by default; see the class KDoc for why that default changed.
+ * @param labels All user-visible text. Build it once and hold it — it is used as a `remember` key.
+ */
 @Composable
 public fun HijriCalendar(
     state: HijriCalendarState,
@@ -27,6 +71,10 @@ public fun HijriCalendar(
     dayCellSize: Dp? = null,
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    /**
+     * Replaces the built-in month header. `null` — the default — uses [HijriCalendarHeader].
+     */
+    header: (@Composable () -> Unit)? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     /**
      * Renders the calendar at a flat text size, ignoring the system accessibility font scale.
@@ -104,7 +152,7 @@ public fun HijriCalendar(
         Density(density = density.density, fontScale = 1f)
     }
 
-    val header: @Composable () -> Unit = {
+    val defaultHeader: @Composable () -> Unit = {
         HijriCalendarHeader(
             monthName = hijriMonthLabel,
             year = currentMonth.year,
@@ -136,11 +184,11 @@ public fun HijriCalendar(
     Column(modifier = modifier) {
         if (ignoreFontScale) {
             CompositionLocalProvider(LocalDensity provides unscaledDensity) {
-                header()
+                if (header != null) header() else defaultHeader()
                 grid()
             }
         } else {
-            header()
+            if (header != null) header() else defaultHeader()
             CompositionLocalProvider(LocalDensity provides cappedDensity) { grid() }
         }
     }

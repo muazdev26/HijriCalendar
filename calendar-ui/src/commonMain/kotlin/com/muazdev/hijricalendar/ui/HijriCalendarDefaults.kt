@@ -7,6 +7,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/**
+ * The calendar's default dimensions and its factory for [HijriCalendarColors].
+ *
+ * ## Why 48dp
+ *
+ * [SingleLineCellSize] is not arbitrary: it is the smallest cell that holds the two-line
+ * [DateDisplayMode.BOTH] stack at [BothModeMaxFontScale]: `bodySmall` over `labelSmall` with no
+ * vertical gap is roughly 31dp at scale 1, and about 46dp at 1.5x. Every cell is this size at every
+ * display mode and every font scale, which is what makes a month grid a fixed-pitch matrix; the
+ * day *text* scales within it instead. A future contributor who wants to "fix" the cell size should
+ * read this first.
+ */
 @Immutable
 public object HijriCalendarDefaults {
     public val TodayBorderWidth: Dp = 2.dp
@@ -43,6 +55,13 @@ public object HijriCalendarDefaults {
         DateDisplayMode.HIJRI_ONLY, DateDisplayMode.GREGORIAN_ONLY -> SingleLineMaxFontScale
     }
 
+    /**
+     * Builds [HijriCalendarColors] from the ambient Material colour scheme.
+     *
+     * [HijriCalendarColors] has no public constructor: 14 values restated at each call site is how a
+     * palette drifts away from the theme it claims to follow. Note the one derived default,
+     * , documented on that field.
+     */
     @Composable
     public fun colors(
         selectedDayContainerColor: Color = MaterialTheme.colorScheme.primary,
@@ -76,5 +95,6 @@ public object HijriCalendarDefaults {
         gregorianHeaderColor = gregorianHeaderColor,
     )
 
+    /** Pass-through for symmetry with [colors], so a caller can name the default explicitly. */
     public fun labels(labels: HijriCalendarLabels = HijriCalendarLabels()): HijriCalendarLabels = labels
 }

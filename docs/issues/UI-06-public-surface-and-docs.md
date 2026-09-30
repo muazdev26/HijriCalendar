@@ -4,6 +4,7 @@
 **Blocks:** —
 **Blocked by:** [Issue 01](UI-01-scoped-overrides-ignored.md), [Issue 03](UI-03-one-month-builder.md), [Issue 04](UI-04-accessible-text-scaling.md), [Issue 05](UI-05-pager-window-crash.md), [Issue 07](UI-07-previews-out-of-abi.md), [Issue 09](UI-09-pager-effect-sync.md)
 **Module:** `calendar-ui`
+**Status:** Shipped — see "Shipped" below.
 
 ---
 
@@ -102,10 +103,80 @@ supported surface is `HijriCalendar` + the colours/labels objects and the rest i
 
 ## Done when
 
-- [ ] `rg "^\s*public (fun|val)" calendar-ui/src/commonMain` shows only the intended surface
-- [ ] Every remaining public declaration has KDoc; a `README.md` section names each one
-- [ ] `HijriCalendarColors`' documented defaults identify the `dayContentColor` derivation
-- [ ] `apiDump` run; `CHANGELOG.md` records each demotion as a breaking change
+- [x] `rg "^\s*public (fun|val)" calendar-ui/src/commonMain` shows only the intended surface
+- [x] Every remaining public declaration has KDoc; the README names each one
+- [x] `HijriCalendarColors`' documented defaults identify the `dayContentColor` derivation
+- [x] `apiDump` run; `CHANGELOG.md` records each demotion as a breaking change
+
+## Shipped
+
+The public surface is now **nine declarations**, listed in a README table that says what each is for:
+
+`HijriCalendar` · `HijriCalendarState` · `rememberHijriCalendarState` /
+`rememberSaveableHijriCalendarState` · `defaultOnDayClick` · `HijriCalendarColors` ·
+`HijriCalendarLabels` · `HijriCalendarDefaults` · `DateDisplayMode` · `HijriCalendarDayCell` ·
+`HijriCalendarHeader`
+
+- **`HijriCalendarGrid`, `HijriWeekRow`, `Modifier.calendarDayCell` and `Modifier.clickableIfEnabled`
+  are no longer public.** The first two were the eight-parameter-bag duplication this review opened
+  with; the modifiers were 16 lines of `if (enabled)` and a no-op `this.size(size)` wrapper for one
+  call site. `calendarDayCell` is deleted outright rather than internalised — it was never a
+  behaviour. `apiDump` shows exactly those three `*Kt` holders removed and nothing else.
+- **`HijriCalendarDayCell` and `HijriCalendarHeader` stay public, deliberately.** The cell is the
+  reusable *unit* for building your own grid or week row; the header is the reusable *chrome* for
+  building your own header layout. The two that are internal are the ones that only make sense as
+  part of this component's internals.
+- **`HijriCalendar.header` is new**, for a layout that needs the calendar somewhere other than the
+  top. That is the answer to "I need the arrows somewhere else", and it is easier than calling the
+  public header by hand.
+
+### Three accessibility and API fixes that came with it
+
+- **A disabled day cell now sets `disabled()` in its semantics.** `clickableIfEnabled` removes the
+  `OnClick` action when disabled, which left TalkBack with a target and no action rather than a
+  disabled target. Found by the UI-02 harness on its first run and recorded in UI-02.
+- **The `dayContent` slot has one shape.** It was `(@Composable () -> Unit)?` on the cell and
+  `(@Composable (CalendarDay) -> Unit)?` everywhere else, bridged by `dayContent?.let { { it(day) } }`
+  — so the component named after the thing it replaces showed the *less* useful signature, and the
+  bridge allocated two lambdas per cell per composition.
+- **`Role.Button` is set in one place.** It was set in the cell's `semantics` block *and* in the
+  `clickable` call; the effective value depended on modifier order, which nobody was meant to know.
+
+### Documentation
+
+- **`HijriCalendar`'s KDoc now states what it does not do** — no year or month picker, no range or
+  multi-select, no fixed-height mode, no bounds beyond `minDate`/`maxDate` — and how to read a
+  three-slot `CalendarDay`. Those are the questions a consumer arrives with, and finding out by
+  editing the library is worse than reading them.
+- **`HijriCalendarColors`' one derived default is documented on the type**, because
+  `gregorianDayContentColor = dayContentColor.copy(alpha = 0.6f)` means overriding only the parent
+  also moves the sub-label — the most surprising thing in the file.
+- **`HijriCalendarDefaults` now says why the cell is 48dp** (it holds the `BOTH` stack at the font
+  scale cap), so the next contributor does not "fix" it.
+- **The README gained "The whole public surface"** — a table of every entry point, plus a note that
+  `HijriCalendarGrid`/`HijriWeekRow` are internal and why, and the `CalendarDay` three-slot reading
+  rule. It previously mentioned 4 of 11.
+
+### One ticket's worth of work detekt forced
+
+Demoting the signatures changed the detekt IDs of the baselined `LongMethod` /
+`CyclomaticComplexMethod` findings, so the build failed. That is UI-12's extraction, which the
+ticket had argued for on its own merits and which turned out to be needed to keep `calendar-ui`
+compiling, so it landed here rather than being re-baselined. `HijriCalendarDayCell` went from 109
+lines to 78 via two extractions:
+
+- `CalendarDay.cellStyle(colors)` — the six parallel `when` blocks collapsed into one resolver
+  returning a `DayCellStyle`. Those blocks encode *design* (selected > disabled > outside-month >
+  weekend) and nothing asserted them, which is why they were extracted rather than merely moved.
+- `CellText(...)` / `CellTextLine(...)` — three near-identical `Text` calls, now one.
+
+Also: only the date the display mode actually draws is built. In `GREGORIAN_ONLY` the Hijri string,
+and its Arabic-Indic allocation, used to be built and discarded for all 42 cells on every
+recomposition.
+
+## Notes
+
+
 
 ## Notes
 

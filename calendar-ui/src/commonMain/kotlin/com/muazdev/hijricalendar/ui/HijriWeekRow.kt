@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.CalendarDay
 
 @Composable
-public fun HijriWeekRow(
+internal fun HijriWeekRow(
     days: List<CalendarDay>,
     onDayClick: (CalendarDay) -> Unit,
     modifier: Modifier = Modifier,
@@ -36,7 +36,7 @@ public fun HijriWeekRow(
                     dateDisplayMode = dateDisplayMode,
                     dayCellSize = dayCellSize,
                     labels = labels,
-                    content = dayContent?.let { { it(day) } },
+                    content = dayContent,
                 )
             }
         }

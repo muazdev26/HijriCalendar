@@ -92,8 +92,13 @@ fun HijriCalendar(
     modifier: Modifier = Modifier,
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
+    dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    dayCellSize: Dp? = null,
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    header: (@Composable () -> Unit)? = null,
+    labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
+    ignoreFontScale: Boolean = false,
 )
 ```
 
@@ -102,9 +107,45 @@ fun HijriCalendar(
 | `state` | `HijriCalendarState` | The calendar state holder (required) |
 | `modifier` | `Modifier` | Optional modifier for the calendar |
 | `colors` | `HijriCalendarColors` | Custom theme colors |
-| `useArabicIndicNumerals` | `Boolean` | Display day numbers in Arabic-Indic numerals |
-| `onDayClick` | `(CalendarDay) -> Unit` | Callback when a day is clicked |
-| `dayContent` | `(@Composable (CalendarDay) -> Unit)?` | Custom content for each day cell |
+| `useArabicIndicNumerals` | `Boolean` | Render the Hijri day figure with Arabic-Indic digits |
+| `dateDisplayMode` | `DateDisplayMode` | Which dates each cell draws. Does not affect cell size |
+| `dayCellSize` | `Dp?` | Fixed cell size, `48.dp` by default. Never changes with font scale |
+| `onDayClick` | `(CalendarDay) -> Unit` | Callback when a day is clicked. Does **not** update the state for you |
+| `dayContent` | `(@Composable (CalendarDay) -> Unit)?` | Custom content inside each day cell |
+| `header` | `(@Composable () -> Unit)?` | Replaces the built-in header, for a different position |
+| `labels` | `HijriCalendarLabels` | All user-visible text. Build once and hold |
+| `ignoreFontScale` | `Boolean` | Flat text size, ignoring the system font scale. Default `false` |
+
+**What this composable does not do** — no year or month picker, no range or multi-select, no
+fixed-height mode, and no bounds beyond `minDate`/`maxDate`. Navigation is one month at a time
+through the arrows or a swipe; jump programmatically with `state.goToMonth(...)`.
+
+### The whole public surface
+
+Everything below is API. Anything not listed is `internal`.
+
+| Entry point | What it is for |
+|---|---|
+| `HijriCalendar` | The component. Start here |
+| `HijriCalendarState` | The state holder — current month, selection, bounds, calendar space, override table |
+| `rememberHijriCalendarState` / `rememberHijriCalendarStateSaver` | Construct the state; the saveable variant survives process death |
+| `HijriCalendarColors` | The 14 colour values. Build from `HijriCalendarDefaults.colors()` |
+| `HijriCalendarLabels` | Every user-visible string. The localization seam |
+| `HijriCalendarDefaults` | `SingleLineCellSize`, the font-scale caps, and the `colors()` / `labels()` factories |
+| `DateDisplayMode` | `HIJRI_ONLY` / `GREGORIAN_ONLY` / `BOTH` |
+| `defaultOnDayClick` | A `(CalendarDay) -> Unit` that selects the tapped day, for the common case |
+| `HijriCalendarDayCell` | One day cell, for building your own grid or week row |
+| `HijriCalendarHeader` | The month title and arrows, for building your own header layout |
+
+`HijriCalendarGrid` and `HijriWeekRow` are **internal**. They were public, and they were the
+problem: they carried the same eight-parameter bag as the component above them, so adding an option
+meant editing four signatures with nothing to catch a miss. If you need a custom week row, compose
+`HijriCalendarDayCell` — the reusable unit — seven times.
+
+> **Reading a `CalendarDay`.** It carries up to three date slots, because this library can render
+> three calendars that legitimately disagree about a given real-world day. `dayOfMonth` resolves them
+> in order; `localDate` is the Gregorian day all three describe, and is what to reach for when you
+> want one unambiguous answer.
 
 ### `HijriCalendarState`
 

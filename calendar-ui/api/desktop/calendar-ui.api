@@ -46,7 +46,7 @@ public final class com/muazdev/hijricalendar/ui/HijriCalendarColors {
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarDayCellKt {
-	public static final fun HijriCalendarDayCell-UXarjSk (Lcom/muazdev/hijricalendar/core/CalendarDay;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriCalendarDayCell-UXarjSk (Lcom/muazdev/hijricalendar/core/CalendarDay;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarDefaults {
@@ -63,16 +63,12 @@ public final class com/muazdev/hijricalendar/ui/HijriCalendarDefaults {
 	public final fun maxFontScaleFor (Lcom/muazdev/hijricalendar/ui/DateDisplayMode;)F
 }
 
-public final class com/muazdev/hijricalendar/ui/HijriCalendarGridKt {
-	public static final fun HijriCalendarGrid-UXarjSk (Lcom/muazdev/hijricalendar/core/HijriCalendarState;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lkotlin/jvm/functions/Function3;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Landroidx/compose/runtime/Composer;II)V
-}
-
 public final class com/muazdev/hijricalendar/ui/HijriCalendarHeaderKt {
 	public static final fun HijriCalendarHeader (Ljava/lang/String;ILkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;Lcom/muazdev/hijricalendar/ui/DateDisplayMode;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLandroidx/compose/runtime/Composer;III)V
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarKt {
-	public static final fun HijriCalendar-pOaENhY (Lcom/muazdev/hijricalendar/core/HijriCalendarState;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;ZLandroidx/compose/runtime/Composer;II)V
+	public static final fun HijriCalendar-1g2lLZM (Lcom/muazdev/hijricalendar/core/HijriCalendarState;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function2;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;ZLandroidx/compose/runtime/Composer;III)V
 	public static final fun defaultOnDayClick (Lcom/muazdev/hijricalendar/core/HijriCalendarState;)Lkotlin/jvm/functions/Function1;
 	public static final fun rememberHijriCalendarState (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLjava/util/Set;Landroidx/compose/runtime/Composer;II)Lcom/muazdev/hijricalendar/core/HijriCalendarState;
 	public static final fun rememberSaveableHijriCalendarState (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLjava/util/Set;Landroidx/compose/runtime/Composer;II)Lcom/muazdev/hijricalendar/core/HijriCalendarState;
@@ -100,15 +96,5 @@ public final class com/muazdev/hijricalendar/ui/HijriCalendarLabels {
 	public final fun getWeekdayShortName ()Lkotlin/jvm/functions/Function1;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/muazdev/hijricalendar/ui/HijriWeekRowKt {
-	public static final fun HijriWeekRow-UXarjSk (Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
-}
-
-public final class com/muazdev/hijricalendar/ui/util/ModifierExtensionsKt {
-	public static final fun calendarDayCell-3ABfNKs (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
-	public static synthetic fun calendarDayCell-3ABfNKs$default (Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun clickableIfEnabled-cJG_KMw (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)Landroidx/compose/ui/Modifier;
 }
 

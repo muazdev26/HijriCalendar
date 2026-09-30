@@ -27,7 +27,7 @@ import com.muazdev.hijricalendar.core.WeekDay
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
-public fun HijriCalendarGrid(
+internal fun HijriCalendarGrid(
     state: HijriCalendarState,
     onDayClick: (CalendarDay) -> Unit,
     modifier: Modifier = Modifier,

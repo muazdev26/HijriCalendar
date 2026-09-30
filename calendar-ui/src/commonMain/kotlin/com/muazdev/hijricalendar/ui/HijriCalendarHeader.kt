@@ -19,6 +19,26 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+/**
+ * The calendar's month title with previous/next navigation arrows.
+ *
+ * Public because a consumer replacing the surrounding layout — a dialog header, a side panel —
+ * still wants the arrows, and reimplementing them means reimplementing RTL mirroring and the
+ * enabled/disabled gating. [HijriCalendar] also accepts a [HijriCalendar.header] slot, which is the
+ * easier route when only the position needs to change.
+ *
+ * @param monthName Already-localized month name. This composable joins it to [year] with a space and
+ *   does not reorder or translate; a locale that orders them differently needs its own title, which
+ *   is what [HijriCalendarLabels] provides.
+ * @param year Rendered with Western digits regardless of the calendar's numeral setting.
+ * @param canGoToPreviousMonth / canGoToNextMonth Disable the arrows. [HijriCalendar] derives these
+ *   from the state's own navigability rule, which accounts for [HijriCalendarState.minDate] and
+ *   `maxDate`; a hand-rolled header must reproduce it or it will offer a month the grid cannot show.
+ * @param gregorianMonthText The month's real-world extent, already formatted and localized. Shown
+ *   only when [dateDisplayMode] is not [DateDisplayMode.HIJRI_ONLY].
+ * @param contentDescription Merges the header into one node for screen readers. Pass the month and
+ *   year; pass null and the header's children are announced separately.
+ */
 @Composable
 public fun HijriCalendarHeader(
     monthName: String,
