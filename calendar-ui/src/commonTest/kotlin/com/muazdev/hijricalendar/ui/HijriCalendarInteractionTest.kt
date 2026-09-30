@@ -5,6 +5,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -429,5 +430,46 @@ class HijriCalendarInteractionTest {
             require(short.size == 7) { "HijriWeekRow requires exactly 7 days, got ${short.size}" }
         }
         assertTrue(ex.message.orEmpty().contains("7"), "message should state the requirement")
+    }
+
+    // ── press feedback ─────────────────────────────────────────────────
+
+    /**
+     * Pins that an *enabled* cell offers a click action, which is the other half of
+     * [aDisabledCellIsNotClickable]. Together they are the semantic contract of the cell's
+     * interactivity: offered when live, absent when not.
+     *
+     * They are not evidence of a **visible** press indication — see the ticket's "Not covered".
+     */
+    @Test
+    fun anEnabledCellOffersAClickAction() = runComposeUiTest {
+        val state = stateFor()
+        setContent { host(state)() }
+        waitForIdle()
+
+        val range = state.gregorianRangeFor(state.currentMonth)
+        onNodeWithContentDescription("$cellMarker${range.first}", substring = true)
+            .assertHasClickAction()
+    }
+
+    /**
+     * A press must not change which day is selected, and must not throw. With `indication = null`
+     * the cell also emitted no `Interaction.Press`, which is not observable from a semantics test —
+     * so this asserts the *absence of side effects* rather than the presence of a ripple.
+     */
+    @Test
+    fun pressingACellSelectsNothingUntilRelease() = runComposeUiTest {
+        val state = stateFor()
+        val clicked = mutableListOf<CalendarDay>()
+        setContent { host(state) { clicked += it }() }
+        waitForIdle()
+
+        val range = state.gregorianRangeFor(state.currentMonth)
+        onNodeWithContentDescription("$cellMarker${range.first}", substring = true)
+            .performTouchInput { down(center) }
+        waitForIdle()
+
+        assertTrue(clicked.isEmpty(), "a press without a release must not invoke onDayClick")
+        assertEquals(null, state.selectedDate, "a press must not move the selection")
     }
 }

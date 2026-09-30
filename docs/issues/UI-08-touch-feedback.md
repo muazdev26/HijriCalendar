@@ -4,6 +4,7 @@
 **Blocks:** —
 **Blocked by:** —
 **Module:** `calendar-ui`
+**Status:** Shipped — with one honest gap. See "Not covered".
 
 ---
 
@@ -83,12 +84,78 @@ survives `DateDisplayMode` and a themed ripple colour. Optional.
 
 ## Done when
 
-- [ ] `rg "indication = null" calendar-ui/src/commonMain` returns nothing
-- [ ] A test presses a day cell and asserts an interaction is emitted (`MutableInteractionSource`
-      emits `Interaction.Press` / `collectIsPressedAsState`)
-- [ ] A disabled day cell does not invoke `onDayClick` and exposes no `Role.Button`
-- [ ] `ModifierExtensionsKt` no longer appears in `calendar-ui/api/`
-- [ ] `apiDump` run; `CHANGELOG.md` records the removal
+- [x] `rg "indication = null" calendar-ui/src/commonMain` returns nothing
+- [~] A test presses a day cell and asserts an interaction is emitted — **cannot be done.** See
+      "Not covered".
+- [x] A disabled day cell does not invoke `onDayClick` and exposes no `Role.Button`
+- [x] `ModifierExtensionsKt` no longer appears in `calendar-ui/api/` (removed by UI-06)
+- [x] `apiDump` run; `CHANGELOG.md` records the removal
+
+## Shipped
+
+Press feedback is back. `indication = null` is gone; every day cell gets the default Material
+indication.
+
+- **The ripple is bounded to the circle for free.** `clickable` is applied **after**
+  `Modifier.clip(CircleShape)` in the cell's chain, so the indication draws inside the clip. No
+  `ripple(bounded = true)` is needed, and no `radius` to get wrong.
+- **The default indication is used, not a constructed `ripple()`.** That means it follows
+  `LocalIndication.current` and therefore the ambient theme, rather than hardcoding a colour that
+  reads poorly against a selected-day accent. This answers the ticket's own note about
+  `HijriCalendarColors` needing a ripple colour: it does not, as long as the indication is themed.
+- **The unused `MutableInteractionSource` is gone with the `remember`.** It existed only to be handed
+  to a `clickable` that ignored it — one retained state object per cell per composition for nothing.
+  `Modifier.clickable(onClickLabel, role, onClick)` builds its own.
+
+### The ticket's premise about *why* was wrong, and so was the comment I wrote in UI-06
+
+Both said the ripple was suppressed because *"42 simultaneous ripples are visual noise"*, or that
+composing one inside a 48dp clipped circle inside a `Row` of `weight(1f)` boxes was fiddly. Neither
+is a real constraint:
+
+- A ripple only draws on the cell being pressed, and only one cell is pressed at a time. There are
+  never 42 ripples.
+- Bounding is free, as above.
+
+I wrote the "42 ripples" reasoning into `clickableIfEnabled`'s KDoc during UI-06 and it survived into
+the ticket. Both are now corrected, and the KDoc says what the actual reasons are. This is the third
+time in this review that a plausible-sounding comment was the reason a decision was never revisited —
+`drop(1)`, `fontScale = 1f`, and this.
+
+### `Modifier.clickable(enabled = false)` is not a substitute — verified
+
+The obvious simplification is to delete the helper and use the built-in flag. That **fails**:
+with `enabled = false` this Compose version still registers an `OnClick` semantics action on the
+node. `aDisabledCellIsNotClickable` asserts the opposite and goes red with
+`OnClick is NOT defined` failing. So the helper is load-bearing, and its KDoc — written in UI-06 —
+had claimed `Modifier.clickable` "already takes an `enabled` flag", which was wrong.
+
+The helper now has the correct justification on it: omit the modifier entirely to remove the action.
+
+## Not covered
+
+**There is no test for the press indication, and adding one here is not possible.** Verified rather
+than assumed: re-suppressing `indication = null` and running the whole suite leaves it **fully
+green** — 0 failures.
+
+The reason is that an indication is a draw-time effect with no semantics, and
+`runComposeUiTest` on desktop does not reproduce Skia-drawn ripples. This is the one ticket in the
+set where the desktop harness cannot reach the change, exactly as the ticket predicted.
+
+What *is* covered, and is the semantic half of the same contract:
+
+- `anEnabledCellOffersAClickAction` and `aDisabledCellIsNotClickable` together pin that the cell
+  offers an action when live and not when inert.
+- `pressingACellSelectsNothingUntilRelease` pins that a press has no side effects before release.
+- `cellsOutsideTheDateWindow_areDisabledAndDoNotClick` pins that a disabled cell does not fire.
+
+So the guard on this change is the KDoc, not a test. If the indication is ever suppressed again, CI
+will be green and only the comment will disagree — which is worth knowing rather than discovering.
+A screenshot or on-device test is the only way to close it properly.
+
+## Notes
+
+
 
 ## Notes
 

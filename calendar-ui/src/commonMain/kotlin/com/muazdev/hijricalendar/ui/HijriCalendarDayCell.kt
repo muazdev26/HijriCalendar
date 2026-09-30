@@ -102,9 +102,8 @@ public fun HijriCalendarDayCell(
             .clickableIfEnabled(
                 enabled = style.enabled,
                 onClickLabel = clickLabel,
-                // Role is set in the semantics block above, which is inside the merge scope and
-                // applied earlier in the chain, so it is the one that wins. Setting it here too was
-                // redundant and made the effective value depend on modifier order.
+                // Role is set in the semantics block above; passing it here too made the effective
+                // value depend on modifier order.
                 onClick = onClick,
             ),
         contentAlignment = Alignment.Center,

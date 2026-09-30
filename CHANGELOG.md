@@ -98,6 +98,15 @@ Remediation of the `calendar-core` architecture review — see
 
 ### Fixed
 
+- **Day cells had no press feedback at all.** Every one of the 42 cells passed `indication = null`
+  to `clickable`, so a tap on a 48dp target produced nothing until the selection state changed —
+  fast enough to read as "the tap did nothing". Day cells now get Material's default indication,
+  bounded to the cell's circle for free because `clickable` is applied after `Modifier.clip`. The
+  default indication is used rather than a constructed `ripple()` so it follows the ambient theme.
+  This also removes a `MutableInteractionSource` that was retained per cell per composition purely to
+  be handed to a `clickable` that ignored it.
+  ([UI-08](docs/issues/UI-08-touch-feedback.md))
+
 - **Rotating the device scrolled the calendar sideways through the months.** The pager and the
   state holder were kept in agreement by two `LaunchedEffect`s plus a `snapshotFlow { … }
   .drop(1)`. Because `rememberPagerState` restores its page from saved state, a restored pager
