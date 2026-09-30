@@ -10,11 +10,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-fun Modifier.calendarDayCell(size: Dp = 48.dp): Modifier =
+public fun Modifier.calendarDayCell(size: Dp = 48.dp): Modifier =
     this.size(size)
 
 @Composable
-fun Modifier.clickableIfEnabled(
+public fun Modifier.clickableIfEnabled(
     enabled: Boolean,
     onClickLabel: String? = null,
     role: Role? = null,

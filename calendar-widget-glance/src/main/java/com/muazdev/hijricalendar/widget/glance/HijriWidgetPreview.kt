@@ -25,6 +25,20 @@ import kotlinx.coroutines.CancellationException
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 
 /**
+ * The Context a Glance composition must run against, normalized to the application so a settings
+ * screen's Activity cannot be retained.
+ *
+ * Every `GlanceAppWidget.compose(...)` opens a layout state store whose file producer captures the
+ * Context it was given, and Glance caches those stores in a process-global map (`GlanceState`) that
+ * is only ever pruned when a real widget is deleted. `compose()` also mints a fresh random *fake*
+ * app-widget id per call, so each preview composition that ran against an Activity added another
+ * permanent entry holding that Activity — the settings screen leaked its Activity on every visit.
+ * The application Context resolves the same library resources, and the resulting [RemoteViews] are
+ * still applied to the real Activity-bound view, so nothing about the preview changes.
+ */
+private fun Context.glanceComposeContext(): Context = applicationContext
+
+/**
  * A non-interactive clone of [HijriCalendarWidget] used only for the settings-screen live preview.
  * It renders from an explicit [WidgetOptions] instead of persisted per-widget
  * config, so the preview reflects in-progress edits, and it passes no actions to
@@ -72,7 +86,7 @@ internal class HijriCalendarWidgetPreview(
  * real widget ever drifting apart.
  */
 @Composable
-fun HijriWidgetLivePreview(
+public fun HijriWidgetLivePreview(
     options: WidgetOptions,
     viewedMonth: Pair<Int, Int>?,
     size: DpSize,
@@ -83,7 +97,8 @@ fun HijriWidgetLivePreview(
 
     LaunchedEffect(options, viewedMonth, size) {
         try {
-            remoteViews = HijriCalendarWidgetPreview(options, viewedMonth).compose(context, size = size)
+            remoteViews = HijriCalendarWidgetPreview(options, viewedMonth)
+                .compose(context.glanceComposeContext(), size = size)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Exception) {
@@ -132,7 +147,7 @@ internal class HijriTodayWidgetPreview(
 }
 
 @Composable
-fun HijriTodayWidgetLivePreview(
+public fun HijriTodayWidgetLivePreview(
     options: WidgetOptions,
     size: DpSize,
     modifier: Modifier = Modifier,
@@ -142,7 +157,8 @@ fun HijriTodayWidgetLivePreview(
 
     LaunchedEffect(options, size) {
         try {
-            remoteViews = HijriTodayWidgetPreview(options).compose(context, size = size)
+            remoteViews = HijriTodayWidgetPreview(options)
+                .compose(context.glanceComposeContext(), size = size)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Exception) {
@@ -225,7 +241,7 @@ internal class GregorianDateWidgetPreview(
  * tile live from the same [WidgetOptions] its controls edit.
  */
 @Composable
-fun HijriDateWidgetLivePreview(
+public fun HijriDateWidgetLivePreview(
     options: WidgetOptions,
     size: DpSize,
     modifier: Modifier = Modifier,
@@ -235,7 +251,8 @@ fun HijriDateWidgetLivePreview(
 
     LaunchedEffect(options, size) {
         try {
-            remoteViews = HijriDateWidgetPreview(options).compose(context, size = size)
+            remoteViews = HijriDateWidgetPreview(options)
+                .compose(context.glanceComposeContext(), size = size)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Exception) {
@@ -261,7 +278,7 @@ fun HijriDateWidgetLivePreview(
  * Gregorian side.
  */
 @Composable
-fun GregorianDateWidgetLivePreview(
+public fun GregorianDateWidgetLivePreview(
     options: WidgetOptions,
     size: DpSize,
     modifier: Modifier = Modifier,
@@ -271,7 +288,8 @@ fun GregorianDateWidgetLivePreview(
 
     LaunchedEffect(options, size) {
         try {
-            remoteViews = GregorianDateWidgetPreview(options).compose(context, size = size)
+            remoteViews = GregorianDateWidgetPreview(options)
+                .compose(context.glanceComposeContext(), size = size)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Exception) {

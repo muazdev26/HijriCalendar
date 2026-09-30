@@ -1,0 +1,81 @@
+# Detekt configuration for HijriCalendar.
+#
+# Built on detekt's default config (`buildUponDefaultConfig = true` in the root build file), so
+# this file only records *deviations* and the rules this repo explicitly cares about.
+#
+# Rationale for the rule set below: each one corresponds to a defect class that actually occurred
+# in this codebase or in its review, not to a general style preference.
+#   SwallowedException, TooGenericExceptionCaught -> the eleven `catch (_: Exception)` sites found
+#                                                     in calendar-core (docs/issues/CORE-05).
+#   LongParameterList                               -> the optional-parameter surface that grew
+#                                                     until it needed a config object
+#                                                     (docs/issues/CORE-02).
+#   ReturnCount, ComplexMethod, LargeClass          -> the month-walking functions whose bounds
+#                                                     and terminations were the hard part of
+#                                                     making conversion total.
+# See docs/issues/CORE-07-static-analysis.md.
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+complexity:
+  LongParameterList:
+    # Calendar-day projections legitimately take a configuration object or a handful of optional
+    # render parameters. The threshold is the default (6); raised only for the data-class and
+    # composable entry points that were otherwise unavoidable.
+    functionThreshold: 8
+    constructorThreshold: 10
+    ignoreDefaultParameters: true
+  LongMethod:
+    threshold: 80
+  LargeClass:
+    threshold: 600
+  CyclomaticComplexMethod:
+    threshold: 20
+  TooManyFunctions:
+    thresholdInClasses: 30
+    thresholdInFiles: 40
+    ignorePrivate: true
+    ignoreOverridden: true
+
+exceptions:
+  SwallowedException:
+    ignoredExceptionTypes:
+      # `InterruptedException` is re-interrupted or propagated; `NumberFormatException` is a
+      # deliberate parse fallback at the configuration decode boundary.
+      - 'InterruptedException'
+      - 'NumberFormatException'
+      - 'ParseException'
+  TooGenericExceptionCaught:
+    # Keep the default list. The whole point of CORE-05 is that catching Exception here means a
+    # real defect becomes indistinguishable from "date is out of range".
+    active: true
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - 'Composable'
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
+  ObjectPropertyNaming:
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 140
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'Unresolved work belongs in docs/issues/.'
+        value: 'TODO:'
+      - reason: 'Unresolved work belongs in docs/issues/.'
+        value: 'FIXME:'
+      - reason: 'Unresolved work belongs in docs/issues/.'
+        value: 'STOPSHIP'
+  ThrowsCount:
+    max: 4
+  UnusedPrivateMember:
+    active: true

@@ -33,7 +33,7 @@ import com.muazdev.hijricalendar.widget.glance.R
  * widget's configuration screen, and is swept on every family refresh alongside the Today strip.
  * Tapping anywhere opens the app.
  */
-class HijriDateWidget : GlanceAppWidget() {
+public class HijriDateWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
 
@@ -92,7 +92,7 @@ class HijriDateWidget : GlanceAppWidget() {
  * name underneath and nothing else, mirroring [HijriDateWidget] on the Gregorian side. Same
  * family-options-mirror rendering and the same tap-to-open-app behaviour.
  */
-class GregorianDateWidget : GlanceAppWidget() {
+public class GregorianDateWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
 

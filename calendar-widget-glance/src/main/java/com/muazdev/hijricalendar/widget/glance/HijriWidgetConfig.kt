@@ -42,7 +42,7 @@ import kotlinx.serialization.json.put
  * `HijriWidgetRefresher.refreshInstanceAsync`. See [widgetOptionsSaver] for a Bundle-safe saver
  * to back `rememberSaveable` in the settings UI.
  */
-object HijriWidgetConfig {
+public object HijriWidgetConfig {
 
     private const val LEGACY_PREFS = "hijri_widget_config"
     private const val RUNTIME_PREFS = "hijri_widget_runtime"
@@ -94,14 +94,14 @@ object HijriWidgetConfig {
      * Fresh widgets default to Urdu names, Eastern Arabic-Indic digits and the Calculation
      * source, matching the app's Urdu labels. Existing widgets keep whatever they stored.
      */
-    val DEFAULTS: WidgetOptions = WidgetOptions.DEFAULTS
+    public val DEFAULTS: WidgetOptions = WidgetOptions.DEFAULTS
 
     /**
      * A Bundle-safe [Saver] for [WidgetOptions] (enums as ordinals, nulls preserved), for host
      * apps building their own settings screen: pass it to `rememberSaveable(stateSaver = ...)`
      * so in-progress edits survive rotation/process death like the library's own screens did.
      */
-    fun widgetOptionsSaver(): Saver<WidgetOptions, Any> = listSaver(
+    public fun widgetOptionsSaver(): Saver<WidgetOptions, Any> = listSaver(
         save = {
             listOf(
                 it.adjustmentDays,
@@ -141,13 +141,13 @@ object HijriWidgetConfig {
      * Reads the stored options, porting any legacy SharedPreferences config for this widget on the
      * first access after an upgrade. A widget that never stored options follows [DEFAULTS].
      */
-    suspend fun load(context: Context, glanceId: GlanceId): WidgetOptions {
+    public suspend fun load(context: Context, glanceId: GlanceId): WidgetOptions {
         migrateLegacyIfNeeded(context, glanceId)
         val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
         return decodeOptions(prefs) ?: DEFAULTS
     }
 
-    suspend fun save(context: Context, glanceId: GlanceId, options: WidgetOptions) {
+    public suspend fun save(context: Context, glanceId: GlanceId, options: WidgetOptions) {
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable[OPTIONS_KEY] = encodeOptions(options)
         }
@@ -161,7 +161,7 @@ object HijriWidgetConfig {
      * so widgets without a settings screen — the Today strip and the 1x1 tiles — always render
      * with the family's most recently chosen language, numerals and source.
      */
-    fun saveFamily(context: Context, options: WidgetOptions) {
+    public fun saveFamily(context: Context, options: WidgetOptions) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putString(KEY_FAMILY_OPTIONS, encodeOptions(options))
         }
@@ -173,7 +173,7 @@ object HijriWidgetConfig {
      * both in a [provideGlance]-style peek and inside the composition, where every
      * `UpdateGlanceState` sweep re-evaluates it after a mirror write.
      */
-    fun loadFamily(context: Context): WidgetOptions {
+    public fun loadFamily(context: Context): WidgetOptions {
         val raw = context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getString(KEY_FAMILY_OPTIONS, null)
             ?: return DEFAULTS
@@ -181,7 +181,7 @@ object HijriWidgetConfig {
     }
 
     /** True once a family mirror exists (used to seed it exactly once from legacy config). */
-    fun hasFamily(context: Context): Boolean =
+    public fun hasFamily(context: Context): Boolean =
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .contains(KEY_FAMILY_OPTIONS)
 
@@ -193,31 +193,31 @@ object HijriWidgetConfig {
      * user edits from the widget itself: it is intentionally kept out of [WidgetOptions] so a
      * configuration-screen save never clobbers it.
      */
-    suspend fun loadViewedMonth(context: Context, glanceId: GlanceId): Pair<Int, Int>? {
+    public suspend fun loadViewedMonth(context: Context, glanceId: GlanceId): Pair<Int, Int>? {
         migrateLegacyIfNeeded(context, glanceId)
         val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
         return decodeViewed(prefs)
     }
 
-    suspend fun setViewedMonth(context: Context, glanceId: GlanceId, year: Int, month: Int) {
+    public suspend fun setViewedMonth(context: Context, glanceId: GlanceId, year: Int, month: Int) {
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable[VIEWED_KEY] = encodeViewed(year, month)
         }
     }
 
     /** Returns the widget to "following today" (clears navigation state). */
-    suspend fun clearViewedMonth(context: Context, glanceId: GlanceId) {
+    public suspend fun clearViewedMonth(context: Context, glanceId: GlanceId) {
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable.remove(VIEWED_KEY)
         }
     }
 
-    val PREFS = PreferencesGlanceStateDefinition
+    public val PREFS: PreferencesGlanceStateDefinition = PreferencesGlanceStateDefinition
 
     // ── Pure decode helpers, shared with the composable read ─────────────────
 
     /** Decodes stored options, or `null` when the widget has never stored any. */
-    fun decodeOptions(prefs: Preferences): WidgetOptions? {
+    public fun decodeOptions(prefs: Preferences): WidgetOptions? {
         val raw = prefs[OPTIONS_KEY] ?: return null
         return decodeOptionsJson(raw)
     }
@@ -230,7 +230,7 @@ object HijriWidgetConfig {
      * written by an earlier version — which encoded the same fields as enum *ordinals* — still
      * load, and are rewritten in the shared format by the next save.
      */
-    fun decodeOptionsJson(raw: String): WidgetOptions? =
+    public fun decodeOptionsJson(raw: String): WidgetOptions? =
         WidgetOptionsJson.decodeOrNull(raw) ?: decodeLegacyOrdinalJson(raw)
 
     /**
@@ -263,7 +263,7 @@ object HijriWidgetConfig {
     }
 
     /** Decodes the viewed month, or `null` when the widget is following today. */
-    fun decodeViewed(prefs: Preferences): Pair<Int, Int>? {
+    public fun decodeViewed(prefs: Preferences): Pair<Int, Int>? {
         val json = prefs[VIEWED_KEY]?.parseJsonObjectOrNull() ?: return null
         val year = json.intOrNull("year")
         val month = json.intOrNull("month")
@@ -273,14 +273,14 @@ object HijriWidgetConfig {
     // ── Runtime markers (global SharedPreferences, not per-widget view state) ─
 
     /** Marks the widget family as freshly updated for the current local calendar day. */
-    fun markUpdatedNow(context: Context, epochDay: Long) {
+    public fun markUpdatedNow(context: Context, epochDay: Long) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putLong(KEY_LAST_UPDATE_EPOCH_DAY, epochDay)
         }
     }
 
     /** True when the widget family already reflects the given local calendar day. */
-    fun isFreshFor(context: Context, epochDay: Long): Boolean {
+    public fun isFreshFor(context: Context, epochDay: Long): Boolean {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_LAST_UPDATE_EPOCH_DAY, Long.MIN_VALUE) >= epochDay
     }
@@ -290,20 +290,20 @@ object HijriWidgetConfig {
      * persisted (not just in-memory) so a catch-up still happens if the process dies before the
      * app leaves the foreground; [HijriWidgetRefresher] clears it once the render lands.
      */
-    fun markRefreshPending(context: Context, pending: Boolean) {
+    public fun markRefreshPending(context: Context, pending: Boolean) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putBoolean(KEY_REFRESH_PENDING, pending)
         }
     }
 
     /** True when an earlier refresh was skipped and has not yet been applied. */
-    fun isRefreshPending(context: Context): Boolean {
+    public fun isRefreshPending(context: Context): Boolean {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_REFRESH_PENDING, false)
     }
 
     /** The epoch-day marker of the last successful family refresh, or [Long.MIN_VALUE]. */
-    fun lastUpdatedEpochDay(context: Context): Long {
+    public fun lastUpdatedEpochDay(context: Context): Long {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_LAST_UPDATE_EPOCH_DAY, Long.MIN_VALUE)
     }
@@ -311,13 +311,13 @@ object HijriWidgetConfig {
     // ── Generated-preview marker ────────────────────────────────────────────
 
     /** The epoch-day the generated picker previews were last published, or [Long.MIN_VALUE]. */
-    fun lastPreviewPublishedEpochDay(context: Context): Long {
+    public fun lastPreviewPublishedEpochDay(context: Context): Long {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_PREVIEW_PUBLISHED_EPOCH_DAY, Long.MIN_VALUE)
     }
 
     /** Records that the generated picker previews now reflect the given local calendar day. */
-    fun markPreviewsPublishedNow(context: Context, epochDay: Long) {
+    public fun markPreviewsPublishedNow(context: Context, epochDay: Long) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putLong(KEY_PREVIEW_PUBLISHED_EPOCH_DAY, epochDay)
         }
@@ -330,7 +330,7 @@ object HijriWidgetConfig {
      * the app-widget id digits) into its Glance store, once. No-op after the first write, so it is
      * safe to call from every render/navigation path.
      */
-    suspend fun migrateLegacyIfNeeded(context: Context, glanceId: GlanceId) {
+    public suspend fun migrateLegacyIfNeeded(context: Context, glanceId: GlanceId) {
         val suffix = legacySuffix(glanceId)
         val legacy = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
         if (!legacy.contains("$KEY_ADJUSTMENT_DAYS$suffix")) return

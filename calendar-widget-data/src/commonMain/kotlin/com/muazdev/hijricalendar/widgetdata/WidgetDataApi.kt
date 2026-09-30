@@ -4,75 +4,60 @@ import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarMonth
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
-import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
+import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.UrduCalendarNames
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.core.resolveGregorianMonthRange
 import com.muazdev.hijricalendar.core.toCalendarMonth
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
-private val DefaultHijriMonthNames = listOf(
-    "Muharram",
-    "Safar",
-    "Rabi' al-awwal",
-    "Rabi' al-thani",
-    "Jumada al-ula",
-    "Jumada al-akhirah",
-    "Rajab",
-    "Sha'ban",
-    "Ramadan",
-    "Shawwal",
-    "Dhu al-Qa'dah",
-    "Dhu al-Hijjah",
-)
-
-private val DefaultGregorianMonthNames = listOf(
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-)
-
-private val DefaultWeekdayNames = WeekDay.entries.map { it.shortName }
+private val DefaultHijriMonthNames = CalendarNames.englishHijriMonths
+private val DefaultGregorianMonthNames = CalendarNames.englishGregorianMonths
+private val DefaultWeekdayNames = CalendarNames.englishWeekdayShortNames
 
 /**
  * Ready-to-hand localization lists for the widget builders. [urduHijriMonthNames],
  * [urduGregorianMonthNames] and [urduWeekdayNames] back the Urdu rendering option and are
  * the same single set of constants the app's own Urdu labels use (UrduCalendarNames in
  * `calendar-core`), so a widget and the in-app calendar can never disagree.
+ *
+ * The English lists come from [CalendarNames], which `calendar-ui` also reads — previously each
+ * module held its own private copy and six of the twelve Hijri names had already drifted apart.
  */
-object WidgetLocalization {
-    val urduHijriMonthNames: List<String> = UrduCalendarNames.hijriMonths
-    val urduGregorianMonthNames: List<String> = UrduCalendarNames.gregorianMonths
-    val urduWeekdayNames: List<String> = UrduCalendarNames.weekdayShortNames
+public object WidgetLocalization {
+    public val urduHijriMonthNames: List<String> = UrduCalendarNames.hijriMonths
+    public val urduGregorianMonthNames: List<String> = UrduCalendarNames.gregorianMonths
+    public val urduWeekdayNames: List<String> = UrduCalendarNames.weekdayShortNames
 
     /**
      * The built-in English Hijri month names the projection falls back to when no localized list
      * is supplied. Exposed so UI that needs a month label without building a whole grid (e.g. the
      * widget settings screen's pinned-month stepper) shows the exact same names the widget will.
      */
-    val englishHijriMonthNames: List<String> = DefaultHijriMonthNames
+    public val englishHijriMonthNames: List<String> = DefaultHijriMonthNames
 
     /**
      * The Hijri month names for [language], or `null` for [WidgetLanguage.ENGLISH] so the
      * builder falls back to its built-in English names. Callers pass the result straight into
      * `localizedHijriMonthNames`.
      */
-    fun hijriMonthNames(language: WidgetLanguage): List<String>? = when (language) {
+    public fun hijriMonthNames(language: WidgetLanguage): List<String>? = when (language) {
         WidgetLanguage.URDU -> urduHijriMonthNames
         WidgetLanguage.ENGLISH -> null
     }
 
     /** The Gregorian month names for [language]; `null` means the builder's English defaults. */
-    fun gregorianMonthNames(language: WidgetLanguage): List<String>? = when (language) {
+    public fun gregorianMonthNames(language: WidgetLanguage): List<String>? = when (language) {
         WidgetLanguage.URDU -> urduGregorianMonthNames
         WidgetLanguage.ENGLISH -> null
     }
 
     /** The weekday short names for [language]; `null` means the builder's English defaults. */
-    fun weekdayNames(language: WidgetLanguage): List<String>? = when (language) {
+    public fun weekdayNames(language: WidgetLanguage): List<String>? = when (language) {
         WidgetLanguage.URDU -> urduWeekdayNames
         WidgetLanguage.ENGLISH -> null
     }
@@ -82,7 +67,7 @@ object WidgetLocalization {
      * English. Used to seed a fresh widget's numeral style so a new Urdu widget shows Eastern
      * digits without any extra configuration.
      */
-    fun defaultNumeralStyle(language: WidgetLanguage): NumeralStyle = when (language) {
+    public fun defaultNumeralStyle(language: WidgetLanguage): NumeralStyle = when (language) {
         WidgetLanguage.URDU -> NumeralStyle.ARABIC_INDIC
         WidgetLanguage.ENGLISH -> NumeralStyle.WESTERN
     }
@@ -91,7 +76,7 @@ object WidgetLocalization {
      * The short label rendered on a widget's source pill, localized to [language] so the pill
      * reads in the widget's chosen language rather than the device locale.
      */
-    fun sourceLabel(source: WidgetSource, language: WidgetLanguage): String = when (language) {
+    public fun sourceLabel(source: WidgetSource, language: WidgetLanguage): String = when (language) {
         WidgetLanguage.URDU -> if (source.pakistan) "پاکستان" else "حساب"
         WidgetLanguage.ENGLISH -> if (source.pakistan) "Pakistan" else "Calculation"
     }
@@ -129,7 +114,7 @@ private fun observe(date: LocalDate, adjustmentDays: Int): LocalDate =
  * driven by the widget's own [WidgetLanguage] rather than the host's `layoutDirection`, so an
  * Urdu widget renders RTL on an LTR device and vice versa.
  */
-fun buildHijriMonthWidgetData(
+public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
     adjustmentDays: Int,
@@ -174,29 +159,16 @@ fun buildHijriMonthWidgetData(
     // The Gregorian first/last day must reflect the same source the in-app header uses: a
     // Pakistan month spans the Ruet-e-Hilal first/last day, an override-shifted month spans the
     // observed first/last day, and a plain Umm al-Qura month spans the calculated first/last day
-    // (all minus adjustmentDays).
-    val (gregorianFirst, gregorianLast) = when {
-        pakistan -> {
-            val first = PakistanHijriCalendar.hijriToGregorian(hijriYear, hijriMonth, 1)
-                .minus(adjustmentDays, DateTimeUnit.DAY)
-            val last = first.plus(
-                PakistanHijriCalendar.lengthOfMonth(hijriYear, hijriMonth) - 1,
-                DateTimeUnit.DAY,
-            )
-            first to last
-        }
-        HijriMonthOverrides.all().isNotEmpty() -> {
-            val first = ObservedHijriCalendar.observedToGregorian(hijriYear, hijriMonth, 1)
-                .minus(adjustmentDays, DateTimeUnit.DAY)
-            val last = ObservedHijriCalendar.observedToGregorian(
-                hijriYear,
-                hijriMonth,
-                ObservedHijriCalendar.observedLength(hijriYear, hijriMonth),
-            ).minus(adjustmentDays, DateTimeUnit.DAY)
-            first to last
-        }
-        else -> calendarMonth.gregorianFirstDay to calendarMonth.gregorianLastDay
-    }
+    // (all minus adjustmentDays). core's resolver owns that branch so the widget and the in-app
+    // header cannot describe different months.
+    val monthRange = resolveGregorianMonthRange(
+        year = hijriYear,
+        month = hijriMonth,
+        pakistan = pakistan,
+        adjustmentDays = adjustmentDays,
+    )
+    val gregorianFirst = monthRange.first
+    val gregorianLast = monthRange.last
     val gregorianRange = formatGregorianRange(
         gregorianFirst,
         gregorianLast,
@@ -271,7 +243,7 @@ private fun formatGregorianRange(first: LocalDate, last: LocalDate, localizedNam
  *
  * Returns `null` when the anchor falls outside the supported Umm al-Qura range.
  */
-fun todayHijriWidgetData(
+public fun todayHijriWidgetData(
     anchorEpochDay: Long,
     adjustmentDays: Int,
     localizedHijriMonthNames: List<String>? = null,
@@ -334,7 +306,7 @@ fun todayHijriWidgetData(
  * result falls outside the supported Umm al-Qura range (~1300-1600 AH). Widget navigation
  * can treat `null` as "reached the supported edge" and no-op or hide the arrows.
  */
-fun offsetHijriMonth(hijriYear: Int, hijriMonth: Int, offset: Int): HijrahYearMonth? {
+public fun offsetHijriMonth(hijriYear: Int, hijriMonth: Int, offset: Int): HijrahYearMonth? {
     if (hijriMonth !in 1..12) return null
     return try {
         HijrahYearMonth(hijriYear, hijriMonth).plusMonth(offset)

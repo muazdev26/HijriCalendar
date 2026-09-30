@@ -1,0 +1,375 @@
+public final class com/muazdev/hijricalendar/core/CalendarDay {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/core/CalendarDay$Companion;
+	public fun <init> (Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;ZZZZZI)V
+	public synthetic fun <init> (Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;ZZZZZIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun component2 ()Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public final fun component3 ()Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun component7 ()Z
+	public final fun component8 ()Z
+	public final fun component9 ()I
+	public final fun copy (Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;ZZZZZI)Lcom/muazdev/hijricalendar/core/CalendarDay;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/CalendarDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;ZZZZZIILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/CalendarDay;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdjustmentDays ()I
+	public final fun getDayOfMonth ()I
+	public final fun getDayOfWeek ()Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun getHijrahDate ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun getLocalDate ()Lkotlinx/datetime/LocalDate;
+	public final fun getObservedDate ()Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public final fun getPakistanDate ()Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public fun hashCode ()I
+	public final fun isCurrentMonth ()Z
+	public final fun isDisabled ()Z
+	public final fun isSelected ()Z
+	public final fun isToday ()Z
+	public final fun isWeekend ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/muazdev/hijricalendar/core/CalendarDay$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/CalendarDay$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/muazdev/hijricalendar/core/CalendarDay;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/muazdev/hijricalendar/core/CalendarDay;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarDay$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarLog {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/CalendarLog;
+	public final fun getLogger ()Lcom/muazdev/hijricalendar/core/CalendarLogger;
+	public final fun isInstalled ()Z
+	public final fun reset ()V
+	public final fun setLogger (Lcom/muazdev/hijricalendar/core/CalendarLogger;)V
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarLogLevel : java/lang/Enum {
+	public static final field DEBUG Lcom/muazdev/hijricalendar/core/CalendarLogLevel;
+	public static final field ERROR Lcom/muazdev/hijricalendar/core/CalendarLogLevel;
+	public static final field INFO Lcom/muazdev/hijricalendar/core/CalendarLogLevel;
+	public static final field WARN Lcom/muazdev/hijricalendar/core/CalendarLogLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/CalendarLogLevel;
+	public static fun values ()[Lcom/muazdev/hijricalendar/core/CalendarLogLevel;
+}
+
+public abstract interface class com/muazdev/hijricalendar/core/CalendarLogger {
+	public abstract fun log (Lcom/muazdev/hijricalendar/core/CalendarLogLevel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarMonth {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/core/CalendarMonth$Companion;
+	public static final field DAYS_IN_WEEK I
+	public static final field TOTAL_DAYS I
+	public static final field WEEKS_IN_MONTH I
+	public fun <init> (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lkotlinx/collections/immutable/ImmutableList;Lcom/muazdev/hijricalendar/core/WeekDay;ILcom/muazdev/hijricalendar/core/GregorianMonthRange;)V
+	public synthetic fun <init> (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lkotlinx/collections/immutable/ImmutableList;Lcom/muazdev/hijricalendar/core/WeekDay;ILcom/muazdev/hijricalendar/core/GregorianMonthRange;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;
+	public final fun component2 ()Lkotlinx/collections/immutable/ImmutableList;
+	public final fun component3 ()Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun component4 ()I
+	public final fun component5 ()Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+	public final fun copy (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lkotlinx/collections/immutable/ImmutableList;Lcom/muazdev/hijricalendar/core/WeekDay;ILcom/muazdev/hijricalendar/core/GregorianMonthRange;)Lcom/muazdev/hijricalendar/core/CalendarMonth;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/CalendarMonth;Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lkotlinx/collections/immutable/ImmutableList;Lcom/muazdev/hijricalendar/core/WeekDay;ILcom/muazdev/hijricalendar/core/GregorianMonthRange;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/CalendarMonth;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdjustmentDays ()I
+	public final fun getDays ()Lkotlinx/collections/immutable/ImmutableList;
+	public final fun getFirstDay ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun getFirstDayOfWeek ()Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun getGregorianFirstDay ()Lkotlinx/datetime/LocalDate;
+	public final fun getGregorianLastDay ()Lkotlinx/datetime/LocalDate;
+	public final fun getGregorianMonthRange ()Ljava/lang/String;
+	public final fun getGregorianRange ()Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+	public final fun getLastDay ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun getNumberOfWeeks ()I
+	public final fun getResolvedGregorianRange ()Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+	public final fun getYear ()I
+	public final fun getYearMonth ()Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarMonth$Companion {
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarMonthExtKt {
+	public static final fun toCalendarMonth (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLjava/util/Set;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/core/CalendarMonth;
+	public static synthetic fun toCalendarMonth$default (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLjava/util/Set;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/CalendarMonth;
+}
+
+public final class com/muazdev/hijricalendar/core/CalendarNames {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/CalendarNames;
+	public final fun getEnglishGregorianMonths ()Ljava/util/List;
+	public final fun getEnglishHijriMonths ()Ljava/util/List;
+	public final fun getEnglishWeekdayShortNames ()Ljava/util/List;
+	public final fun getEnglishWeekdays ()Ljava/util/Map;
+}
+
+public final class com/muazdev/hijricalendar/core/GregorianMonthRange {
+	public static final field $stable I
+	public fun <init> (Lkotlinx/datetime/LocalDate;Lkotlinx/datetime/LocalDate;)V
+	public final fun component1 ()Lkotlinx/datetime/LocalDate;
+	public final fun component2 ()Lkotlinx/datetime/LocalDate;
+	public final fun copy (Lkotlinx/datetime/LocalDate;Lkotlinx/datetime/LocalDate;)Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/GregorianMonthRange;Lkotlinx/datetime/LocalDate;Lkotlinx/datetime/LocalDate;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFirst ()Lkotlinx/datetime/LocalDate;
+	public final fun getLast ()Lkotlinx/datetime/LocalDate;
+	public final fun getLengthInDays ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/GregorianMonthRangeKt {
+	public static final fun resolveGregorianMonthRange (IIZILcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+	public static synthetic fun resolveGregorianMonthRange$default (IIZILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
+}
+
+public final class com/muazdev/hijricalendar/core/HijriCalendarState {
+	public static final field $stable I
+	public fun <init> (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;Ljava/util/Set;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)V
+	public synthetic fun <init> (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;Ljava/util/Set;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clearAllMonthLengths ()V
+	public final fun clearMonthLength (II)V
+	public final fun getAdjustmentDays ()I
+	public final fun getCalendarMonth ()Lcom/muazdev/hijricalendar/core/CalendarMonth;
+	public final fun getCanGoToNextMonth ()Z
+	public final fun getCanGoToPreviousMonth ()Z
+	public final fun getCurrentMonth ()Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;
+	public final fun getFirstDayOfWeek ()Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun getMaxDate ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun getMinDate ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun getMonthLengths ()Lcom/muazdev/hijricalendar/core/HijriMonthLengths;
+	public final fun getOverridesRevision ()J
+	public final fun getPakistanDates ()Z
+	public final fun getSelectedDate ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+	public final fun getSelectedObservedDate ()Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public final fun getSelectedPakistanDate ()Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public final fun getWeekendDays ()Ljava/util/Set;
+	public final fun goToMonth (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;)V
+	public final fun goToNextMonth ()V
+	public final fun goToPreviousMonth ()V
+	public final fun goToToday ()V
+	public final fun monthLengthOf (II)Ljava/lang/Integer;
+	public final fun selectDate (Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;)V
+	public final fun selectDay (Lcom/muazdev/hijricalendar/core/CalendarDay;)V
+	public final fun selectObservedDate (Lcom/muazdev/hijricalendar/core/ObservedHijriDate;)V
+	public final fun selectPakistanDate (Lcom/muazdev/hijricalendar/core/PakistanHijriDate;)V
+	public final fun setAdjustmentDays (I)V
+	public final fun setMonthLength (III)V
+	public final fun setPakistanDates (Z)V
+}
+
+public final class com/muazdev/hijricalendar/core/HijriCalendarStateKt {
+	public static final fun rememberHijriCalendarState (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Ljava/util/Set;Landroidx/compose/runtime/Composer;II)Lcom/muazdev/hijricalendar/core/HijriCalendarState;
+	public static final fun rememberSaveableHijriCalendarState (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Ljava/util/Set;Landroidx/compose/runtime/Composer;II)Lcom/muazdev/hijricalendar/core/HijriCalendarState;
+}
+
+public final class com/muazdev/hijricalendar/core/HijriMonthLengths {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun all ()Ljava/util/Map;
+	public final fun clearAll ()V
+	public final fun clearMonthLength (II)V
+	public final fun getCurrentRevision ()J
+	public final fun monthLength (II)Ljava/lang/Integer;
+	public final fun replaceAll (Ljava/util/Map;)V
+	public final fun setMonthLength (III)V
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/HijriMonthOverrides {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/HijriMonthOverrides;
+	public final fun all ()Ljava/util/Map;
+	public final fun clearAll ()V
+	public final fun clearMonthLength (II)V
+	public final fun getCurrent ()Lcom/muazdev/hijricalendar/core/HijriMonthLengths;
+	public final fun getCurrentRevision ()J
+	public final fun monthLength (II)Ljava/lang/Integer;
+	public final fun replaceAll (Ljava/util/Map;)V
+	public final fun setMonthLength (III)V
+}
+
+public final class com/muazdev/hijricalendar/core/ObservedHijriCalendar {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/ObservedHijriCalendar;
+	public final fun defaultLength (II)I
+	public final fun observedDateAt (JLcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public static synthetic fun observedDateAt$default (Lcom/muazdev/hijricalendar/core/ObservedHijriCalendar;JLcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public final fun observedLength (IILcom/muazdev/hijricalendar/core/HijriMonthLengths;)I
+	public static synthetic fun observedLength$default (Lcom/muazdev/hijricalendar/core/ObservedHijriCalendar;IILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)I
+	public final fun observedMonthStartEpoch (IILcom/muazdev/hijricalendar/core/HijriMonthLengths;)J
+	public static synthetic fun observedMonthStartEpoch$default (Lcom/muazdev/hijricalendar/core/ObservedHijriCalendar;IILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)J
+	public final fun observedToGregorian (IIILcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lkotlinx/datetime/LocalDate;
+	public static synthetic fun observedToGregorian$default (Lcom/muazdev/hijricalendar/core/ObservedHijriCalendar;IIILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lkotlinx/datetime/LocalDate;
+	public final fun today (ILcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public static synthetic fun today$default (Lcom/muazdev/hijricalendar/core/ObservedHijriCalendar;ILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+}
+
+public final class com/muazdev/hijricalendar/core/ObservedHijriDate : java/lang/Comparable {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/core/ObservedHijriDate$Companion;
+	public fun <init> (IIIILkotlinx/datetime/LocalDate;)V
+	public synthetic fun <init> (IIIILkotlinx/datetime/LocalDate;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun compareTo (Lcom/muazdev/hijricalendar/core/ObservedHijriDate;)I
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Lkotlinx/datetime/LocalDate;
+	public final fun copy (IIIILkotlinx/datetime/LocalDate;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/ObservedHijriDate;IIIILkotlinx/datetime/LocalDate;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDay ()I
+	public final fun getLocalDate ()Lkotlinx/datetime/LocalDate;
+	public final fun getMonth ()I
+	public final fun getMonthLength ()I
+	public final fun getYear ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/muazdev/hijricalendar/core/ObservedHijriDate$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/ObservedHijriDate$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/ObservedHijriDate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanHijriCalendar {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;
+	public static final field MAX_YEAR I
+	public static final field MIN_YEAR I
+	public final fun defaultLengthOfMonth (II)I
+	public final fun getFIXES ()Ljava/util/Map;
+	public final fun gregorianToHijri (Lkotlinx/datetime/LocalDate;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public static synthetic fun gregorianToHijri$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;Lkotlinx/datetime/LocalDate;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public final fun hijriToGregorian (IIILcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lkotlinx/datetime/LocalDate;
+	public static synthetic fun hijriToGregorian$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;IIILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lkotlinx/datetime/LocalDate;
+	public final fun isWarmForCurrentOverrides (Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)Z
+	public static synthetic fun isWarmForCurrentOverrides$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Z
+	public final fun lengthOfMonth (IILcom/muazdev/hijricalendar/core/HijriMonthLengths;)I
+	public static synthetic fun lengthOfMonth$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;IILcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)I
+	public final fun prewarm (Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)V
+	public static synthetic fun prewarm$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)V
+	public final fun today (Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public static synthetic fun today$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanHijriCalendar$Fix {
+	public static final field $stable I
+	public fun <init> (Lkotlinx/datetime/LocalDate;I)V
+	public final fun component1 ()Lkotlinx/datetime/LocalDate;
+	public final fun component2 ()I
+	public final fun copy (Lkotlinx/datetime/LocalDate;I)Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar$Fix;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar$Fix;Lkotlinx/datetime/LocalDate;IILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanHijriCalendar$Fix;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFirstGregorian ()Lkotlinx/datetime/LocalDate;
+	public final fun getLength ()I
+	public final fun getStartEpochDays ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanHijriDate : java/lang/Comparable {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/core/PakistanHijriDate$Companion;
+	public fun <init> (III)V
+	public fun compareTo (Lcom/muazdev/hijricalendar/core/PakistanHijriDate;)I
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (III)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/PakistanHijriDate;IIIILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDay ()I
+	public final fun getLocalDate ()Lkotlinx/datetime/LocalDate;
+	public final fun getMonth ()I
+	public final fun getYear ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/muazdev/hijricalendar/core/PakistanHijriDate$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/PakistanHijriDate$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/muazdev/hijricalendar/core/PakistanHijriDate;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanHijriDate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/TodayHijriDateKt {
+	public static final fun todayHijriDate (I)Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
+}
+
+public final class com/muazdev/hijricalendar/core/UrduCalendarNames {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/UrduCalendarNames;
+	public final fun getGregorianMonths ()Ljava/util/List;
+	public final fun getHijriMonths ()Ljava/util/List;
+	public final fun getWeekdayShortNames ()Ljava/util/List;
+	public final fun getWeekdays ()Ljava/util/Map;
+}
+
+public final class com/muazdev/hijricalendar/core/WeekDay : java/lang/Enum {
+	public static final field Companion Lcom/muazdev/hijricalendar/core/WeekDay$Companion;
+	public static final field FRIDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static final field MONDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static final field SATURDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static final field SUNDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static final field THURSDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static final field TUESDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static final field WEDNESDAY Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getFullName ()Ljava/lang/String;
+	public final fun getIndex ()I
+	public final fun getShortName ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static fun values ()[Lcom/muazdev/hijricalendar/core/WeekDay;
+}
+
+public final class com/muazdev/hijricalendar/core/WeekDay$Companion {
+	public final fun fromDayOfWeek (Lkotlinx/datetime/DayOfWeek;)Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun fromIndex (I)Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun getDEFAULT_FIRST_DAY ()Lcom/muazdev/hijricalendar/core/WeekDay;
+	public final fun getWEEKEND_DAYS ()Ljava/util/Set;
+}
+

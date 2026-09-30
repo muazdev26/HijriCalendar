@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:HijriWidgetModels.kt$com.muazdev.hijricalendar.widgetdata.HijriWidgetModels.kt</ID>
+    <ID>FinalNewline:WidgetDataApi.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataApi.kt</ID>
+    <ID>FinalNewline:WidgetDataParityAndNavigationTest.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataParityAndNavigationTest.kt</ID>
+    <ID>FinalNewline:WidgetDataTest.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataTest.kt</ID>
+    <ID>ImportOrdering:WidgetDataApi.kt$import com.abdulrahman_b.hijrahdatetime.toHijrahDate import com.abdulrahman_b.hijrahdatetime.toLocalDate import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import com.muazdev.hijricalendar.core.CalendarMonth import com.muazdev.hijricalendar.core.PakistanHijriCalendar import com.muazdev.hijricalendar.core.CalendarNames import com.muazdev.hijricalendar.core.UrduCalendarNames import com.muazdev.hijricalendar.core.WeekDay import com.muazdev.hijricalendar.core.resolveGregorianMonthRange import com.muazdev.hijricalendar.core.toCalendarMonth import kotlinx.datetime.DateTimeUnit import kotlinx.datetime.LocalDate import kotlinx.datetime.minus import kotlinx.datetime.plus</ID>
+    <ID>NewLineAtEndOfFile:HijriWidgetModels.kt$com.muazdev.hijricalendar.widgetdata.HijriWidgetModels.kt</ID>
+    <ID>NewLineAtEndOfFile:WidgetDataApi.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataApi.kt</ID>
+    <ID>NewLineAtEndOfFile:WidgetDataParityAndNavigationTest.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataParityAndNavigationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:WidgetDataTest.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataTest.kt</ID>
+    <ID>NoUnusedImports:WidgetDataApi.kt$com.muazdev.hijricalendar.widgetdata.WidgetDataApi.kt</ID>
+    <ID>ReturnCount:WidgetDataApi.kt$public fun buildHijriMonthWidgetData( hijriYear: Int, hijriMonth: Int, adjustmentDays: Int, firstDayOfWeekIndex: Int = WeekDay.DEFAULT_FIRST_DAY.index, numeralStyle: NumeralStyle = NumeralStyle.WESTERN, pakistan: Boolean = false, weekendDays: Set&lt;WeekDay&gt; = WeekDay.WEEKEND_DAYS, rightToLeft: Boolean = false, localizedHijriMonthNames: List&lt;String&gt;? = null, localizedGregorianMonthNames: List&lt;String&gt;? = null, localizedWeekdayNames: List&lt;String&gt;? = null, ): HijriMonthWidgetData?</ID>
+    <ID>ReturnCount:WidgetDataApi.kt$public fun todayHijriWidgetData( anchorEpochDay: Long, adjustmentDays: Int, localizedHijriMonthNames: List&lt;String&gt;? = null, localizedGregorianMonthNames: List&lt;String&gt;? = null, localizedWeekdayNames: List&lt;String&gt;? = null, numeralStyle: NumeralStyle = NumeralStyle.WESTERN, pakistan: Boolean = false, ): TodayHijriWidgetData?</ID>
+  </CurrentIssues>
+</SmellBaseline>

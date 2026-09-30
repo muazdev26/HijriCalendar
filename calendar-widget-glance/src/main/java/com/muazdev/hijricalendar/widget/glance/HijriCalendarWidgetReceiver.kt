@@ -7,7 +7,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 
 /** Pairs [HijriCalendarWidget] with the app widget host. */
-class HijriCalendarWidgetReceiver : GlanceAppWidgetReceiver() {
+public class HijriCalendarWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HijriCalendarWidget()
 
     // Each update launches a Glance session that composes on the main thread on some devices,

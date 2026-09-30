@@ -30,7 +30,7 @@ import kotlinx.datetime.plus
  * do not throw: they become disabled placeholders clamped to [HijrahDate.MIN] or
  * [HijrahDate.MAX].
  */
-fun HijrahYearMonth.toCalendarMonth(
+public fun HijrahYearMonth.toCalendarMonth(
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     selectedDate: HijrahDate? = null,
     selectedPakistanDate: PakistanHijriDate? = null,
@@ -40,23 +40,30 @@ fun HijrahYearMonth.toCalendarMonth(
     adjustmentDays: Int = 0,
     pakistan: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    overrides: HijriMonthLengths = HijriMonthOverrides.current,
 ): CalendarMonth {
+    val window = DateWindow.of(minDate, maxDate, adjustmentDays)
+
     if (pakistan) {
         return toPakistanCalendarMonth(
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = selectedPakistanDate,
             adjustmentDays = adjustmentDays,
             weekendDays = weekendDays,
+            overrides = overrides,
+            window = window,
         )
     }
 
     // User month-length overrides turn the Umm al-Qura grid into the observed calendar.
-    if (HijriMonthOverrides.all().isNotEmpty()) {
+    if (overrides.all().isNotEmpty()) {
         return toObservedCalendarMonth(
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = selectedObservedDate,
             adjustmentDays = adjustmentDays,
             weekendDays = weekendDays,
+            overrides = overrides,
+            window = window,
         )
     }
 
@@ -79,7 +86,7 @@ fun HijrahYearMonth.toCalendarMonth(
                 isCurrentMonth = converted.year == year && converted.month == month,
                 isToday = converted == today,
                 isSelected = converted == selectedDate,
-                isDisabled = converted.isDisabledByRange(minDate, maxDate),
+                isDisabled = !window.contains(anchor),
                 isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
                 adjustmentDays = adjustmentDays,
             )
@@ -103,6 +110,7 @@ fun HijrahYearMonth.toCalendarMonth(
         days = days.toImmutableList(),
         firstDayOfWeek = firstDayOfWeek,
         adjustmentDays = adjustmentDays,
+        gregorianRange = resolveGregorianMonthRange(year, month.number, adjustmentDays = adjustmentDays),
     )
 }
 
@@ -118,14 +126,16 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
     selectedDate: PakistanHijriDate?,
     adjustmentDays: Int,
     weekendDays: Set<WeekDay>,
+    overrides: HijriMonthLengths,
+    window: DateWindow,
 ): CalendarMonth {
-    val todayObserved = PakistanHijriCalendar.today()
+    val todayObserved = PakistanHijriCalendar.today(overrides)
         ?.localDate
         ?.plus(adjustmentDays, DateTimeUnit.DAY)
-        ?.let(PakistanHijriCalendar::gregorianToHijri)
+        ?.let { PakistanHijriCalendar.gregorianToHijri(it, overrides) }
 
     // Real-world Gregorian day the observed Pakistani "1" of this month falls on.
-    val monthStartAnchor = PakistanHijriCalendar.hijriToGregorian(year, month.number, 1)
+    val monthStartAnchor = PakistanHijriCalendar.hijriToGregorian(year, month.number, 1, overrides)
         .minus(adjustmentDays, DateTimeUnit.DAY)
     val firstCellDow = WeekDay.fromDayOfWeek(monthStartAnchor.dayOfWeek)
     val leadingDaysCount = daysBefore(firstCellDow, firstDayOfWeek)
@@ -142,7 +152,7 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
                 isCurrentMonth = converted.year == year && converted.month == month.number,
                 isToday = converted == todayObserved,
                 isSelected = converted == selectedDate,
-                isDisabled = false,
+                isDisabled = !window.contains(anchor),
                 isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
                 adjustmentDays = adjustmentDays,
             )
@@ -164,16 +174,24 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
         days = days.toImmutableList(),
         firstDayOfWeek = firstDayOfWeek,
         adjustmentDays = adjustmentDays,
+        gregorianRange = resolveGregorianMonthRange(
+            year,
+            month.number,
+            pakistan = true,
+            adjustmentDays = adjustmentDays,
+        ),
     )
 }
 
-private fun LocalDate.toHijrahDateOrNull(): HijrahDate? {
-    return try {
-        toHijrahDate()
-    } catch (_: Exception) {
-        null
-    }
-}
+/**
+ * Converts to a Umm al-Qura [HijrahDate], or null when this Gregorian day falls outside the
+ * calculation's table (which happens legitimately at the edges of a 42-cell grid).
+ *
+ * Deliberately does **not** log: this runs once per grid cell, so a month at either edge of the
+ * supported range would emit six lines every recomposition and bury the real signal. A defect
+ * here propagates instead of returning null, which is the point of narrowing the catch.
+ */
+private fun LocalDate.toHijrahDateOrNull(): HijrahDate? = orNullIfOutOfRange { toHijrahDate() }
 
 /**
  * Observed Umm al-Qura variant of [toCalendarMonth]: when the user forces month lengths
@@ -187,11 +205,13 @@ private fun HijrahYearMonth.toObservedCalendarMonth(
     selectedDate: ObservedHijriDate?,
     adjustmentDays: Int,
     weekendDays: Set<WeekDay>,
+    overrides: HijriMonthLengths,
+    window: DateWindow,
 ): CalendarMonth {
-    val todayObserved = ObservedHijriCalendar.today(adjustmentDays)
+    val todayObserved = ObservedHijriCalendar.today(adjustmentDays, overrides)
 
     // Real-world Gregorian day the observed "1" of this month falls on.
-    val monthStartAnchor = ObservedHijriCalendar.observedToGregorian(year, month.number, 1)
+    val monthStartAnchor = ObservedHijriCalendar.observedToGregorian(year, month.number, 1, overrides)
         .minus(adjustmentDays, DateTimeUnit.DAY)
     val firstCellDow = WeekDay.fromDayOfWeek(monthStartAnchor.dayOfWeek)
     val leadingDaysCount = daysBefore(firstCellDow, firstDayOfWeek)
@@ -200,7 +220,7 @@ private fun HijrahYearMonth.toObservedCalendarMonth(
     val days = (0 until CalendarMonth.TOTAL_DAYS).map { offset ->
         val anchor = gridStart.plus(offset, DateTimeUnit.DAY)
         val shifted = anchor.plus(adjustmentDays, DateTimeUnit.DAY)
-        val observed = ObservedHijriCalendar.observedDateAt(shifted.toEpochDays())
+        val observed = ObservedHijriCalendar.observedDateAt(shifted.toEpochDays(), overrides)
 
         if (observed != null) {
             CalendarDay(
@@ -209,7 +229,7 @@ private fun HijrahYearMonth.toObservedCalendarMonth(
                 isCurrentMonth = observed.year == year && observed.month == month.number,
                 isToday = observed == todayObserved,
                 isSelected = observed == selectedDate,
-                isDisabled = false,
+                isDisabled = !window.contains(anchor),
                 isWeekend = WeekDay.fromDayOfWeek(anchor.dayOfWeek) in weekendDays,
                 adjustmentDays = adjustmentDays,
             )
@@ -233,6 +253,7 @@ private fun HijrahYearMonth.toObservedCalendarMonth(
         days = days.toImmutableList(),
         firstDayOfWeek = firstDayOfWeek,
         adjustmentDays = adjustmentDays,
+        gregorianRange = resolveGregorianMonthRange(year, month.number, adjustmentDays = adjustmentDays),
     )
 }
 
@@ -241,8 +262,43 @@ private fun daysBefore(actualFirstDay: WeekDay, desiredFirstDay: WeekDay): Int {
     return if (diff >= 0) diff else diff + CalendarMonth.DAYS_IN_WEEK
 }
 
-private fun HijrahDate.isDisabledByRange(min: HijrahDate?, max: HijrahDate?): Boolean {
-    if (min != null && this < min) return true
-    if (max != null && this > max) return true
-    return false
+/**
+ * A [minDate]/[maxDate] selection window, resolved once into the real-world Gregorian days that
+ * all three grid spaces agree on.
+ *
+ * The bounds stay [HijrahDate] for API compatibility, but they are no longer *compared* as
+ * Hijrah dates. A cell in Pakistan space, or an observed cell whose day exceeds its month's
+ * Umm al-Qura length, has no Umm al-Qura coordinate to compare against at all — so comparing
+ * them meant either rejecting those cells outright or dropping the bounds on those paths (which
+ * is what happened: the Pakistan and observed builders hardcoded `isDisabled = false`, making
+ * `minDate`/`maxDate` silently no-ops outside plain Umm al-Qura mode).
+ *
+ * Every [CalendarDay] already knows the real-world day it occupies as [CalendarDay.localDate],
+ * and all three spaces agree on that single ordering, so resolving the bounds into
+ * [LocalDate] makes the window mean the same thing everywhere — including `adjustmentDays`,
+ * which is why the bounds are shifted by it here and compared against the cell's own
+ * `anchor` (which is already in real-world space).
+ */
+internal class DateWindow private constructor(
+    private val min: LocalDate?,
+    private val max: LocalDate?,
+) {
+    /** Whether [day], the real-world day a cell occupies, is inside the window. */
+    fun contains(day: LocalDate): Boolean {
+        if (min != null && day < min) return false
+        if (max != null && day > max) return false
+        return true
+    }
+
+    /** Resolves [minDate]/[maxDate] into the same real-world space as [CalendarDay.localDate]. */
+    companion object {
+        fun of(minDate: HijrahDate?, maxDate: HijrahDate?, adjustmentDays: Int): DateWindow =
+            DateWindow(
+                min = minDate?.toRealWorld(adjustmentDays),
+                max = maxDate?.toRealWorld(adjustmentDays),
+            )
+
+        private fun HijrahDate.toRealWorld(adjustmentDays: Int): LocalDate =
+            toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY)
+    }
 }

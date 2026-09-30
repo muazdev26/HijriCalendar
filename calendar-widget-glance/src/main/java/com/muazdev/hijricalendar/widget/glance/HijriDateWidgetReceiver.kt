@@ -6,7 +6,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 
 /** Pairs [HijriDateWidget] with the app widget host. */
-class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
+public class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HijriDateWidget()
 
     // Same foreground gate as the rest of the family: a host update must not compose on the main
@@ -27,7 +27,7 @@ class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 /** Pairs [GregorianDateWidget] with the app widget host. */
-class GregorianDateWidgetReceiver : GlanceAppWidgetReceiver() {
+public class GregorianDateWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = GregorianDateWidget()
 
     override fun onUpdate(

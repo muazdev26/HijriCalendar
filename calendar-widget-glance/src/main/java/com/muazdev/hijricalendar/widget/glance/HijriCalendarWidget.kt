@@ -62,7 +62,7 @@ import com.muazdev.hijricalendar.widgetdata.buildHijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 
-const val HIJRI_DEEP_LINK_TODAY = "hijricalendar://today"
+public const val HIJRI_DEEP_LINK_TODAY: String = "hijricalendar://today"
 
 /**
  * The Hijri home-screen widget family.
@@ -81,7 +81,7 @@ const val HIJRI_DEEP_LINK_TODAY = "hijricalendar://today"
  * still-open session whose composition captured earlier values, which is the guarantee the
  * fire-and-forget `update()` API alone cannot provide (see `HijriWidgetRenderQueue`).
  */
-class HijriCalendarWidget : GlanceAppWidget() {
+public class HijriCalendarWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(
         setOf(

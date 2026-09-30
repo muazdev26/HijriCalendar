@@ -1,9 +1,9 @@
 package com.muazdev.hijricalendar.core
 
-import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlinx.datetime.DateTimeArithmeticException
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
@@ -32,7 +32,7 @@ import kotlinx.serialization.Serializable
  * available.
  */
 @Serializable
-data class PakistanHijriDate(
+public data class PakistanHijriDate(
     val year: Int,
     val month: Int,
     val day: Int,
@@ -48,11 +48,10 @@ data class PakistanHijriDate(
 }
 
 @OptIn(ExperimentalAtomicApi::class)
-object PakistanHijriCalendar {
+public object PakistanHijriCalendar {
 
     /** Absolute anchor of a Pakistani Hijri month. */
-    data class Fix(val firstGregorian: LocalDate, val length: Int) {
-        val monthLength: Int get() = length
+    public data class Fix(val firstGregorian: LocalDate, val length: Int) {
         val startEpochDays: Long get() = firstGregorian.toEpochDays()
     }
 
@@ -63,7 +62,7 @@ object PakistanHijriCalendar {
      * 1448-04 cover the user-verified current window (1448-04's start is the continuation
      * of 1448-03's 30th and is an estimate, not an official decision).
      */
-    val FIXES: Map<Pair<Int, Int>, Fix> = mapOf(
+    public val FIXES: Map<Pair<Int, Int>, Fix> = mapOf(
         // Official Ruet-e-Hilal (bilgrami/hijri-calendar)
         (1440 to 10) to Fix(LocalDate(2019, 6, 5), 29),
         (1440 to 11) to Fix(LocalDate(2019, 7, 4), 30),
@@ -89,8 +88,18 @@ object PakistanHijriCalendar {
         (1448 to 4) to Fix(LocalDate(2026, 9, 14), 30),
     )
 
-    const val MIN_YEAR = 1400
-    const val MAX_YEAR = 1500
+    public const val MIN_YEAR: Int = 1400
+    public const val MAX_YEAR: Int = 1500
+
+    /**
+     * Hard ceiling on month steps in a single walk. A walk crosses the supported range at most
+     * once, so this is a bound rather than an estimate: exceeding it means the chain is broken,
+     * which is a defect — the walks log it at `ERROR` rather than returning a null that would
+     * read as an ordinary out-of-range date.
+     */
+    private const val MAX_WALK_STEPS = 12 * (MAX_YEAR - MIN_YEAR + 1)
+
+    private fun isSupported(year: Int): Boolean = year in MIN_YEAR..MAX_YEAR
 
     private val sortedFixes: List<Pair<Pair<Int, Int>, Fix>> =
         FIXES.toList().sortedBy { prolepticMonth(it.first.first, it.first.second) }
@@ -102,37 +111,57 @@ object PakistanHijriCalendar {
     // once and access both maps without any further coordination.  Writers
     // (override changes) build a fresh table and CAS-publish it; concurrent
     // rebuilds are idempotent — only the winner is visible to readers.
+    //
+    // The table is built *from* an override table (forced lengths re-anchor the
+    // chain), so it is cached per [HijriMonthLengths] instance, keyed by identity.
+    // Two instances with different overrides therefore get different tables and do
+    // not thrash each other.  Identity, not equality, is the key: two tables with
+    // identical content still have independent mutation state, so sharing a cache
+    // entry between them would hand out a stale chain after a write.
 
     private class MonthTable(
         val starts: Map<Int, Long>,
-        val lengths: Map<Int, Int>,
+        val owner: HijriMonthLengths,
         val revision: Long,
     )
 
-    private val monthTable: AtomicReference<MonthTable?> = AtomicReference(null)
+    private val monthTables: AtomicReference<Map<HijriMonthLengths, MonthTable>> = AtomicReference(emptyMap())
 
-    private fun monthTableIfNeeded(): MonthTable {
-        val revision = HijriMonthOverrides.currentRevision
-        val current = monthTable.load()
-        if (current != null && current.revision == revision) return current
-        val built = buildMonthTable(revision)
+    private fun monthTableIfNeeded(overrides: HijriMonthLengths): MonthTable {
+        val revision = overrides.currentRevision
+        monthTables.load()[overrides]?.let { if (it.revision == revision) return it }
+        val built = buildMonthTable(overrides, revision)
         // CAS loop: discard the build if another thread already published for this revision.
         while (true) {
-            val existing = monthTable.load()
-            if (existing != null && existing.revision == revision) return existing
-            if (monthTable.compareAndSet(existing, built)) return built
+            val existing = monthTables.load()
+            existing[overrides]?.let { if (it.revision == revision) return it }
+            if (monthTables.compareAndSet(existing, existing + (overrides to built))) return built
         }
     }
 
-    private fun buildMonthTable(revision: Long): MonthTable {
+    private fun buildMonthTable(overrides: HijriMonthLengths, revision: Long): MonthTable {
+        val lengths = defaultLengthsIfNeeded()
+        val starts = buildMonthStarts(lengths, overrides)
+        return MonthTable(starts, overrides, revision)
+    }
+
+    // The override-free default lengths depend on nothing but the constants, so they are built
+    // once for the whole process and shared by every override table.
+    private val defaultLengths: AtomicReference<Map<Int, Int>?> = AtomicReference(null)
+
+    private fun defaultLengthsIfNeeded(): Map<Int, Int> {
+        defaultLengths.load()?.let { return it }
         val minKey = prolepticMonth(MIN_YEAR, 1)
         val maxKey = prolepticMonth(MAX_YEAR, 12)
-        val lengths = (minKey..maxKey).associateWith { key ->
+        val built = (minKey..maxKey).associateWith { key ->
             val (y, m) = fromProleptic(key)
             FIXES[y to m]?.length ?: HijrahYearMonth(y, m).numberOfDays
         }
-        val starts = buildMonthStarts(lengths)
-        return MonthTable(starts, lengths, revision)
+        while (true) {
+            val existing = defaultLengths.load()
+            if (existing != null) return existing
+            if (defaultLengths.compareAndSet(null, built)) return built
+        }
     }
 
     /**
@@ -142,7 +171,7 @@ object PakistanHijriCalendar {
      * user overrides are folded in via [lengthOfMonthForBuild] so a forced length
      * re-anchors all later months until the next fix snaps the chain back.
      */
-    private fun buildMonthStarts(defaultLengths: Map<Int, Int>): Map<Int, Long> {
+    private fun buildMonthStarts(defaultLengths: Map<Int, Int>, overrides: HijriMonthLengths): Map<Int, Long> {
         val table = HashMap<Int, Long>((MAX_YEAR - MIN_YEAR + 1) * 12)
         val firstFix = sortedFixes.first()
         val anchorKey = prolepticMonth(firstFix.first.first, firstFix.first.second)
@@ -158,7 +187,7 @@ object PakistanHijriCalendar {
         var running = anchorStart
         for (key in anchorKey - 1 downTo minKey) {
             val (y, m) = fromProleptic(key)
-            running -= lengthOfMonthForBuild(y, m, defaultLengths)
+            running -= lengthOfMonthForBuild(y, m, defaultLengths, overrides)
             fixStarts[key]?.let { running = it }
             table[key] = running
         }
@@ -167,7 +196,7 @@ object PakistanHijriCalendar {
         running = anchorStart
         for (key in anchorKey until maxKey) {
             val (y, m) = fromProleptic(key)
-            running += lengthOfMonthForBuild(y, m, defaultLengths)
+            running += lengthOfMonthForBuild(y, m, defaultLengths, overrides)
             fixStarts[key + 1]?.let { running = it }
             table[key + 1] = running
         }
@@ -175,9 +204,13 @@ object PakistanHijriCalendar {
     }
 
     /** Override-aware length used only during table construction (avoids re-entrancy). */
-    private fun lengthOfMonthForBuild(year: Int, month: Int, defaultLengths: Map<Int, Int>): Int =
-        HijriMonthOverrides.monthLength(year, month)
-            ?: defaultLengths.getValue(prolepticMonth(year, month))
+    private fun lengthOfMonthForBuild(
+        year: Int,
+        month: Int,
+        defaultLengths: Map<Int, Int>,
+        overrides: HijriMonthLengths,
+    ): Int = overrides.monthLength(year, month)
+        ?: defaultLengths.getValue(prolepticMonth(year, month))
 
     /**
      * Builds the [monthTable] eagerly.  Call from a background thread at app
@@ -185,8 +218,8 @@ object PakistanHijriCalendar {
      * composition.  Overrides are folded in at this point, so a later override
      * change rebuilds the table on the next access.
      */
-    fun prewarm() {
-        monthTableIfNeeded()
+    public fun prewarm(overrides: HijriMonthLengths = HijriMonthOverrides.current) {
+        monthTableIfNeeded(overrides)
     }
 
     /**
@@ -195,19 +228,21 @@ object PakistanHijriCalendar {
      * warm-up) can skip starting a build that has already happened. Pure read,
      * never triggers a build; [prewarm] and the date math functions are the
      * only entry points that construct the table.
+     *
+     * @param overrides table to check; defaults to the process-wide one.
      */
-    fun isWarmForCurrentOverrides(): Boolean {
-        val current = monthTable.load()
-        return current != null && current.revision == HijriMonthOverrides.currentRevision
+    public fun isWarmForCurrentOverrides(overrides: HijriMonthLengths = HijriMonthOverrides.current): Boolean {
+        val current = monthTables.load()[overrides]
+        return current != null && current.revision == overrides.currentRevision
     }
 
     /**
      * Effective length of the Pakistani [year]/[month] (1-12): a user override wins, then
      * the [FIXES] table, then the Umm al-Qura default.
      */
-    fun lengthOfMonth(year: Int, month: Int): Int {
+    public fun lengthOfMonth(year: Int, month: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current): Int {
         require(year in MIN_YEAR..MAX_YEAR) { "Year $year is out of the supported range $MIN_YEAR..$MAX_YEAR" }
-        return HijriMonthOverrides.monthLength(year, month)
+        return overrides.monthLength(year, month)
             ?: defaultLengthOfMonth(year, month)
     }
 
@@ -216,104 +251,165 @@ object PakistanHijriCalendar {
      * al-Qura) — the value used when no override is set. Exposed so callers can render
      * "reset to calculation".
      */
-    fun defaultLengthOfMonth(year: Int, month: Int): Int {
+    public fun defaultLengthOfMonth(year: Int, month: Int): Int {
         require(year in MIN_YEAR..MAX_YEAR) { "Year $year is out of the supported range $MIN_YEAR..$MAX_YEAR" }
-        return monthTableIfNeeded().lengths.getValue(prolepticMonth(year, month))
+        return defaultLengthsIfNeeded().getValue(prolepticMonth(year, month))
     }
 
     /** The Gregorian day [day] of Pakistani [year]/[month] falls on. */
-    fun hijriToGregorian(year: Int, month: Int, day: Int): LocalDate {
-        val maxDay = lengthOfMonth(year, month)
+    public fun hijriToGregorian(
+        year: Int,
+        month: Int,
+        day: Int,
+        overrides: HijriMonthLengths = HijriMonthOverrides.current,
+    ): LocalDate {
+        val maxDay = lengthOfMonth(year, month, overrides)
         require(day in 1..maxDay) { "Invalid day $day for year-year $year-$month (max $maxDay)" }
-        val start = monthStart(year, month)
+        val start = monthStart(year, month, overrides)
         return LocalDate.fromEpochDays(start + (day - 1))
     }
 
-    /** The Pakistani Hijri date of the given [date], or null when outside the supported window. */
-    fun gregorianToHijri(date: LocalDate): PakistanHijriDate? {
+    /**
+     * The Pakistani Hijri date of the given [date], or null when it falls outside the supported
+     * window ([MIN_YEAR]..[MAX_YEAR]).
+     *
+     * Returns null for exactly one reason — the date is out of range. A fault inside the walk
+     * (a missing table entry, an exhausted iteration budget) is logged and also returns null, but
+     * it is logged at `ERROR` precisely so it can be told apart; see [CalendarLog].
+     */
+    public fun gregorianToHijri(
+        date: LocalDate,
+        overrides: HijriMonthLengths = HijriMonthOverrides.current,
+    ): PakistanHijriDate? {
         val target = date.toEpochDays()
         return try {
             val anchorIndex = sortedFixes.indexOfLast { it.second.startEpochDays <= target }
             if (anchorIndex >= 0) {
-                walkFrom(sortedFixes[anchorIndex], target)
+                walkFrom(sortedFixes[anchorIndex], target, overrides)
             } else {
-                walkBackFrom(sortedFixes[0], target)
+                walkBackFrom(sortedFixes[0], target, overrides)
             }
-        } catch (_: Exception) {
+        } catch (e: IllegalArgumentException) {
+            // Only the out-of-range guards below can throw this far out; log it at DEBUG because
+            // a caller converting a date from 1300 AH is normal, not a defect.
+            CalendarLog.d(LOG_TAG, "date outside the supported Pakistan range: $date", e)
             null
         }
     }
 
-    /** Today's Pakistani Hijri date in the system's timezone, or null when unresolvable. */
-    fun today(): PakistanHijriDate? {
+    /**
+     * Today's Pakistani Hijri date in the system's timezone, or null when it cannot be resolved.
+     *
+     * Null here means the **environment** failed (an unusable system clock or timezone database),
+     * not that the date is out of range — [gregorianToHijri] owns that case and logs it
+     * separately.
+     */
+    public fun today(overrides: HijriMonthLengths = HijriMonthOverrides.current): PakistanHijriDate? {
         return try {
             val now = kotlin.time.Clock.System.now()
             val localDate = now.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-            gregorianToHijri(localDate)
-        } catch (exception: Exception) {
-            println("PakistanHijriCalendar: failed to resolve today's date: $exception")
+            gregorianToHijri(localDate, overrides)
+        } catch (e: IllegalArgumentException) {
+            // Covers IllegalTimeZoneException, which is an IllegalArgumentException.
+            CalendarLog.w(LOG_TAG, "failed to resolve today's date: unusable clock or timezone", e)
+            null
+        } catch (e: DateTimeArithmeticException) {
+            CalendarLog.w(LOG_TAG, "failed to resolve today's date", e)
             null
         }
     }
 
-    private fun walkFrom(anchor: Pair<Pair<Int, Int>, Fix>, target: Long): PakistanHijriDate? {
+    private fun walkFrom(
+        anchor: Pair<Pair<Int, Int>, Fix>,
+        target: Long,
+        overrides: HijriMonthLengths,
+    ): PakistanHijriDate? {
         var (year, month) = anchor.first
         val start = anchor.second.startEpochDays
-        if (target < start) return walkBackFrom(anchor, target)
-        if (target < start + lengthOfMonth(year, month)) return PakistanHijriDate(year, month, (target - start + 1).toInt())
-        var iterations = 0
-        while (iterations++ < 12 * (MAX_YEAR - MIN_YEAR + 1)) {
+        if (target < start) return walkBackFrom(anchor, target, overrides)
+        if (target < start + lengthOfMonth(year, month, overrides)) {
+            return PakistanHijriDate(year, month, (target - start + 1).toInt())
+        }
+        var steps = 0
+        while (steps++ < MAX_WALK_STEPS) {
             val next = nextMonth(year, month)
             year = next.first
             month = next.second
-            val nextStart = monthStart(year, month)
-            if (target < nextStart) return walkBackFromMonth(year, month, nextStart, target)
-            val length = lengthOfMonth(year, month)
+            // Ran off the end of the table: the date is genuinely past MAX_YEAR, not a fault.
+            if (!isSupported(year)) return null
+            val nextStart = monthStart(year, month, overrides)
+            if (target < nextStart) return walkBackFromMonth(year, month, nextStart, target, overrides)
+            val length = lengthOfMonth(year, month, overrides)
             if (target < nextStart + length) {
                 return PakistanHijriDate(year, month, (target - nextStart + 1).toInt())
             }
         }
+        CalendarLog.e(LOG_TAG, "forward walk exhausted its $MAX_WALK_STEPS-step budget at $year-$month")
         return null
     }
 
-    private fun walkBackFrom(anchor: Pair<Pair<Int, Int>, Fix>, target: Long): PakistanHijriDate? {
+    private fun walkBackFrom(
+        anchor: Pair<Pair<Int, Int>, Fix>,
+        target: Long,
+        overrides: HijriMonthLengths,
+    ): PakistanHijriDate? {
         var (year, month) = anchor.first
-        var iterations = 0
-        while (iterations++ < 12 * (MAX_YEAR - MIN_YEAR + 1)) {
+        var steps = 0
+        while (steps++ < MAX_WALK_STEPS) {
             val previous = previousMonth(year, month)
             val (previousYear, previousMonth) = previous
-            val previousStart = monthStart(previousYear, previousMonth)
+            // Ran off the start of the table: the date predates MIN_YEAR, not a fault.
+            if (!isSupported(previousYear)) return null
+            val previousStart = monthStart(previousYear, previousMonth, overrides)
             if (target >= previousStart) {
-                val day = minOf((target - previousStart + 1).toLong(), lengthOfMonth(previousYear, previousMonth).toLong()).toInt()
+                val day = minOf(
+                    (target - previousStart + 1),
+                    lengthOfMonth(previousYear, previousMonth, overrides).toLong(),
+                ).toInt()
                 return PakistanHijriDate(previousYear, previousMonth, day)
             }
             year = previousYear
             month = previousMonth
         }
+        CalendarLog.e(LOG_TAG, "backward walk exhausted its $MAX_WALK_STEPS-step budget at $year-$month")
         return null
     }
 
-    private fun walkBackFromMonth(year: Int, month: Int, start: Long, target: Long): PakistanHijriDate? {
+    private fun walkBackFromMonth(
+        year: Int,
+        month: Int,
+        start: Long,
+        target: Long,
+        overrides: HijriMonthLengths,
+    ): PakistanHijriDate? {
         if (target >= start) return null
         var (y, m) = year to month
-        var iterations = 0
-        while (iterations++ < 12 * (MAX_YEAR - MIN_YEAR + 1)) {
+        var steps = 0
+        while (steps++ < MAX_WALK_STEPS) {
             val previous = previousMonth(y, m)
             val (previousYear, previousMonth) = previous
-            val previousStart = monthStart(previousYear, previousMonth)
+            if (!isSupported(previousYear)) return null
+            val previousStart = monthStart(previousYear, previousMonth, overrides)
             if (target >= previousStart) {
-                val day = minOf((target - previousStart + 1).toLong(), lengthOfMonth(previousYear, previousMonth).toLong()).toInt()
+                val day = minOf(
+                    (target - previousStart + 1),
+                    lengthOfMonth(previousYear, previousMonth, overrides).toLong(),
+                ).toInt()
                 return PakistanHijriDate(previousYear, previousMonth, day)
             }
             y = previousYear
             m = previousMonth
         }
+        CalendarLog.e(LOG_TAG, "month-backward walk exhausted its $MAX_WALK_STEPS-step budget at $y-$m")
         return null
     }
 
-    private fun monthStart(year: Int, month: Int): Long {
+    private fun monthStart(year: Int, month: Int, overrides: HijriMonthLengths): Long {
         require(year in MIN_YEAR..MAX_YEAR) { "Year $year is out of the supported range $MIN_YEAR..$MAX_YEAR" }
-        return monthTableIfNeeded().starts.getValue(prolepticMonth(year, month))
+        val key = prolepticMonth(year, month)
+        return checkNotNull(monthTableIfNeeded(overrides).starts[key]) {
+            "No month start for $year-$month (proleptic $key); the month table is incomplete"
+        }
     }
 
     private fun prolepticMonth(year: Int, month: Int): Int = year * 12 + (month - 1)
@@ -326,3 +422,5 @@ object PakistanHijriCalendar {
     private fun previousMonth(year: Int, month: Int): Pair<Int, Int> =
         if (month == 1) (year - 1) to 12 else year to (month - 1)
 }
+
+private const val LOG_TAG = "PakistanHijriCalendar"

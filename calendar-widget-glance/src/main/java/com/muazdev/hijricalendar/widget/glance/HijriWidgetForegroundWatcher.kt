@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * renders are caught up. Previously nothing re-rendered on backgrounding, so a refresh skipped
  * because the app was visible stayed stale until the next midnight alarm or daily worker.
  */
-class HijriWidgetForegroundWatcher(
+public class HijriWidgetForegroundWatcher(
     private val context: Context,
 ) : Application.ActivityLifecycleCallbacks {
 
@@ -37,9 +37,9 @@ class HijriWidgetForegroundWatcher(
         }
     }
 
-    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
-    override fun onActivityResumed(activity: Activity) = Unit
-    override fun onActivityPaused(activity: Activity) = Unit
-    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-    override fun onActivityDestroyed(activity: Activity) = Unit
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?): Unit = Unit
+    override fun onActivityResumed(activity: Activity): Unit = Unit
+    override fun onActivityPaused(activity: Activity): Unit = Unit
+    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle): Unit = Unit
+    override fun onActivityDestroyed(activity: Activity): Unit = Unit
 }

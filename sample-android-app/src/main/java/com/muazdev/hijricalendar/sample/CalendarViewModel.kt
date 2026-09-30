@@ -10,7 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
-import com.muazdev.hijricalendar.core.DateDisplayMode
+import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.PakistanHijriDate

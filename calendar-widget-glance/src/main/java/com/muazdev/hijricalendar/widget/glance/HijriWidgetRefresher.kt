@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
  * use [refreshInstanceAsync] to update exactly the widget being configured, or [refreshAllAsync]
  * for a family-wide "Refresh now" that bypasses both the foreground gate and the day marker.
  */
-object HijriWidgetRefresher {
+public object HijriWidgetRefresher {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -47,7 +47,7 @@ object HijriWidgetRefresher {
      *
      * @return true when a render was actually performed.
      */
-    suspend fun refreshAll(
+    public suspend fun refreshAll(
         context: Context,
         reason: String,
         bypassGate: Boolean = false,
@@ -88,7 +88,7 @@ object HijriWidgetRefresher {
     }
 
     /** Fire-and-forget [refreshAll] for callers without a coroutine scope. */
-    fun refreshAllAsync(
+    public fun refreshAllAsync(
         context: Context,
         reason: String,
         bypassGate: Boolean = false,
@@ -101,7 +101,7 @@ object HijriWidgetRefresher {
      * Re-renders a single widget instance. Used by user-initiated settings changes so the update
      * touches exactly the widget being configured and never hits the foreground gate.
      */
-    suspend fun refreshInstance(context: Context, glanceId: GlanceId?, reason: String) {
+    public suspend fun refreshInstance(context: Context, glanceId: GlanceId?, reason: String) {
         if (glanceId == null) {
             HijriWidgetRefreshLog.d(reason, "instance id unavailable; falling back to all widgets")
             refreshAll(context, reason, bypassGate = true, bypassDedupe = true)
@@ -112,7 +112,7 @@ object HijriWidgetRefresher {
     }
 
     /** Fire-and-forget [refreshInstance]. */
-    fun refreshInstanceAsync(context: Context, glanceId: GlanceId?, reason: String) {
+    public fun refreshInstanceAsync(context: Context, glanceId: GlanceId?, reason: String) {
         scope.launch { refreshInstance(context, glanceId, reason) }
     }
 
@@ -121,7 +121,7 @@ object HijriWidgetRefresher {
      * then runs a gate-aware [refreshAll], so renders skipped while the app was visible (and a
      * missed midnight rollover in particular) are applied shortly after.
      */
-    fun scheduleCatchUp(context: Context, reason: String) {
+    public fun scheduleCatchUp(context: Context, reason: String) {
         scope.launch {
             delay(CATCH_UP_DELAY_MS)
             refreshAll(context, reason)

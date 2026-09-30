@@ -21,6 +21,27 @@ import kotlinx.datetime.plus
 /**
  * State holder for a Hijri calendar.
  *
+ * @param initialMonth The Hijri month the grid opens on. Change it with [goToMonth];
+ *   [currentMonth] tracks navigation.
+ * @param firstDayOfWeek Which weekday the grid's first column is. Independent of
+ *   [WeekDay.index]'s Saturday-first default, which is only the *declaration* order.
+ * @param minDate Earliest selectable day, or null for no lower bound. Resolved into a
+ *   real-world Gregorian day (shifted by [adjustmentDays]) and applied in **all three**
+ *   date spaces — Umm al-Qura, Pakistan and observed — via a [CalendarDay]'s
+ *   [CalendarDay.localDate]. This is why it is a `HijrahDate` yet still bounds a Pakistan
+ *   cell: there is no Umm al-Qura coordinate to compare such a cell against, so the
+ *   comparison happens on the one ordering all three spaces share.
+ * @param maxDate Latest selectable day, or null for no upper bound. Resolved exactly as
+ *   [minDate] is. Also gates navigation: [canGoToPreviousMonth] and [canGoToNextMonth] are
+ *   false when the neighbouring month holds no day inside the window.
+ * @param weekendDays Days rendered with the weekend styling. Defaults to
+ *   [WeekDay.WEEKEND_DAYS]; purely presentational and does not affect selection.
+ * @param pakistanDates Whether to use the Pakistan (Ruet-e-Hilal) calendar instead of the
+ *   Umm al-Qura calculation. Changing it at runtime keeps the selected date on the same
+ *   real-world Gregorian day where possible.
+ * @param initialSelectedObservedDate The initially selected date in observed (override-shifted)
+ *   space, used when [monthLengths] has any entry. Unlike [initialSelectedDate] it may name a
+ *   day beyond a month's calculated length, such as a forced 30th.
  * @param adjustmentDays Shifts the whole calendar relative to the underlying calculation
  *   to compensate for local moon sighting: the observed Hijri date of a Gregorian day is
  *   the conversion of `(date + adjustmentDays)`. All generated cells, weekday alignment,
@@ -36,17 +57,23 @@ import kotlinx.datetime.plus
  *   expected to be an observed date (already shifted by [adjustmentDays]).
  */
 @Stable
-class HijriCalendarState(
+public class HijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
-    val firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
-    val minDate: HijrahDate? = null,
-    val maxDate: HijrahDate? = null,
+    public val firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
+    public val minDate: HijrahDate? = null,
+    public val maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
     initialSelectedPakistanDate: PakistanHijriDate? = null,
     initialSelectedObservedDate: ObservedHijriDate? = null,
-    val weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    public val weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /**
+     * Month-length overrides owned by this state holder. Defaults to the process-wide
+     * [HijriMonthOverrides.current]; pass your own [HijriMonthLengths] to scope overrides to this
+     * calendar so two calendars in one process can disagree about month lengths.
+     */
+    public val monthLengths: HijriMonthLengths = HijriMonthOverrides.current,
 ) {
     private var _adjustmentDays by mutableStateOf(adjustmentDays)
     private var _pakistanDates by mutableStateOf(pakistanDates)
@@ -54,49 +81,47 @@ class HijriCalendarState(
     private var _selectedDate by mutableStateOf(initialSelectedDate.adjustToAdjustedSpace())
     private var _selectedPakistanDate by mutableStateOf(initialSelectedPakistanDate)
     private var _selectedObservedDate by mutableStateOf(initialSelectedObservedDate)
-    private var _overridesRevision by mutableStateOf(HijriMonthOverrides.currentRevision)
+    private var _overridesRevision by mutableStateOf(monthLengths.currentRevision)
 
-    val adjustmentDays: Int get() = _adjustmentDays
+    public val adjustmentDays: Int get() = _adjustmentDays
 
     /**
      * Whether the calendar shows Ruet-e-Hilal (Pakistan) dates instead of the Umm al-Qura
      * calculation. Toggle at runtime with [setPakistanDates].
      */
-    val pakistanDates: Boolean get() = _pakistanDates
+    public val pakistanDates: Boolean get() = _pakistanDates
 
     private fun HijrahDate?.adjustToAdjustedSpace(): HijrahDate? {
         if (this == null || adjustmentDays == 0) return this
-        return try {
-            toLocalDate().plus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate()
-        } catch (_: Exception) {
-            this
-        }
+        // A selection shifted past the edge of Umm al-Qura's table keeps its unshifted value
+        // rather than being dropped; see [orNullIfOutOfRange].
+        return orNullIfOutOfRange { toLocalDate().plus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate() } ?: this
     }
 
-    val currentMonth: HijrahYearMonth get() = _currentMonth
-    val selectedDate: HijrahDate? get() = _selectedDate
+    public val currentMonth: HijrahYearMonth get() = _currentMonth
+    public val selectedDate: HijrahDate? get() = _selectedDate
 
     /** Selected date in Pakistan (Ruet-e-Hilal) space; non-null when a Pakistan-mode cell is selected. */
-    val selectedPakistanDate: PakistanHijriDate? get() = _selectedPakistanDate
+    public val selectedPakistanDate: PakistanHijriDate? get() = _selectedPakistanDate
 
     /**
      * Selected date in the observed (override-shifted) Umm al-Qura space; non-null when a
-     * cell generated with [HijriMonthOverrides] applied is selected.
+     * cell generated with [monthLengths] applied is selected.
      */
-    val selectedObservedDate: ObservedHijriDate? get() = _selectedObservedDate
+    public val selectedObservedDate: ObservedHijriDate? get() = _selectedObservedDate
 
     /**
-     * Snapshot of [HijriMonthOverrides.currentRevision] at the last recomposition, used to
-     * rebuild the grid and header when month-length overrides change at runtime.
+     * Snapshot of [monthLengths]'s revision at the last recomposition, used to rebuild the grid
+     * and header when month-length overrides change at runtime.
      */
-    val overridesRevision: Long get() = _overridesRevision
+    public val overridesRevision: Long get() = _overridesRevision
 
     /**
      * Whether the previous month can be navigated to without leaving the
      * [minDate]/[maxDate] range. A month is considered navigable if it contains at
      * least one day within the bounded range. `true` when [minDate] is unset.
      */
-    val canGoToPreviousMonth: Boolean
+    public val canGoToPreviousMonth: Boolean
         get() = _currentMonth.minusMonthOrNull(1)?.isNavigableWithin(minDate, maxDate) ?: false
 
     /**
@@ -104,14 +129,15 @@ class HijriCalendarState(
      * [minDate]/[maxDate] range. A month is considered navigable if it contains at
      * least one day within the bounded range. `true` when [maxDate] is unset.
      */
-    val canGoToNextMonth: Boolean
+    public val canGoToNextMonth: Boolean
         get() = _currentMonth.plusMonthOrNull(1)?.isNavigableWithin(minDate, maxDate) ?: false
 
-    val calendarMonth: CalendarMonth by derivedStateOf {
+    public val calendarMonth: CalendarMonth by derivedStateOf {
         // A plain read that establishes a snapshot dependency so the grid recomputes when
         // user overrides change, even though overrides are not a Compose state themselves.
         _overridesRevision
         _currentMonth.toCalendarMonth(
+            overrides = monthLengths,
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = _selectedDate,
             selectedPakistanDate = _selectedPakistanDate,
@@ -124,11 +150,11 @@ class HijriCalendarState(
         )
     }
 
-    fun goToNextMonth() {
+    public fun goToNextMonth() {
         _currentMonth = _currentMonth.plusMonthOrNull(1) ?: _currentMonth
     }
 
-    fun goToPreviousMonth() {
+    public fun goToPreviousMonth() {
         _currentMonth = _currentMonth.minusMonthOrNull(1) ?: _currentMonth
     }
 
@@ -136,7 +162,8 @@ class HijriCalendarState(
      * Selects the given Pakistan (Ruet-e-Hilal) date. Falls back to navigating the month
      * only when [minDate]/[maxDate] is configured (unbounded calendars never reject a date).
      */
-    fun selectPakistanDate(date: PakistanHijriDate) {
+    public fun selectPakistanDate(date: PakistanHijriDate) {
+        if (!dateWindow().contains(date)) return
         _selectedPakistanDate = date
         val yearMonth = HijrahYearMonth(date.year, date.month)
         if (yearMonth != _currentMonth) {
@@ -149,7 +176,8 @@ class HijriCalendarState(
      * accepts days beyond a month's calculated length (e.g. a forced 30th), so the selection
      * survives when overrides are cleared via navigation only.
      */
-    fun selectObservedDate(date: ObservedHijriDate) {
+    public fun selectObservedDate(date: ObservedHijriDate) {
+        if (!dateWindow().contains(date)) return
         _selectedObservedDate = date
         val yearMonth = HijrahYearMonth(date.year, date.month)
         if (yearMonth != _currentMonth) {
@@ -158,28 +186,28 @@ class HijriCalendarState(
     }
 
     /** Forced length for [year]/[month] (29 or 30), or null when the calculation is used. */
-    fun monthLengthOf(year: Int, month: Int): Int? = HijriMonthOverrides.monthLength(year, month)
+    public fun monthLengthOf(year: Int, month: Int): Int? = monthLengths.monthLength(year, month)
 
     /**
      * Forces [year]/[month] to [length] (29 or 30) days, overriding both the Umm al-Qura
      * calculation and, in Pakistan mode, the [PakistanHijriCalendar.FIXES] table for that
      * month. Later months re-anchor off the new length until the next re-sync fix.
      */
-    fun setMonthLength(year: Int, month: Int, length: Int) {
-        HijriMonthOverrides.setMonthLength(year, month, length)
-        _overridesRevision = HijriMonthOverrides.currentRevision
+    public fun setMonthLength(year: Int, month: Int, length: Int) {
+        monthLengths.setMonthLength(year, month, length)
+        _overridesRevision = monthLengths.currentRevision
     }
 
     /** Removes a user-forced length for [year]/[month], falling back to the calculation. */
-    fun clearMonthLength(year: Int, month: Int) {
-        HijriMonthOverrides.clearMonthLength(year, month)
-        _overridesRevision = HijriMonthOverrides.currentRevision
+    public fun clearMonthLength(year: Int, month: Int) {
+        monthLengths.clearMonthLength(year, month)
+        _overridesRevision = monthLengths.currentRevision
     }
 
     /** Removes every user-forced length, restoring the pure calculated calendar. */
-    fun clearAllMonthLengths() {
-        HijriMonthOverrides.clearAll()
-        _overridesRevision = HijriMonthOverrides.currentRevision
+    public fun clearAllMonthLengths() {
+        monthLengths.clearAll()
+        _overridesRevision = monthLengths.currentRevision
     }
 
     /**
@@ -187,7 +215,7 @@ class HijriCalendarState(
      * override-shifted Umm al-Qura, or Pakistan), keeping the behavior identical whichever
      * mode is active.
      */
-    fun selectDay(day: CalendarDay) {
+    public fun selectDay(day: CalendarDay) {
         val pakistanDate = day.pakistanDate
         if (pakistanDate != null) {
             selectPakistanDate(pakistanDate)
@@ -201,8 +229,8 @@ class HijriCalendarState(
         }
     }
 
-    fun selectDate(date: HijrahDate) {
-        if (!date.isDisabledByRange(minDate, maxDate)) {
+    public fun selectDate(date: HijrahDate) {
+        if (dateWindow().contains(date)) {
             _selectedDate = date
             if (date.yearMonth != _currentMonth) {
                 _currentMonth = date.yearMonth
@@ -210,11 +238,11 @@ class HijriCalendarState(
         }
     }
 
-    fun goToMonth(yearMonth: HijrahYearMonth) {
+    public fun goToMonth(yearMonth: HijrahYearMonth) {
         _currentMonth = yearMonth
     }
 
-    fun goToToday() {
+    public fun goToToday() {
         if (pakistanDates) {
             val todayObserved = PakistanHijriCalendar.today()
                 ?.localDate
@@ -246,7 +274,7 @@ class HijriCalendarState(
      * at runtime. The currently selected date is carried across the switch by its
      * real-world Gregorian day.
      */
-    fun setPakistanDates(enabled: Boolean) {
+    public fun setPakistanDates(enabled: Boolean) {
         if (enabled == pakistanDates) return
         if (enabled) {
             val gregorianDay = selectedObservedDate
@@ -278,7 +306,7 @@ class HijriCalendarState(
      * selected — its Hijri representation in the new adjusted space — and the today
      * highlight shifts accordingly. The current month is kept.
      */
-    fun setAdjustmentDays(newAdjustmentDays: Int) {
+    public fun setAdjustmentDays(newAdjustmentDays: Int) {
         val shift = newAdjustmentDays - adjustmentDays
         if (shift == 0) {
             _adjustmentDays = newAdjustmentDays
@@ -304,28 +332,40 @@ class HijriCalendarState(
             return
         }
         val remapped = _selectedDate?.let { current ->
-            try {
-                current.toLocalDate().plus(shift, DateTimeUnit.DAY).toHijrahDate()
-            } catch (_: Exception) {
-                current
-            }
+            orNullIfOutOfRange { current.toLocalDate().plus(shift, DateTimeUnit.DAY).toHijrahDate() } ?: current
         }
         _selectedDate = remapped
         _adjustmentDays = newAdjustmentDays
     }
 
+    /**
+     * Whether any user override is in force, which switches selection to observed space. The
+     * revision read is what makes this a snapshot dependency, so a change recomposes the grid.
+     */
     private val hasObservedOverrides: Boolean
-        get() = _overridesRevision >= 0 && HijriMonthOverrides.all().isNotEmpty()
+        get() = monthLengths.all().isNotEmpty()
 
-    private fun HijrahDate.isDisabledByRange(min: HijrahDate?, max: HijrahDate?): Boolean {
-        if (min != null && this < min) return true
-        if (max != null && this > max) return true
-        return false
-    }
+    /**
+     * The [minDate]/[maxDate] window resolved into real-world Gregorian days.
+     *
+     * Recomputed per call rather than cached: it is two date conversions, and caching would mean
+     * invalidating on four inputs (both bounds plus [adjustmentDays]) to save work that happens
+     * once per tap.
+     */
+    private fun dateWindow(): DateWindow = DateWindow.of(minDate, maxDate, adjustmentDays)
+
+    private fun DateWindow.contains(date: HijrahDate): Boolean =
+        contains(date.toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY))
+
+    private fun DateWindow.contains(date: PakistanHijriDate): Boolean =
+        contains(date.localDate.minus(adjustmentDays, DateTimeUnit.DAY))
+
+    private fun DateWindow.contains(date: ObservedHijriDate): Boolean =
+        contains(date.localDate.minus(adjustmentDays, DateTimeUnit.DAY))
 }
 
 @Composable
-fun rememberHijriCalendarState(
+public fun rememberHijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
@@ -360,7 +400,7 @@ fun rememberHijriCalendarState(
  * reused when the state is restored.
  */
 @Composable
-fun rememberSaveableHijriCalendarState(
+public fun rememberSaveableHijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
@@ -400,14 +440,44 @@ internal data class HijriCalendarStateConfig(
 )
 
 /**
- * `Saver<HijriCalendarState, List<Int>>` encoding:
- * `[year, month, (0|1 pakistan), (0 none, 1 hijrah, 2 pakistan, 3 observed), selYear?, selMonth?, selDay?, observedLength?]`.
+ * `Saver<HijriCalendarState, List<Int>>` for `rememberSaveable`.
  *
- * The selected date is saved in its own space (Umm al-Qura unadjusted for the calculation
- * calendar, Pakistan year/month/day for the Ruet-e-Hilal calendar, or the observed
- * override-shifted year/month/day including the effective month length) and re-normalized on
- * restore because [HijriCalendarState] shifts `initialSelectedDate` by [HijriCalendarStateConfig.adjustmentDays]
- * at construction.
+ * ## This is a persisted format on someone else's device
+ *
+ * A `rememberSaveable` bundle outlives the process: it is written by one build of the app and
+ * read back by the next. Nothing here fails at compile time if the layout changes — it either
+ * restores the wrong thing or throws `IndexOutOfBoundsException` on `saved[4]`, and only on the
+ * user who happened to rotate their device mid-edit.
+ *
+ * The layout is **positional**, so treat it like a wire format:
+ *
+ * ```
+ * index 0        current month year
+ * index 1        current month number (1-12)
+ * index 2        1 if config.pakistanDates, else 0
+ * index 3        selection type tag (see SELECTION_* below)
+ * index 4-6      selYear, selMonth, selDay — present for tags 1, 2 and 3 only
+ * index 7        observed effective month length — present for tag 3 only
+ * ```
+ *
+ * Contract:
+ *
+ * - **Appending is safe.** A new trailing value can be read by an old build only if the old
+ *   build ignores it, so append together with a reader that tolerates a short list; within one
+ *   app version this is always paired.
+ * - **Reordering, removing or reinterpreting an existing index is not.** It restores silently
+ *   wrong state on upgrade. If a change is unavoidable, branch on the old layout in `restore`
+ *   (as `WidgetOptionsJson.decodeLegacyOrdinalJson` does for the widget schema) rather than
+ *   editing the positions in place.
+ * - Adding a new [SELECTION_*] tag is safe: old builds see a tag they do not recognise and fall
+ *   through to "no selection".
+ *
+ * The selection type tags are `0` none, `1` hijrah (Umm al-Qura unadjusted), `2` pakistan and
+ * `3` observed. The selected date is saved in its own space and re-normalized on restore because
+ * [HijriCalendarState] shifts `initialSelectedDate` by
+ * [HijriCalendarStateConfig.adjustmentDays] at construction.
+ *
+ * See `docs/issues/CORE-03-api-stability.md`.
  */
 internal fun hijriCalendarStateSaver(
     config: HijriCalendarStateConfig,
@@ -479,11 +549,7 @@ internal fun hijriCalendarStateSaver(
 
 private fun HijrahDate?.toUnadjustedSpace(adjustmentDays: Int): HijrahDate? {
     if (this == null || adjustmentDays == 0) return this
-    return try {
-        toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate()
-    } catch (_: Exception) {
-        this
-    }
+    return orNullIfOutOfRange { toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate() } ?: this
 }
 
 private const val SELECTION_NONE = 0
@@ -491,20 +557,25 @@ private const val SELECTION_HIJRAH = 1
 private const val SELECTION_PAKISTAN = 2
 private const val SELECTION_OBSERVED = 3
 
-private fun HijrahYearMonth.plusMonthOrNull(months: Int): HijrahYearMonth? {
-    return try {
-        plusMonth(months)
-    } catch (_: Exception) {
-        null
-    }
-}
+/**
+ * Returns null when shifting [months] would leave Umm al-Qura's table, which is what stops
+ * navigation at the ends of the supported range.
+ *
+ * The bound is checked *before* calling into the library on purpose: `hijrah-datetime` signals an
+ * out-of-range month with an unguarded `ArrayIndexOutOfBoundsException` from its rule table rather
+ * than a documented exception type, so there is nothing here worth catching. Pre-checking states
+ * the intent and does not depend on that implementation detail. [orNullIfOutOfRange] stays as a
+ * second net for a day that becomes invalid for a month inside the range.
+ */
+private fun HijrahYearMonth.plusMonthOrNull(months: Int): HijrahYearMonth? =
+    if (wouldLeaveHijriTable(months)) null else orNullIfOutOfRange { plusMonth(months) }
 
-private fun HijrahYearMonth.minusMonthOrNull(months: Int): HijrahYearMonth? {
-    return try {
-        minusMonth(months)
-    } catch (_: Exception) {
-        null
-    }
+private fun HijrahYearMonth.minusMonthOrNull(months: Int): HijrahYearMonth? =
+    if (wouldLeaveHijriTable(-months)) null else orNullIfOutOfRange { minusMonth(months) }
+
+private fun HijrahYearMonth.wouldLeaveHijriTable(months: Int): Boolean {
+    val targetYear = (year * 12 + (month.number - 1) + months).floorDiv(12)
+    return targetYear !in HijrahDate.MIN.year..HijrahDate.MAX.year
 }
 
 private fun HijrahYearMonth.isNavigableWithin(min: HijrahDate?, max: HijrahDate?): Boolean {

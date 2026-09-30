@@ -19,7 +19,7 @@ import kotlinx.serialization.json.Json
  * accidentally render year `-1`.
  */
 @Serializable
-data class WidgetOptions(
+public data class WidgetOptions(
     val adjustmentDays: Int = 0,
     val numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     /** 0-based index into [WeekDay] entries; 0 = Saturday, matching the in-app calendar. */
@@ -47,7 +47,7 @@ data class WidgetOptions(
      * locally (a renderer must supply "today" itself, because only it knows the user's timezone).
      * A pinned value wins; otherwise [today]'s Hijri year and month are used.
      */
-    fun resolveGridMonth(today: Pair<Int, Int>): Pair<Int, Int> =
+    public fun resolveGridMonth(today: Pair<Int, Int>): Pair<Int, Int> =
         if (isPinned) pinnedYear!! to pinnedMonth!! else today
 
     val localizedHijriMonthNames: List<String>?
@@ -63,17 +63,17 @@ data class WidgetOptions(
      * The Hijri month name for [month] (1-12) under [effectiveMonthNameLanguage], for a settings
      * screen's pinned-month picker — the exact string the widget will render.
      */
-    fun hijriMonthName(month: Int): String =
+    public fun hijriMonthName(month: Int): String =
         localizedHijriMonthNames?.getOrNull(month - 1)
             ?: WidgetLocalization.englishHijriMonthNames.getOrNull(month - 1)
             ?: "Month $month"
 
-    companion object {
+    public companion object {
         /**
          * Fresh-widget defaults: Urdu names, Eastern Arabic-Indic digits and the Calculation
          * source, matching the sample app's Urdu labels.
          */
-        val DEFAULTS = WidgetOptions(
+        public val DEFAULTS: WidgetOptions = WidgetOptions(
             adjustmentDays = 0,
             numeralStyle = WidgetLocalization.defaultNumeralStyle(WidgetLanguage.URDU),
             firstDayOfWeekIndex = WeekDay.DEFAULT_FIRST_DAY.index,
@@ -96,21 +96,21 @@ data class WidgetOptions(
  * still load in an older one, and [encodeDefaults] is on so an omitted field is written
  * explicitly rather than depending on the reader's default.
  */
-object WidgetOptionsJson {
+public object WidgetOptionsJson {
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
 
     /** Serializes [options]; the result is what a renderer stores and [decode] reads back. */
-    fun encode(options: WidgetOptions): String = json.encodeToString(WidgetOptions.serializer(), options)
+    public fun encode(options: WidgetOptions): String = json.encodeToString(WidgetOptions.serializer(), options)
 
     /**
      * Parses [text], returning `null` when it is absent or cannot be read. [decode] is this with a
      * default applied; a caller that has another format to try (e.g. a migration from a previous
      * storage encoding) needs to tell "unreadable" apart from "readable and equal to the defaults".
      */
-    fun decodeOrNull(text: String?): WidgetOptions? = try {
+    public fun decodeOrNull(text: String?): WidgetOptions? = try {
         if (text.isNullOrBlank()) null else json.decodeFromString(WidgetOptions.serializer(), text)
     } catch (_: Exception) {
         null
@@ -120,7 +120,7 @@ object WidgetOptionsJson {
      * Parses [text], returning [WidgetOptions.DEFAULTS] for anything unreadable — a corrupt or
      * absent value must degrade to a working widget rather than an empty one.
      */
-    fun decode(text: String?): WidgetOptions = decodeOrNull(text) ?: WidgetOptions.DEFAULTS
+    public fun decode(text: String?): WidgetOptions = decodeOrNull(text) ?: WidgetOptions.DEFAULTS
 }
 
 /**
@@ -131,7 +131,7 @@ object WidgetOptionsJson {
  * collapses the nullable pinned pair into a single flag, and a `false` clears any previous pin.
  */
 @Suppress("LongParameterList")
-fun createWidgetOptions(
+public fun createWidgetOptions(
     language: WidgetLanguage = WidgetLanguage.URDU,
     monthNameLanguage: WidgetLanguage? = null,
     source: WidgetSource = WidgetSource.CALCULATION,
@@ -161,7 +161,7 @@ fun createWidgetOptions(
  * platform already flips on an RTL device) uses the [rightToLeft] overload instead of adjusting
  * the options, so the stored value always means "the language I chose".
  */
-fun buildHijriMonthWidgetData(
+public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
     options: WidgetOptions,
@@ -175,7 +175,7 @@ fun buildHijriMonthWidgetData(
 )
 
 /** As above, with an explicit reading direction for platforms that mirror rows themselves. */
-fun buildHijriMonthWidgetData(
+public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
     options: WidgetOptions,
@@ -196,7 +196,7 @@ fun buildHijriMonthWidgetData(
 )
 
 /** [todayHijriWidgetData] driven straight from [options]. See the grid overload for why. */
-fun todayHijriWidgetData(
+public fun todayHijriWidgetData(
     anchorEpochDay: Long,
     options: WidgetOptions,
 ): TodayHijriWidgetData? = todayHijriWidgetData(

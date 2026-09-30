@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
-import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.core.toCalendarMonth
@@ -32,7 +31,7 @@ internal const val PAGER_CENTER_PAGE = 500
 internal const val PAGER_PAGE_COUNT = PAGER_CENTER_PAGE * 2 + 1
 
 @Composable
-fun HijriCalendarGrid(
+public fun HijriCalendarGrid(
     state: HijriCalendarState,
     calendarMonth: CalendarMonth,
     onDayClick: (CalendarDay) -> Unit,

@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
  * identically.
  */
 @Serializable
-enum class NumeralStyle {
+public enum class NumeralStyle {
     WESTERN,
     ARABIC_INDIC
 }
@@ -21,7 +21,7 @@ enum class NumeralStyle {
  * consistently regardless of the host's `layoutDirection`.
  */
 @Serializable
-enum class WidgetLanguage(val isRtl: Boolean) {
+public enum class WidgetLanguage(public val isRtl: Boolean) {
     URDU(isRtl = true),
     ENGLISH(isRtl = false),
 }
@@ -33,12 +33,12 @@ enum class WidgetLanguage(val isRtl: Boolean) {
  * home screen without opening the app.
  */
 @Serializable
-enum class WidgetSource(val pakistan: Boolean) {
+public enum class WidgetSource(public val pakistan: Boolean) {
     CALCULATION(pakistan = false),
     PAKISTAN(pakistan = true),
     ;
 
-    fun toggled(): WidgetSource = if (this == CALCULATION) PAKISTAN else CALCULATION
+    public fun toggled(): WidgetSource = if (this == CALCULATION) PAKISTAN else CALCULATION
 }
 
 /**
@@ -49,7 +49,7 @@ enum class WidgetSource(val pakistan: Boolean) {
  * compare against their own "today" anchor without importing any Hijri math).
  */
 @Serializable
-data class HijriDayWidgetData(
+public data class HijriDayWidgetData(
     val hijriDay: Int,
     val dayText: String,
     val gregorianDay: Int,
@@ -65,7 +65,7 @@ data class HijriDayWidgetData(
  * weekday headers).
  */
 @Serializable
-data class HijriMonthWidgetData(
+public data class HijriMonthWidgetData(
     val hijriYear: Int,
     val hijriMonth: Int,
     val hijriMonthName: String,
@@ -86,7 +86,7 @@ data class HijriMonthWidgetData(
  * cached.
  */
 @Serializable
-data class TodayHijriWidgetData(
+public data class TodayHijriWidgetData(
     val hijriDay: Int,
     /**
      * [hijriDay] rendered with the projection's [NumeralStyle] (e.g. `"١٣"` for

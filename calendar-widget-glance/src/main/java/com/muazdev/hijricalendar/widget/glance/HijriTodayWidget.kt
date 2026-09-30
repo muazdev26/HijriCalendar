@@ -43,7 +43,7 @@ import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
  * widget, so language, numerals, Hijri source and moon-sighting adjustment always match the
  * family's latest choices. Tapping anywhere opens the app, like the grid widget.
  */
-class HijriTodayWidget : GlanceAppWidget() {
+public class HijriTodayWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Single
 

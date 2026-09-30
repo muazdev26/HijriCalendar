@@ -1,6 +1,6 @@
 package com.muazdev.hijricalendar.shared
 
-import com.muazdev.hijricalendar.core.DateDisplayMode
+import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import platform.Foundation.NSUserDefaults
 

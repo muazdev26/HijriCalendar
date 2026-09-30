@@ -8,25 +8,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
-import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
-import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
-import com.muazdev.hijricalendar.core.ObservedHijriCalendar
-import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.core.resolveGregorianMonthRange
 import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
 
 @Composable
-fun HijriCalendar(
+public fun HijriCalendar(
     state: HijriCalendarState,
     modifier: Modifier = Modifier,
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
@@ -56,26 +49,16 @@ fun HijriCalendar(
         state.pakistanDates,
         state.overridesRevision,
     ) {
-        if (state.pakistanDates) {
-            val first = PakistanHijriCalendar.hijriToGregorian(currentMonth.year, currentMonth.month.number, 1)
-                .minus(state.adjustmentDays, DateTimeUnit.DAY)
-            val last = first.plus(PakistanHijriCalendar.lengthOfMonth(currentMonth.year, currentMonth.month.number) - 1, DateTimeUnit.DAY)
-            sameMonthRangeLabel(first, last, labels)
-        } else if (com.muazdev.hijricalendar.core.HijriMonthOverrides.all().isNotEmpty()) {
-            val first = com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedToGregorian(
-                currentMonth.year, currentMonth.month.number, 1,
-            ).minus(state.adjustmentDays, DateTimeUnit.DAY)
-            val last = com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedToGregorian(
-                currentMonth.year,
-                currentMonth.month.number,
-                com.muazdev.hijricalendar.core.ObservedHijriCalendar.observedLength(currentMonth.year, currentMonth.month.number),
-            ).minus(state.adjustmentDays, DateTimeUnit.DAY)
-            sameMonthRangeLabel(first, last, labels)
-        } else {
-            val first = currentMonth.firstDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
-            val last = currentMonth.lastDay.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
-            sameMonthRangeLabel(first, last, labels)
-        }
+        // The extent comes from core's single resolver, so the header can never describe a
+        // different month than the grid below it. Resolved from the year/month alone rather than
+        // from state.calendarMonth, which would force the 42-cell grid to be built for a header.
+        val range = resolveGregorianMonthRange(
+            year = currentMonth.year,
+            month = currentMonth.month.number,
+            pakistan = state.pakistanDates,
+            adjustmentDays = state.adjustmentDays,
+        )
+        sameMonthRangeLabel(range.first, range.last, labels)
     }
 
     // The rendered grid. Backed by derivedStateOf in HijriCalendarState, so repeated
@@ -121,12 +104,12 @@ fun HijriCalendar(
     }
 }
 
-fun HijriCalendarState.defaultOnDayClick(): (CalendarDay) -> Unit = { day ->
+public fun HijriCalendarState.defaultOnDayClick(): (CalendarDay) -> Unit = { day ->
     selectDay(day)
 }
 
 @Composable
-fun rememberHijriCalendarState(
+public fun rememberHijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
@@ -147,7 +130,7 @@ fun rememberHijriCalendarState(
 )
 
 @Composable
-fun rememberSaveableHijriCalendarState(
+public fun rememberSaveableHijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,

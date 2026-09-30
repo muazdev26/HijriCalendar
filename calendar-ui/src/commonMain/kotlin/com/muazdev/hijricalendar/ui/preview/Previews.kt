@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.UrduCalendarNames
+import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarDayCell
@@ -30,7 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 
 @Preview
 @Composable
-fun HijriCalendarHeaderPreview() {
+public fun HijriCalendarHeaderPreview() {
     MaterialTheme {
         Surface {
             HijriCalendarHeader(
@@ -46,7 +46,7 @@ fun HijriCalendarHeaderPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarHeaderWithGregorianPreview() {
+public fun HijriCalendarHeaderWithGregorianPreview() {
     MaterialTheme {
         Surface {
             HijriCalendarHeader(
@@ -64,7 +64,7 @@ fun HijriCalendarHeaderWithGregorianPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellDefaultPreview() {
+public fun HijriCalendarDayCellDefaultPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -79,7 +79,7 @@ fun HijriCalendarDayCellDefaultPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellTodayPreview() {
+public fun HijriCalendarDayCellTodayPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -94,7 +94,7 @@ fun HijriCalendarDayCellTodayPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellSelectedPreview() {
+public fun HijriCalendarDayCellSelectedPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -109,7 +109,7 @@ fun HijriCalendarDayCellSelectedPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellDisabledPreview() {
+public fun HijriCalendarDayCellDisabledPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -124,7 +124,7 @@ fun HijriCalendarDayCellDisabledPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellWeekendPreview() {
+public fun HijriCalendarDayCellWeekendPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -139,7 +139,7 @@ fun HijriCalendarDayCellWeekendPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellArabicIndicPreview() {
+public fun HijriCalendarDayCellArabicIndicPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -155,7 +155,7 @@ fun HijriCalendarDayCellArabicIndicPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellBothDatesPreview() {
+public fun HijriCalendarDayCellBothDatesPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -171,7 +171,7 @@ fun HijriCalendarDayCellBothDatesPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarDayCellGregorianOnlyPreview() {
+public fun HijriCalendarDayCellGregorianOnlyPreview() {
     MaterialTheme {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -187,7 +187,7 @@ fun HijriCalendarDayCellGregorianOnlyPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarPreview() {
+public fun HijriCalendarPreview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,
@@ -206,7 +206,7 @@ fun HijriCalendarPreview() {
 
 @Preview
 @Composable
-fun HijriCalendarWithBothDatesPreview() {
+public fun HijriCalendarWithBothDatesPreview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,
@@ -235,7 +235,7 @@ private val ConsumerDarkColors = darkColorScheme(
 
 @Preview
 @Composable
-fun HijriCalendarConsumerRtlDarkGlassyPreview() {
+public fun HijriCalendarConsumerRtlDarkGlassyPreview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,
@@ -267,7 +267,7 @@ fun HijriCalendarConsumerRtlDarkGlassyPreview() {
 
 @Preview(fontScale = 1.5f)
 @Composable
-fun HijriCalendarBothDatesFontScale150Preview() {
+public fun HijriCalendarBothDatesFontScale150Preview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,
@@ -287,7 +287,7 @@ fun HijriCalendarBothDatesFontScale150Preview() {
 
 @Preview
 @Composable
-fun HijriCalendarUrduRtlPreview() {
+public fun HijriCalendarUrduRtlPreview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,

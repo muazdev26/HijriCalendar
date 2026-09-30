@@ -25,19 +25,19 @@ internal object HijriWidgetNavigation {
     const val STEP_NEXT = 1
 }
 
-class HijriWidgetPrevMonthCallback : ActionCallback {
+public class HijriWidgetPrevMonthCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         stepViewedMonth(context, glanceId, HijriWidgetNavigation.STEP_PREVIOUS)
     }
 }
 
-class HijriWidgetNextMonthCallback : ActionCallback {
+public class HijriWidgetNextMonthCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         stepViewedMonth(context, glanceId, HijriWidgetNavigation.STEP_NEXT)
     }
 }
 
-class HijriWidgetTodayResetCallback : ActionCallback {
+public class HijriWidgetTodayResetCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         HijriWidgetConfig.clearViewedMonth(context, glanceId)
         HijriWidgetRenderQueue.render(context, glanceId)

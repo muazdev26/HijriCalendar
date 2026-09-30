@@ -23,7 +23,7 @@ import kotlin.time.TimeSource
  * to be on. Callers that arrive after the table is warm for the current
  * [HijriMonthOverrides] revision return without touching a thread pool.
  */
-object PakistanWarmUp {
+public object PakistanWarmUp {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -41,7 +41,7 @@ object PakistanWarmUp {
      * Idempotent: joins an in-flight build or returns immediately when the table is already
      * warm. Safe to call from anywhere (main thread included).
      */
-    suspend fun ensureWarm() {
+    public suspend fun ensureWarm() {
         if (PakistanHijriCalendar.isWarmForCurrentOverrides()) return
 
         val watch = TimeSource.Monotonic.markNow()

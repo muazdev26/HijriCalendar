@@ -10,6 +10,10 @@ plugins {
 // Render-ready projection API shared by the native widget renderers (Glance RemoteViews
 // on Android, SwiftUI WidgetKit on iOS). Pure Kotlin, no Compose. Published as a library.
 kotlin {
+    // Mirrors the `hijri.multiplatform.library` convention, which this module cannot use because
+    // it needs a different framework baseName. See docs/issues/CORE-03-api-stability.md.
+    explicitApi()
+
     android {
         namespace = project.findProperty("android.namespace") as? String
             ?: "com.muazdev.hijricalendar.${project.name.replace("-", ".")}"

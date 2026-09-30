@@ -8,14 +8,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Immutable
-object HijriCalendarDefaults {
-    val TodayBorderWidth = 2.dp
-    val SingleLineCellSize = 48.dp
+public object HijriCalendarDefaults {
+    public val TodayBorderWidth: Dp = 2.dp
+    public val SingleLineCellSize: Dp = 48.dp
     @Deprecated("Cells use a single fixed size regardless of DateDisplayMode.")
-    val BothModeCellSize = SingleLineCellSize
+    public val BothModeCellSize: Dp = SingleLineCellSize
 
     @Composable
-    fun colors(
+    public fun colors(
         selectedDayContainerColor: Color = MaterialTheme.colorScheme.primary,
         selectedDayContentColor: Color = MaterialTheme.colorScheme.onPrimary,
         todayBorderColor: Color = MaterialTheme.colorScheme.primary,
@@ -47,5 +47,5 @@ object HijriCalendarDefaults {
         gregorianHeaderColor = gregorianHeaderColor,
     )
 
-    fun labels(labels: HijriCalendarLabels = HijriCalendarLabels()): HijriCalendarLabels = labels
+    public fun labels(labels: HijriCalendarLabels = HijriCalendarLabels()): HijriCalendarLabels = labels
 }

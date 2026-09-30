@@ -10,4 +10,5 @@ dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.compose.multiplatform.gradlePlugin)
     compileOnly(libs.vanniktech.publish.gradlePlugin)
+    implementation(libs.binary.compatibility.validator.gradlePlugin)
 }

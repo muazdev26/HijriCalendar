@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
 
 @Immutable
 @Serializable
-data class CalendarDay(
+public data class CalendarDay(
     val hijrahDate: HijrahDate? = null,
     val pakistanDate: PakistanHijriDate? = null,
     val observedDate: ObservedHijriDate? = null,

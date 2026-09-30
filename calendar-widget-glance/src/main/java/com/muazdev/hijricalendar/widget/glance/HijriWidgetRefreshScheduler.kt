@@ -26,12 +26,12 @@ import java.util.concurrent.TimeUnit
  * exact alarms are unavailable the call degrades to a regular `set()`, keeping the widget usable
  * albeit not guaranteed at the exact boundary.
  */
-object HijriWidgetRefreshScheduler {
+public object HijriWidgetRefreshScheduler {
 
     private const val WORK_NAME = "hijri_widget_daily_refresh"
     private const val ALARM_REQUEST_CODE = 4_101
 
-    fun schedule(context: Context) {
+    public fun schedule(context: Context) {
         enqueuePeriodic(context)
         armMidnightAlarm(context)
         // Regenerate the Android 15+ picker previews on first launch / every app start (cheap:
@@ -55,7 +55,7 @@ object HijriWidgetRefreshScheduler {
      * Called on application start and after BOOT_COMPLETED so the alarm survives reboots without
      * the midnight receiver ever needing to re-arm itself.
      */
-    fun armMidnightAlarm(context: Context) {
+    public fun armMidnightAlarm(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -83,5 +83,5 @@ object HijriWidgetRefreshScheduler {
         return now.toLocalDate().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
     }
 
-    fun todayEpochDay(): Long = LocalDate.now().toEpochDay()
+    public fun todayEpochDay(): Long = LocalDate.now().toEpochDay()
 }

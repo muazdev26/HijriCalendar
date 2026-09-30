@@ -386,4 +386,58 @@ class MonthLengthOverridesTest {
             else -> ObservedHijriDate(date.year + 1, 1, 1, ObservedHijriCalendar.observedLength(date.year + 1, 1))
         }
     }
+
+    // ── ObservedHijriDate carries the Gregorian day of the table that made it ──
+
+    @Test
+    fun observedDate_storesTheGregorianDayOfItsOwnOverridesTableNotTheGlobalOne() {
+        // Force 1448-3 to 30 days. Under the process-default (empty) table the observed start of
+        // 1448-4 is the Umm al-Qura one; with the override in force it moves a day later, so the
+        // same observed day number lands on a different real-world date.
+        val scoped = HijriMonthLengths()
+        scoped.setMonthLength(1448, 3, 30)
+
+        val day4Start = ObservedHijriCalendar.observedMonthStartEpoch(1448, 4, scoped)
+        val globalStart = ObservedHijriCalendar.observedMonthStartEpoch(1448, 4, HijriMonthLengths())
+
+        val underScoped = assertNotNull(ObservedHijriCalendar.observedDateAt(day4Start, scoped))
+        val underGlobal = assertNotNull(ObservedHijriCalendar.observedDateAt(globalStart, HijriMonthLengths()))
+
+        // Same Hijri coordinates, different real-world day — that is the whole point of the test.
+        assertEquals(underScoped.year, underGlobal.year)
+        assertEquals(underScoped.month, underGlobal.month)
+        assertEquals(underScoped.day, underGlobal.day)
+        assertEquals(LocalDate.fromEpochDays(day4Start), underScoped.localDate)
+        assertEquals(LocalDate.fromEpochDays(globalStart), underGlobal.localDate)
+
+        // The value must be self-consistent, not resolved lazily against whatever table is
+        // current when someone reads it.
+        assertEquals(
+            ObservedHijriCalendar.observedToGregorian(underScoped.year, underScoped.month, underScoped.day, scoped),
+            underScoped.localDate,
+        )
+    }
+
+    @Test
+    fun observedDate_localDateIsUnaffectedByLaterMutationOfTheProcessDefault() {
+        val scoped = HijriMonthLengths()
+        scoped.setMonthLength(1448, 3, 30)
+        val day4Start = ObservedHijriCalendar.observedMonthStartEpoch(1448, 4, scoped)
+        val before = assertNotNull(ObservedHijriCalendar.observedDateAt(day4Start, scoped))
+
+        // Something else in the app changes the global table after the date was produced.
+        HijriMonthOverrides.setMonthLength(1448, 3, 29)
+        val after = assertNotNull(ObservedHijriCalendar.observedDateAt(day4Start, scoped))
+
+        assertEquals(before.localDate, after.localDate)
+        assertEquals(LocalDate.fromEpochDays(day4Start), before.localDate)
+    }
+
+    @Test
+    fun observedDate_localDateRoundTripsThroughGregorian() {
+        val table = HijriMonthLengths()
+        table.setMonthLength(1448, 3, 30)
+        val observed = assertNotNull(ObservedHijriCalendar.observedDateAt(LocalDate(2026, 8, 12).toEpochDays(), table))
+        assertEquals(LocalDate(2026, 8, 12), observed.localDate)
+    }
 }

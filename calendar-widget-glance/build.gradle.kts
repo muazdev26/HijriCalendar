@@ -4,6 +4,12 @@ plugins {
     id("hijri.publish")
 }
 
+kotlin {
+    // Not a KMP module, so this cannot come from the `hijri.multiplatform.library` convention.
+    // See docs/issues/CORE-03-api-stability.md.
+    explicitApi()
+}
+
 android {
     namespace = project.findProperty("android.namespace") as? String
         ?: "com.muazdev.hijricalendar.widget.glance"
@@ -43,7 +49,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.activity.compose)
-    
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
 }

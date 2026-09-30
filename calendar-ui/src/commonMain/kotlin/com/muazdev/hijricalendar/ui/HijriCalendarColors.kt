@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 
 @Immutable
-data class HijriCalendarColors(
+public data class HijriCalendarColors(
     val selectedDayContainerColor: Color,
     val selectedDayContentColor: Color,
     val todayBorderColor: Color,

@@ -1,0 +1,80 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:HijriCalendarState.kt$(saved[4], saved[5], saved[6])</ID>
+    <ID>ArgumentListWrapping:HijriCalendarState.kt$(saved[4], saved[5], saved[6], saved[7])</ID>
+    <ID>ArgumentListWrapping:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$( observed.year, observed.month, observed.day, )</ID>
+    <ID>ArgumentListWrapping:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$(date.year, date.month + 1)</ID>
+    <ID>ArgumentListWrapping:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$(date.year, date.month + 1, 1, ObservedHijriCalendar.observedLength(date.year, date.month + 1))</ID>
+    <ID>ArgumentListWrapping:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$(observed.year, observed.month, 1)</ID>
+    <ID>ArgumentListWrapping:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$(observed.year, observed.month, observed.day)</ID>
+    <ID>ArgumentListWrapping:OutOfRangeTest.kt$OutOfRangeTest$(HijrahDate.MAX.year, 12)</ID>
+    <ID>ArgumentListWrapping:OutOfRangeTest.kt$OutOfRangeTest$(HijrahDate.MIN.year, 1)</ID>
+    <ID>ArgumentListWrapping:OutOfRangeTest.kt$OutOfRangeTest$(initialMonth = com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth(HijrahDate.MAX.year, 12))</ID>
+    <ID>ArgumentListWrapping:OutOfRangeTest.kt$OutOfRangeTest$(initialMonth = com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth(HijrahDate.MIN.year, 1))</ID>
+    <ID>ArgumentListWrapping:PakistanCalendarMonthTest.kt$PakistanCalendarMonthTest$(1448, 4, 1)</ID>
+    <ID>ArgumentListWrapping:PakistanCalendarMonthTest.kt$PakistanCalendarMonthTest$(2026, 9, 13)</ID>
+    <ID>ArgumentListWrapping:PakistanCalendarMonthTest.kt$PakistanCalendarMonthTest$(LocalDate(2026, 9, 13), plusOne.days.first { it.pakistanDate == PakistanHijriDate(1448, 4, 1) }.localDate)</ID>
+    <ID>ArgumentListWrapping:PakistanCalendarMonthTest.kt$PakistanCalendarMonthTest$(PakistanHijriDate(1448, 4, 1), plain.days.first { it.localDate == LocalDate(2026, 9, 14) }.pakistanDate)</ID>
+    <ID>ArgumentListWrapping:PakistanHijriCalendarTest.kt$PakistanHijriCalendarTest$(day, roundtrip, "roundtrip at $day gave hijri=${hijri} which mapped back to $roundtrip")</ID>
+    <ID>ArgumentListWrapping:ThreadSafetySmokeTest.kt$ThreadSafetySmokeTest$( 1448, random.nextInt(1, 13), if (random.nextBoolean()) 29 else 30, )</ID>
+    <ID>ArgumentListWrapping:UrduCalendarNamesTest.kt$UrduCalendarNamesTest$(WeekDay.entries.map { UrduCalendarNames.weekdays.getValue(it) }, UrduCalendarNames.weekdayShortNames)</ID>
+    <ID>ArgumentListWrapping:UrduCalendarNamesTest.kt$UrduCalendarNamesTest$(it)</ID>
+    <ID>FinalNewline:ObservedHijriCalendar.kt$com.muazdev.hijricalendar.core.ObservedHijriCalendar.kt</ID>
+    <ID>FinalNewline:PakistanCalendarMonthTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarMonthTest.kt</ID>
+    <ID>FinalNewline:PakistanCalendarPerformanceTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarPerformanceTest.kt</ID>
+    <ID>FinalNewline:PakistanHijriCalendar.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendar.kt</ID>
+    <ID>FinalNewline:PakistanHijriCalendarTest.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendarTest.kt</ID>
+    <ID>FinalNewline:ThreadSafetySmokeTest.kt$com.muazdev.hijricalendar.core.ThreadSafetySmokeTest.kt</ID>
+    <ID>FinalNewline:TodayHijriDate.kt$com.muazdev.hijricalendar.core.TodayHijriDate.kt</ID>
+    <ID>FinalNewline:UrduCalendarNames.kt$com.muazdev.hijricalendar.core.UrduCalendarNames.kt</ID>
+    <ID>FinalNewline:UrduCalendarNamesTest.kt$com.muazdev.hijricalendar.core.UrduCalendarNamesTest.kt</ID>
+    <ID>FunctionNaming:ThreadSafetySmokeTest.kt$ThreadSafetySmokeTest$@Test fun concurrentOverrideMutation_publishesConsistentSnapshots()</ID>
+    <ID>ImportOrdering:DateWindowTest.kt$import com.abdulrahman_b.hijrahdatetime.HijrahDate import com.abdulrahman_b.hijrahdatetime.toLocalDate import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import kotlin.test.AfterTest import kotlin.test.Test import kotlin.test.assertEquals import kotlin.test.assertNotNull import kotlin.test.assertTrue import kotlinx.datetime.DateTimeUnit import kotlinx.datetime.LocalDate import kotlinx.datetime.minus</ID>
+    <ID>ImportOrdering:GregorianMonthRange.kt$import androidx.compose.runtime.Immutable import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import com.abdulrahman_b.hijrahdatetime.toLocalDate import kotlinx.datetime.DateTimeUnit import kotlinx.datetime.LocalDate import kotlinx.datetime.minus import kotlinx.datetime.plus</ID>
+    <ID>ImportOrdering:GregorianMonthRangeTest.kt$import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import com.abdulrahman_b.hijrahdatetime.toLocalDate import kotlinx.collections.immutable.persistentListOf import kotlinx.datetime.DateTimeUnit import kotlinx.datetime.LocalDate import kotlinx.datetime.minus import kotlinx.datetime.plus import kotlin.test.AfterTest import kotlin.test.Test import kotlin.test.assertEquals import kotlin.test.assertNotEquals import kotlin.test.assertNull import kotlin.test.assertTrue</ID>
+    <ID>ImportOrdering:MonthLengthOverridesTest.kt$import com.abdulrahman_b.hijrahdatetime.toLocalDate import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import androidx.compose.runtime.saveable.Saver import androidx.compose.runtime.saveable.SaverScope import kotlinx.datetime.LocalDate import kotlinx.datetime.DateTimeUnit import kotlinx.datetime.plus import kotlinx.datetime.minus import kotlin.test.AfterTest import kotlin.test.Test import kotlin.test.assertEquals import kotlin.test.assertFailsWith import kotlin.test.assertFalse import kotlin.test.assertNotNull import kotlin.test.assertNotEquals import kotlin.test.assertNull import kotlin.test.assertTrue</ID>
+    <ID>ImportOrdering:ObservedHijriCalendar.kt$import com.abdulrahman_b.hijrahdatetime.toHijrahDate import com.abdulrahman_b.hijrahdatetime.toLocalDate import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import kotlin.math.abs import kotlinx.datetime.DateTimeArithmeticException import kotlinx.datetime.DateTimeUnit import kotlinx.datetime.LocalDate import kotlinx.datetime.TimeZone import kotlinx.datetime.plus import kotlinx.datetime.toLocalDateTime</ID>
+    <ID>ImportOrdering:PakistanHijriCalendar.kt$import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import kotlin.concurrent.atomics.AtomicReference import kotlin.concurrent.atomics.ExperimentalAtomicApi import kotlinx.datetime.DateTimeArithmeticException import kotlinx.datetime.LocalDate import kotlinx.datetime.toLocalDateTime import kotlinx.serialization.Serializable</ID>
+    <ID>ImportOrdering:PakistanHijriCalendarTest.kt$import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import kotlinx.datetime.LocalDate import kotlinx.datetime.plus import kotlinx.datetime.DateTimeUnit import kotlin.test.Test import kotlin.test.assertEquals import kotlin.test.assertNotNull import kotlin.test.assertNull import kotlin.test.assertTrue</ID>
+    <ID>ImportOrdering:ThreadSafetySmokeTest.kt$import kotlin.concurrent.thread import kotlin.random.Random import kotlinx.datetime.number import kotlin.test.AfterTest import kotlin.test.Test import kotlin.test.assertTrue</ID>
+    <ID>MaxLineLength:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$date.month &lt; 12 -&gt; ObservedHijriDate(date.year, date.month + 1, 1, ObservedHijriCalendar.observedLength(date.year, date.month + 1))</ID>
+    <ID>MaximumLineLength:CalendarMonthExtTest.kt$CalendarMonthExtTest$ </ID>
+    <ID>MaximumLineLength:HijriCalendarState.kt$ </ID>
+    <ID>MaximumLineLength:MonthLengthOverridesTest.kt$MonthLengthOverridesTest$ </ID>
+    <ID>MaximumLineLength:ObservedHijriCalendar.kt$ObservedHijriCalendar$ </ID>
+    <ID>MaximumLineLength:OutOfRangeTest.kt$OutOfRangeTest$ </ID>
+    <ID>MaximumLineLength:PakistanCalendarMonthTest.kt$PakistanCalendarMonthTest$ </ID>
+    <ID>MaximumLineLength:PakistanCalendarPerformanceTest.kt$PakistanCalendarPerformanceTest$ </ID>
+    <ID>MaximumLineLength:PakistanHijriCalendarTest.kt$PakistanHijriCalendarTest$ </ID>
+    <ID>MaximumLineLength:UrduCalendarNamesTest.kt$UrduCalendarNamesTest$ </ID>
+    <ID>NewLineAtEndOfFile:ObservedHijriCalendar.kt$com.muazdev.hijricalendar.core.ObservedHijriCalendar.kt</ID>
+    <ID>NewLineAtEndOfFile:PakistanCalendarMonthTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarMonthTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PakistanCalendarPerformanceTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarPerformanceTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PakistanHijriCalendar.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendar.kt</ID>
+    <ID>NewLineAtEndOfFile:PakistanHijriCalendarTest.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendarTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ThreadSafetySmokeTest.kt$com.muazdev.hijricalendar.core.ThreadSafetySmokeTest.kt</ID>
+    <ID>NewLineAtEndOfFile:TodayHijriDate.kt$com.muazdev.hijricalendar.core.TodayHijriDate.kt</ID>
+    <ID>NewLineAtEndOfFile:UrduCalendarNames.kt$com.muazdev.hijricalendar.core.UrduCalendarNames.kt</ID>
+    <ID>NewLineAtEndOfFile:UrduCalendarNamesTest.kt$com.muazdev.hijricalendar.core.UrduCalendarNamesTest.kt</ID>
+    <ID>ParameterListWrapping:ObservedHijriCalendar.kt$ObservedHijriCalendar$(adjustmentDays: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current)</ID>
+    <ID>ParameterListWrapping:ObservedHijriCalendar.kt$ObservedHijriCalendar$(epochDay: Long, overrides: HijriMonthLengths = HijriMonthOverrides.current)</ID>
+    <ID>ParameterListWrapping:ObservedHijriCalendar.kt$ObservedHijriCalendar$(year: Int, month: Int, day: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current)</ID>
+    <ID>ParameterListWrapping:ObservedHijriCalendar.kt$ObservedHijriCalendar$(year: Int, month: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current)</ID>
+    <ID>PropertyWrapping:OutOfRangeTest.kt$OutOfRangeTest$val atMin = HijriCalendarState(initialMonth = com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth(HijrahDate.MIN.year, 1))</ID>
+    <ID>PropertyWrapping:OutOfRangeTest.kt$OutOfRangeTest$val state = HijriCalendarState(initialMonth = com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth(HijrahDate.MAX.year, 12))</ID>
+    <ID>ReturnCount:CalendarMonthExt.kt$DateWindow$fun contains(day: LocalDate): Boolean</ID>
+    <ID>ReturnCount:CalendarMonthExt.kt$public fun HijrahYearMonth.toCalendarMonth( firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY, selectedDate: HijrahDate? = null, selectedPakistanDate: PakistanHijriDate? = null, selectedObservedDate: ObservedHijriDate? = null, minDate: HijrahDate? = null, maxDate: HijrahDate? = null, adjustmentDays: Int = 0, pakistan: Boolean = false, weekendDays: Set&lt;WeekDay&gt; = WeekDay.WEEKEND_DAYS, overrides: HijriMonthLengths = HijriMonthOverrides.current, ): CalendarMonth</ID>
+    <ID>ReturnCount:HijriCalendarState.kt$HijriCalendarState$public fun setAdjustmentDays(newAdjustmentDays: Int)</ID>
+    <ID>ReturnCount:HijriCalendarState.kt$private fun HijrahYearMonth.isNavigableWithin(min: HijrahDate?, max: HijrahDate?): Boolean</ID>
+    <ID>ReturnCount:PakistanHijriCalendar.kt$PakistanHijriCalendar$private fun defaultLengthsIfNeeded(): Map&lt;Int, Int&gt;</ID>
+    <ID>ReturnCount:PakistanHijriCalendar.kt$PakistanHijriCalendar$private fun monthTableIfNeeded(overrides: HijriMonthLengths): MonthTable</ID>
+    <ID>ReturnCount:PakistanHijriCalendar.kt$PakistanHijriCalendar$private fun walkBackFrom( anchor: Pair&lt;Pair&lt;Int, Int&gt;, Fix&gt;, target: Long, overrides: HijriMonthLengths, ): PakistanHijriDate?</ID>
+    <ID>ReturnCount:PakistanHijriCalendar.kt$PakistanHijriCalendar$private fun walkBackFromMonth( year: Int, month: Int, start: Long, target: Long, overrides: HijriMonthLengths, ): PakistanHijriDate?</ID>
+    <ID>ReturnCount:PakistanHijriCalendar.kt$PakistanHijriCalendar$private fun walkFrom( anchor: Pair&lt;Pair&lt;Int, Int&gt;, Fix&gt;, target: Long, overrides: HijriMonthLengths, ): PakistanHijriDate?</ID>
+    <ID>StringTemplate:PakistanHijriCalendarTest.kt$PakistanHijriCalendarTest$${hijri}</ID>
+    <ID>SwallowedException:OutOfRangeTest.kt$OutOfRangeTest$e: DateTimeArithmeticException</ID>
+    <ID>SwallowedException:OutOfRangeTest.kt$OutOfRangeTest$e: IllegalArgumentException</ID>
+  </CurrentIssues>
+</SmellBaseline>

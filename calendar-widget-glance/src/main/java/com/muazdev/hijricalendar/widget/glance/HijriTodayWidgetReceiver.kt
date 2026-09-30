@@ -7,7 +7,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 
 /** Pairs [HijriTodayWidget] with the app widget host. */
-class HijriTodayWidgetReceiver : GlanceAppWidgetReceiver() {
+public class HijriTodayWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HijriTodayWidget()
 
     // Same foreground gate as the grid widget: a host update must not compose on the main thread

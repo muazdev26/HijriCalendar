@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:HijriCalendarWidget.kt$(color = ColorProvider(colors.secondaryText), fontSize = gregorianFontSize, textAlign = TextAlign.Center)</ID>
+    <ID>ArgumentListWrapping:HijriCalendarWidget.kt$(colors.secondaryText)</ID>
+    <ID>ComplexCondition:HijriWidgetUpdateReceiver.kt$HijriWidgetUpdateReceiver$action == Intent.ACTION_TIME_CHANGED || action == Intent.ACTION_TIMEZONE_CHANGED || action == Intent.ACTION_LOCALE_CHANGED || action == Intent.ACTION_BOOT_COMPLETED</ID>
+    <ID>FinalNewline:HijriDateWidget.kt$com.muazdev.hijricalendar.widget.glance.HijriDateWidget.kt</ID>
+    <ID>FinalNewline:HijriDateWidgetReceiver.kt$com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver.kt</ID>
+    <ID>FinalNewline:HijriWidgetConfigTest.kt$com.muazdev.hijricalendar.widget.glance.HijriWidgetConfigTest.kt</ID>
+    <ID>FinalNewline:HijriWidgetPreviewPublisher.kt$com.muazdev.hijricalendar.widget.glance.HijriWidgetPreviewPublisher.kt</ID>
+    <ID>ImportOrdering:HijriWidgetPreview.kt$import android.content.Context import android.widget.RemoteViews import androidx.compose.foundation.background import androidx.compose.foundation.layout.Box import androidx.compose.runtime.Composable import androidx.compose.runtime.LaunchedEffect import androidx.compose.runtime.getValue import androidx.compose.runtime.key import androidx.compose.runtime.mutableStateOf import androidx.compose.runtime.remember import androidx.compose.runtime.setValue import androidx.compose.ui.Modifier import androidx.compose.ui.graphics.Color import androidx.compose.ui.platform.LocalContext import androidx.compose.ui.unit.DpSize import androidx.compose.ui.viewinterop.AndroidView import androidx.glance.GlanceId import androidx.glance.appwidget.GlanceAppWidget import androidx.glance.appwidget.SizeMode import androidx.glance.appwidget.compose import androidx.glance.appwidget.provideContent import kotlinx.coroutines.CancellationException import com.muazdev.hijricalendar.widgetdata.WidgetOptions</ID>
+    <ID>ImportOrdering:HijriWidgetRenderQueue.kt$import android.content.Context import androidx.glance.GlanceId import androidx.glance.appwidget.updateAll import java.util.concurrent.atomic.AtomicReference import kotlinx.coroutines.sync.Mutex</ID>
+    <ID>ImportOrdering:PakistanWarmUpTest.kt$import com.muazdev.hijricalendar.core.HijriMonthOverrides import com.muazdev.hijricalendar.core.PakistanHijriCalendar import java.util.concurrent.atomic.AtomicInteger import kotlinx.coroutines.async import kotlinx.coroutines.awaitAll import kotlinx.coroutines.coroutineScope import kotlinx.coroutines.runBlocking import org.junit.Assert.assertEquals import org.junit.Assert.assertFalse import org.junit.Assert.assertTrue import org.junit.Test</ID>
+    <ID>LongParameterList:HijriCalendarWidget.kt$( monthData: HijriMonthWidgetData?, todayHijri: TodayHijriWidgetData?, todayEpochDay: Long, layoutRtl: Boolean, colors: WidgetColors, openAction: Action?, prevAction: Action?, nextAction: Action?, resetAction: Action?, )</ID>
+    <ID>MaximumLineLength:HijriCalendarWidget.kt$ </ID>
+    <ID>NewLineAtEndOfFile:HijriDateWidget.kt$com.muazdev.hijricalendar.widget.glance.HijriDateWidget.kt</ID>
+    <ID>NewLineAtEndOfFile:HijriDateWidgetReceiver.kt$com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver.kt</ID>
+    <ID>NewLineAtEndOfFile:HijriWidgetConfigTest.kt$com.muazdev.hijricalendar.widget.glance.HijriWidgetConfigTest.kt</ID>
+    <ID>NewLineAtEndOfFile:HijriWidgetPreviewPublisher.kt$com.muazdev.hijricalendar.widget.glance.HijriWidgetPreviewPublisher.kt</ID>
+    <ID>NoUnusedImports:HijriCalendarWidget.kt$com.muazdev.hijricalendar.widget.glance.HijriCalendarWidget.kt</ID>
+    <ID>NoUnusedImports:HijriDateWidget.kt$com.muazdev.hijricalendar.widget.glance.HijriDateWidget.kt</ID>
+    <ID>NoUnusedImports:HijriTodayWidget.kt$com.muazdev.hijricalendar.widget.glance.HijriTodayWidget.kt</ID>
+    <ID>NoUnusedImports:HijriWidgetConfig.kt$com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig.kt</ID>
+    <ID>NoUnusedImports:HijriWidgetNavigation.kt$com.muazdev.hijricalendar.widget.glance.HijriWidgetNavigation.kt</ID>
+    <ID>ReturnCount:HijriCalendarWidget.kt$internal fun buildMonthData( options: WidgetOptions, viewedMonth: Pair&lt;Int, Int&gt;?, todayHijri: TodayHijriWidgetData?, layoutRtl: Boolean, ): HijriMonthWidgetData?</ID>
+    <ID>ReturnCount:HijriWidgetConfig.kt$HijriWidgetConfig$public suspend fun migrateLegacyIfNeeded(context: Context, glanceId: GlanceId)</ID>
+    <ID>ReturnCount:HijriWidgetNavigation.kt$internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step: Int)</ID>
+    <ID>ReturnCount:HijriWidgetPreviewPublisher.kt$HijriWidgetPreviewPublisher$public suspend fun publishIfDue(context: Context): Boolean</ID>
+    <ID>ReturnCount:HijriWidgetRefresher.kt$HijriWidgetRefresher$public suspend fun refreshAll( context: Context, reason: String, bypassGate: Boolean = false, bypassDedupe: Boolean = false, ): Boolean</ID>
+    <ID>TooGenericExceptionCaught:HijriWidgetPreview.kt$error: Exception</ID>
+    <ID>TooManyFunctions:HijriWidgetConfig.kt$HijriWidgetConfig</ID>
+    <ID>Wrapping:HijriWidgetConfig.kt$HijriWidgetConfig$(</ID>
+    <ID>Wrapping:HijriWidgetConfig.kt$HijriWidgetConfig$;</ID>
+  </CurrentIssues>
+</SmellBaseline>

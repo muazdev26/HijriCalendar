@@ -22,12 +22,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.CalendarDay
-import com.muazdev.hijricalendar.core.DateDisplayMode
 import com.muazdev.hijricalendar.ui.util.calendarDayCell
 import com.muazdev.hijricalendar.ui.util.clickableIfEnabled
 
 @Composable
-fun HijriCalendarDayCell(
+public fun HijriCalendarDayCell(
     day: CalendarDay,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

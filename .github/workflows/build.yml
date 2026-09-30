@@ -33,6 +33,16 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
           restore-keys: gradle-${{ runner.os }}-
 
+      # Fails only on findings *newer* than config/detekt/baseline-*.xml, so existing debt does
+      # not block the build but new violations cannot slip in.
+      - name: Static analysis (detekt)
+        run: ./gradlew detekt --console=plain
+
+      # Hand-written version claims in AGENTS.md / CONTRIBUTING.md have now drifted twice. This
+      # asserts the prose still agrees with gradle/libs.versions.toml rather than restating it.
+      - name: Docs version claims match the catalog
+        run: ./.github/scripts/check-doc-versions.sh
+
       - name: Run core + UI + widget unit tests
         run: |
           ./gradlew \
@@ -67,6 +77,12 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
           restore-keys: gradle-${{ runner.os }}-
+
+      # apiCheck runs here rather than in the ubuntu job because the KLib dump spans the iOS
+      # targets, and Kotlin/Native can only produce those klibs on a macOS host. Failing on Linux
+      # would be a toolchain limitation, not a real API break.
+      - name: Check public API compatibility
+        run: ./gradlew apiCheck --console=plain
 
       - name: Compile iOS targets
         run: |

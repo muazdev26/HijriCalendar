@@ -8,24 +8,29 @@ package com.muazdev.hijricalendar.core
  * Gregorian month list can never drift apart. Widget callers pass them into the
  * `calendar-widget-data` builders (`localizedHijriMonthNames`, `localizedWeekdayNames`,
  * `localizedGregorianMonthNames`) to render a fully Urdu grid/today card.
+ *
+ * This is the Urdu half of [CalendarNames], which owns the English half. They are kept as two
+ * objects rather than one parameterized type because the language lists are compiled-in
+ * constants, not runtime data — there is nothing to parameterize, and a lookup table would only
+ * add indirection on a path that runs once per month header.
  */
-object UrduCalendarNames {
+public object UrduCalendarNames {
 
     /** The twelve Hijri month names, 1-indexed (Muharram .. Dhul-Hijjah). */
-    val hijriMonths: List<String> = listOf(
+    public val hijriMonths: List<String> = listOf(
         "محرم", "صفر", "ربیع الاول", "ربیع الثانی",
         "جمادی الاول", "جمادی الثانی", "رجب", "شعبان",
         "رمضان", "شوال", "ذی القعدہ", "ذی الحجہ",
     )
 
-    /** The twelve Gregorian month names, 1-indexed (January .. December). */
-    val gregorianMonths: List<String> = listOf(
+    /** The twelve Gregorian month names, 1-indexed (January . December). */
+    public val gregorianMonths: List<String> = listOf(
         "جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون",
         "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر",
     )
 
     /** Weekday names keyed by [WeekDay] (enum order: Saturday first). */
-    val weekdays: Map<WeekDay, String> = mapOf(
+    public val weekdays: Map<WeekDay, String> = mapOf(
         WeekDay.SATURDAY to "ہفتہ",
         WeekDay.SUNDAY to "اتوار",
         WeekDay.MONDAY to "پیر",
@@ -36,6 +41,6 @@ object UrduCalendarNames {
     )
 
     /** Weekday names as a 7-entry list in [WeekDay] enum order (Saturday first). */
-    val weekdayShortNames: List<String>
+    public val weekdayShortNames: List<String>
         get() = WeekDay.entries.map { weekdays.getValue(it) }
 }

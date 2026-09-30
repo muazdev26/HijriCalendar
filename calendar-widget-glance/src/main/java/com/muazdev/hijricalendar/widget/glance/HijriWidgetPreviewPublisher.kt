@@ -25,12 +25,12 @@ import kotlinx.coroutines.launch
  * point — app launch, any successful family refresh and the host's `onUpdate` — is a cheap
  * idempotent check.
  */
-object HijriWidgetPreviewPublisher {
+public object HijriWidgetPreviewPublisher {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** Fire-and-forget [publishIfDue] for callers without a coroutine scope (receivers, app start). */
-    fun publishIfDueAsync(context: Context) {
+    public fun publishIfDueAsync(context: Context) {
         scope.launch { publishIfDue(context) }
     }
 
@@ -41,7 +41,7 @@ object HijriWidgetPreviewPublisher {
      *
      * @return true when at least one preview publish ran.
      */
-    suspend fun publishIfDue(context: Context): Boolean {
+    public suspend fun publishIfDue(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return false
         val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
         if (HijriWidgetConfig.lastPreviewPublishedEpochDay(context) >= todayEpochDay) return false
