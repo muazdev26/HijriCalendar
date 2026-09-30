@@ -167,9 +167,10 @@ private fun DayOfWeekLabels(
     firstDayOfWeek: WeekDay,
     colors: HijriCalendarColors,
     labels: HijriCalendarLabels,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
     ) {

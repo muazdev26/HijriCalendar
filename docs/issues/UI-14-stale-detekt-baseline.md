@@ -4,6 +4,7 @@
 **Blocks:** —
 **Blocked by:** [Issue 12](UI-12-day-cell-decomposition.md)
 **Module:** `config/detekt`
+**Status:** Shipped — see "Shipped" below.
 
 ---
 
@@ -15,16 +16,31 @@
 <ID>NoUnusedImports:HijriCalendarLabels.kt$com.muazdev.hijricalendar.ui.HijriCalendarLabels.kt</ID>
 ```
 
-But `CalendarDay` **is** used in that file — at `HijriCalendarLabels.kt:36`:
+## The finding was half wrong, and checking it is the point
+
+The ticket claimed `NoUnusedImports:HijriCalendarLabels.kt` was **stale**, on the grounds that
+`CalendarDay` is used at `HijriCalendarLabels.kt:36`:
 
 ```kotlin
 val dayContentDescription: (CalendarDay) -> String = { day -> … }
 ```
 
-The baseline has not been regenerated since that file was last edited, so the entry is stale. A
-detekt baseline is supposed to be a truthful record of existing debt; a stale entry means the module
-looks worse than it is and the record can no longer be trusted to distinguish "fixed" from
-"never ran".
+That reasoning is about the *wrong import*. Deleting the baseline and running detekt showed the
+finding is **real**: the unused import is `com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth`,
+which nothing in the file references — `hijriMonthName` takes `(year: Int, month: Int)`, so no
+`HijrahYearMonth` is ever constructed. `CalendarDay` is imported *and used*.
+
+So the entry was accurate, not stale. It was still worth removing, but by deleting the import.
+
+**The general lesson is the ticket's own warning, applied to itself.** A detekt baseline cannot be
+audited by reading it and reasoning about the code — with a baseline in place detekt suppresses its
+own output, so "no findings reported" and "finding fixed" look identical. The only way to tell is to
+empty the baseline, run detekt, and compare. That is what surfaced the error here, and it is the
+check the ticket proposes in its proposal §4 (a CI step that diffs the baseline) is really asking
+for.
+
+A stale entry is still a real problem — the module looks worse than it is, and the record can no
+longer distinguish "fixed" from "never ran" — but this particular one was not an instance of it.
 
 ## The rest of the baseline
 
@@ -69,9 +85,48 @@ is the same class of fix as `check-doc-versions.sh` in
 
 ## Done when
 
-- [ ] `rg "NoUnusedImports" config/detekt/baseline-calendar-ui.xml` returns nothing
-- [ ] No baseline entry corresponds to an open `UI-` ticket
-- [ ] A comment or doc names any deliberately retained baseline entry
+- [x] `rg "NoUnusedImports" config/detekt/baseline-calendar-ui.xml` returns nothing — though
+      the entry turned out to be **accurate**, so it was fixed rather than dismissed
+- [x] No baseline entry corresponds to an open `UI-` ticket
+- [x] A comment or doc names any deliberately retained baseline entry
+
+## Shipped
+
+**Fix first, then regenerate** — the order this ticket insists on, and it is the whole content of
+the finding. `baseline-calendar-ui.xml` went **20 entries → 12**, and **0 were added**.
+
+Removed, each because the code stopped triggering it:
+
+| Entry | Fixed by |
+|---|---|
+| `NoUnusedImports:HijriCalendarLabels.kt` | A genuinely unused `HijrahYearMonth` import, deleted. The ticket mis-diagnosed it as stale — see "The finding was half wrong" |
+| `LongMethod:HijriCalendarDayCell.kt` | [UI-12](UI-12-day-cell-decomposition.md)'s `CellText` extraction |
+| `CyclomaticComplexMethod:HijriCalendarDayCell.kt` | UI-12's `cellStyle` extraction |
+| `LongMethod:HijriCalendarGrid.kt` | [UI-03](UI-03-one-month-builder.md) + [UI-09](UI-09-pager-effect-sync.md) — one builder, one collector |
+| `ImportOrdering` × 3 | import sorting; one surfaced only because the signatures changed |
+| `SpacingBetweenDeclarationsWithAnnotations` | KDoc on `HijriCalendarDefaults` |
+
+**The four "real debt being hidden" entries the ticket named are all gone**, which was its actual
+point: `LongMethod` and `CyclomaticComplexMethod` on the day cell, `LongMethod` on the grid, and
+`LongParameterList` on the grid. CI would never have flagged them and nothing had scheduled them;
+they were simply absorbed. Note the last one is now on an **internal** composable, which is why it
+stays baselined rather than being fixed — an eight-parameter internal is not the same problem as an
+eight-parameter public API, and UI-06 removed the public ones.
+
+The remaining 12 are all cosmetic and drain as files are touched: trailing-newline reports
+(`FinalNewline` and `NewLineAtEndOfFile`, duplicated — 6 of the 12), import order in the two
+moved preview files plus one test file, one `ForEachOnRange`, one `ArgumentListWrapping`, one
+`MaximumLineLength`.
+
+### `baseline-calendar-core.xml` checked too
+
+The ticket flagged it as *"worth the same check… the same ten minutes"*. Done: **74 → 74, zero
+diff**. `calendar-core`'s tests were heavily edited by the `CORE-` tickets and its baseline had
+**not** drifted — so the mechanism is working there, and the failure was specific to `calendar-ui`.
+
+## Notes
+
+
 
 ## Notes
 

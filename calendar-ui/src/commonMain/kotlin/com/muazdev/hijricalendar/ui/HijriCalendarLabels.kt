@@ -1,7 +1,6 @@
 package com.muazdev.hijricalendar.ui
 
 import androidx.compose.runtime.Immutable
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.WeekDay

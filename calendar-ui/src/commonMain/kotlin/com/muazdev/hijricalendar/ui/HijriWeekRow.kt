@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.CalendarDay
+import com.muazdev.hijricalendar.core.CalendarMonth
 
 @Composable
 internal fun HijriWeekRow(
@@ -20,7 +21,12 @@ internal fun HijriWeekRow(
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
-    require(days.size == 7) { "HijriWeekRow requires exactly 7 days, got ${days.size}" }
+    // Not a consumer-reachable crash any more: this composable is internal, so the only caller
+    // chunks the grid's 42 cells. The check stays because a silent wrong row would be harder to
+    // diagnose than a throw, but it can no longer be triggered from outside the module.
+    require(days.size == CalendarMonth.DAYS_IN_WEEK) {
+        "HijriWeekRow renders exactly one week; got ${days.size} days"
+    }
 
     Row(modifier = modifier) {
         days.forEach { day ->

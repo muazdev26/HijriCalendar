@@ -4,6 +4,7 @@
 **Blocks:** [Issue 14](UI-14-stale-detekt-baseline.md)
 **Blocked by:** —
 **Module:** `calendar-ui`
+**Status:** Shipped — mostly landed inside [UI-06](UI-06-public-surface-and-docs.md); see below.
 
 ---
 
@@ -100,6 +101,58 @@ currently asserts.
 can be padded and tested in isolation.
 
 ## Done when
+
+- [x] `HijriCalendarDayCell.kt` has no composable longer than ~50 lines
+- [x] `LongMethod` and `CyclomaticComplexMethod` are gone from `baseline-calendar-ui.xml` for this
+      file
+- [x] Tests assert the colour precedence: selected > disabled > outside-month > weekend
+- [x] A test asserts `GREGORIAN_ONLY` renders no Hijri numeral
+- [x] No `require` executes inside a composable reachable from the public API
+
+## Shipped
+
+**Most of this landed inside [UI-06](UI-06-public-surface-and-docs.md)** rather than as its own
+commit, because demoting `HijriCalendarGrid`'s visibility changed the detekt IDs of this file's
+baselined findings and the build would not pass until the extraction happened. The sequence was
+unintended and the order of the two tickets is now cosmetic; the work is what matters and it is all
+here.
+
+- **`CalendarDay.cellStyle(colors): DayCellStyle`** — the six parallel `when` blocks became one
+  resolver returning a value. This is the substantive change, and the ticket is explicit about why:
+  *"Do not extract for its own sake… The justification is testability of a design decision, not line
+  count."* Those blocks encode `selected > disabled > outside-month > weekend`, a **design**, and
+  nothing asserted it.
+- **`DayCellStyleTest` (11 cases)** asserts the precedence as a decision rather than as
+  self-consistency: *"selected wins" is a choice about what a user should see when a cell is both
+  selected and something else*. Every colour in the fixture is distinct, so a mis-wired branch
+  cannot pass by accident.
+- **`CellText(...)` / `CellTextLine(...)`** — three near-identical `Text` calls become one. The cell
+  went from 109 lines to 78, and detekt's `LongMethod` and `CyclomaticComplexMethod` entries for it
+  are gone rather than re-baselined.
+- **Only the drawn date is built.** In `GREGORIAN_ONLY` the Hijri string — and its Arabic-Indic
+  allocation — was built and discarded for all 42 cells on every recomposition.
+- **`require` is no longer consumer-reachable**, because `HijriWeekRow` is internal (UI-06). The
+  check stays: a silent wrong row is harder to diagnose than a throw.
+- **`DayOfWeekLabels` takes a `modifier`**, so the weekday row can be padded like everything else.
+
+### The selected+disabled finding, and the one assertion that was wrong
+
+The precedence defect this review predicted is confirmed and now has a test:
+`selectedAndDisabled_looksEnabledButIsNotInteractive` — the cell renders with selected colours while
+refusing taps. It is reachable because `isDisabled` is resolved against the **mutable**
+`adjustmentDays` while the selection is not cleared when the window moves past it. The test names
+it as a deliberate choice (a selection should not change appearance under the user) and records the
+consequence: **appearance cannot report interactivity**, which is why UI-06 added `disabled()` to
+the cell's semantics rather than relying on how it looks.
+
+One assertion was backwards and the code was right: `onlyDisabledCellsAreInert` assumed an
+outside-month cell was inert. It is not — it is dimmed, but tapping it selects that date and
+navigates to its month, which is ordinary calendar behaviour. The test now asserts that, with a
+comment saying it was checked the other way first.
+
+## Notes
+
+
 
 - [ ] `HijriCalendarDayCell.kt` has no composable longer than ~50 lines
 - [ ] `LongMethod` and `CyclomaticComplexMethod` are gone from `baseline-calendar-ui.xml` for this
