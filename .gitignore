@@ -15,8 +15,18 @@ build/
 .cxx
 local.properties
 
-# Docs & contributor guides (not published to GitHub)
-/docs/
+# Agent plans and session scratch (not published to GitHub)
+/docs/phases/
+/docs/SESSION-*.md
+
+# Architecture reviews. These ARE tracked: they are the audit trail for the CORE- and UI- ticket
+# sets, they are linked from CHANGELOG.md, and two reviews have already been lost in place when
+# an editing pass clobbered a file with no VCS copy to recover from. Un-ignore the tree, then
+# re-ignore the two volatile files above.
+/docs/*
+!/docs/issues/
+
+# Contributor guides, not published to GitHub
 /AGENTS.md
 /CONTRIBUTING.md
 
