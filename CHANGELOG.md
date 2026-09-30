@@ -64,6 +64,19 @@ Remediation of the `calendar-core` architecture review — see
   month in both directions — which is the gap the pre-existing suite left. No public API change.
   ([UI-02](docs/issues/UI-02-compose-test-harness.md))
 
+### Breaking
+
+- **The calendar now honours the system accessibility font scale.** It previously wrapped its whole
+  subtree in `Density(fontScale = 1f)`, so a user at Android's largest text size got a calendar at
+  exactly 100% — a WCAG 1.4.4 failure, invisible, and described in the README as a feature. The day
+  **text** now scales up to a cap (`HijriCalendarDefaults.SingleLineMaxFontScale` 2×, or
+  `BothModeMaxFontScale` 1.5× for the two-line mode), while the **cell geometry stays fixed** — the
+  `dayCellSize` you pass is still the size you get at every display mode and every font scale, which
+  is what makes a month grid a fixed-pitch matrix. The header honours the system setting uncapped.
+  Pass `ignoreFontScale = true` for the previous flat rendering; prefer the default.
+  ([UI-04](docs/issues/UI-04-accessible-text-scaling.md))
+- **`HijriCalendar.ignoreFontScale` is new**, defaulting to `false`.
+
 ### Fixed
 
 - **Rotating the device scrolled the calendar sideways through the months.** The pager and the

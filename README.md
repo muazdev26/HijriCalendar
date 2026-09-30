@@ -320,10 +320,20 @@ size (`48.dp` by default, override with `dayCellSize`) — switching to `BOTH` d
 grow the grid. The two date lines pack tightly into the same cell with minimal vertical
 padding between cells, matching Google Calendar's dense layout.
 
-The calendar renders with a simple default font at its designed size. System-level font
-scaling (accessibility `fontScale`) is intentionally ignored so cells never inflate or
-shrink the grid; the `dayCellSize` you pass is the size you get on every display mode and
-every device.
+**Text scaling.** The calendar honours the system accessibility font scale. The **day text
+scales** with it, up to a cap, and the **cell geometry does not move**: the `dayCellSize` you
+pass is the size you get on every display mode and every device, at any font scale. A month
+grid is a fixed-pitch matrix, so growing the cells would break the layout — that is why the
+geometry is fixed — but the text inside them is bounded rather than suppressed.
+
+The cap is lower for `DateDisplayMode.BOTH` than for the single-line modes, because that
+mode stacks two lines in a box sized for one: `HijriCalendarDefaults.BothModeMaxFontScale`
+(1.5×) against `SingleLineMaxFontScale` (2×). The header is outside the cap entirely — it is a
+row with no fixed box, so it honours the system setting without limit.
+
+If you need the old flat behaviour — nothing in the calendar scales at all — pass
+`ignoreFontScale = true`. Prefer the default; it is an accessibility regression for anyone who
+has raised their system font size.
 
 ## Localization (`HijriCalendarLabels`)
 

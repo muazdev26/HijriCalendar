@@ -265,9 +265,18 @@ public fun HijriCalendarConsumerRtlDarkGlassyPreview() {
     }
 }
 
+/**
+ * The default path at 150% text scale. This is the preview that now *demonstrates* support rather
+ * than documenting a limitation — the day figures grow while the 48dp cells do not, which is the
+ * whole point of the decoupling in UI-04.
+ *
+ * It was previously named the same but rendered identically to the 1.0 preview, because the
+ * calendar forced `fontScale = 1f`. A preview named for a feature that is silently absent is worse
+ * than no preview, so it now shows something different.
+ */
 @Preview(fontScale = 1.5f)
 @Composable
-public fun HijriCalendarBothDatesFontScale150Preview() {
+public fun HijriCalendarBothDatesAtLargeTextPreview() {
     val state = HijriCalendarState(
         initialMonth = HijrahYearMonth(1447, 9),
         firstDayOfWeek = WeekDay.SATURDAY,
@@ -279,6 +288,48 @@ public fun HijriCalendarBothDatesFontScale150Preview() {
                     state = state,
                     onDayClick = state.defaultOnDayClick(),
                     dateDisplayMode = DateDisplayMode.BOTH,
+                )
+            }
+        }
+    }
+}
+
+/** At 150%, past the cap for the two-line mode, to show the cap rather than unbounded growth. */
+@Preview(fontScale = 2f)
+@Composable
+public fun HijriCalendarBothDatesBeyondTextCapPreview() {
+    val state = HijriCalendarState(
+        initialMonth = HijrahYearMonth(1447, 9),
+        firstDayOfWeek = WeekDay.SATURDAY,
+    )
+    MaterialTheme {
+        Surface {
+            Column(modifier = Modifier.padding(16.dp)) {
+                HijriCalendar(
+                    state = state,
+                    onDayClick = state.defaultOnDayClick(),
+                    dateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+                )
+            }
+        }
+    }
+}
+
+/** The opt-out: exactly what 1.0.0 rendered at every system font scale. */
+@Preview(fontScale = 1.5f)
+@Composable
+public fun HijriCalendarFixedTextPreview() {
+    val state = HijriCalendarState(
+        initialMonth = HijrahYearMonth(1447, 9),
+        firstDayOfWeek = WeekDay.SATURDAY,
+    )
+    MaterialTheme {
+        Surface {
+            Column(modifier = Modifier.padding(16.dp)) {
+                HijriCalendar(
+                    state = state,
+                    onDayClick = state.defaultOnDayClick(),
+                    ignoreFontScale = true,
                 )
             }
         }
