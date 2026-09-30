@@ -4,6 +4,7 @@
 **Blocks:** [Issue 06](UI-06-public-surface-and-docs.md)
 **Blocked by:** [Issue 01](UI-01-scoped-overrides-ignored.md)
 **Module:** `calendar-ui` + `calendar-core`
+**Status:** Shipped — see "Shipped" below.
 
 ---
 
@@ -89,14 +90,66 @@ correct, to avoid forcing the 42-cell build. But it should read `state.monthLeng
 
 ## Done when
 
-- [ ] `month.toCalendarMonth(...)` no longer appears in `calendar-ui`
-- [ ] `state.calendarMonth` and the rendered page produce equal `days` for the same month
-- [ ] No `remember` key list in `calendar-ui` enumerates `HijriCalendarState` properties
-- [ ] `HijriCalendarGrid` no longer takes a `calendarMonth` parameter
-- [ ] A test asserts header and grid agree in all three spaces and under a scoped override table
-- [ ] `apiDump` run; `CHANGELOG.md` records the signature break
+- [x] `month.toCalendarMonth(...)` no longer appears in `calendar-ui` — in fact
+      `toCalendarMonth` and `resolveGregorianMonthRange` are no longer *called* there at all
+- [x] `state.calendarMonth` and the rendered page produce equal `days` for the same month
+- [x] No `remember` key list in `calendar-ui` enumerates `HijriCalendarState` properties
+- [x] `HijriCalendarGrid` no longer takes a `calendarMonth` parameter
+- [x] A test asserts header and grid agree in all three spaces and under a scoped override table
+- [x] `apiDump` run; `CHANGELOG.md` records the signature break
+
+## Shipped
+
+- **Two new members on `HijriCalendarState`, in `calendar-core`:**
+  - `calendarMonthFor(yearMonth): CalendarMonth` — the **single definition** of how a month becomes
+    cells for rendering. `calendarMonth` is now `calendarMonthFor(_currentMonth)`, so the derived
+    state and any pager page provably come from one place.
+  - `gregorianRangeFor(yearMonth): GregorianMonthRange` — the header's interval, resolved *without*
+    building the 42 cells, so the "no grid build for a header" optimisation survives. It is what
+    keeps `HijriCalendar.kt:52-54`'s reasoning intact while removing the second call site.
+
+  Both read `monthLengths` from the state, so the UI-01 class of bug is now structurally impossible
+  rather than merely fixed: there is no argument list at a call site that can forget to pass it.
+
+- **`RenderMonth.kt` deleted.** It was the UI-01 interim seam (`renderMonthFor` /
+  `renderGregorianRangeFor`), and it exists purely because the builders had nowhere public to live.
+  With them on the state, `calendar-ui` contains **zero** calls to `toCalendarMonth` or
+  `resolveGregorianMonthRange` — verifiable with
+  `grep -rn "toCalendarMonth\|resolveGregorianMonthRange" calendar-ui/src/commonMain`, which returns
+  nothing but comments.
+
+- **`remember(month) { state.calendarMonthFor(month) }`.** The 11-key list is gone. It is safe with a
+  single key because the builder reads every other input from inside a `@Stable` state, so any
+  change to the selection, the bounds, `adjustmentDays`, the calendar space or the override table
+  invalidates the state's derived state and this read recomputes with it. The comment says so,
+  because "keyed on one thing" looks like an oversight otherwise.
+
+- **`HijriCalendarGrid` no longer takes `calendarMonth`.** `initialMonth` is now
+  `remember { state.currentMonth }` and the weekday label reads `state.firstDayOfWeek`. Both
+  previously came from the discarded parameter. The `remember { }` around the anchor is
+  **deliberate** — it must not follow navigation, or every swipe would renumber the window under
+  the pager's feet — and the comment now says so, since "fix this" is the obvious next wrong edit.
+
+- **`RenderMonthOverridesTest` → `CalendarMonthForTest`, moved to `calendar-core/src/commonTest`.**
+  It pins core's definitions now, and its doc says the guarantee is *structural*.
+
+- **The one `remember` left in the grid** is `remember(state.minDate, state.maxDate, initialMonth)`
+  for the page window. That is not a maintenance surface: both bounds are immutable `val`s on the
+  state, so the list cannot drift.
+
+### ABI
+
+`apiDump` shows exactly three lines of change, which is the reviewable form of this ticket:
+
+```
++ calendar-core  HijriCalendarState.calendarMonthFor(HijrahYearMonth)   (klib + desktop)
++ calendar-core  HijriCalendarState.gregorianRangeFor(HijrahYearMonth)  (klib + desktop)
+- calendar-ui    HijriCalendarGrid(…, CalendarMonth calendarMonth, …)   (klib + desktop)
++ calendar-ui    HijriCalendarGrid(…)                                  (klib + desktop)
+```
 
 ## Notes
+
 
 - **The header's "no grid build" optimisation must survive.** `HijriCalendar.kt:52-54` is the best
   reasoning in the module. Whatever shape the builder takes, `state.calendarMonthFor(ym)` must not

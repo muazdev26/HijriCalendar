@@ -12,6 +12,20 @@ Remediation of the `calendar-core` architecture review — see
 
 ### Breaking
 
+- **`HijriCalendarGrid` no longer takes a `calendarMonth` parameter.** It took both a
+  `HijriCalendarState` *and* the month resolved from it, then discarded the month and rebuilt it
+  itself from a hand-maintained 11-key `remember` list. The list omitted `monthLengths`, which is
+  how the scoped-override defect above survived. The grid now builds every page through
+  `HijriCalendarState.calendarMonthFor(yearMonth)`, a new member that reads every input from the
+  state, so a new builder parameter cannot be added and forgotten at a call site. Use
+  `HijriCalendar`, or call `state.calendarMonthFor(...)` directly.
+  ([UI-03](docs/issues/UI-03-one-month-builder.md))
+- **`HijriCalendarState.calendarMonthFor` and `.gregorianRangeFor` are new.** A renderer that was
+  calling `HijrahYearMonth.toCalendarMonth` by hand should call the state instead, so that the
+  state's own configuration — selection, bounds, adjustment, calendar space, month-length override
+  table — is applied. `gregorianRangeFor` resolves a month's real-world extent without building the
+  42 cells, for headers.
+  ([UI-03](docs/issues/UI-03-one-month-builder.md))
 - **`CalendarMonth.gregorianRange` is now mode-aware.** Previously it reported the Umm al-Qura
   extent regardless of mode, so it was wrong for two of the three calendars. It is now computed by
   a single shared resolver. `CalendarMonth.gregorianMonthRange` (the old property) is **deprecated**

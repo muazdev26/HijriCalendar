@@ -156,7 +156,29 @@ public class HijriCalendarState(
         // A plain read that establishes a snapshot dependency so the grid recomputes when
         // user overrides change, even though overrides are not a Compose state themselves.
         _overridesRevision
-        _currentMonth.toCalendarMonth(
+        calendarMonthFor(_currentMonth)
+    }
+
+    /**
+     * The [CalendarMonth] grid this state would paint for [yearMonth], in its calendar space and
+     * under its own configuration.
+     *
+     * This is the **single definition** of how a month is turned into cells for rendering. It exists
+     * because the alternative was fatal in practice: `calendar-ui` called
+     * [HijrahYearMonth.toCalendarMonth] itself, from an `11`-key `remember` list it maintained by
+     * hand, and that list omitted [monthLengths] — so the render path silently read the
+     * process-global override table while this state reported the scoped one, and the grid painted
+     * a month its own data model said did not exist. See
+     * `docs/issues/UI-01-scoped-overrides-ignored.md`.
+     *
+     * A renderer should call this rather than [HijrahYearMonth.toCalendarMonth], so a new input to
+     * the builder cannot be added here and forgotten at the call site.
+     *
+     * @param yearMonth any month in the supported range, not only [currentMonth] — a pager builds
+     *   the pages either side of the visible one.
+     */
+    public fun calendarMonthFor(yearMonth: HijrahYearMonth): CalendarMonth =
+        yearMonth.toCalendarMonth(
             overrides = monthLengths,
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = _selectedDate,
@@ -168,7 +190,24 @@ public class HijriCalendarState(
             pakistan = pakistanDates,
             weekendDays = weekendDays,
         )
-    }
+
+    /**
+     * The real-world Gregorian extent of [yearMonth] as a header would describe it, resolved
+     * **without** building the 42-cell grid.
+     *
+     * Deliberately cheap: the header can then be recomposed on its own without paying for a grid it
+     * does not draw. The companion to [calendarMonthFor], and — when the header and the grid are
+     * fed the same month — guaranteed to describe the same interval, because both read
+     * [monthLengths] here rather than at their own call sites.
+     */
+    public fun gregorianRangeFor(yearMonth: HijrahYearMonth): GregorianMonthRange =
+        resolveGregorianMonthRange(
+            year = yearMonth.year,
+            month = yearMonth.month.number,
+            pakistan = pakistanDates,
+            adjustmentDays = adjustmentDays,
+            overrides = monthLengths,
+        )
 
     public fun goToNextMonth() {
         _currentMonth = _currentMonth.plusMonthOrNull(1) ?: _currentMonth

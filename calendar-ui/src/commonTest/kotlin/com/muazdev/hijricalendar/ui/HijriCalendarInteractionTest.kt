@@ -251,7 +251,7 @@ class HijriCalendarInteractionTest {
         setContent { host(state) { clicked += it }() }
         waitForIdle()
 
-        val range = state.renderGregorianRangeFor(state.currentMonth)
+        val range = state.gregorianRangeFor(state.currentMonth)
         val earlyDay = range.first
         onNodeWithContentDescription("$cellMarker$earlyDay", substring = false).performClick()
         waitForIdle()
@@ -286,7 +286,7 @@ class HijriCalendarInteractionTest {
         setContent { host(state)() }
         waitForIdle()
 
-        val range = state.renderGregorianRangeFor(state.currentMonth)
+        val range = state.gregorianRangeFor(state.currentMonth)
         onNodeWithContentDescription("$cellMarker${range.first}", substring = false)
             .assertHasNoClickAction()
     }

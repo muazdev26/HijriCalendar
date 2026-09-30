@@ -1,29 +1,25 @@
-package com.muazdev.hijricalendar.ui
+package com.muazdev.hijricalendar.core
 
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
-import com.muazdev.hijricalendar.core.CalendarMonth
-import com.muazdev.hijricalendar.core.HijriCalendarState
-import com.muazdev.hijricalendar.core.HijriMonthLengths
-import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Regression coverage for [UI-01-scoped-overrides-ignored].
+ * Regression coverage for [UI-01-scoped-overrides-ignored], pinned against the builders that
+ * replaced the hand-written call sites ([UI-03-one-month-builder]).
  *
- * `HijriCalendarState.monthLengths` is the scoped override table CORE-02 introduced, and it used
- * to be unread outside `calendar-core`: every argument list in `calendar-ui` omitted `overrides`,
- * so the render path fell back to the process-global `HijriMonthOverrides.current` while the state
- * reported the scoped table's answer. A calendar with a scoped table rendered a month its own data
- * model said did not exist.
+ * `monthLengths` is the scoped override table CORE-02 introduced, and it used to be unread by the
+ * render path: every argument list in `calendar-ui` omitted `overrides`, so the grid fell back to
+ * the process-global `HijriMonthOverrides.current` while the state reported the scoped table's
+ * answer. A calendar with a scoped table rendered a month its own data model said did not exist.
  *
- * These tests go through [renderMonthFor] and [renderGregorianRangeFor] — the render path's own
- * seam — rather than re-deriving expected values from the same builder the composables call. A
- * test that mirrored the argument list would drift the moment the bug was reintroduced, which is
- * exactly what happened the first time.
+ * These tests live here, beside the definitions, because the guarantee they pin is now *structural*:
+ * [calendarMonthFor] reads [HijriCalendarState.monthLengths] itself, so there is no argument list at
+ * a call site that can forget it. They still fail if that stops being true, which is why they were
+ * written against the seam rather than against a re-typed copy of the arguments.
  */
-class RenderMonthOverridesTest {
+class CalendarMonthForTest {
 
     /**
      * The month under override. Its length is *read* from the calendar at test time rather than
@@ -74,10 +70,10 @@ class RenderMonthOverridesTest {
     // ── the override table is actually consulted ────────────────────────
 
     @Test
-    fun renderMonthFor_honoursAScopedOverrideTable() {
+    fun calendarMonthFor_honoursAScopedOverrideTable() {
         val state = scopedState(tableForcingOpposite())
 
-        val rendered = state.renderMonthFor(currentYearMonth).daysInMonth()
+        val rendered = state.calendarMonthFor(currentYearMonth).daysInMonth()
 
         assertEquals(
             forcedLength,
@@ -90,24 +86,24 @@ class RenderMonthOverridesTest {
     }
 
     @Test
-    fun renderMonthFor_agreesWithTheStatesOwnDerivedMonth() {
+    fun calendarMonthFor_agreesWithTheStatesOwnDerivedMonth() {
         val state = scopedState(tableForcingOpposite())
 
         assertEquals(
             state.calendarMonth.daysInMonth(),
-            state.renderMonthFor(state.currentMonth).daysInMonth(),
+            state.calendarMonthFor(state.currentMonth).daysInMonth(),
             "state.calendarMonth and the grid's month disagree — one of the two is using a " +
                 "different override table",
         )
     }
 
     @Test
-    fun renderMonthFor_prefersTheScopedTableOverTheProcessGlobal() {
+    fun calendarMonthFor_prefersTheScopedTableOverTheProcessGlobal() {
         val state = scopedState(tableForcingOpposite())
 
         assertEquals(
             forcedLength,
-            state.renderMonthFor(currentYearMonth).daysInMonth().size,
+            state.calendarMonthFor(currentYearMonth).daysInMonth().size,
             "render path followed the process-global length ($calculatedLength) over the " +
                 "scoped one ($forcedLength)",
         )
@@ -120,8 +116,8 @@ class RenderMonthOverridesTest {
         val stateA = scopedState(tableA)
         val stateB = scopedState(tableB)
 
-        val monthA = stateA.renderMonthFor(currentYearMonth)
-        val monthB = stateB.renderMonthFor(currentYearMonth)
+        val monthA = stateA.calendarMonthFor(currentYearMonth)
+        val monthB = stateB.calendarMonthFor(currentYearMonth)
 
         assertEquals(forcedLength, monthA.daysInMonth().size)
         assertEquals(calculatedLength, monthB.daysInMonth().size)
@@ -135,12 +131,12 @@ class RenderMonthOverridesTest {
     // ── the header must not describe a different month than the grid ──
 
     @Test
-    fun renderGregorianRangeFor_matchesTheGridsFirstAndLastDay() {
+    fun gregorianRangeFor_matchesTheGridsFirstAndLastDay() {
         val state = scopedState(tableForcingOpposite())
-        val month = state.renderMonthFor(currentYearMonth)
+        val month = state.calendarMonthFor(currentYearMonth)
         val inMonth = month.days.filter { it.isCurrentMonth }
 
-        val range = state.renderGregorianRangeFor(currentYearMonth)
+        val range = state.gregorianRangeFor(currentYearMonth)
 
         assertTrue(inMonth.isNotEmpty(), "no in-month cells rendered")
         assertEquals(
@@ -157,9 +153,9 @@ class RenderMonthOverridesTest {
     }
 
     @Test
-    fun renderGregorianRangeFor_reflectsAScopedOverride() {
-        val withOverride = scopedState(tableForcingOpposite()).renderGregorianRangeFor(currentYearMonth)
-        val without = scopedState(HijriMonthLengths()).renderGregorianRangeFor(currentYearMonth)
+    fun gregorianRangeFor_reflectsAScopedOverride() {
+        val withOverride = scopedState(tableForcingOpposite()).gregorianRangeFor(currentYearMonth)
+        val without = scopedState(HijriMonthLengths()).gregorianRangeFor(currentYearMonth)
 
         assertTrue(
             withOverride != without,
@@ -174,7 +170,7 @@ class RenderMonthOverridesTest {
     fun observedCellsCarryTheOverrideEffectiveLength() {
         val state = scopedState(tableForcingOpposite())
 
-        val observedLengths = state.renderMonthFor(currentYearMonth)
+        val observedLengths = state.calendarMonthFor(currentYearMonth)
             .days
             .filter { it.isCurrentMonth }
             .map { it.observedDate?.monthLength }
@@ -196,7 +192,7 @@ class RenderMonthOverridesTest {
 
         state.setMonthLength(overrideYear, overrideMonth, forcedLength)
 
-        assertEquals(forcedLength, state.renderMonthFor(currentYearMonth).daysInMonth().size)
+        assertEquals(forcedLength, state.calendarMonthFor(currentYearMonth).daysInMonth().size)
     }
 
     @Test
@@ -216,13 +212,13 @@ class RenderMonthOverridesTest {
     @Test
     fun clearingAnOverrideRestoresTheCalculatedLength() {
         val state = scopedState(tableForcingOpposite())
-        assertEquals(forcedLength, state.renderMonthFor(currentYearMonth).daysInMonth().size)
+        assertEquals(forcedLength, state.calendarMonthFor(currentYearMonth).daysInMonth().size)
 
         state.clearAllMonthLengths()
 
         assertEquals(
             calculatedLength,
-            state.renderMonthFor(currentYearMonth).daysInMonth().size,
+            state.calendarMonthFor(currentYearMonth).daysInMonth().size,
             "clearing the override did not restore the calculated length",
         )
     }

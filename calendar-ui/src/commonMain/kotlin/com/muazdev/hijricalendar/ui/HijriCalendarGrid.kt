@@ -29,7 +29,6 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 @Composable
 public fun HijriCalendarGrid(
     state: HijriCalendarState,
-    calendarMonth: CalendarMonth,
     onDayClick: (CalendarDay) -> Unit,
     modifier: Modifier = Modifier,
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
@@ -39,7 +38,10 @@ public fun HijriCalendarGrid(
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
 ) {
-    val initialMonth = remember { calendarMonth.yearMonth }
+    // The pager's anchor: the first month this grid ever saw, frozen so page indices stay stable
+    // while the user navigates. Deliberately *not* keyed on state.currentMonth — the anchor must not
+    // follow navigation, or every swipe would renumber the window under the pager's feet.
+    val initialMonth = remember { state.currentMonth }
 
     // The navigable page window, derived entirely from the caller's bounds. Previously this was
     // two page indices fed to a two-argument coerceIn, which threw on any range that made them
@@ -63,8 +65,8 @@ public fun HijriCalendarGrid(
 
     // When state changes externally (header arrows, goToToday, selectDate across months),
     // compute the target page and animate the pager there.
-    LaunchedEffect(calendarMonth.yearMonth) {
-        val page = window.coercePage(window.pageOf(monthOffset(calendarMonth.yearMonth, initialMonth)))
+    LaunchedEffect(state.currentMonth) {
+        val page = window.coercePage(window.pageOf(monthOffset(state.currentMonth, initialMonth)))
         if (page != pagerState.currentPage) {
             pagerState.animateScrollToPage(page)
         }
@@ -93,7 +95,7 @@ public fun HijriCalendarGrid(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         DayOfWeekLabels(
-            firstDayOfWeek = calendarMonth.firstDayOfWeek,
+            firstDayOfWeek = state.firstDayOfWeek,
             colors = colors,
             labels = labels,
         )
@@ -103,26 +105,13 @@ public fun HijriCalendarGrid(
             modifier = Modifier.fillMaxWidth(),
         ) { page ->
             val month = initialMonth.plusPageOffset(window.offsetOf(page))
-            val calMonth = remember(
-                month,
-                state.firstDayOfWeek,
-                state.selectedDate,
-                state.selectedPakistanDate,
-                state.selectedObservedDate,
-                state.minDate,
-                state.maxDate,
-                state.adjustmentDays,
-                state.pakistanDates,
-                state.weekendDays,
-                // The table is a *reference* key: HijriMonthLengths has no equals, so a different
-                // table is a different identity even when the revision counter happens to match.
-                // overridesRevision alone would let two states sharing a revision disagree about
-                // which month lengths the grid paints. Both are required.
-                state.monthLengths,
-                state.overridesRevision,
-            ) {
-                state.renderMonthFor(month)
-            }
+            // Keyed on `month` alone, and that is safe *because* calendarMonthFor reads every
+            // other input from inside the state, which is @Stable: any change to the selection, the
+            // bounds, adjustmentDays, the calendar space or the override table invalidates the
+            // state's derived state and this read recomputes with it. The previous 11-key
+            // remember list had to be maintained by hand against HijriCalendarState's surface,
+            // and silently dropped monthLengths — see UI-01.
+            val calMonth = remember(month) { state.calendarMonthFor(month) }
             MonthGrid(
                 days = calMonth.days,
                 onDayClick = onDayClick,

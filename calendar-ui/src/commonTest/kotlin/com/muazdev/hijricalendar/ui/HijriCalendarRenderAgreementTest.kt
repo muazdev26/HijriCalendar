@@ -142,7 +142,7 @@ class HijriCalendarRenderAgreementTest {
     // ── header range vs the cells actually painted ─────────────────────
     //
     // Every assertion below derives its expectation from the **painted cells**, read back out of
-    // the semantics tree, and never from `renderGregorianRangeFor` — which is the same function the
+    // the semantics tree, and never from `gregorianRangeFor` — which is the same function the
     // header itself calls. An earlier draft computed the expected header text from that resolver
     // and compared it to the header: tautological, and it stayed green when the resolver was
     // broken out from under the grid. These compare the header's rendered string against the first
@@ -240,7 +240,7 @@ class HijriCalendarRenderAgreementTest {
         runComposeUiTest {
             setContent { host(state)() }
             val painted = cellDates()
-            val range = state.renderGregorianRangeFor(state.currentMonth)
+            val range = state.gregorianRangeFor(state.currentMonth)
 
             assertTrue(
                 range.first in painted,
@@ -269,7 +269,7 @@ class HijriCalendarRenderAgreementTest {
         val state = stateFor()
         setContent { host(state, dateDisplayMode = DateDisplayMode.HIJRI_ONLY)() }
 
-        val range = state.renderGregorianRangeFor(state.currentMonth)
+        val range = state.gregorianRangeFor(state.currentMonth)
         assertTrue(
             onAllNodes(hasText(rangeTextFor(range.first, range.last))).fetchSemanticsNodes()
                 .isEmpty(),
@@ -282,7 +282,7 @@ class HijriCalendarRenderAgreementTest {
         val state = stateFor()
         setContent { host(state, dateDisplayMode = DateDisplayMode.BOTH)() }
 
-        val range = state.renderGregorianRangeFor(state.currentMonth)
+        val range = state.gregorianRangeFor(state.currentMonth)
         onNodeWithText(rangeTextFor(range.first, range.last)).assertExists()
     }
 

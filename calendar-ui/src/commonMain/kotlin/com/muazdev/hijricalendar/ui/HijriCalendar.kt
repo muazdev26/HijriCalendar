@@ -51,15 +51,17 @@ public fun HijriCalendar(
         state.monthLengths,
         state.overridesRevision,
     ) {
-        // The extent comes from core's single resolver, so the header can never describe a
-        // different month than the grid below it. Resolved from the year/month alone rather than
-        // from state.calendarMonth, which would force the 42-cell grid to be built for a header.
-        val range = state.renderGregorianRangeFor(currentMonth)
+        // The extent comes from the state's own resolver, so the header can never describe a
+        // different month than the grid below it — and it reads the same monthLengths the grid
+        // does. Deliberately NOT state.calendarMonth: that would force the 42-cell grid to be
+        // built for a header. gregorianRangeFor resolves the extent without the cells.
+        val range = state.gregorianRangeFor(currentMonth)
         sameMonthRangeLabel(range.first, range.last, labels)
     }
 
-    // The rendered grid. Backed by derivedStateOf in HijriCalendarState, so repeated
-    // reads within this composition are cheap.
+    // The current month's identity and weekday origin, used to label the header and to anchor the
+    // pager. The *cells* are not read here: HijriCalendarGrid builds each page through
+    // HijriCalendarState.calendarMonthFor, which is the one definition of how a month becomes cells.
     val calendarMonth = state.calendarMonth
 
     // Keep the entire calendar rendering at its designed size: ignore the system's
@@ -88,7 +90,6 @@ public fun HijriCalendar(
 
             HijriCalendarGrid(
                 state = state,
-                calendarMonth = calendarMonth,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,

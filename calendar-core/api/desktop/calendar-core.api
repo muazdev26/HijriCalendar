@@ -144,6 +144,7 @@ public final class com/muazdev/hijricalendar/core/HijriCalendarState {
 	public static final field $stable I
 	public fun <init> (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;Ljava/util/Set;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)V
 	public synthetic fun <init> (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Lcom/muazdev/hijricalendar/core/ObservedHijriDate;Ljava/util/Set;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun calendarMonthFor (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;)Lcom/muazdev/hijricalendar/core/CalendarMonth;
 	public final fun clearAllMonthLengths ()V
 	public final fun clearMonthLength (II)V
 	public final fun getAdjustmentDays ()I
@@ -165,6 +166,7 @@ public final class com/muazdev/hijricalendar/core/HijriCalendarState {
 	public final fun goToNextMonth ()V
 	public final fun goToPreviousMonth ()V
 	public final fun goToToday ()V
+	public final fun gregorianRangeFor (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;)Lcom/muazdev/hijricalendar/core/GregorianMonthRange;
 	public final fun monthLengthOf (II)Ljava/lang/Integer;
 	public final fun selectDate (Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;)V
 	public final fun selectDay (Lcom/muazdev/hijricalendar/core/CalendarDay;)V

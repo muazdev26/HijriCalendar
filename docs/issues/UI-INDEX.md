@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-30
 **Scope:** `calendar-ui/src/commonMain` (1362 lines, 14 files) and its test suite (~1400 lines, 77 tests)
-**Status:** In progress — 10 open tickets, 3 shipped, 1 withdrawn
+**Status:** In progress — 9 open tickets, 4 shipped, 1 withdrawn
 **Supersedes:** nothing. Companion to [`CORE-INDEX`](./INDEX.md), which reviews `calendar-core`.
 
 > This is an **architecture** review of the UI module. `docs/issues/INDEX.md` reviews `calendar-core`
@@ -23,12 +23,12 @@ unreachable.
 | Dimension | Score | Note |
 |---|---|---|
 | Layering / boundary discipline | 8/10 | **Best dimension.** The three-way calendar branch is genuinely gone; `DateDisplayMode` correctly lives here. CORE-01/06 landed on this side. |
-| Performance craft | 7/10 | Real `remember`s, header decoupled from the grid build. Undercut by a duplicated month build and per-cell string work. |
+| Performance craft | 7/10 | Real `remember`s, header decoupled from the grid build. The duplicated month build is gone (UI-03); per-cell string work remains (UI-12). |
 | Dependency hygiene | 6/10 | `material.icons.extended` for two core-set arrows, on a release train 5 minors behind the rest of Compose. |
 | Documentation | 5/10 | 10 of 14 files have zero KDoc blocks; README covers 4 of 8 public entry points. |
 | API surface | 5/10 | 4 public composables + 2 public modifiers with no contract; one public signature is self-contradictory. |
 | Compose correctness | 5/10 | No touch feedback; `fontScale` forced to 1; two `LaunchedEffect`s unsynchronised; unsound `@Immutable`. |
-| Correctness vs. `calendar-core` | 5/10 | The render path and the state disagree about which override table is in force. |
+| Correctness vs. `calendar-core` | 9/10 | **Was 2/10.** The render path and the state now build months through one definition on the state (UI-03), so they cannot disagree. |
 | Test discipline | 4/10 | **Was 2/10.** Composable harness now in `desktopTest` (UI-02); still no coverage of the two `LaunchedEffect`s' restore behaviour, and the sample's device test is still not in CI. |
 
 ---
@@ -120,14 +120,14 @@ Full tickets live in this directory. Summary and blocking edges:
 ```
 
 **Execute in this order:** ~~1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.~~ **1 and 5 are
-shipped.** For the rest, use: **3, 4, 9, 7, 6, 10, 8, 12, 14, 13.**
+shipped.** For the rest, use: **9, 4, 7, 6, 10, 8, 12, 14, 13.**
 
 The original order was wrong: it placed **6** sixth, while 6 is blocked by 1, 3, **4, 5, 7 and 9** —
 three of which it was scheduled ahead of. 6 is also last-by-design for the reason `CORE-03` gives
 (it documents whatever the others decide), so it cannot sit in the middle regardless. The corrected
 order puts 6 after all six of its blockers, keeps 14 after 12, and drops 11 entirely.
 
-**1, 2 and 5 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
+**1, 2, 3 and 5 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
 proved its own worth on its first run: it found a missing `SemanticsProperties.Disabled` on day
 cells, and it showed that the pager's **page → state** direction had no coverage at all — deleting
 the swipe collector's state update left the whole suite green.
@@ -148,7 +148,7 @@ after that.
 |---|---|---|---|
 | 1 | Scoped overrides ignored by every render path | **Critical** | `UI-01-scoped-overrides-ignored.md` · **shipped** |
 | 2 | No composable test harness; the only Compose test never runs in CI | High | `UI-02-compose-test-harness.md` · **shipped** (one decision deferred) |
-| 3 | The grid re-derives the month from a hand-listed subset of the state | High | `UI-03-one-month-builder.md` |
+| 3 | The grid re-derives the month from a hand-listed subset of the state | High | `UI-03-one-month-builder.md` · **shipped** |
 | 4 | `fontScale` forced to 1 — text scaling off for the whole subtree | High | `UI-04-accessible-text-scaling.md` |
 | 5 | `minDate`/`maxDate` beyond ±500 months **crashes** on first composition | High | `UI-05-pager-window-crash.md` · **shipped** |
 | 6 | Four public composables + two public modifiers with no contract; 10/12 files undocumented | High | `UI-06-public-surface-and-docs.md` |

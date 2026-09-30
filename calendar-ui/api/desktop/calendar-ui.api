@@ -61,7 +61,7 @@ public final class com/muazdev/hijricalendar/ui/HijriCalendarDefaults {
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarGridKt {
-	public static final fun HijriCalendarGrid-LJ3wqLc (Lcom/muazdev/hijricalendar/core/HijriCalendarState;Lcom/muazdev/hijricalendar/core/CalendarMonth;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lkotlin/jvm/functions/Function3;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriCalendarGrid-UXarjSk (Lcom/muazdev/hijricalendar/core/HijriCalendarState;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lkotlin/jvm/functions/Function3;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarHeaderKt {
