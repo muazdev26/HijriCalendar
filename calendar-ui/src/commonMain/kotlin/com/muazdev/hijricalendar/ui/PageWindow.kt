@@ -100,3 +100,38 @@ internal data class PageWindow(
         }
     }
 }
+
+/**
+ * How the pager should move from one page to another.
+ *
+ * This was a one-line `if` inside the pager's reconciliation effect, and it is the whole of
+ * [UI-09-pager-effect-sync](UI-09-pager-effect-sync.md): a one-month move is a header-arrow tap and
+ * reads better animated, while anything larger is a `goToToday`, a cross-month selection, or a
+ * month restored from saved state disagreeing with a restored page — and animating those scrolls
+ * the user through every month in between.
+ *
+ * It is a named type rather than an inline branch so the rule can be asserted directly. It cannot
+ * be asserted through the pager: `HorizontalPager` composes the same nodes either way, so the only
+ * observable difference is the scroll offset over time, and a Compose test clock does not give a
+ * reliable window between "finished" and "finished animating".
+ */
+internal enum class PageJump {
+    /** One page: a deliberate, pleasant, short animation. */
+    ANIMATE,
+
+    /** Any other distance: move immediately. */
+    JUMP,
+}
+
+/**
+ * The [PageJump] policy for moving from [fromPage] to [toPage].
+ *
+ * Exactly one page animates. That is the header arrows and nothing else.
+ *
+ * The subtraction is done in [Long] on purpose. Page indices derive from caller-supplied bounds, so
+ * they are not guaranteed to be near each other, and an  subtraction of  and
+ *  wraps to  — whose absolute value is 1, which would classify the single
+ * largest possible jump as a one-page animation.  pins that.
+ */
+internal fun pageJump(fromPage: Int, toPage: Int): PageJump =
+    if (kotlin.math.abs(toPage.toLong() - fromPage.toLong()) == 1L) PageJump.ANIMATE else PageJump.JUMP

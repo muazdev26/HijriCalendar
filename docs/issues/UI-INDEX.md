@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-30
 **Scope:** `calendar-ui/src/commonMain` (1362 lines, 14 files) and its test suite (~1400 lines, 77 tests)
-**Status:** In progress — 9 open tickets, 4 shipped, 1 withdrawn
+**Status:** In progress — 8 open tickets, 5 shipped, 1 withdrawn
 **Supersedes:** nothing. Companion to [`CORE-INDEX`](./INDEX.md), which reviews `calendar-core`.
 
 > This is an **architecture** review of the UI module. `docs/issues/INDEX.md` reviews `calendar-core`
@@ -27,7 +27,7 @@ unreachable.
 | Dependency hygiene | 6/10 | `material.icons.extended` for two core-set arrows, on a release train 5 minors behind the rest of Compose. |
 | Documentation | 5/10 | 10 of 14 files have zero KDoc blocks; README covers 4 of 8 public entry points. |
 | API surface | 5/10 | 4 public composables + 2 public modifiers with no contract; one public signature is self-contradictory. |
-| Compose correctness | 5/10 | No touch feedback; `fontScale` forced to 1; two `LaunchedEffect`s unsynchronised; unsound `@Immutable`. |
+| Compose correctness | 6/10 | The pager's two effects are now one collector with a stated invariant (UI-09); no touch feedback (UI-08); `fontScale` forced to 1 (UI-04). |
 | Correctness vs. `calendar-core` | 9/10 | **Was 2/10.** The render path and the state now build months through one definition on the state (UI-03), so they cannot disagree. |
 | Test discipline | 4/10 | **Was 2/10.** Composable harness now in `desktopTest` (UI-02); still no coverage of the two `LaunchedEffect`s' restore behaviour, and the sample's device test is still not in CI. |
 
@@ -120,14 +120,14 @@ Full tickets live in this directory. Summary and blocking edges:
 ```
 
 **Execute in this order:** ~~1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.~~ **1 and 5 are
-shipped.** For the rest, use: **9, 4, 7, 6, 10, 8, 12, 14, 13.**
+shipped.** For the rest, use: **4, 7, 6, 10, 8, 12, 14, 13.**
 
 The original order was wrong: it placed **6** sixth, while 6 is blocked by 1, 3, **4, 5, 7 and 9** —
 three of which it was scheduled ahead of. 6 is also last-by-design for the reason `CORE-03` gives
 (it documents whatever the others decide), so it cannot sit in the middle regardless. The corrected
 order puts 6 after all six of its blockers, keeps 14 after 12, and drops 11 entirely.
 
-**1, 2, 3 and 5 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
+**1, 2, 3, 5 and 9 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
 proved its own worth on its first run: it found a missing `SemanticsProperties.Disabled` on day
 cells, and it showed that the pager's **page → state** direction had no coverage at all — deleting
 the swipe collector's state update left the whole suite green.
@@ -154,7 +154,7 @@ after that.
 | 6 | Four public composables + two public modifiers with no contract; 10/12 files undocumented | High | `UI-06-public-surface-and-docs.md` |
 | 7 | 14 `@Preview` composables ship in the published ABI | Medium | `UI-07-previews-out-of-abi.md` |
 | 8 | `indication = null` — 42 day cells with no touch feedback | Medium | `UI-08-touch-feedback.md` |
-| 9 | Two `LaunchedEffect`s unsynchronised; rotation animates the pager | Medium | `UI-09-pager-effect-sync.md` |
+| 9 | Two `LaunchedEffect`s unsynchronised; rotation animates the pager | Medium | `UI-09-pager-effect-sync.md` · **shipped** |
 | 10 | Header text and a11y strings are not localizable | Medium | `UI-10-localization-completion.md` |
 | 11 | ~~`@Immutable` on `HijriCalendarLabels` is unsound~~ — **withdrawn, premise disproven** | — | `UI-11-stability-honesty.md` |
 | 12 | Day cell resolves colour in six `when`s before emitting a node; `require` in composition | Low | `UI-12-day-cell-decomposition.md` |

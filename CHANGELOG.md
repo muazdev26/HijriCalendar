@@ -66,7 +66,18 @@ Remediation of the `calendar-core` architecture review — see
 
 ### Fixed
 
-- **Scoped month-length overrides were ignored by the entire render path.** `HijriCalendarState.monthLengths`
+- **Rotating the device scrolled the calendar sideways through the months.** The pager and the
+  state holder were kept in agreement by two `LaunchedEffect`s plus a `snapshotFlow { … }
+  .drop(1)`. Because `rememberPagerState` restores its page from saved state, a restored pager
+  disagreeing with a restored month was resolved by *animating* across every month in between, while
+  the `drop(1)` discarded the one emission that would have corrected it silently — so a large jump
+  such as "jump to today" or a restored month also scrolled through intervening months. The two
+  effects are now one reconciliation collector with a stated invariant (**the state is the
+  authority**), the emission-count heuristic is gone, and a month change of one page animates while
+  any larger jump lands immediately. The rule is a named `pageJump` policy with its own tests, which
+  caught an `Int` overflow in the first version that classified the largest possible jump as a
+  one-page animation.
+  ([UI-09](docs/issues/UI-09-pager-effect-sync.md)) `HijriCalendarState.monthLengths`
   — the instantiable table CORE-02 added — was never read outside `calendar-core`. Both calendar
   builders in `calendar-ui` omitted the `overrides` argument and silently fell back to the
   process-global `HijriMonthOverrides.current`, so a calendar configured with its own table

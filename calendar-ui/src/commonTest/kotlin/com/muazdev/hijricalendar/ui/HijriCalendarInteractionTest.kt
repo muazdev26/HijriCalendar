@@ -39,9 +39,16 @@ import kotlin.test.assertTrue
 class HijriCalendarInteractionTest {
 
     private val cellMarker = "cell "
+    private val inTag = "in"
+    private val outTag = "out"
 
     private val probeLabels = HijriCalendarLabels(
-        dayContentDescription = { day -> "$cellMarker${day.localDate}" },
+        dayContentDescription = { day ->
+            // Carries the in-month tag so a test can ask for "the cell representing this Gregorian
+            // day in the month the grid is showing", which is what proves the pager moved.
+            val scope = if (day.isCurrentMonth) inTag else outTag
+            "$cellMarker${day.localDate}|$scope"
+        },
     )
 
     private fun host(
@@ -63,6 +70,13 @@ class HijriCalendarInteractionTest {
     /** The header's rendered title, via the same shared list the product uses. */
     private fun hijriMonthLabel(year: Int, month: Int): String =
         "${CalendarNames.englishHijriMonths[month - 1]} $year"
+
+    /**
+     * Simulated time a month jump is allowed to take. A jump needs a handful of frames; the
+     * animation it replaces needs several hundred. Anything in between would make the test
+     * meaningless, which is why this is asserted as a bound rather than "eventually".
+     */
+    private val settleBudgetMillis: Long = 250L
 
     private fun stateFor(
         year: Int = 1447,
@@ -219,6 +233,81 @@ class HijriCalendarInteractionTest {
         )
     }
 
+    /**
+     * A large change of month must settle promptly. It used to be reconciled with
+     * `animateScrollToPage`, so `goToToday` — or a restored month disagreeing with a restored pager
+     * — scrolled the user through every month in between.
+     *
+     * **This does not attempt to measure the animation.** It would have to, and it cannot:
+     * `HorizontalPager` composes the same nodes whether it jumps or animates, so the only
+     * observable difference is the scroll offset over time. A Compose test clock driven in 16ms
+     * steps showed no reliable window between "settled" and "settled after animating" — an earlier
+     * version of this test asserted a settle budget and passed with the animation restored. The
+     * rule itself is pinned deterministically in `PageJumpTest`; what is pinned here is that the
+     * calendar *reaches* the far month and keeps it.
+     */
+    @Test
+    fun aLargeStateJumpReachesTheFarMonth() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        val state = stateFor()
+        setContent { host(state)() }
+        waitForIdle()
+
+        val startCell = state.calendarMonthFor(state.currentMonth)
+            .days.first { it.isCurrentMonth }.localDate
+        val target = HijrahYearMonth(1460, 3)
+        val targetCell = state.calendarMonthFor(target)
+            .days.first { it.isCurrentMonth }.localDate
+        assertTrue(targetCell != startCell, "test setup is wrong: both months start on the same day")
+
+        runOnIdle { state.goToMonth(target) }
+        mainClock.advanceTimeBy(settleBudgetMillis)
+        waitForIdle()
+
+        assertTrue(
+            isPainted(targetCell),
+            "the pager never reached the far month after ${settleBudgetMillis}ms of simulated time",
+        )
+    }
+
+    private fun ComposeUiTest.isPainted(day: kotlinx.datetime.LocalDate): Boolean =
+        onAllNodes(hasContentDescription("$cellMarker$day|$inTag", substring = false))
+            .fetchSemanticsNodes().isNotEmpty()
+
+    /** A single-month change is a header-arrow tap and is still allowed to animate. */
+    @Test
+    fun aSingleMonthChangeSettles() = runComposeUiTest {
+        // One month is allowed to animate, so this runs on the normal clock. It pins that the
+        // animated branch still lands on the right month.
+        val state = stateFor()
+        setContent { host(state)() }
+        waitForIdle()
+
+        runOnIdle { state.goToNextMonth() }
+        waitForIdle()
+
+        onNodeWithText(hijriMonthLabel(1447, 10)).assertExists()
+    }
+
+    /** The state's month must survive the pager: nothing here may bounce it back. */
+    @Test
+    fun theStateIsNotOverwrittenByThePager() = runComposeUiTest {
+        val state = stateFor()
+        setContent { host(state)() }
+        waitForIdle()
+
+        runOnIdle { state.goToMonth(HijrahYearMonth(1450, 7)) }
+        waitForIdle()
+        assertEquals(1450, state.currentMonth.year)
+        assertEquals(7, state.currentMonth.month.number)
+
+        // Let the clock run: if the pager were going to write the state back it would do it now.
+        mainClock.advanceTimeBy(3_000)
+        waitForIdle()
+        assertEquals(1450, state.currentMonth.year, "the pager overwrote the state's month")
+        assertEquals(7, state.currentMonth.month.number)
+    }
+
     // ── tapping a day ─────────────────────────────────────────────────
 
     @Test
@@ -229,7 +318,7 @@ class HijriCalendarInteractionTest {
         waitForIdle()
 
         val targetDay = state.currentMonth.firstDay.toLocalDate()
-        onNodeWithContentDescription("$cellMarker$targetDay", substring = false).performClick()
+        onNodeWithContentDescription("$cellMarker$targetDay", substring = true).performClick()
         waitForIdle()
 
         assertEquals(1, clicked.size, "expected exactly one click, got ${clicked.size}")
@@ -253,7 +342,7 @@ class HijriCalendarInteractionTest {
 
         val range = state.gregorianRangeFor(state.currentMonth)
         val earlyDay = range.first
-        onNodeWithContentDescription("$cellMarker$earlyDay", substring = false).performClick()
+        onNodeWithContentDescription("$cellMarker$earlyDay", substring = true).performClick()
         waitForIdle()
 
         assertTrue(
@@ -287,7 +376,7 @@ class HijriCalendarInteractionTest {
         waitForIdle()
 
         val range = state.gregorianRangeFor(state.currentMonth)
-        onNodeWithContentDescription("$cellMarker${range.first}", substring = false)
+        onNodeWithContentDescription("$cellMarker${range.first}", substring = true)
             .assertHasNoClickAction()
     }
 

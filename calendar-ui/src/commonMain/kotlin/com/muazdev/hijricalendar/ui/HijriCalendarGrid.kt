@@ -13,18 +13,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.abdulrahman_b.hijrahdatetime.yearMonth
+import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
-import com.abdulrahman_b.hijrahdatetime.yearMonth
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 public fun HijriCalendarGrid(
@@ -63,29 +63,65 @@ public fun HijriCalendarGrid(
         pageCount = { window.span },
     )
 
-    // When state changes externally (header arrows, goToToday, selectDate across months),
-    // compute the target page and animate the pager there.
-    LaunchedEffect(state.currentMonth) {
-        val page = window.coercePage(window.pageOf(monthOffset(state.currentMonth, initialMonth)))
-        if (page != pagerState.currentPage) {
-            pagerState.animateScrollToPage(page)
-        }
-    }
-
-    // When user finishes swiping, update the state to match the page.
-    // Drop the first emission to avoid the pager's restored state (from rememberSaveable)
-    // overwriting the correct ViewModel state on configuration changes.
+    // ── pager <-> state reconciliation ────────────────────────────────
     //
-    // No clamping is needed here: pageCount is the window, so the pager cannot settle on a page
-    // outside it. The old post-hoc `animateScrollToPage` correction is deleted — it existed only
-    // because pageCount used to be a constant wider than the caller's bounds.
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }
-            .drop(1)
-            .collect { page ->
-                val month = initialMonth.plusPageOffset(window.offsetOf(page))
-                if (month != state.currentMonth) {
-                    state.goToMonth(month)
+    // One collector, not two `LaunchedEffect`s. The state and the pager are two owners of "which
+    // month is showing", and while they were kept in agreement by an effect each plus a `.drop(1)`,
+    // they could disagree in the worst possible way: `rememberPagerState` restores its page from
+    // saved state, so after a configuration change a restored page that disagrees with a restored
+    // `currentMonth` was resolved by *animating* the pager across every month in between, while
+    // `.drop(1)` discarded the one emission that would have fixed it silently. A user rotating the
+    // device saw the calendar scroll sideways through a decade.
+    //
+    // The invariant, in one place: **the state is the authority for which month is displayed.**
+    //
+    //  - The pager settles somewhere the state is not  ->  the state follows the pager. That is a
+    //    user swipe; nothing animates because the pager already went there.
+    //  - The state moves somewhere the pager is not  ->  the pager follows the state. It *jumps*
+    //    rather than animates, because the header's label has already changed instantly and a
+    //    visible catch-up scroll across intervening months is what this ticket is about.
+    //
+    // Neither branch can overwrite the other's authority, and no emission-count heuristic is
+    // involved, so restore behaviour no longer depends on how many times Compose happens to emit.
+    LaunchedEffect(pagerState, initialMonth, window) {
+        // Seeded to a value no real page can take, so the very first emission is always classified
+        // as "the state led". That is what makes restore work: a restored pager that disagrees with
+        // the restored state is corrected by jumping the pager to the state, not by overwriting the
+        // state from the pager.
+        var lastTargetPage = -1
+        snapshotFlow {
+            val page = pagerState.settledPage
+            // targetPage is the page the state's month names; reading currentMonth inside the
+            // flow is what makes a state change re-emit.
+            val targetPage = window.coercePage(
+                window.pageOf(monthOffset(state.currentMonth, initialMonth)),
+            )
+            page to targetPage
+        }
+            .distinctUntilChanged()
+            .collect { (page, targetPage) ->
+                // Values alone cannot say which owner moved first: a user swipe and a restored
+                // pager disagreeing with the state both look like `page != targetPage`, and they
+                // need opposite actions. The discriminator is whether the *state* changed since the
+                // previous emission.
+                if (targetPage != lastTargetPage) {
+                    // The state moved. Follow it — never the other way round.
+                    lastTargetPage = targetPage
+                    val distance = kotlin.math.abs(targetPage - page)
+                    if (distance == 1) {
+                        // A header-arrow tap. Reads better animated.
+                        pagerState.animateScrollToPage(targetPage)
+                    } else {
+                        // goToToday, a cross-month selection, or a restore. Animating would scroll
+                        // the user through every intervening month, which is the defect.
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                } else {
+                    // The state did not move, so the pager did. A user swipe.
+                    val month = initialMonth.plusPageOffset(window.offsetOf(page))
+                    if (month != state.currentMonth) {
+                        state.goToMonth(month)
+                    }
                 }
             }
     }
