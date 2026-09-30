@@ -12,7 +12,12 @@ kotlin {
             implementation(libs.hijrah.datetime)
             implementation(libs.kotlinx.datetime)
             implementation(libs.material.icons.extended)
-            implementation("org.jetbrains.compose.ui:ui-tooling-preview:${libs.versions.composeMultiplatform.get()}")
+        }
+        // Previews live in androidMain, so the @Preview annotation is an androidMain dependency
+        // rather than a commonMain one. It used to be commonMain, which put an annotation from a
+        // non-api dependency on 14 public declarations in the published ABI — see UI-07.
+        androidMain.dependencies {
+            implementation(libs.compose.multiplatform.ui.tooling.preview)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

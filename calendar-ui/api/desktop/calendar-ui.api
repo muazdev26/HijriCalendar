@@ -106,51 +106,6 @@ public final class com/muazdev/hijricalendar/ui/HijriWeekRowKt {
 	public static final fun HijriWeekRow-UXarjSk (Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
-public final class com/muazdev/hijricalendar/ui/preview/ComposableSingletons$PreviewsKt {
-	public static final field INSTANCE Lcom/muazdev/hijricalendar/ui/preview/ComposableSingletons$PreviewsKt;
-	public fun <init> ()V
-	public final fun getLambda$-1030369711$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1190724916$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1344380784$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1470929517$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1548898597$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1630091630$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1920362607$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-326997576$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-356790292$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-489720394$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-575013942$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-768046417$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-876106957$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-900453939$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1027501861$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1337058678$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$206887114$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$25711707$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$64629237$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$812932472$HijriCalendar_calendar_ui ()Lkotlin/jvm/functions/Function2;
-}
-
-public final class com/muazdev/hijricalendar/ui/preview/PreviewsKt {
-	public static final fun HijriCalendarBothDatesAtLargeTextPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarBothDatesBeyondTextCapPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarConsumerRtlDarkGlassyPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellArabicIndicPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellBothDatesPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellDefaultPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellDisabledPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellGregorianOnlyPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellSelectedPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellTodayPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarDayCellWeekendPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarFixedTextPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarHeaderPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarHeaderWithGregorianPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarUrduRtlPreview (Landroidx/compose/runtime/Composer;I)V
-	public static final fun HijriCalendarWithBothDatesPreview (Landroidx/compose/runtime/Composer;I)V
-}
-
 public final class com/muazdev/hijricalendar/ui/util/ModifierExtensionsKt {
 	public static final fun calendarDayCell-3ABfNKs (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
 	public static synthetic fun calendarDayCell-3ABfNKs$default (Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;

@@ -47,6 +47,9 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 # harness that makes the composables testable from the command AGENTS.md already documents
 # (./gradlew :calendar-ui:desktopTest), instead of only from a device via the sample app.
 compose-multiplatform-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test", version.ref = "composeMultiplatform" }
+# @Preview for androidMain preview composables only (UI-07). Moving these out of commonMain is what
+# keeps the annotation off the published ABI.
+compose-multiplatform-ui-tooling-preview = { group = "org.jetbrains.compose.ui", name = "ui-tooling-preview", version.ref = "composeMultiplatform" }
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
 kotlin-composeCompiler-gradlePlugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }

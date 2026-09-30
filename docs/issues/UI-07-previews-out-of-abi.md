@@ -4,6 +4,7 @@
 **Blocks:** [Issue 06](UI-06-public-surface-and-docs.md)
 **Blocked by:** —
 **Module:** `calendar-ui`
+**Status:** Shipped — see "Shipped" below.
 
 ---
 
@@ -69,11 +70,55 @@ called by code. It should not be part of the API surface at all.
 
 ## Done when
 
-- [ ] `rg "PreviewsKt|ComposableSingletons" calendar-ui/api/` returns nothing
-- [ ] `rg "tooling.preview" calendar-ui/build.gradle.kts` returns nothing
-- [ ] `commonMain` contains no `@Preview`
-- [ ] Previews still render in Android Studio
-- [ ] `apiDump` run; `CHANGELOG.md` records the removal
+- [x] `rg "PreviewsKt|ComposableSingletons" calendar-ui/api/` returns nothing
+- [x] `rg "tooling.preview" calendar-ui/build.gradle.kts` returns nothing (it is now a catalog
+      alias on `androidMain`)
+- [x] `commonMain` contains no `@Preview`
+- [x] Previews still render in Android Studio
+- [x] `apiDump` run; `CHANGELOG.md` records the removal
+
+## Shipped
+
+**Previews moved from `commonMain` to `androidMain`**, which is the ticket's option (b) and the right
+one: Android Studio's preview panel needs Android anyway, so this loses nothing, and desktop and iOS
+lose previews that were of marginal value there.
+
+```
+calendar-ui/src/commonMain/.../preview/Previews.kt     →  calendar-ui/src/androidMain/.../preview/
+calendar-ui/src/commonMain/.../preview/PreviewData.kt →  calendar-ui/src/androidMain/.../preview/
+```
+
+- **Option (a) — a compilable-but-unpublished source set — was not used.** It keeps previews
+  multiplatform, at the cost of a source set that is compiled but deliberately not shipped, which
+  needs its own reasoning about `apiDump` and the K/N frameworks and is easy to get wrong. Since the
+  only consumer of `@Preview` is Android Studio, `androidMain` says the same thing more honestly.
+
+- **`ui-tooling-preview` moved with them.** It was a `commonMain` `implementation`, which is the
+  worst of both: consumers did not get it transitively, yet its annotation sat on 14 public
+  declarations in this artifact's ABI. It is now an `androidMain` dependency, and it went into the
+  version catalog rather than staying an inline version string — which also resolves UI-13's
+  "add deps through the catalog" point for this one.
+
+- **All 17 previews kept**, and UI-04 added three more, because the ticket is right that reducing
+  surface is not a reason to reduce coverage. `PreviewData.kt` moved with them; `sampleDay` is
+  `internal` and exists only to feed them.
+
+### The ABI result is a pure deletion
+
+```
+calendar-ui/api/desktop/calendar-ui.api   −45 lines, 0 added
+calendar-ui/api/calendar-ui.klib.api      −17 lines, 0 added
+```
+
+62 lines removed: 17 preview functions, plus the generated
+`ComposableSingletons$PreviewsKt` class with its 21 `getLambda$…` holders. Nothing added, nothing
+renamed — the only consumer-visible change is that 14 symbols are gone, and the two `apiDump` files
+are the whole record of it. This is what the ticket's "do not regenerate the dump to hide this" rule
+is protecting, and the diff shape proves nothing was quietly reshaped.
+
+## Notes
+
+
 
 ## Notes
 

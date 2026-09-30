@@ -76,6 +76,14 @@ Remediation of the `calendar-core` architecture review — see
   Pass `ignoreFontScale = true` for the previous flat rendering; prefer the default.
   ([UI-04](docs/issues/UI-04-accessible-text-scaling.md))
 - **`HijriCalendar.ignoreFontScale` is new**, defaulting to `false`.
+- **17 `@Preview` composables are no longer part of the published ABI.** They lived in `commonMain`
+  of a published module, so they were compiled for iOS, embedded in both K/N frameworks and the
+  Xcode app, and visible from Swift — and because `ui-tooling-preview` was a *non*-`api` dependency,
+  a consumer's code referencing them needed a dependency the library did not declare. They now live
+  in `androidMain`, where Android Studio's preview panel can still see them. Nothing was renamed:
+  the ABI change is a pure deletion of 62 lines (the previews plus the Compose compiler's generated
+  `ComposableSingletons$PreviewsKt`).
+  ([UI-07](docs/issues/UI-07-previews-out-of-abi.md))
 
 ### Fixed
 
