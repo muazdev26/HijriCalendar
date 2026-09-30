@@ -82,11 +82,10 @@ class HijriCalendarGridMathTest {
     }
 
     // ── Pager constants ─────────────────────────────────────────────────
-
-    @Test
-    fun pagerWindow_hasOddPageCountCentered() {
-        assertEquals(500, PAGER_CENTER_PAGE)
-        assertEquals(1001, PAGER_PAGE_COUNT)
-        assertEquals(1, PAGER_PAGE_COUNT % 2)
-    }
+    // Replaced the former `pagerWindow_hasOddPageCountCentered`, which asserted
+    // PAGER_CENTER_PAGE == 500 and PAGER_PAGE_COUNT % 2 == 1 — a restatement of a `const val`
+    // declaration, in a test named as though it verified a property of the window. Pinning the
+    // magic number is part of why the magic number survived. Both constants are gone: the window
+    // is now derived from the caller's bounds and the Hijri table's own edges. Real coverage of
+    // that, including the old 500-month crash threshold, is in PageWindowTest.
 }

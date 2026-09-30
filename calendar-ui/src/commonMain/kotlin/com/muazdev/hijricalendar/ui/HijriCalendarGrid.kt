@@ -23,12 +23,8 @@ import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
-import com.muazdev.hijricalendar.core.toCalendarMonth
 import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
-
-internal const val PAGER_CENTER_PAGE = 500
-internal const val PAGER_PAGE_COUNT = PAGER_CENTER_PAGE * 2 + 1
 
 @Composable
 public fun HijriCalendarGrid(
@@ -45,30 +41,31 @@ public fun HijriCalendarGrid(
 ) {
     val initialMonth = remember { calendarMonth.yearMonth }
 
-    // The navigable page window. Since minDate/maxDate are immutable on the state, the
-    // window is fixed: pages outside it (entirely out-of-range months) are rejected.
-    val minAllowedPage = remember(state.minDate, initialMonth) {
-        state.minDate?.yearMonth?.let {
-            PAGER_CENTER_PAGE + monthOffset(it, initialMonth)
-        } ?: 0
-    }
-    val maxAllowedPage = remember(state.maxDate, initialMonth) {
-        state.maxDate?.yearMonth?.let {
-            PAGER_CENTER_PAGE + monthOffset(it, initialMonth)
-        } ?: (PAGER_PAGE_COUNT - 1)
+    // The navigable page window, derived entirely from the caller's bounds. Previously this was
+    // two page indices fed to a two-argument coerceIn, which threw on any range that made them
+    // invert — see PageWindow's KDoc. Because minDate/maxDate are immutable `val`s on the state,
+    // the window is fixed for the life of the grid, so page indices stay stable.
+    val window = remember(state.minDate, state.maxDate, initialMonth) {
+        PageWindow.forBounds(
+            minDate = state.minDate?.yearMonth,
+            maxDate = state.maxDate?.yearMonth,
+            anchor = initialMonth,
+        )
     }
 
     val pagerState = rememberPagerState(
-        initialPage = PAGER_CENTER_PAGE.coerceIn(minAllowedPage, maxAllowedPage),
-        pageCount = { PAGER_PAGE_COUNT },
+        // Clamped: when the caller bounds the range away from the initial month (a minDate later
+        // than initialMonth), the anchor is outside the window and the grid opens on the nearest
+        // in-range month instead. Single-argument coerceIn, so this cannot throw.
+        initialPage = window.coercePage(window.pageOf(0)),
+        pageCount = { window.span },
     )
 
     // When state changes externally (header arrows, goToToday, selectDate across months),
     // compute the target page and animate the pager there.
     LaunchedEffect(calendarMonth.yearMonth) {
-        val offset = monthOffset(calendarMonth.yearMonth, initialMonth)
-        val page = (PAGER_CENTER_PAGE + offset).coerceIn(minAllowedPage, maxAllowedPage)
-        if (page != pagerState.currentPage && page in 0 until PAGER_PAGE_COUNT) {
+        val page = window.coercePage(window.pageOf(monthOffset(calendarMonth.yearMonth, initialMonth)))
+        if (page != pagerState.currentPage) {
             pagerState.animateScrollToPage(page)
         }
     }
@@ -76,18 +73,15 @@ public fun HijriCalendarGrid(
     // When user finishes swiping, update the state to match the page.
     // Drop the first emission to avoid the pager's restored state (from rememberSaveable)
     // overwriting the correct ViewModel state on configuration changes.
+    //
+    // No clamping is needed here: pageCount is the window, so the pager cannot settle on a page
+    // outside it. The old post-hoc `animateScrollToPage` correction is deleted — it existed only
+    // because pageCount used to be a constant wider than the caller's bounds.
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }
             .drop(1)
             .collect { page ->
-                // A swipe that overshoots the minDate/maxDate window snaps back to the
-                // boundary month instead of navigating out of range.
-                val clampedPage = page.coerceIn(minAllowedPage, maxAllowedPage)
-                if (clampedPage != page) {
-                    pagerState.animateScrollToPage(clampedPage)
-                }
-                val offset = clampedPage - PAGER_CENTER_PAGE
-                val month = initialMonth.plusPageOffset(offset)
+                val month = initialMonth.plusPageOffset(window.offsetOf(page))
                 if (month != state.currentMonth) {
                     state.goToMonth(month)
                 }
@@ -108,8 +102,7 @@ public fun HijriCalendarGrid(
             state = pagerState,
             modifier = Modifier.fillMaxWidth(),
         ) { page ->
-            val offset = page - PAGER_CENTER_PAGE
-            val month = initialMonth.plusPageOffset(offset)
+            val month = initialMonth.plusPageOffset(window.offsetOf(page))
             val calMonth = remember(
                 month,
                 state.firstDayOfWeek,
@@ -121,19 +114,14 @@ public fun HijriCalendarGrid(
                 state.adjustmentDays,
                 state.pakistanDates,
                 state.weekendDays,
+                // The table is a *reference* key: HijriMonthLengths has no equals, so a different
+                // table is a different identity even when the revision counter happens to match.
+                // overridesRevision alone would let two states sharing a revision disagree about
+                // which month lengths the grid paints. Both are required.
+                state.monthLengths,
                 state.overridesRevision,
             ) {
-                month.toCalendarMonth(
-                    firstDayOfWeek = state.firstDayOfWeek,
-                    selectedDate = state.selectedDate,
-                    selectedPakistanDate = state.selectedPakistanDate,
-                    selectedObservedDate = state.selectedObservedDate,
-                    minDate = state.minDate,
-                    maxDate = state.maxDate,
-                    adjustmentDays = state.adjustmentDays,
-                    pakistan = state.pakistanDates,
-                    weekendDays = state.weekendDays,
-                )
+                state.renderMonthFor(month)
             }
             MonthGrid(
                 days = calMonth.days,

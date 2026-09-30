@@ -12,7 +12,6 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
-import com.muazdev.hijricalendar.core.resolveGregorianMonthRange
 import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
@@ -47,17 +46,15 @@ public fun HijriCalendar(
         labels,
         state.adjustmentDays,
         state.pakistanDates,
+        // Reference key for the override table; see the note in HijriCalendarGrid.kt. Without it
+        // this label describes the Umm al-Qura month while the grid below paints the observed one.
+        state.monthLengths,
         state.overridesRevision,
     ) {
         // The extent comes from core's single resolver, so the header can never describe a
         // different month than the grid below it. Resolved from the year/month alone rather than
         // from state.calendarMonth, which would force the 42-cell grid to be built for a header.
-        val range = resolveGregorianMonthRange(
-            year = currentMonth.year,
-            month = currentMonth.month.number,
-            pakistan = state.pakistanDates,
-            adjustmentDays = state.adjustmentDays,
-        )
+        val range = state.renderGregorianRangeFor(currentMonth)
         sameMonthRangeLabel(range.first, range.last, labels)
     }
 

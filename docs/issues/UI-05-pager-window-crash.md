@@ -4,6 +4,7 @@
 **Blocks:** [Issue 06](UI-06-public-surface-and-docs.md)
 **Blocked by:** —
 **Module:** `calendar-ui`
+**Status:** Shipped — see "Shipped" below.
 
 ---
 
@@ -119,12 +120,61 @@ See [UI-09](UI-09-pager-effect-sync.md).
 
 ## Done when
 
-- [ ] `HijriCalendarGrid` composes with `minDate` 100 years ahead and `maxDate` 100 years behind
-- [ ] `minDate` after `maxDate` degrades predictably (documented) instead of throwing
-- [ ] `pageCount` equals the navigable month count, not a constant 1001
-- [ ] The `:85-88` clamp is deleted
-- [ ] Tests cover: unbounded, ordinary, exactly 500 months, 501 months, inverted
-- [ ] `minDate`/`maxDate` KDoc states the navigation horizon
+- [x] `HijriCalendarGrid` composes with `minDate` 100 years ahead and `maxDate` 100 years behind
+- [x] `minDate` after `maxDate` degrades predictably (documented) instead of throwing
+- [x] `pageCount` equals the navigable month count, not a constant 1001
+- [x] The `:85-88` clamp is deleted
+- [x] Tests cover: unbounded, ordinary, exactly 500 months, 501 months, inverted
+- [x] `minDate`/`maxDate` KDoc states the navigation horizon
+
+## Shipped
+
+New `calendar-ui/.../PageWindow.kt` — an `internal` value type over month **offsets from the grid's
+frozen anchor**, with `span`, `pageOf`, `offsetOf`, `coercePage` and a `forBounds` factory. Its
+`init` requires a non-empty range with a message that names the cause; `coercePage` is
+single-argument and cannot throw.
+
+- **The fixed ±500-month window is gone, not just guarded.** An unbounded side now reaches
+  `HijrahDate.MIN` / `HijrahDate.MAX` — read from the library's own constants, which is exactly the
+  bound `HijriCalendarState.plusMonthOrNull` uses for `canGoToPreviousMonth` / `canGoToNextMonth`.
+  That closes the ticket's secondary finding (a header arrow could enable a month the pager could
+  not represent) **by construction**: there is now one bound, read from one place, instead of a
+  pager constant and a core rule that had to be kept in agreement by hand. It also makes the
+  `PakistanHijriCalendar` 1400–1500 range reachable end to end.
+- **`pageCount` is `window.span`**, so the post-hoc `animateScrollToPage` correction at the old
+  `:85-88` is deleted. The user can no longer drag a month past the boundary and get yanked back,
+  because there is no page out there to drag to.
+- **`PAGER_CENTER_PAGE` and `PAGER_PAGE_COUNT` are deleted**, and so is
+  `pagerWindow_hasOddPageCountCentered` — a test that asserted `PAGER_CENTER_PAGE == 500` and
+  `PAGER_PAGE_COUNT % 2 == 1`, i.e. restated a `const val` while appearing to verify a property of
+  the window. Pinning the magic number is part of why it survived. Replaced by `PageWindowTest`.
+- **Inverted bounds collapse to one month**, not an exception: core's arrow predicates already
+  answer "no navigable month" for that configuration, so the arrows disable and the anchor renders.
+- **`PageWindowTest` (20 cases).** Verified to fail against the old semantics: reintroducing the
+  fixed window and the two-argument `coerceIn` turns **11 of the 20 red**, including both exact
+  threshold cases (`minDate` 1489-05 = 500 months rendered; 1489-06 = 501 threw).
+
+### Two defects found while implementing, and fixed here
+
+1. **The first draft made a 500-month `minDate` collapse the window to a single page.** Sizing an
+   unbounded side as "±500 from the anchor" collides with a bound that already sits at that edge —
+   `minDate` 500 months ahead gave `low == high == 500`, a 1-page window. Deriving unbounded sides
+   from the Hijri table's own edges removes the collision entirely; it is a rule with no arithmetic
+   to get wrong, where the earlier one was a rule with a boundary condition.
+2. **`initialPage` was unclamped.** When a `minDate` lies *after* the initial month, the anchor is
+   legitimately outside the window, and `window.pageOf(0)` returned a negative index.
+   `rememberPagerState` now gets `window.coercePage(window.pageOf(0))`, so the grid opens on the
+   nearest in-range month — the same intent as the old `coerceIn`, but unable to throw. The test
+   asserting this is named for the invariant (`theInitialPageIsAlwaysInRange`), not for a constant.
+
+No public API changed. `PageWindow` is `internal`; `apiCheck` passes without an `apiDump`.
+
+### Not done here
+
+`drop(1)` at the old `:79-81` is untouched. It is a load-bearing heuristic with nothing pinning the
+emission count, and replacing it with a single snapshot-driven reconciliation is
+[UI-09](UI-09-pager-effect-sync.md)'s work — it is not in this ticket's done-when and folding it in
+here would make the crash fix unreviewable.
 
 ## Notes
 

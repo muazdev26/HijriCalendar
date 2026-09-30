@@ -61,7 +61,27 @@ public class HijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
     public val firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
+    /**
+     * Earliest selectable day, or null for no lower bound. Resolved into a real-world Gregorian
+     * day (shifted by [adjustmentDays]) and applied in **all three** date spaces — Umm al-Qura,
+     * Pakistan and observed — via a [CalendarDay]'s [CalendarDay.localDate]. This is why it is a
+     * `HijrahDate` yet still bounds a Pakistan cell: there is no Umm al-Qura coordinate to compare
+     * such a cell against, so the comparison happens on the one ordering all three spaces share.
+     *
+     * Also bounds **navigation**: the grid's pager window starts here, so a bound here makes every
+     * earlier month unreachable by swipe. An unset bound reaches back to [HijrahDate.MIN], the same
+     * edge [canGoToPreviousMonth] stops at. A `minDate` after the initial month leaves that month
+     * unreachable and the grid opens on the nearest in-range month instead.
+     */
     public val minDate: HijrahDate? = null,
+    /**
+     * Latest selectable day, or null for no upper bound. Resolved exactly as [minDate] is, and
+     * bounds navigation the same way: an unset bound reaches forward to [HijrahDate.MAX], which is
+     * where [canGoToNextMonth] stops.
+     *
+     * An inverted range (`minDate` after `maxDate`) is not rejected. No month is navigable and no
+     * day is selectable; the grid renders a single month and both arrow predicates answer false.
+     */
     public val maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
