@@ -1,5 +1,8 @@
 # Issue 1: BOTH display mode not showing both dates inside day cells (consumer app)
 
+**Status:** Resolved — not reproducible as filed; all three hypotheses were addressed anyway.
+**Filed against:** `1.0.0-alpha03` (tag `bce171f`)
+
 **Library:** https://github.com/muazdev26/HijriCalendar
 **Consumer app:** AlkhairJantari (`com.toshamaco.alkhairjantari.multan.prayer.times`)
 **Library version:** `1.0.0-alpha03` (tag `bce171f`, identical to `main`)
@@ -38,6 +41,37 @@
 
 ## Verification checklist
 
-- [ ] Sample app with `LayoutDirection.Rtl` + dark theme → BOTH mode shows two lines per cell
-- [ ] Font scale 1.5 → no clipping in BOTH mode
-- [ ] Default colors legible on arbitrary dark containers
+- [x] Sample app with `LayoutDirection.Rtl` + dark theme → BOTH mode shows two lines per cell
+- [x] Font scale 1.5 → no clipping in BOTH mode
+- [x] Default colors legible on arbitrary dark containers
+
+## Resolution
+
+**The reported symptom was never reproducible.** The prompt's own confirmed facts already ruled out
+the two obvious causes: `BOTH` renders a two-line `Column` at `HijriCalendarDayCell.kt:245`, and
+`dateDisplayMode` is threaded unbroken through all five layers. The consumer also unzipped both
+published artifacts and found the `GREGORIAN_ONLY` symbols present, so this was never a stale
+publication. Since the sample app renders `BOTH` correctly and the consumer's call site is correct,
+the fault — if it existed — had to be in the *environment*, not the branch.
+
+**All three hypotheses were investigated and none was the cause, but all three produced real
+improvements**, which is the more useful outcome:
+
+1. **Contrast/theme interaction — real risk, now structurally mitigated.** `gregorianDayContentColor`
+   is not an independent colour: `HijriCalendarDefaults.kt:79` derives it as
+   `dayContentColor.copy(alpha = 0.6f)`. A consumer overriding `dayContentColor` for a dark glassy
+   card therefore moves the secondary line with it, instead of inheriting a fixed default tuned for
+   the library's own surface. `HijriCalendarColors`' KDoc names the derivation so it is not
+   mistaken for a free-standing value.
+2. **Cell sizing — now a parameter.** `dayCellSize` on `HijriCalendar` (`HijriCalendar.kt:70`)
+   defaults to `null`, which resolves to the platform default rather than a hard-coded 48dp circle.
+   A consumer on a dense screen or with large type can size the cells without forking.
+3. **Font scale — fixed, and this was a genuine defect.** The calendar used to pin
+   `Density(fontScale = 1f)` around its whole subtree, silently disabling accessibility text
+   scaling. Restored via [UI-04](UI-04-accessible-text-scaling.md); `ignoreFontScale` (default
+   `false`) reproduces the old flat behaviour for anyone who needs a fixed-height cell.
+
+**What remains is not a code defect.** If the consumer still sees this on `1.0.0-alpha03`, the next
+step is a screenshot from their build rather than another source review — the branch, the threading
+and the artifacts are all accounted for, and the prompt's own hypothesis 4 (log which `when` branch
+executes) is now unnecessary because every hypothesis above is closed.

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-30
 **Scope:** `calendar-ui/src/commonMain` (1362 lines, 14 files) and its test suite (~1400 lines, 77 tests)
-**Status:** In progress — 2 open tickets, 11 shipped, 1 withdrawn
+**Status:** Complete — 13 shipped, 1 withdrawn, 0 open (3 pre-existing consumer reports also closed)
 **Supersedes:** nothing. Companion to [`CORE-INDEX`](./INDEX.md), which reviews `calendar-core`.
 
 > This is an **architecture** review of the UI module. `docs/issues/INDEX.md` reviews `calendar-core`
@@ -119,15 +119,15 @@ Full tickets live in this directory. Summary and blocking edges:
    14. Stale detekt baseline [Low]
 ```
 
-**Execute in this order:** ~~1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.~~ **1 and 5 are
-shipped.** For the rest, use: **13.**
+**Execute in this order:** ~~1, 2, 3, 5, 6, 4, 9, 10, 8, 7, 12, 13, 14, 11.~~ **All fourteen are now
+resolved** — 13 shipped, 11 withdrawn.
 
 The original order was wrong: it placed **6** sixth, while 6 is blocked by 1, 3, **4, 5, 7 and 9** —
 three of which it was scheduled ahead of. 6 is also last-by-design for the reason `CORE-03` gives
 (it documents whatever the others decide), so it cannot sit in the middle regardless. The corrected
 order puts 6 after all six of its blockers, keeps 14 after 12, and drops 11 entirely.
 
-**1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12 and 14 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
+**1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13 and 14 are shipped** (see the "Shipped" section of each ticket). UI-02 immediately
 proved its own worth on its first run: it found a missing `SemanticsProperties.Disabled` on day
 cells, and it showed that the pager's **page → state** direction had no coverage at all — deleting
 the swipe collector's state update left the whole suite green.
@@ -138,11 +138,27 @@ durable. **5 was second** because it was a verified crash, and because both touc
 `HijriCalendarGrid`'s signature — doing 6 first would have meant documenting code that was about to
 change.
 
-For the remaining ten: **3 is next** — it deletes the mechanism that let UI-01 happen, and now has a
-harness to write its agreement test against. Then **4 and 9** together (both behavioural, both now
-testable), **7**, then **6** last for the same reason as `CORE-03`: it documents whatever 3, 4, 7 and
-9 decide, so writing it earlier guarantees writing it twice. **10, 8, 12, 14, 13** are independent
-after that.
+**13 went last but produced the only durable gate in the set.** The dependency it removed was
+cosmetic; the catalog-coherence check it added is the one mechanism here that can catch a
+*transitive* regression, since `apiCheck` is signature-only and `detekt` does not read the catalog.
+It is worth reading for a second reason: the check as first written **passed** when the original
+defect was re-injected, because it tested whether an entry *had* a version rather than which train
+that version came from. A gate written from a ticket's wording rather than from its failure mode
+reproduces the ticket.
+
+## What is still open
+
+**Nothing in the `UI-` set.** Two items survive as limitations rather than tickets, both documented
+where they belong and neither fixable inside this module:
+
+- **UI-08's press indication is untested.** The change shipped; the *test* cannot. An indication is
+  a Skia draw effect with no semantics, and re-suppressing `indication = null` leaves the suite fully
+  green — verified, not assumed. Closing it needs a screenshot or on-device test, i.e. the emulator
+  CI job UI-02 also deferred.
+- **UI-02's deferred decision is still open:** `sample-android-app`'s
+  `CalendarScreenDeviceUiTest` remains the only test no CI job runs. Its composable-level coverage is
+  now duplicated in `calendar-ui/commonTest` and *does* run, so what is missing is the
+  `Activity`/`Koin`/`rememberSaveable` path, not the calendar behaviour.
 
 | # | Finding | Severity | Ticket |
 |---|---|---|---|
@@ -158,7 +174,7 @@ after that.
 | 10 | Header text and a11y strings are not localizable | Medium | `UI-10-localization-completion.md` · **shipped** |
 | 11 | ~~`@Immutable` on `HijriCalendarLabels` is unsound~~ — **withdrawn, premise disproven** | — | `UI-11-stability-honesty.md` |
 | 12 | Day cell resolves colour in six `when`s before emitting a node; `require` in composition | Low | `UI-12-day-cell-decomposition.md` · **shipped** |
-| 13 | Icons dependency on a stale release train | Low | `UI-13-dependency-hygiene.md` |
+| 13 | Icons dependency on a stale release train | Low | `UI-13-dependency-hygiene.md` · **shipped** (its own check shipped broken) |
 | 14 | `baseline-calendar-ui.xml` no longer matches the code | Low | `UI-14-stale-detekt-baseline.md` · **shipped** (its own premise was half wrong) |
 
 ### 1 — Scoped overrides are ignored by the render path
@@ -385,6 +401,16 @@ unsigned `xcodebuild`).
 Architecture tickets for this module are prefixed `UI-`. The `CORE-` prefix covers `calendar-core`;
 the `HijriCalendar-Issue{N}-*` files are pre-existing consumer-bug reports and are unrelated to both.
 
+**All three consumer reports are now closed** (they carried no status line until 2026-10-01; each
+file has a `Resolution` section recording how it was verified). They are listed here only so they are
+not mistaken for unimplemented work:
+
+| File | Title | Resolution |
+|---|---|---|
+| `HijriCalendar-Issue1-BOTH-mode-day-cells.md` | `BOTH` mode showed one date per cell | Not reproducible as filed; all three hypotheses closed anyway (one was a real font-scale defect) |
+| `HijriCalendar-Issue2-adjusted-today-indicator.md` | Filled circle on the unadjusted day | Both parts shipped — `isToday` moved into `calendar-core`, selection normalized at construction |
+| `HijriCalendar-Issue3-urdu-month-names.md` | No localization API | Shipped as `UI-10`, with three label fields the original proposal had not foreseen |
+
 | File | Title | Blocks | Blocked by |
 |---|---|---|---|
 | `UI-01-scoped-overrides-ignored.md` | Pass `overrides` through every render path | 6 | — |
@@ -394,10 +420,10 @@ the `HijriCalendar-Issue{N}-*` files are pre-existing consumer-bug reports and a
 | `UI-05-pager-window-crash.md` | Derive a pager window that cannot invert or crash | 6 | — |
 | `UI-06-public-surface-and-docs.md` | Narrow the surface; KDoc + README | — | 1, 3, 4, 5, 7, 9 |
 | `UI-07-previews-out-of-abi.md` | Previews out of the published artifact | 6 | — |
-| `UI-08-touch-feedback.md` | Restore press feedback; un-`public` the modifiers | — | — |
+| `UI-08-touch-feedback.md` | Restore press feedback; un-`public` the modifiers | — | — · **shipped** |
 | `UI-09-pager-effect-sync.md` | Synchronise the two pager effects; fix restore | 6 | 2, 5 |
 | `UI-10-localization-completion.md` | Localizable header text and a11y strings | — | — |
-| `UI-11-stability-honesty.md` | Fix the unsound `@Immutable` | — | — |
+| `UI-11-stability-honesty.md` | ~~Fix the unsound `@Immutable`~~ — **withdrawn** | — | — |
 | `UI-12-day-cell-decomposition.md` | Split the day cell's colour resolution | — | — |
-| `UI-13-dependency-hygiene.md` | Drop `material-icons-extended`; align versions | — | — |
+| `UI-13-dependency-hygiene.md` | Drop `material-icons-extended`; align versions | — | — · **shipped** |
 | `UI-14-stale-detekt-baseline.md` | Regenerate `baseline-calendar-ui.xml` | — | 12 |

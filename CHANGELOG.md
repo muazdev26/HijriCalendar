@@ -63,6 +63,23 @@ Remediation of the `calendar-core` architecture review — see
   the header's range against the cells actually painted, and the pager's page against the state's
   month in both directions — which is the gap the pre-existing suite left. No public API change.
   ([UI-02](docs/issues/UI-02-compose-test-harness.md))
+- **`calendar-ui` no longer depends on `material-icons-extended`.** It was declared for two
+  `AutoMirrored` arrow glyphs that live in `material-icons-core` — which `compose.material3` already
+  brings in — and it was pinned to **1.7.3** while the rest of Compose resolved from 1.12.0, so a
+  published artifact mixed two release trains and dragged `material-icons-core:1.7.3` with it. The
+  arrows are now drawn by `NavChevron`, so the module has no icon dependency on either artifact.
+  Dependency removal only; no public API change.
+  ([UI-13](docs/issues/UI-13-dependency-hygiene.md))
+
+### Internal
+
+- **`check-doc-versions.sh` enforces Compose catalog coherence.** Every `org.jetbrains.compose.*`
+  entry must resolve from `composeMultiplatform`; `androidx.compose.*` keeps an explicit
+  allow-list of version-less BOM-managed entries. This is the only gate that can catch a transitive
+  regression of the kind above — `apiCheck` is signature-only and `detekt` does not read the
+  catalog. Note the check as first written passed when the original defect was re-injected, because
+  it asked only whether an entry *had* a version; it now asserts which train the version comes from.
+  ([UI-13](docs/issues/UI-13-dependency-hygiene.md))
 
 ### Breaking
 
@@ -98,6 +115,25 @@ Remediation of the `calendar-core` architecture review — see
 
 ### Fixed
 
+- **Changing a setting no longer left the grid showing the previous month.** Each pager page cached
+  its built `CalendarMonth` in a `remember` keyed on the month alone, so `adjustmentDays`,
+  `pakistanDates`, the selection and the month-length override table all changed the state without
+  changing anything on screen — `isSelected`, `isToday`, `isDisabled` and `isCurrentMonth` are
+  constructor fields baked in at build time, so nothing downstream could notice. Pages now derive
+  their month instead. Introduced by the UI-03 refactor, which replaced a hand-maintained 11-key
+  `remember` list that omitted `monthLengths` (UI-01) with a single key that is always incomplete.
+- **Forcing a month end had no effect in Pakistan (Ruet-e-Hilal) mode.** Two independent defects.
+  `HijriCalendarState.calendarMonth` observed the override table's revision but `calendarMonthFor`,
+  which the pager calls for every page, did not, so no page recomputed. Separately, the Pakistan
+  builder converted each cell with `PakistanHijriCalendar.gregorianToHijri(shifted)` *without*
+  `overrides`, silently falling back to the process-global default while the same function's
+  start-anchor call honoured the passed table — so a **scoped** `HijriMonthLengths` produced a grid
+  whose anchor and cells came from two different calendars. Invisible to every existing test, all of
+  which drive the process global, where the default and the explicit argument are the same object.
+  The header's Gregorian extent had the same omission.
+- **The sample's selected-date card reported "No date selected" whenever a month-length override was
+  in force.** `selectDay` routes selection to observed space in that case, and the card read only the
+  Umm al-Qura and Pakistan holders.
 - **Day cells had no press feedback at all.** Every one of the 42 cells passed `indication = null`
   to `clickable`, so a tap on a 48dp target produced nothing until the selection state changed —
   fast enough to read as "the tap did nothing". Day cells now get Material's default indication,
