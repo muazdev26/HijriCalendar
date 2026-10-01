@@ -4,10 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -74,10 +70,18 @@ public fun HijriCalendarHeader(
             onClick = onPreviousMonth,
             enabled = canGoToPreviousMonth,
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            // pointingForward = false is the *logical* "previous" direction, so the glyph mirrors
+            // with the layout exactly as Icons.AutoMirrored would.
+            // IconButton merges descendants, so the label on the chevron is announced once, as the
+            // action -- the same arrangement the material icons used.
+            NavChevron(
+                pointingForward = false,
                 contentDescription = labels.previousMonthContentDescription,
-                tint = if (canGoToPreviousMonth) colors.navigationIconColor else colors.navigationIconColor.copy(alpha = 0.38f),
+                color = if (canGoToPreviousMonth) {
+                    colors.navigationIconColor
+                } else {
+                    colors.navigationIconColor.copy(alpha = 0.38f)
+                },
             )
         }
 
@@ -105,10 +109,14 @@ public fun HijriCalendarHeader(
             onClick = onNextMonth,
             enabled = canGoToNextMonth,
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            NavChevron(
+                pointingForward = true,
                 contentDescription = labels.nextMonthContentDescription,
-                tint = if (canGoToNextMonth) colors.navigationIconColor else colors.navigationIconColor.copy(alpha = 0.38f),
+                color = if (canGoToNextMonth) {
+                    colors.navigationIconColor
+                } else {
+                    colors.navigationIconColor.copy(alpha = 0.38f)
+                },
             )
         }
     }

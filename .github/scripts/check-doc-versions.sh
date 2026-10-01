@@ -62,6 +62,76 @@ read_publish_version() {
     "build-logic/src/main/kotlin/hijri.publish.gradle.kts" | head -1
 }
 
+# Compose artifacts must not sit on their own version inside one release train.
+#
+# The failure this exists to catch: material-icons-extended was pinned to 1.7.3 while everything else
+# resolved from Compose 1.12.0, five minors apart, in a *published* artifact -- and it still compiled,
+# so nothing noticed until the ticket asked. See UI-13.
+#
+# A version-less entry is legitimate only when it is always consumed alongside a platform/BOM, which
+# is how the androidx.compose.* entries below are used. Those are allow-listed rather than inferred,
+# so adding a new version-less entry is a deliberate act rather than something the check silently
+# tolerates.
+BOM_MANAGED_COMPOSE_ENTRIES=(
+  androidx-compose-bom          # the BOM itself
+  androidx-compose-material3    # version from compose-bom
+  androidx-compose-ui           # version from compose-bom
+  androidx-compose-foundation   # version from compose-bom
+  androidx-compose-ui-test-junit4    # version from compose-bom
+  androidx-compose-ui-test-manifest  # version from compose-bom
+)
+
+is_bom_managed() {
+  local candidate="$1" entry
+  for entry in "${BOM_MANAGED_COMPOSE_ENTRIES[@]}"; do
+    [[ "$candidate" == "$entry" ]] && return 0
+  done
+  return 1
+}
+
+# The Compose *platform* train is `composeMultiplatform`. Every org.jetbrains.compose.* artifact
+# must resolve from it, either directly or through a shared `version.ref = "composeMultiplatform"`
+# indirection (the `compose.*` aliases in the catalog). Anything else means a second train on the
+# graph, which is the defect UI-13 describes.
+#
+# Note what is deliberately NOT allowed: a bare `version = "1.7.3"`, or a `version.ref` to some
+# other key in this file. Both resolve, both compile, and both were invisible to a check that only
+# asked "is there a version at all" -- the pin this check was written for had exactly that shape.
+diverging_compose_entries() {
+  LC_ALL=C grep -E "^[a-zA-Z0-9-]+[[:space:]]*=.*org\.jetbrains\.compose" "$CATALOG" \
+    | LC_ALL=C grep -v 'version\.ref[[:space:]]*=[[:space:]]*"composeMultiplatform"' \
+    | LC_ALL=C sed -E 's/^([a-zA-Z0-9-]+).*/\1/'
+}
+
+check_catalog_coherence() {
+  local offenders="" line name
+
+  # 1. org.jetbrains.compose.* on its own version.
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    offenders+="  $line  -- org.jetbrains.compose artifact not on the composeMultiplatform train"$'\n'
+  done < <(diverging_compose_entries)
+
+  # 2. A Compose artifact with no version at all, beyond the BOM allow-list.
+  while IFS= read -r line; do
+    name=$(printf '%s' "$line" | LC_ALL=C sed -E 's/^([a-zA-Z0-9-]+).*/\1/')
+    is_bom_managed "$name" && continue
+    offenders+="  $name  -- no version, and not on the BOM allow-list"$'\n'
+  done < <(LC_ALL=C grep -E "^[a-zA-Z0-9-]+[[:space:]]*=.*(org\.jetbrains\.compose|androidx\.compose)" "$CATALOG" \
+             | LC_ALL=C grep -v "version\.ref\|version =\|version\.toml")
+
+  if [[ -n "$offenders" ]]; then
+    echo "error: $CATALOG has Compose artifacts outside the single Compose release train:" >&2
+    printf '%s' "$offenders" >&2
+    echo "  -- point it at version.ref = \"composeMultiplatform\" (directly or via a compose.*" >&2
+    echo "     alias), or add it to BOM_MANAGED_COMPOSE_ENTRIES with a note on why the BOM covers" >&2
+    echo "     it. A second train in a published artifact is a consumer's problem; see UI-13." >&2
+    status=1
+  else
+    echo "ok:   every Compose artifact in $CATALOG is on the composeMultiplatform train or BOM-managed"
+  fi
+}
+
 echo "Checking hand-written version claims against $CATALOG, $WRAPPER and build-logic"
 
 check_doc_claim "AGENTS.md" "Kotlin" "$(read_catalog kotlin)" \
@@ -78,5 +148,7 @@ check_doc_claim "AGENTS.md" "Gradle wrapper" "$(read_wrapper)" \
 
 check_doc_claim "AGENTS.md" "publish version" "$(read_publish_version)" \
   "version \`$(read_publish_version | sed 's/\./\\./g')\`"
+
+check_catalog_coherence
 
 exit "$status"

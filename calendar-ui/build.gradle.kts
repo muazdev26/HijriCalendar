@@ -11,7 +11,6 @@ kotlin {
             api(projects.calendarCore)
             implementation(libs.hijrah.datetime)
             implementation(libs.kotlinx.datetime)
-            implementation(libs.material.icons.extended)
         }
         // Previews live in androidMain, so the @Preview annotation is an androidMain dependency
         // rather than a commonMain one. It used to be commonMain, which put an annotation from a

@@ -1,6 +1,7 @@
 # Issue 13: `material-icons-extended` on a stale release train
 
 **Severity:** Low
+**Status:** Shipped — see "Shipped" below.
 **Blocks:** —
 **Blocked by:** —
 **Module:** `calendar-ui`, `gradle/libs.versions.toml`
@@ -66,11 +67,40 @@ existing script instead of adding a second one.
 
 ## Done when
 
-- [ ] `rg "material.icons" calendar-ui/build.gradle.kts` returns nothing
-- [ ] `:calendar-ui:compileKotlinDesktop` and `:calendar-ui:compileKotlinIosArm64` succeed
-- [ ] `check-doc-versions.sh` fails if a `org.jetbrains.compose.*` entry diverges from
+- [x] `rg "material.icons" calendar-ui/build.gradle.kts` returns nothing
+- [x] `:calendar-ui:compileKotlinDesktop` and `:calendar-ui:compileKotlinIosArm64` succeed
+- [x] `check-doc-versions.sh` fails if a `org.jetbrains.compose.*` entry diverges from
       `composeMultiplatform` without being allow-listed
-- [ ] `CHANGELOG.md` notes the removed dependency
+- [x] `CHANGELOG.md` notes the removed dependency
+
+## Shipped
+
+The dependency is gone and nothing replaced it but ~100 lines of drawing code.
+
+- **The two arrows are now `NavChevron.kt`.** Rather than depend on `material-icons-core` for two
+  glyphs — which is how the 1.7.3 pin arrived in the first place, since `extended` was declared for
+  icons that live in `core` — the module draws the chevron itself with `Path`/`drawLine`, mirrored
+  from a single `rtl` flag. `core` is on the classpath transitively via `compose.material3` and
+  would have compiled, so this is a deliberate choice over the cheaper fix: the library now has **no**
+  icon dependency on either artifact, which is what the ticket's own point 2 asks for. Its KDoc
+  records the RTL reasoning the `AutoMirrored` semantics used to supply.
+- **`NavChevron` is a `Canvas` with a stable intrinsic size**, so the 48dp touch target from
+  [UI-08](UI-08-touch-feedback.md) is unchanged; only the glyph inside it moved.
+- **The catalog coherence check is real, and it was not on the first attempt.** The check shipped
+  alongside the fix and was verified by re-injecting the original defect — and it **passed**. The
+  filter asked "does this line mention a version at all", and the defect's two shapes both mention
+  one: `version = "1.7.3"` inline, or a `version.ref` to a separate `materialIconsExtended` key.
+  A check written from the ticket's wording ("every entry is *versioned*") cannot catch the bug the
+  same ticket is about. It now asserts the stricter property — every `org.jetbrains.compose.*`
+  entry resolves from `composeMultiplatform`, so a bare version or a foreign `version.ref` both
+  fail — and both shapes were confirmed to `exit 1`. `androidx.compose.*` keeps the version-less
+  BOM allow-list, which is a different mechanism and still legitimate.
+
+**A note on the mechanism.** The version check is worth more than the dependency removal: it is the
+only gate in the repo that would notice a *transitive* regression, since `apiCheck` is
+signature-only, `detekt` does not read the catalog, and the `material-icons-extended` graph was
+itself benign enough to compile and pass everything. It generalises the existing script rather than
+adding a second one, per the ticket's point 3.
 
 ## Notes
 
