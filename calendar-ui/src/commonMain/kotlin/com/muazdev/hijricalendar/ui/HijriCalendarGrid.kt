@@ -11,6 +11,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -141,13 +143,27 @@ internal fun HijriCalendarGrid(
             modifier = Modifier.fillMaxWidth(),
         ) { page ->
             val month = initialMonth.plusPageOffset(window.offsetOf(page))
-            // Keyed on `month` alone, and that is safe *because* calendarMonthFor reads every
-            // other input from inside the state, which is @Stable: any change to the selection, the
-            // bounds, adjustmentDays, the calendar space or the override table invalidates the
-            // state's derived state and this read recomputes with it. The previous 11-key
-            // remember list had to be maintained by hand against HijriCalendarState's surface,
-            // and silently dropped monthLengths — see UI-01.
-            val calMonth = remember(month) { state.calendarMonthFor(month) }
+            // `derivedStateOf`, not `remember`, and the distinction is the whole point.
+            //
+            // `remember(month) { state.calendarMonthFor(month) }` caches on the key alone. Reading
+            // state *inside* a remember calculation does register a snapshot dependency, so the
+            // enclosing scope is invalidated when the selection, bounds, adjustmentDays, the
+            // calendar space or the override table change — but recomposition then finds `month`
+            // unchanged, skips the calculation, and hands the stale CalendarMonth straight back.
+            // Every flag the cells paint (isSelected, isToday, isDisabled, isCurrentMonth) is a
+            // constructor val baked in at build time, so nothing downstream can notice.
+            //
+            // The earlier version of this line used an 11-key remember list, maintained by hand
+            // against HijriCalendarState's surface, which silently dropped monthLengths — that was
+            // UI-01. Collapsing the list to one key fixed the *maintenance* half and introduced this
+            // staleness: a hand-maintained list can be incomplete, but a single key is always
+            // wrong. `derivedStateOf` is the primitive that is actually correct here — it caches,
+            // and it re-runs when any state it read during the previous run changes. The key stays
+            // `month` because a different month is a different derived state, not a cache miss.
+            //
+            // Verified by SettingsReflectIntoGridTest, which fails against the `remember` form:
+            // the state reports today as 1448-04-21 while the painted cell still reads 1448-04-20.
+            val calMonth by remember(month) { derivedStateOf { state.calendarMonthFor(month) } }
             MonthGrid(
                 days = calMonth.days,
                 onDayClick = onDayClick,

@@ -1,7 +1,10 @@
 package com.muazdev.hijricalendar.core
 
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -92,5 +95,95 @@ class PakistanCalendarMonthTest {
                 assertEquals(next(a), b, "adjusted grid must stay gapless (adj=$adjustment): $a -> $b")
             }
         }
+    }
+}
+
+/**
+ * A **scoped** override table must drive every cell of a Pakistan grid.
+ *
+ * The bug this covers was invisible to every other test because they all drive the process-global
+ * table, where the default argument and the explicit argument are the same object. With a scoped
+ * table the per-cell `gregorianToHijri` call was falling back to `HijriMonthOverrides.current`, so
+ * the cells were converted against a different calendar than the month's start anchor — which *did*
+ * honour the scoped table. The grid was internally inconsistent: right anchor, wrong days.
+ *
+ * The month is searched for rather than hardcoded, because forcing a month to the length it already
+ * has is a no-op and the test would pass while proving nothing.
+ */
+class PakistanScopedOverrideTest {
+
+    private fun discriminatingMonth(): Pair<HijrahYearMonth, Int> {
+        val empty = HijriMonthLengths()
+        for (year in 1445..1450) {
+            for (month in 1..12) {
+                val natural = PakistanHijriCalendar.lengthOfMonth(year, month, empty)
+                if (natural != 30) return HijrahYearMonth(year, month) to natural
+            }
+        }
+        error("no Pakistan month in 1445..1450 is not 30 days long")
+    }
+
+    @Test
+    fun scopedTableDrivesEveryCellOfTheGrid() {
+        val (ym, natural) = discriminatingMonth()
+        val scoped = HijriMonthLengths().apply { setMonthLength(ym.year, ym.month.number, 30) }
+
+        val month = ym.toCalendarMonth(pakistan = true, overrides = scoped)
+
+        val painted = month.days
+            .filter { it.pakistanDate?.year == ym.year && it.pakistanDate?.month == ym.month.number }
+            .mapNotNull { it.pakistanDate?.day }
+
+        assertEquals(
+            (1..30).toList(),
+            painted,
+            "a scoped table must set the cell count for a naturally-$natural month",
+        )
+        // The grid stays gapless: consecutive real-world days, no duplicate Pakistani dates.
+        val all = month.days.mapNotNull { it.pakistanDate }
+        assertEquals(all.size, all.distinct().size, "no Pakistani date may repeat across the grid")
+    }
+
+    @Test
+    fun theProcessGlobalTableIsUntouchedByAScopedBuild() {
+        val (ym, _) = discriminatingMonth()
+        val before = HijriMonthOverrides.all().toMap()
+        val scoped = HijriMonthLengths().apply { setMonthLength(ym.year, ym.month.number, 30) }
+
+        ym.toCalendarMonth(pakistan = true, overrides = scoped)
+
+        assertEquals(
+            before,
+            HijriMonthOverrides.all().toMap(),
+            "building with a scoped table must not mutate the process-global default",
+        )
+    }
+
+    @Test
+    fun gregorianRangeHonoursTheScopedTable() {
+        val (ym, natural) = discriminatingMonth()
+        val scoped = HijriMonthLengths().apply { setMonthLength(ym.year, ym.month.number, 30) }
+
+        val month = ym.toCalendarMonth(pakistan = true, overrides = scoped)
+
+        val naturalStart = PakistanHijriCalendar.hijriToGregorian(
+            ym.year,
+            ym.month.number,
+            1,
+            HijriMonthLengths(),
+        )
+        val naturalEnd = naturalStart.plus(natural - 1, DateTimeUnit.DAY)
+
+        assertEquals(
+            naturalStart,
+            month.gregorianFirstDay,
+            "the header's first day is unaffected by the month's length",
+        )
+        val extraDays = naturalEnd.daysUntil(month.gregorianLastDay)
+        assertEquals(
+            1,
+            extraDays,
+            "the header's extent must follow the forced length, one day past the natural end",
+        )
     }
 }

@@ -110,7 +110,12 @@ public fun HijrahYearMonth.toCalendarMonth(
         days = days.toImmutableList(),
         firstDayOfWeek = firstDayOfWeek,
         adjustmentDays = adjustmentDays,
-        gregorianRange = resolveGregorianMonthRange(year, month.number, adjustmentDays = adjustmentDays),
+        gregorianRange = resolveGregorianMonthRange(
+            year,
+            month.number,
+            adjustmentDays = adjustmentDays,
+            overrides = overrides,
+        ),
     )
 }
 
@@ -144,7 +149,12 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
     val days = (0 until CalendarMonth.TOTAL_DAYS).map { offset ->
         val anchor = gridStart.plus(offset, DateTimeUnit.DAY)
         val shifted = anchor.plus(adjustmentDays, DateTimeUnit.DAY)
-        val converted = PakistanHijriCalendar.gregorianToHijri(shifted)
+        // `overrides` is load-bearing here and was missing until UI-01's follow-up: it defaults to
+        // the process-global table, so with a *scoped* table every cell was converted against the
+        // wrong calendar while the month's start anchor (which does pass it) came from the right
+        // one. The result was a grid whose leading cells belonged to a different calendar than the
+        // month it was supposed to be showing.
+        val converted = PakistanHijriCalendar.gregorianToHijri(shifted, overrides)
 
         if (converted != null && converted.year in PakistanHijriCalendar.MIN_YEAR..PakistanHijriCalendar.MAX_YEAR) {
             CalendarDay(
@@ -179,6 +189,7 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
             month.number,
             pakistan = true,
             adjustmentDays = adjustmentDays,
+            overrides = overrides,
         ),
     )
 }
@@ -253,7 +264,12 @@ private fun HijrahYearMonth.toObservedCalendarMonth(
         days = days.toImmutableList(),
         firstDayOfWeek = firstDayOfWeek,
         adjustmentDays = adjustmentDays,
-        gregorianRange = resolveGregorianMonthRange(year, month.number, adjustmentDays = adjustmentDays),
+        gregorianRange = resolveGregorianMonthRange(
+            year,
+            month.number,
+            adjustmentDays = adjustmentDays,
+            overrides = overrides,
+        ),
     )
 }
 

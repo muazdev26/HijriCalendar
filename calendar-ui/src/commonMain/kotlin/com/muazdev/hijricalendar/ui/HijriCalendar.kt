@@ -126,10 +126,16 @@ public fun HijriCalendar(
         labels.gregorianMonthRangeLabel(range.first, range.last)
     }
 
-    // The current month's identity and weekday origin, used to label the header and to anchor the
-    // pager. The *cells* are not read here: HijriCalendarGrid builds each page through
-    // HijriCalendarState.calendarMonthFor, which is the one definition of how a month becomes cells.
-    val calendarMonth = state.calendarMonth
+    // A read whose only job is to subscribe this scope to the state's derived month, which is why it
+    // is a `val` and not a bare expression. HijriCalendarGrid builds each page through
+    // HijriCalendarState.calendarMonthFor — the one definition of how a month becomes cells — and each
+    // page derives its own, so nothing below needs the built month. What this buys is invalidation of
+    // the whole calendar subtree when the current month's identity or its override table changes,
+    // which the header's own remember keys do not fully cover.
+    //
+    // Do not delete it, or this scope stops observing the state. The suppression is for that reason.
+    @Suppress("UNUSED_VARIABLE")
+    val monthSubscription = state.calendarMonth
 
     // ── font scaling ───────────────────────────────────────────────────
     //

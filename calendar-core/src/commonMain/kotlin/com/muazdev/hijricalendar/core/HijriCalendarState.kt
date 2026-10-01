@@ -2,7 +2,6 @@ package com.muazdev.hijricalendar.core
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -152,12 +151,7 @@ public class HijriCalendarState(
     public val canGoToNextMonth: Boolean
         get() = _currentMonth.plusMonthOrNull(1)?.isNavigableWithin(minDate, maxDate) ?: false
 
-    public val calendarMonth: CalendarMonth by derivedStateOf {
-        // A plain read that establishes a snapshot dependency so the grid recomputes when
-        // user overrides change, even though overrides are not a Compose state themselves.
-        _overridesRevision
-        calendarMonthFor(_currentMonth)
-    }
+    public val calendarMonth: CalendarMonth get() = calendarMonthFor(_currentMonth)
 
     /**
      * The [CalendarMonth] grid this state would paint for [yearMonth], in its calendar space and
@@ -177,8 +171,20 @@ public class HijriCalendarState(
      * @param yearMonth any month in the supported range, not only [currentMonth] — a pager builds
      *   the pages either side of the visible one.
      */
-    public fun calendarMonthFor(yearMonth: HijrahYearMonth): CalendarMonth =
-        yearMonth.toCalendarMonth(
+    public fun calendarMonthFor(yearMonth: HijrahYearMonth): CalendarMonth {
+        // Establishes a snapshot dependency on the override table. `HijriMonthLengths` is not a
+        // Compose state — it is a lock-free table that swaps an immutable image and bumps a revision
+        // — so without this read nothing observes an override change and the value below is never
+        // recomputed.
+        //
+        // This read belongs *here* rather than only in the [calendarMonth] property because the
+        // pager does not use [calendarMonth]: it builds the visible page and its two neighbours
+        // through this function. When the revision lived only on the property, `calendarMonth`
+        // reported a freshly-overridden month while every painted page kept serving the month built
+        // before the change — the state and the screen disagreed, which is the exact failure mode
+        // UI-01 documented. Verified by PakistanMonthEndOverrideTest in `calendar-ui`.
+        _overridesRevision
+        return yearMonth.toCalendarMonth(
             overrides = monthLengths,
             firstDayOfWeek = firstDayOfWeek,
             selectedDate = _selectedDate,
@@ -190,6 +196,7 @@ public class HijriCalendarState(
             pakistan = pakistanDates,
             weekendDays = weekendDays,
         )
+    }
 
     /**
      * The real-world Gregorian extent of [yearMonth] as a header would describe it, resolved

@@ -21,17 +21,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.muazdev.hijricalendar.ui.DateDisplayMode
-import com.muazdev.hijricalendar.core.HijriCalendarState
-import com.muazdev.hijricalendar.core.PakistanHijriCalendar
-import com.muazdev.hijricalendar.core.ObservedHijriCalendar
-import com.muazdev.hijricalendar.core.rememberHijriCalendarState
-import com.muazdev.hijricalendar.ui.HijriCalendar
-import com.muazdev.hijricalendar.ui.HijriCalendarLabels
-import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import com.abdulrahman_b.hijrahdatetime.HijrahMonth
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.core.CalendarNames
+import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.ObservedHijriCalendar
+import com.muazdev.hijricalendar.core.PakistanHijriCalendar
+import com.muazdev.hijricalendar.core.rememberHijriCalendarState
+import com.muazdev.hijricalendar.ui.DateDisplayMode
+import com.muazdev.hijricalendar.ui.HijriCalendar
+import com.muazdev.hijricalendar.ui.HijriCalendarLabels
+import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
 
@@ -52,33 +53,25 @@ fun CalendarScreen(
     showMonthLengthSettings: Boolean = false,
     onMonthLengthOverridesChanged: (() -> Unit)? = null,
 ) {
+    // Selection lives in one of three spaces, and which one is not a free choice the caller makes:
+    // `selectDay` routes to observed space whenever a month-length override is in force, because a
+    // day past the calculated length has no Umm al-Qura coordinate. So reading only the first two
+    // made the summary say "No date selected" while the grid right above it highlighted the day —
+    // the same class of bug the UI review fixed in the grid. `pakistanDates` is keyed explicitly
+    // because switching spaces moves the selection between holders.
     val selectedDate = state.selectedDate
     val pakistanDate = state.selectedPakistanDate
+    val observedDate = state.selectedObservedDate
 
-    val selectedDateText = remember(selectedDate, pakistanDate, dateDisplayMode, state.adjustmentDays) {
-        when {
-            pakistanDate != null -> {
-                val hijriText = "${pakistanDate.day} ${HijrahMonth.entries[pakistanDate.month - 1].name} ${pakistanDate.year}"
-                val gregorianDate = pakistanDate.localDate.minus(state.adjustmentDays, DateTimeUnit.DAY)
-                val gregorianText = "${gregorianDate.day} ${gregorianDate.month.name} ${gregorianDate.year}"
-                when (dateDisplayMode) {
-                    DateDisplayMode.HIJRI_ONLY -> hijriText
-                    DateDisplayMode.GREGORIAN_ONLY -> gregorianText
-                    DateDisplayMode.BOTH -> "$hijriText\n$gregorianText"
-                }
-            }
-            selectedDate != null -> {
-                val hijriText = "${selectedDate.day} ${selectedDate.month.name} ${selectedDate.year}"
-                val gregorianDate = selectedDate.toLocalDate().minus(state.adjustmentDays, DateTimeUnit.DAY)
-                val gregorianText = "${gregorianDate.day} ${gregorianDate.month.name} ${gregorianDate.year}"
-                when (dateDisplayMode) {
-                    DateDisplayMode.HIJRI_ONLY -> hijriText
-                    DateDisplayMode.GREGORIAN_ONLY -> gregorianText
-                    DateDisplayMode.BOTH -> "$hijriText\n$gregorianText"
-                }
-            }
-            else -> null
-        }
+    val selectedDateText = remember(
+        selectedDate,
+        pakistanDate,
+        observedDate,
+        state.pakistanDates,
+        dateDisplayMode,
+        state.adjustmentDays,
+    ) {
+        selectedDateSummary(state, dateDisplayMode)
     }
 
     Column(
@@ -153,6 +146,47 @@ fun CalendarScreen(
             androidx.compose.material3.Button(onClick = onJumpToToday) {
                 Text("Jump to Today")
             }
+        }
+    }
+}
+
+/**
+ * The selected-date card's text, or null when nothing is selected.
+ *
+ * Selection lives in one of three spaces and the caller does not choose which: `selectDay` routes to
+ * observed space whenever a month-length override is in force, because a day past a month's
+ * calculated length has no Umm al-Qura coordinate to land on. An earlier version of this read only
+ * `selectedDate` and `selectedPakistanDate`, so the moment the sample's month-length panel was used
+ * the card reported "No date selected" while the grid directly above it highlighted the day.
+ *
+ * Observed space comes first for the same reason. Its `month` is an `Int`, so the name comes from the
+ * shared [CalendarNames] list — which is also what keeps this card and the calendar header spelling a
+ * month identically.
+ *
+ * All three spaces agree on the real-world day, so the Gregorian half is computed once. The
+ * adjustment is subtracted because `localDate` is already in adjusted space.
+ */
+private fun selectedDateSummary(state: HijriCalendarState, mode: DateDisplayMode): String? {
+    val observed = state.selectedObservedDate
+    val pakistan = state.selectedPakistanDate
+    val plain = state.selectedDate
+
+    val hijri = observed?.let { "${it.day} ${CalendarNames.englishHijriMonths[it.month - 1]} ${it.year}" }
+        ?: pakistan?.let { "${it.day} ${HijrahMonth.entries[it.month - 1].name} ${it.year}" }
+        ?: plain?.let { "${it.day} ${it.month.name} ${it.year}" }
+    val gregorianDay = observed?.localDate ?: pakistan?.localDate ?: plain?.toLocalDate()
+    val gregorian = gregorianDay?.let {
+        val real = it.minus(state.adjustmentDays, DateTimeUnit.DAY)
+        "${real.day} ${real.month.name} ${real.year}"
+    }
+
+    return if (hijri == null || gregorian == null) {
+        null
+    } else {
+        when (mode) {
+            DateDisplayMode.HIJRI_ONLY -> hijri
+            DateDisplayMode.GREGORIAN_ONLY -> gregorian
+            DateDisplayMode.BOTH -> "$hijri\n$gregorian"
         }
     }
 }
