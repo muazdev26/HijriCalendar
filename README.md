@@ -546,58 +546,14 @@ dependencies {
 }
 ```
 
-2. Declare the widget receivers in your manifest. The widget-info XMLs are provided by the
-   library (they ship without `android:configure`, so the widgets work out of the box), so only
-   the `<receiver>` wrappers are needed:
+2. **Nothing to declare.** The library's manifest declares all four widget `<receiver>` elements
+   with their `APPWIDGET_UPDATE` filters and provider meta-data, so the widgets appear in the picker
+   as soon as the dependency is added. The widget-info XMLs also ship without `android:configure`,
+   so they work out of the box on defaults.
 
-```xml
-<receiver
-    android:name="com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/hijri_calendar_widget_info" />
-</receiver>
-
-<receiver
-    android:name="com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver"
-    android:label="@string/hijri_today_widget_label"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/hijri_today_widget_info" />
-</receiver>
-
-<receiver
-    android:name="com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver"
-    android:label="@string/hijri_date_widget_label"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/hijri_date_widget_info" />
-</receiver>
-
-<receiver
-    android:name="com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver"
-    android:label="@string/gregorian_date_widget_label"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/gregorian_date_widget_info" />
-</receiver>
-```
+   To route long-press into a settings screen of your own, override the provider info in *your*
+   `res/xml/` (not the manifest) — see step 5. Manifest merging resolves the library's
+   `@xml/<name>` references to your copies.
 
 3. In your `Application`, start the refresh machinery and warm the Pakistan calendar so taps
    never block on the century-table build:

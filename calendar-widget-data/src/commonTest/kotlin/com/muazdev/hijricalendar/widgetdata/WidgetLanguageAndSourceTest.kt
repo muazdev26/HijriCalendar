@@ -22,14 +22,14 @@ class WidgetLanguageAndSourceTest {
     private fun monthData(
         language: WidgetLanguage,
         source: WidgetSource = WidgetSource.CALCULATION,
-        firstDayOfWeekIndex: Int = WeekDay.DEFAULT_FIRST_DAY.index,
+        weekStart: WeekStart = WeekStart.DEFAULT,
         rightToLeft: Boolean = language.isRtl,
     ): HijriMonthWidgetData = assertNotNull(
         buildHijriMonthWidgetData(
             hijriYear = year,
             hijriMonth = month,
             adjustmentDays = 0,
-            firstDayOfWeekIndex = firstDayOfWeekIndex,
+            weekStart = weekStart,
             numeralStyle = WidgetLocalization.defaultNumeralStyle(language),
             pakistan = source.pakistan,
             rightToLeft = rightToLeft,

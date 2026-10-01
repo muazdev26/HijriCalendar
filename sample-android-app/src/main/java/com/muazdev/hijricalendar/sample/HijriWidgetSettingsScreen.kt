@@ -41,6 +41,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshScheduler
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
+import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -297,7 +298,7 @@ internal fun HijriWidgetSettingsScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             WeekDay.entries.forEachIndexed { index, day ->
-                OutlinedButton(onClick = { update(options.copy(firstDayOfWeekIndex = index)) }) {
+                OutlinedButton(onClick = { update(options.copy(weekStart = WeekStart.fromIndex(index))) }) {
                     Text(day.shortName)
                 }
             }
@@ -308,16 +309,16 @@ internal fun HijriWidgetSettingsScreen(
             SectionTitle("Fixed month (optional)")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
-                    selected = options.pinnedYear == null,
+                    selected = options.pinned == null,
                     onClick = {
                         update(options.copy(pinnedYear = null, pinnedMonth = null))
                     },
                     label = { Text("Auto (follow today)") },
                 )
             }
-            if (options.pinnedYear != null && options.pinnedMonth != null) {
-                val pinnedYear = options.pinnedYear!!
-                val pinnedMonth = options.pinnedMonth!!
+            // Read as a unit: a stored half-pin is "not pinned" (WD-03), and splitting the check
+            // is what let the widget render a stored year against today's month.
+            options.pinned?.let { (pinnedYear, pinnedMonth) ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -339,13 +340,15 @@ internal fun HijriWidgetSettingsScreen(
                     )
                     OutlinedButton(onClick = { update(options.stepPinned(1)) }) { Text("▶") }
                 }
-            } else if (today != null) {
+            }
+            val todayNow = today
+            if (todayNow != null) {
                 OutlinedButton(
                     onClick = {
                         update(
                             options.copy(
-                                pinnedYear = today.hijriYear,
-                                pinnedMonth = today.hijriMonth
+                                pinnedYear = todayNow.hijriYear,
+                                pinnedMonth = todayNow.hijriMonth,
                             )
                         )
                     },
@@ -393,10 +396,9 @@ private fun WidgetOptions.withLanguage(language: WidgetLanguage): WidgetOptions 
 
 /** Steps the pinned month by [months], wrapping the year and no-oping outside the supported range. */
 private fun WidgetOptions.stepPinned(months: Int): WidgetOptions {
-    val year = pinnedYear ?: return this
-    val month = pinnedMonth ?: return this
+    val (year, month) = pinned ?: return this
     val next = offsetHijriMonth(year, month, months) ?: return this
-    return copy(pinnedYear = next.year, pinnedMonth = next.month.number)
+    return copy(pinnedYear = next.year, pinnedMonth = next.month)
 }
 
 private fun offsetLabel(offset: Int): String = when (offset) {

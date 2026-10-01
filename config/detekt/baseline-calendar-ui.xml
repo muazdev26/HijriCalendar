@@ -2,17 +2,12 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ArgumentListWrapping:HijriCalendarHeader.kt$(alpha = 0.38f)</ID>
     <ID>FinalNewline:HijriCalendarDayCellTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarDayCellTest.kt</ID>
     <ID>FinalNewline:HijriCalendarGridMathTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarGridMathTest.kt</ID>
-    <ID>FinalNewline:HijriCalendarRangeLabelTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarRangeLabelTest.kt</ID>
     <ID>ForEachOnRange:HijriCalendarGrid.kt$0 until CalendarMonth.DAYS_IN_WEEK</ID>
     <ID>ImportOrdering:PreviewData.kt$import com.muazdev.hijricalendar.core.CalendarDay import com.abdulrahman_b.hijrahdatetime.HijrahDate</ID>
-    <ID>ImportOrdering:Previews.kt$import androidx.compose.foundation.layout.Column import androidx.compose.foundation.layout.fillMaxWidth import androidx.compose.foundation.layout.padding import androidx.compose.foundation.shape.RoundedCornerShape import androidx.compose.material3.Card import androidx.compose.material3.CardDefaults import androidx.compose.material3.MaterialTheme import androidx.compose.material3.Surface import androidx.compose.material3.darkColorScheme import androidx.compose.runtime.Composable import androidx.compose.runtime.CompositionLocalProvider import androidx.compose.ui.Modifier import androidx.compose.ui.graphics.Color import androidx.compose.ui.platform.LocalLayoutDirection import androidx.compose.ui.unit.LayoutDirection import androidx.compose.ui.unit.dp import com.muazdev.hijricalendar.core.HijriCalendarState import com.muazdev.hijricalendar.core.UrduCalendarNames import com.muazdev.hijricalendar.ui.DateDisplayMode import com.muazdev.hijricalendar.core.WeekDay import com.muazdev.hijricalendar.ui.HijriCalendar import com.muazdev.hijricalendar.ui.HijriCalendarDayCell import com.muazdev.hijricalendar.ui.HijriCalendarHeader import com.muazdev.hijricalendar.ui.HijriCalendarLabels import com.muazdev.hijricalendar.ui.defaultOnDayClick import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth import androidx.compose.ui.tooling.preview.Preview</ID>
     <ID>LongParameterList:HijriCalendarGrid.kt$( days: List&lt;CalendarDay&gt;, onDayClick: (CalendarDay) -&gt; Unit, colors: HijriCalendarColors, useArabicIndicNumerals: Boolean, dateDisplayMode: DateDisplayMode, dayCellSize: Dp?, labels: HijriCalendarLabels, dayContent: (@Composable (CalendarDay) -&gt; Unit)?, )</ID>
-    <ID>MaximumLineLength:HijriCalendarHeader.kt$ </ID>
     <ID>NewLineAtEndOfFile:HijriCalendarDayCellTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarDayCellTest.kt</ID>
     <ID>NewLineAtEndOfFile:HijriCalendarGridMathTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarGridMathTest.kt</ID>
-    <ID>NewLineAtEndOfFile:HijriCalendarRangeLabelTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarRangeLabelTest.kt</ID>
   </CurrentIssues>
 </SmellBaseline>

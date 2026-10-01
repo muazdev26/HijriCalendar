@@ -104,9 +104,10 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
             val id = glanceId
             if (id != null) {
                 val previous = HijriWidgetConfig.load(this@HijriWidgetSettingsActivity, id)
-                val pinnedChanged =
-                    previous.pinnedYear != options.pinnedYear ||
-                            previous.pinnedMonth != options.pinnedMonth
+                // Compared as a unit, matching what the widget actually renders: a stored half-pin
+                // is "not pinned" (WD-03), so comparing the two fields independently would report a
+                // change where the rendered month did not move.
+                val pinnedChanged = previous.pinned != options.pinned
                 HijriWidgetConfig.save(this@HijriWidgetSettingsActivity, id, options)
                 // A pinned month is an explicit "show this month"; drop any transient on-widget
                 // navigation state so the grid honours the new pin (a no-op for the strip and the

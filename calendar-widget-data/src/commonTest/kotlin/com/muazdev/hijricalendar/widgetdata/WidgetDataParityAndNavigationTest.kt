@@ -3,6 +3,7 @@ package com.muazdev.hijricalendar.widgetdata
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarMonth
+import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.UrduCalendarNames
 import com.muazdev.hijricalendar.core.WeekDay
@@ -15,6 +16,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -23,6 +25,17 @@ import kotlin.test.assertTrue
  * Covers the "shared projection supports the full app calendar" behaviours: Pakistan
  * source parity with the in-app grid, configurable weekend sets, a fully localized today
  * card and the range-safe month-offset helper.
+ *
+ * **Which override table these tests exercise.** Every case here except
+ * [month_gridMatchesInAppCalendarCellForCell_underAScopedOverrideTable] runs against the
+ * **process-wide default** (`HijriMonthOverrides.current`), because they omit the `overrides`
+ * argument. That is the same trap UI-01 documents for `calendar-ui`: omitting an argument whose
+ * default is the global tests the global and looks like it tests the parameter. The scoped case is
+ * therefore a separate, explicitly-named test rather than a parameterised one — a reader can tell
+ * from the name which promise each test is making.
+ *
+ * WD-01 was invisible to this file for exactly that reason: every test here used the global, so no
+ * test could have failed while the widget read the global and the app read something else.
  */
 class WidgetDataParityAndNavigationTest {
 
@@ -35,6 +48,108 @@ class WidgetDataParityAndNavigationTest {
         value.toString().map { "٠١٢٣٤٥٦٧٨٩"[it.code - '0'.code] }.joinToString("")
 
     // ── Pakistan flag: cell-for-cell parity with the in-app calendar ─────────
+
+    /**
+     * WD-11: the regression guard for WD-01, and the only test in the module that pins the
+     * `overrides` parameter at all.
+     *
+     * WD-01 was that the projection read `HijriMonthOverrides.current` while the in-app calendar
+     * could be driven from a scoped `HijriMonthLengths`, so two calendars configured differently
+     * disagreed with no error anywhere. The existing parity test could not have caught it: it omits
+     * the argument, so it compares global-with-global.
+     *
+     * This test therefore constructs a **scoped** table — deliberately different from the process
+     * default — forces a month to a length the calculated table does not have, and asserts the two
+     * builders agree cell for cell. It also asserts that the grid *changed*, because the failure
+     * mode is a test that agrees because both sides ignored the table: two identical reads of the
+     * global would pass a pure-equality assertion.
+     *
+     * Run in both source modes, because Pakistan folds overrides into `lengthOfMonth` while
+     * non-Pakistan shifts the grid onto the observed calendar — the parameter is threaded through
+     * two different code paths, and only the shared one is covered by the assertion.
+     */
+    @Test
+    fun month_gridMatchesInAppCalendarCellForCell_underAScopedOverrideTable() {
+        val year = 1447
+        val month = 9
+        // Force the month to the length it does *not* already have, rather than hard-coding "30".
+        // The calculated length moves as the tables are corrected, and a hard-coded value that
+        // quietly became a no-op would make every assertion below pass while testing nothing —
+        // which is the same silent-pass failure this test exists to rule out.
+        val calculated = assertNotNull(
+            buildHijriMonthWidgetData(year, month, 0),
+            "default grid $year-$month",
+        ).days.count { it.isCurrentMonth }
+        val forced = if (calculated == 29) 30 else 29
+        val scoped = HijriMonthLengths(mapOf(year to month to forced))
+
+        for (pakistan in listOf(false, true)) {
+            val widgetWithTable = assertNotNull(
+                buildHijriMonthWidgetData(year, month, 0, pakistan = pakistan, overrides = scoped),
+                "widget grid $year-$month pakistan=$pakistan scoped",
+            )
+            val coreWithTable = assertNotNull(
+                HijrahYearMonth(year, month).toCalendarMonth(pakistan = pakistan, overrides = scoped),
+                "in-app grid $year-$month pakistan=$pakistan scoped",
+            )
+            val label = "$year-$month pakistan=$pakistan"
+
+            assertEquals(
+                coreWithTable.days.size,
+                widgetWithTable.days.size,
+                "grid length $label",
+            )
+            widgetWithTable.days.forEachIndexed { index, w ->
+                val cell = coreWithTable.days[index]
+                assertEquals(cell.dayOfMonth, w.hijriDay, "hijriDay cell $index of $label")
+                assertEquals(
+                    cell.localDate.toEpochDays(),
+                    w.gregorianEpochDay,
+                    "gregorianEpochDay cell $index of $label",
+                )
+            }
+
+            // The scoped table must actually have been read, or the equality above is two reads of
+            // the same global.
+            //
+            // Compared on `hijriDay`/`isCurrentMonth` rather than on the Gregorian epoch days, and
+            // that is not a stylistic choice. In observed (non-Pakistan) mode a 42-cell window is
+            // anchored to the month's *start*, so shortening the month by a day leaves every epoch
+            // day in the list unchanged — the 30th is dropped and the next month's 1st slides into
+            // the same slot, carrying the same date. The grid demonstrably changed (one fewer
+            // `isCurrentMonth` cell) while every date stayed put. An assertion on epoch days alone
+            // would have passed here without the override having been read at all, which is exactly
+            // the silent pass this test is meant to rule out. Pakistan mode does shift the dates,
+            // so a date-based probe would work there and fail to generalise — hence the projected
+            // identity, which differs in both.
+            val defaultGrid = assertNotNull(
+                buildHijriMonthWidgetData(year, month, 0, pakistan = pakistan),
+                "widget grid $year-$month pakistan=$pakistan default",
+            )
+            fun identity(grid: HijriMonthWidgetData) =
+                grid.days.map { it.hijriDay to it.isCurrentMonth }
+
+            assertNotEquals(
+                identity(defaultGrid),
+                identity(widgetWithTable),
+                "the scoped override did not move the widget grid $label",
+            )
+
+            // And the in-app side must agree with the *default* widget, i.e. the two sides are
+            // genuinely reading different tables rather than both ignoring the parameter.
+            val coreDefault = assertNotNull(
+                HijrahYearMonth(year, month).toCalendarMonth(pakistan = pakistan),
+                "in-app grid $year-$month pakistan=$pakistan default",
+            )
+            coreDefault.days.forEachIndexed { index, cell ->
+                assertEquals(
+                    cell.localDate.toEpochDays(),
+                    defaultGrid.days[index].gregorianEpochDay,
+                    "default gregorianEpochDay cell $index of $label",
+                )
+            }
+        }
+    }
 
     @Test
     fun month_gridMatchesInAppCalendarCellForCell() {
@@ -180,18 +295,18 @@ class WidgetDataParityAndNavigationTest {
 
     @Test
     fun offsetHijriMonth_stepsAcrossYearBoundary() {
-        assertEquals(HijrahYearMonth(1448, 1), offsetHijriMonth(1447, 12, 1))
-        assertEquals(HijrahYearMonth(1447, 12), offsetHijriMonth(1448, 1, -1))
+        assertEquals(HijriYearMonth(1448, 1), offsetHijriMonth(1447, 12, 1))
+        assertEquals(HijriYearMonth(1447, 12), offsetHijriMonth(1448, 1, -1))
         // Multiple months wrap more than one year.
-        assertEquals(HijrahYearMonth(1449, 1), offsetHijriMonth(1447, 12, 13))
-        assertEquals(HijrahYearMonth(1446, 12), offsetHijriMonth(1448, 1, -13))
+        assertEquals(HijriYearMonth(1449, 1), offsetHijriMonth(1447, 12, 13))
+        assertEquals(HijriYearMonth(1446, 12), offsetHijriMonth(1448, 1, -13))
     }
 
     @Test
     fun offsetHijriMonth_stepsWithinYear() {
-        assertEquals(HijrahYearMonth(1447, 9), offsetHijriMonth(1447, 9, 0))
-        assertEquals(HijrahYearMonth(1447, 11), offsetHijriMonth(1447, 9, 2))
-        assertEquals(HijrahYearMonth(1447, 7), offsetHijriMonth(1447, 9, -2))
+        assertEquals(HijriYearMonth(1447, 9), offsetHijriMonth(1447, 9, 0))
+        assertEquals(HijriYearMonth(1447, 11), offsetHijriMonth(1447, 9, 2))
+        assertEquals(HijriYearMonth(1447, 7), offsetHijriMonth(1447, 9, -2))
     }
 
     @Test

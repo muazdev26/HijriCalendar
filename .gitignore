@@ -31,3 +31,8 @@ local.properties
 /CONTRIBUTING.md
 
 .idea/
+
+# Throwaway consumer project for the resolution gate (.github/scripts/check-consumer-resolution.sh).
+# Its build outputs are disposable; the sources next to them are tracked.
+.github/consumer-check/build/
+.github/consumer-check/.gradle/

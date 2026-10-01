@@ -1,0 +1,100 @@
+# Public surface of `calendar-widget-glance` — 47 declarations.
+#
+# This module is in `apiValidation.ignoredProjects`, so `apiCheck` registers no dump task for it and
+# **no signature change here is visible to any gate**. This file is the substitute: the surface
+# becomes something a reviewer sees a diff of, instead of something nobody looks at. Checked by
+# `.github/scripts/check-widget-glance-surface.sh`.
+#
+# **Adding a line is a reviewed decision — write the reason next to it.** The list is deliberately
+# explicit rather than a count, because a count can be satisfied by removing one thing and adding
+# another; a list forces each name to be looked at.
+#
+# Two gates protect this module, and they catch different things:
+#   * `check-widget-glance-surface.sh` — this list. Catches an *added* declaration.
+#   * `check-consumer-resolution.sh` — compiles `.github/consumer-check` against the published
+#     artifact. Catches a *removed* one, and a dependency-scope mistake.
+# Neither catches a *changed signature*, and neither can: that is what `apiCheck` is for, and it does
+# not run here. CHANGELOG.md is therefore the only place a consumer learns about a signature change.
+
+# ── Widgets the picker shows. Four classes, four receivers (the receivers are declared in the
+# library manifest, WG-10), all `GlanceAppWidget`/`GlanceAppWidgetReceiver`. The receivers are public
+# because the manifest names them; a consumer overriding the provider info does not need the class.
+HijriCalendarWidget
+HijriCalendarWidgetReceiver
+HijriTodayWidget
+HijriTodayWidgetReceiver
+HijriDateWidget
+HijriDateWidgetReceiver
+GregorianDateWidget
+GregorianDateWidgetReceiver
+
+# ── Settings-screen integration: the library's headline consumer path. All four are @Composable and
+# take `androidx.compose.ui` types, which is why `compose-ui` is an `api` dependency (WG-01).
+HijriWidgetLivePreview
+HijriTodayWidgetLivePreview
+HijriDateWidgetLivePreview
+GregorianDateWidgetLivePreview
+
+# ── Refresh and scheduling, for a host app that drives its own lifecycle. `HijriWidgetRefresher` is
+# the single entry point; its KDoc explains the two independent bypass flags.
+HijriWidgetRefresher
+HijriWidgetRefresher.refreshAll
+HijriWidgetRefresher.refreshAllAsync
+HijriWidgetRefresher.refreshInstance
+HijriWidgetRefresher.refreshInstanceAsync
+HijriWidgetRefresher.scheduleCatchUp
+HijriWidgetRefreshScheduler
+HijriWidgetRefreshScheduler.schedule
+HijriWidgetRefreshScheduler.armMidnightAlarm
+HijriWidgetRefreshScheduler.todayEpochDay
+# Picker-preview publication, exposed so a host can regenerate previews after changing its own theme
+# or locale rather than waiting for the daily rate-limited pass.
+HijriWidgetPreviewPublisher
+HijriWidgetPreviewPublisher.publishIfDue
+HijriWidgetPreviewPublisher.publishIfDueAsync
+# Registers the foreground gate so a render is not attempted while the app is on screen, which is
+# what would stall the Glance session worker. A host with several activities needs this.
+HijriWidgetForegroundWatcher
+# Pre-builds the Pakistan century table so a first tap on the source pill is not the thing that pays
+# for it. Single-flight; safe to call from anywhere, which is why it is public.
+PakistanWarmUp
+PakistanWarmUp.ensureWarm
+
+# ── On-widget navigation callbacks. Public so a host's own Glance code can reuse them; the
+# library's own arrows reference them from HijriWidgetNavigation.
+HijriWidgetPrevMonthCallback
+HijriWidgetNextMonthCallback
+HijriWidgetTodayResetCallback
+
+# ── The widget's tap-through deep link, so a host can register the matching intent-filter without
+# hard-coding the string. README step 4.
+HIJRI_DEEP_LINK_TODAY
+
+# ── Configuration. `HijriWidgetConfig` is the module's public config API; its own KDoc documents
+# each group. The load/save pair, the family mirror the no-settings-screen widgets read, on-widget
+# viewed-month navigation, and the decoders the composition reads are all legitimately reachable.
+HijriWidgetConfig
+HijriWidgetConfig.DEFAULTS
+HijriWidgetConfig.load
+HijriWidgetConfig.save
+HijriWidgetConfig.saveFamily
+HijriWidgetConfig.loadFamily
+HijriWidgetConfig.hasFamily
+HijriWidgetConfig.loadViewedMonth
+HijriWidgetConfig.setViewedMonth
+HijriWidgetConfig.clearViewedMonth
+HijriWidgetConfig.widgetOptionsSaver
+HijriWidgetConfig.decodeOptions
+HijriWidgetConfig.decodeOptionsJson
+HijriWidgetConfig.decodeViewed
+# `migrateLegacyIfNeeded` is public only because the composition calls it before every read, on
+# Glance's own io dispatcher, without the surrounding `load` coroutine. It is idempotent and a no-op
+# after the first write. If that ever stops being true it should become internal.
+HijriWidgetConfig.migrateLegacyIfNeeded
+#
+# NOT here, and deliberately (WG-05): PREFS, markUpdatedNow, isFreshFor, markRefreshPending,
+# isRefreshPending, lastUpdatedEpochDay, lastPreviewPublishedEpochDay, markPreviewsPublishedNow.
+# Those are the switches that decide whether the widget updates. `markUpdatedNow(today)` called from
+# outside the module suppresses every non-bypassing refresh for the rest of the day, permanently,
+# with a log line reading "already refreshed". Every call site is inside this module, so they are
+# `internal` and there is no consumer that loses anything.

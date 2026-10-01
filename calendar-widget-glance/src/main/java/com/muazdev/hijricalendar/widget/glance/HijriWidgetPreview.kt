@@ -21,8 +21,9 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.compose
 import androidx.glance.appwidget.provideContent
-import kotlinx.coroutines.CancellationException
+import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
+import kotlinx.coroutines.CancellationException
 
 /**
  * The Context a Glance composition must run against, normalized to the application so a settings
@@ -46,7 +47,7 @@ private fun Context.glanceComposeContext(): Context = applicationContext
  */
 internal class HijriCalendarWidgetPreview(
     private val options: WidgetOptions,
-    private val viewedMonth: Pair<Int, Int>?,
+    private val viewedMonth: HijriYearMonth?,
 ) : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Exact
@@ -66,10 +67,10 @@ internal class HijriCalendarWidgetPreview(
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
                 colors = colors,
-                openAction = null,
-                prevAction = null,
-                nextAction = null,
-                resetAction = null,
+                language = options.language,
+                // Non-interactive by construction: the settings preview shows what the widget will
+                // look like, and tapping it must not open the app or move the real widget's month.
+                actions = WidgetActions(),
             )
         }
     }
@@ -88,7 +89,7 @@ internal class HijriCalendarWidgetPreview(
 @Composable
 public fun HijriWidgetLivePreview(
     options: WidgetOptions,
-    viewedMonth: Pair<Int, Int>?,
+    viewedMonth: HijriYearMonth?,
     size: DpSize,
     modifier: Modifier = Modifier,
 ) {
@@ -130,8 +131,11 @@ internal class HijriTodayWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val colors = WidgetColors.from(context)
+        // The stable preview id, never `id.toString()` (WG-04b): `compose()` mints a fresh random
+        // fake app-widget id per call, so keying on it inserted an entry no future read could ever
+        // hit — the settings screen grew the cache without bound and got nothing for the cost.
         val data = HijriWidgetRenderCache.today(
-            glanceId = id.toString(),
+            glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
@@ -140,6 +144,7 @@ internal class HijriTodayWidgetPreview(
                 today = data,
                 colors = colors,
                 openAction = null,
+                language = options.language,
                 layoutRtl = computeLayoutRtl(context, options.language),
             )
         }
@@ -191,8 +196,9 @@ internal class HijriDateWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val colors = WidgetColors.from(context)
+        // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
-            glanceId = id.toString(),
+            glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
@@ -202,6 +208,7 @@ internal class HijriDateWidgetPreview(
                 monthText = today?.hijriMonthName,
                 colors = colors,
                 openAction = null,
+                language = options.language,
             )
         }
     }
@@ -219,8 +226,9 @@ internal class GregorianDateWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val colors = WidgetColors.from(context)
+        // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
-            glanceId = id.toString(),
+            glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
@@ -230,6 +238,7 @@ internal class GregorianDateWidgetPreview(
                 monthText = today?.gregorianMonthName,
                 colors = colors,
                 openAction = null,
+                language = options.language,
             )
         }
     }

@@ -30,57 +30,13 @@
             </intent-filter>
         </activity>
 
-        <!-- Home-screen widget; the host/provider ID lives in res/xml. -->
-        <receiver
-            android:name="com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/hijri_calendar_widget_info" />
-        </receiver>
-
-        <!-- Fixed-size "today" strip widget. The sample overrides its provider info to point it at
-             its own configuration activity (the library declares none by default). -->
-        <receiver
-            android:name="com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver"
-            android:label="@string/hijri_today_widget_label"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/hijri_today_widget_info" />
-        </receiver>
-
-        <!-- Fixed 1x1 "Hijri Date" tile; follows the family options mirror. -->
-        <receiver
-            android:name="com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver"
-            android:label="@string/hijri_date_widget_label"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/hijri_date_widget_info" />
-        </receiver>
-
-        <!-- Fixed 1x1 "Gregorian Date" tile; follows the family options mirror. -->
-        <receiver
-            android:name="com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver"
-            android:label="@string/gregorian_date_widget_label"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/gregorian_date_widget_info" />
-        </receiver>
+        <!-- The four widget <receiver> elements are declared by calendar-widget-glance and merged
+             in from there (WG-10): AppWidgetManager discovers widgets by scanning the merged
+             manifest, so a library that omitted them would give a consumer no widget at all.
+             What the sample overrides is the provider *info* — its own res/xml copies below add
+             `android:configure` + `widgetFeatures` pointing at this app's configuration
+             activities. Resource merging resolves the library's `@xml/<name>` references to those
+             overrides, so nothing here has to re-declare a receiver. -->
 
         <!-- Widget catalog: add any of the app's widgets straight from the home screen. -->
         <activity

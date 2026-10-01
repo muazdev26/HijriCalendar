@@ -10,6 +10,66 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application>
+        <!-- Widget providers. Declared HERE so a consumer that adds the dependency gets the four
+             widgets in its picker without copying manifest XML: AppWidgetManager discovers widgets
+             by scanning the merged manifest for APPWIDGET_UPDATE receivers carrying the provider
+             meta-data, so a library that omits the <receiver> element contributes nothing and
+             requestPinAppWidget silently returns false.
+
+             Consumers MAY override @xml/<name> (in their own res/xml) to add `android:configure`
+             plus a configuration activity of their own; resource merging resolves the reference
+             below to the app's override, and a consumer that re-declares the receiver with the same
+             class name merges attributes with this declaration. The library ships NO configure
+             activity — that choice is deliberate and separate from owning the <receiver>. -->
+
+        <receiver
+            android:name=".HijriCalendarWidgetReceiver"
+            android:label="@string/hijri_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_calendar_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HijriTodayWidgetReceiver"
+            android:label="@string/hijri_today_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_today_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HijriDateWidgetReceiver"
+            android:label="@string/hijri_date_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_date_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".GregorianDateWidgetReceiver"
+            android:label="@string/gregorian_date_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gregorian_date_widget_info" />
+        </receiver>
+
         <!-- System-broadcast catch-up receiver provided by the library -->
         <receiver
             android:name=".HijriWidgetUpdateReceiver"

@@ -31,7 +31,7 @@ struct WidgetCatalogView: View {
     @State private var numeralStyle: NumeralStyle
     @State private var source: WidgetSource
     @State private var adjustmentDays: Int32
-    @State private var firstDayOfWeekIndex: Int32
+    @State private var weekStart: WeekStart
     @State private var pinsMonth: Bool
     @State private var pinnedYear: Int32
     @State private var pinnedMonth: Int32
@@ -44,13 +44,22 @@ struct WidgetCatalogView: View {
         _numeralStyle = State(initialValue: options.numeralStyle)
         _source = State(initialValue: options.source)
         _adjustmentDays = State(initialValue: options.adjustmentDays)
-        _firstDayOfWeekIndex = State(initialValue: options.firstDayOfWeekIndex)
+        _weekStart = State(initialValue: options.effectiveWeekStart)
         _pinsMonth = State(initialValue: options.isPinned)
-        _pinnedYear = State(initialValue: options.pinnedYear?.int32Value ?? 1447)
+        // The seed for a fresh pin. Not a *fallback* — the "Auto" chip is what clears the pin, and
+        // the user must be able to step a year in either direction from here (WD-07 removed the
+        // other hardcoded 1447, which stood in for a value the resolver should have been able to
+        // say it did not know).
+        _pinnedYear = State(initialValue: options.pinnedYear?.int32Value ?? Self.initialPinnedYear)
         _pinnedMonth = State(initialValue: options.pinnedMonth?.int32Value ?? 1)
     }
 
     /// The edited values as the shared options value the widgets will read.
+    ///
+    /// `overridesCsv` is not editable here — this screen has no month-length control yet — but it
+    /// is round-tripped through the shared codec rather than dropped, because `edited` *replaces*
+    /// the stored options wholesale and passing nil would silently wipe a configured override
+    /// every time the user tweaked an unrelated setting.
     private var edited: WidgetOptions {
         WidgetOptionsKt.createWidgetOptions(
             language: language,
@@ -58,12 +67,18 @@ struct WidgetCatalogView: View {
             source: source,
             adjustmentDays: adjustmentDays,
             numeralStyle: numeralStyle,
-            firstDayOfWeekIndex: firstDayOfWeekIndex,
+            weekStart: weekStart,
             pinsMonth: pinsMonth,
             pinnedYear: pinnedYear,
-            pinnedMonth: pinnedMonth
+            pinnedMonth: pinnedMonth,
+            overridesCsv: MonthLengthOverridesKt.encodeMonthLengthsCsv(
+                HijriShared.loadOptions().monthLengthOverrides
+            )
         )
     }
+
+    /// Where a new pin starts stepping from. A constant in one place, not a literal inline.
+    private static let initialPinnedYear: Int32 = 1447
 
     private static let weekdayNames = [
         "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
@@ -119,9 +134,12 @@ struct WidgetCatalogView: View {
                 }
 
                 Section {
-                    Picker("First day of week", selection: $firstDayOfWeekIndex) {
-                        ForEach(Array(Self.weekdayNames.enumerated()), id: \.offset) { index, name in
-                            Text(name).tag(Int32(index))
+                    Picker("First day of week", selection: $weekStart) {
+                        // Tagged by the enum, not by an index: the stored option is a name, and a
+                        // picker that speaks indices would reintroduce the ordinal hazard WD-05
+                        // removed.
+                        ForEach(WeekStart.allCases, id: \.self) { start in
+                            Text(Self.weekdayNames[start.dayOfWeek.index]).tag(start)
                         }
                     }
                 }
@@ -206,7 +224,7 @@ struct WidgetCatalogView: View {
         numeralStyle = options.numeralStyle
         source = options.source
         adjustmentDays = options.adjustmentDays
-        firstDayOfWeekIndex = options.firstDayOfWeekIndex
+        weekStart = options.effectiveWeekStart
         pinsMonth = options.isPinned
         if let year = options.pinnedYear { pinnedYear = year.int32Value }
         if let month = options.pinnedMonth { pinnedMonth = month.int32Value }

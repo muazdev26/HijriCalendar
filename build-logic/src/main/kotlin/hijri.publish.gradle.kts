@@ -55,6 +55,22 @@ mavenPublishing {
     }
 }
 
+// A scratch file repository for the consumer-resolution gate (docs/widgets/glance/WG-01).
+//
+// `calendar-widget-glance` publishes `androidx.compose.ui` as `api` because its public live-preview
+// composables take `Modifier`/`DpSize`, but nothing inside this build can observe that: the sample
+// app has its own Compose dependencies, so its compile classpath is complete and every in-repo
+// check stays green even when the scope is wrong. Only a *consumer* resolving the published POM
+// sees the defect. This repository is where the gate's throwaway consumer resolves from, so it is
+// added unconditionally rather than behind a property — the script wipes it on every run, and a
+// release run never selects this repository.
+extensions.configure<PublishingExtension>("publishing") {
+    repositories.maven {
+        name = "consumerCheck"
+        url = uri(rootProject.layout.buildDirectory.dir("consumer-repo").get().asFile)
+    }
+}
+
 // The AGP Kotlin Multiplatform plugin overwrites the target publication artifactIds (derived
 // from the project name) after the vanniktech plugin's own rename runs, so coordinates() alone
 // only renames the root metadata publication. Re-apply the rename once every project has

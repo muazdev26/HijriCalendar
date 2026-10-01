@@ -31,6 +31,36 @@ public object HijriWidgetRefreshScheduler {
     private const val WORK_NAME = "hijri_widget_daily_refresh"
     private const val ALARM_REQUEST_CODE = 4_101
 
+    /**
+     * `RTC_WAKEUP`, not `RTC` (WG-08).
+     *
+     * `RTC` fires only while the device is **awake**. A phone at local midnight is normally asleep,
+     * so a `RTC` midnight alarm does not fire at midnight — it fires at the next unlock, which is
+     * the "widget says yesterday when I pick up my phone in the morning" bug. This is also why the
+     * library declares `USE_EXACT_ALARM`: the permission exists for alarms that wake the device,
+     * and a rollover that cannot wake anything would not justify it.
+     *
+     * Both arms use it. An inexact `RTC_WAKEUP` still wakes the device, which is the property that
+     * matters; exactness is a refinement on top.
+     */
+    private const val ALARM_TYPE = AlarmManager.RTC_WAKEUP
+
+    /**
+     * When the alarm was last armed, so the receiver can report how long it actually took to fire.
+     *
+     * This is what turns WG-08 from "the widget said yesterday" into a number. A device that fired
+     * the alarm at the armed time needs no investigation; one that fired hours later did not wake at
+     * midnight, and the log says so directly.
+     */
+    @Volatile
+    private var armedAtMillis: Long = 0L
+
+    /** Milliseconds between the last [armMidnightAlarm] and now; [Long.MIN_VALUE] if never armed. */
+    internal fun lastArmedAtMillis(): Long {
+        val armedAt = armedAtMillis
+        return if (armedAt == 0L) Long.MIN_VALUE else System.currentTimeMillis() - armedAt
+    }
+
     public fun schedule(context: Context) {
         enqueuePeriodic(context)
         armMidnightAlarm(context)
@@ -56,6 +86,15 @@ public object HijriWidgetRefreshScheduler {
      * the midnight receiver ever needing to re-arm itself.
      */
     public fun armMidnightAlarm(context: Context) {
+        // Seam for the WG-07 test: the receiver's guarantee is "the next alarm exists even when the
+        // render throws", and that cannot be asserted against a real AlarmManager in a JVM unit test.
+        armAction(context)
+    }
+
+    /** The real [armMidnightAlarm], behind a seam. `internal` so only this module can replace it. */
+    internal var armAction: (Context) -> Unit = ::armMidnightAlarmForReal
+
+    private fun armMidnightAlarmForReal(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -64,16 +103,19 @@ public object HijriWidgetRefreshScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val triggerAt = nextLocalMidnightMillis()
+        armedAtMillis = System.currentTimeMillis()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
             HijriWidgetRefreshLog.d(
                 "alarm",
-                "arm INEXACT (canScheduleExactAlarms=false) at $triggerAt",
+                "arm INEXACT wake-up (canScheduleExactAlarms=false) at $triggerAt",
             )
-            alarmManager.set(AlarmManager.RTC, triggerAt, pendingIntent)
+            // `setAndAllowWhileIdle` rather than `set`: it survives Doze without consuming the
+            // exact-alarm budget, which is the whole point of degrading in the first place.
+            alarmManager.setAndAllowWhileIdle(ALARM_TYPE, triggerAt, pendingIntent)
         } else {
-            HijriWidgetRefreshLog.d("alarm", "arm exact at $triggerAt")
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC, triggerAt, pendingIntent)
+            HijriWidgetRefreshLog.d("alarm", "arm exact wake-up at $triggerAt")
+            alarmManager.setExactAndAllowWhileIdle(ALARM_TYPE, triggerAt, pendingIntent)
         }
     }
 

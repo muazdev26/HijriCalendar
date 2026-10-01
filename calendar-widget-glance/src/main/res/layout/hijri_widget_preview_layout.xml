@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Static preview shown in the Android 12-14 widget picker for the resizable Hijri calendar
-     grid widget. Mirrors the live render: centred one-line month title between the two nav
-     arrows, the weekday row, then the 4x7 month grid with today's cell filled, so the picker
-     shows real content instead of a placeholder. Android 15+ pickers use the richer generated
-     preview published by HijriWidgetPreviewPublisher. -->
+<!--
+    Static preview shown in the Android 12-14 widget picker for the resizable Hijri calendar grid
+    widget. Mirrors the live render: a centred one-line month title between the two nav arrows, the
+    weekday row, then a full 6-row x 7 month grid with today's cell filled.
+
+    Android 15+ pickers use the generated preview published by HijriWidgetPreviewPublisher, built
+    from the same projection as the live widget. This file exists for the two OS generations that
+    read android:previewLayout instead, and it is hand-maintained, which is why
+    StaticPreviewLayoutTest pins its structure against the live render. A month grid that lost a row,
+    dropped its Gregorian sub-digits, or lost its out-of-month dimming looks perfectly plausible in a
+    static preview and fails no build.
+
+    The dates are a fixed illustrative snapshot: Muharram 1448, Saturday-first, Urdu, Arabic-Indic
+    numerals, with "today" pinned to 19 Muharram / 1 August 2026, a plain Wednesday, so the filled
+    highlight is legible without also sitting on a weekend cell. A static preview cannot track the
+    real date; what it can do is get the shape right.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -13,7 +25,7 @@
     android:padding="10dp"
     tools:ignore="UnusedAttribute">
 
-    <!-- Header row: prev arrow, centred month+year line, next arrow -->
+    <!-- Header row: previous arrow, centred Hijri + Gregorian month title, next arrow. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,7 +48,7 @@
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:maxLines="1"
-            android:text="محرم ۱۴۴۸ · September 2026"
+            android:text="محرم ۱۴۴۸ · August 2026"
             android:textColor="@color/widget_text_primary"
             android:textSize="15sp"
             android:textStyle="bold" />
@@ -50,7 +62,7 @@
             android:tint="@color/widget_text_primary" />
     </LinearLayout>
 
-    <!-- Weekday row (Urdu, Saturday first), matching the live header -->
+    <!-- Weekday row: the Urdu short names, Saturday first, matching the live header. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -136,17 +148,12 @@
             android:textSize="10sp" />
     </LinearLayout>
 
-    <!--
-        Month grid: four weighted day rows of seven cells. Each cell is a big Hijri day digit
-        over a small Gregorian digit exactly like the live render; the third cell of row one is
-        today, drawn with the filled accent highlight.
-    -->
+    <!-- Month grid, week 1 of 6. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal">
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -154,12 +161,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٥\n8"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -167,19 +174,328 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۲"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٦\n9"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٧\n10"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٨\n11"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٩\n12"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٣٠\n13"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١\n14"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Month grid, week 2 of 6. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢\n15"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٣\n16"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٤\n17"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٥\n18"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٦\n19"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٧\n20"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٨\n21"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
-        <!-- Today: filled accent background, "on-today" content -->
+    <!-- Month grid, week 3 of 6. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٩\n22"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٠\n23"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١١\n24"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٢\n25"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٣\n26"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٤\n27"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٥\n28"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Month grid, week 4 of 6. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٦\n29"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٧\n30"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١٨\n31"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_margin="1dp"
             android:layout_weight="1"
-            android:background="@color/widget_today_background"
+            android:background="@drawable/widget_today_background"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -189,7 +505,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
                 android:maxLines="1"
-                android:text="۳"
+                android:text="١٩"
                 android:textColor="@color/widget_on_today"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -200,11 +516,10 @@
                 android:fontFamily="sans-serif"
                 android:gravity="center"
                 android:maxLines="1"
-                android:text="17"
+                android:text="1"
                 android:textColor="@color/widget_on_today"
                 android:textSize="8sp" />
         </LinearLayout>
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -212,12 +527,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۴"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٠\n2"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -225,12 +540,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۵"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢١\n3"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -238,32 +553,20 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۶"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۷"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٢\n4"
+            android:textColor="@color/widget_weekend_text"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Month grid, week 5 of 6. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal">
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -271,12 +574,25 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۸"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٣\n5"
+            android:textColor="@color/widget_weekend_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٤\n6"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -284,12 +600,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۹"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٥\n7"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -297,12 +613,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۰"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٦\n8"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -310,12 +626,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۱"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٧\n9"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -323,12 +639,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۲"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٨\n10"
             android:textColor="@color/widget_text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -336,32 +652,20 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۳"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۴"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢٩\n11"
+            android:textColor="@color/widget_weekend_text"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Month grid, week 6 of 6. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal">
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -369,12 +673,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۵"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="١\n12"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -382,12 +686,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۶"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٢\n13"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -395,12 +699,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۷"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٣\n14"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -408,12 +712,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۸"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٤\n15"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -421,12 +725,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۱۹"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٥\n16"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -434,12 +738,12 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۰"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٦\n17"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -447,107 +751,10 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۱"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۲"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۳"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۴"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۵"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۶"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۷"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="1dp"
-            android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۸"
-            android:textColor="@color/widget_text_primary"
+            android:lineSpacingMultiplier="0.8"
+            android:maxLines="2"
+            android:text="٧\n18"
+            android:textColor="@color/widget_text_muted"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>

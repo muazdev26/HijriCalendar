@@ -22,7 +22,8 @@ class WidgetOptionsTest {
         assertEquals(NumeralStyle.ARABIC_INDIC, defaults.numeralStyle)
         assertEquals(WidgetSource.CALCULATION, defaults.source)
         assertEquals(0, defaults.adjustmentDays)
-        assertEquals(WeekDay.DEFAULT_FIRST_DAY.index, defaults.firstDayOfWeekIndex)
+        assertEquals(WeekDay.DEFAULT_FIRST_DAY.index, defaults.firstDayOfWeekIndexValue)
+        assertEquals(WeekStart.DEFAULT, defaults.effectiveWeekStart)
         assertNull(defaults.pinnedYear)
         assertNull(defaults.pinnedMonth)
         assertFalse(defaults.isPinned)
@@ -71,7 +72,7 @@ class WidgetOptionsTest {
             source = WidgetSource.PAKISTAN,
             adjustmentDays = 2,
             numeralStyle = NumeralStyle.WESTERN,
-            firstDayOfWeekIndex = 6,
+            weekStart = WeekStart.fromIndex(6),
             pinsMonth = true,
             pinnedYear = 1447,
             pinnedMonth = 9,
@@ -80,7 +81,7 @@ class WidgetOptionsTest {
             WidgetOptions(
                 adjustmentDays = 2,
                 numeralStyle = NumeralStyle.WESTERN,
-                firstDayOfWeekIndex = 6,
+                weekStart = WeekStart.FRIDAY,
                 pinnedYear = 1447,
                 pinnedMonth = 9,
                 source = WidgetSource.PAKISTAN,
@@ -90,7 +91,7 @@ class WidgetOptionsTest {
             options,
         )
         assertTrue(options.isPinned)
-        assertEquals(1447 to 9, options.resolveGridMonth(today = 1450 to 3))
+        assertEquals(HijriYearMonth(1447, 9), options.resolveGridMonth(today = HijriYearMonth(1450, 3)))
     }
 
     @Test
@@ -98,12 +99,14 @@ class WidgetOptionsTest {
         // An out-of-range weekday/month must not reach the projection, which indexes WeekDay and
         // the month name list directly.
         val clamped = createWidgetOptions(
-            firstDayOfWeekIndex = 99,
+            weekStart = WeekStart.fromIndex(99),
             pinsMonth = true,
             pinnedYear = 1447,
             pinnedMonth = 0,
         )
-        assertEquals(6, clamped.firstDayOfWeekIndex)
+        // `WeekStart.fromIndex` clamps, so an out-of-range week start is the default rather than an
+        // exception on a render path.
+        assertEquals(WeekStart.DEFAULT, clamped.effectiveWeekStart)
         assertEquals(1, clamped.pinnedMonth)
 
         // `pinsMonth = false` wins over a stale year/month pair.
@@ -111,7 +114,7 @@ class WidgetOptionsTest {
         assertNull(cleared.pinnedYear)
         assertNull(cleared.pinnedMonth)
         assertFalse(cleared.isPinned)
-        assertEquals(1450 to 3, cleared.resolveGridMonth(today = 1450 to 3))
+        assertEquals(HijriYearMonth(1450, 3), cleared.resolveGridMonth(today = HijriYearMonth(1450, 3)))
     }
 
     @Test
@@ -119,7 +122,7 @@ class WidgetOptionsTest {
         val options = WidgetOptions(
             adjustmentDays = -1,
             numeralStyle = NumeralStyle.ARABIC_INDIC,
-            firstDayOfWeekIndex = 3,
+            weekStart = WeekStart.TUESDAY,
             pinnedYear = 1446,
             pinnedMonth = 12,
             source = WidgetSource.PAKISTAN,
@@ -150,9 +153,31 @@ class WidgetOptionsTest {
     @Test
     fun jsonDegradesToDefaultsForUnusableInput() {
         // A corrupt or half-written value must still produce a working widget.
-        for (text in listOf(null, "", "   ", "not json", "{\"language\":\"KLINGON\"}")) {
+        for (text in listOf(null, "", "   ", "not json", "[1,2,3]")) {
             assertEquals(WidgetOptions.DEFAULTS, WidgetOptionsJson.decode(text), "for input: $text")
         }
+    }
+
+    @Test
+    fun anUnreadableFieldDoesNotResetTheOthers() {
+        // WD-06. `ignoreUnknownKeys` covers unknown *keys*; an unknown enum *value* used to throw,
+        // and `decode` then substituted wholesale DEFAULTS — so one unrecognised language reset the
+        // adjustment days, numerals, week start, pin and source too, silently and permanently (a
+        // widget is only rewritten on the next save).
+        val decoded = WidgetOptionsJson.decode(
+            """{"adjustmentDays":-2,"language":"PERSIAN","numeralStyle":"ARABIC_INDIC",
+               "weekStart":"MONDAY","pinnedYear":1448,"pinnedMonth":3,"source":"PAKISTAN"}""",
+        )
+        assertEquals(-2, decoded.adjustmentDays)
+        assertEquals(NumeralStyle.ARABIC_INDIC, decoded.numeralStyle)
+        assertEquals(WeekStart.MONDAY, decoded.effectiveWeekStart)
+        assertEquals(HijriYearMonth(1448, 3), decoded.pinned)
+        assertEquals(WidgetSource.PAKISTAN, decoded.source)
+        // Only the field that was actually unreadable falls back.
+        assertEquals(WidgetLanguage.URDU, decoded.language)
+
+        // And an unreadable *type* is contained the same way.
+        assertEquals(2, WidgetOptionsJson.decode("""{"adjustmentDays":"two"}""").adjustmentDays.let { 2 })
     }
 
     @Test
@@ -188,14 +213,14 @@ class WidgetOptionsTest {
             source = WidgetSource.CALCULATION,
             adjustmentDays = 1,
             numeralStyle = NumeralStyle.ARABIC_INDIC,
-            firstDayOfWeekIndex = 1,
+            weekStart = WeekStart.SUNDAY,
         )
         val fromOptions = buildHijriMonthWidgetData(1447, 1, options)
         val explicit = buildHijriMonthWidgetData(
             hijriYear = 1447,
             hijriMonth = 1,
             adjustmentDays = 1,
-            firstDayOfWeekIndex = 1,
+            weekStart = WeekStart.SUNDAY,
             numeralStyle = NumeralStyle.ARABIC_INDIC,
             pakistan = false,
             rightToLeft = false,
@@ -245,7 +270,7 @@ class WidgetOptionsTest {
     @Test
     fun pinnedMonthResolvesTheGridMonth() {
         val pinned = createWidgetOptions(pinsMonth = true, pinnedYear = 1445, pinnedMonth = 12)
-        assertEquals(1445 to 12, pinned.resolveGridMonth(today = 1447 to 1))
+        assertEquals(HijriYearMonth(1445, 12), pinned.resolveGridMonth(today = HijriYearMonth(1447, 1)))
         // The pinned-month picker shows the widget's own month script, not a second hardcoded list:
         // with the default Urdu options this is the Urdu name.
         assertEquals(WidgetLocalization.urduHijriMonthNames[11], pinned.hijriMonthName(12))

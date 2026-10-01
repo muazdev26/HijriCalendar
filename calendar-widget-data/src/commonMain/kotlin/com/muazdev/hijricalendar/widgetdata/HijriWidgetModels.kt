@@ -1,6 +1,8 @@
 package com.muazdev.hijricalendar.widgetdata
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
 /**
  * Enum controlling how numeric cell text is rendered. [WESTERN] maps digits to `0-9`,
@@ -8,10 +10,14 @@ import kotlinx.serialization.Serializable
  * driven by this value rather than the device locale so both widget stacks behave
  * identically.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 public enum class NumeralStyle {
+    @JsonNames("LATIN", "ARABIC_INDIC_DIGITS")
     WESTERN,
-    ARABIC_INDIC
+
+    @JsonNames("EASTERN", "ARABIC_INDIC_NUMBERS")
+    ARABIC_INDIC,
 }
 
 /**
@@ -20,21 +26,39 @@ public enum class NumeralStyle {
  * direction of the weekday header, the day grid and the header arrows so a widget renders
  * consistently regardless of the host's `layoutDirection`.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 public enum class WidgetLanguage(public val isRtl: Boolean) {
+    // `@JsonNames` aliases are permanent (WD-06): a stored widget outlives every release that ever
+    // wrote it, so any spelling that has ever been emitted must keep decoding forever. The aliases
+    // here are the ones a renderer plausibly wrote by hand or from an older Swift/Java port.
+    @JsonNames("urdu", "UR")
     URDU(isRtl = true),
+
+    @JsonNames("english", "EN", "en_US")
     ENGLISH(isRtl = false),
 }
 
 /**
  * The Hijri source a widget follows. [CALCULATION] is Umm al-Qura, [PAKISTAN] is the
  * Ruet-e-Hilal (Pakistan) calendar; [pakistan] is the flag the projection builders consume.
- * A widget carries this as a small tappable pill so the source can be switched from the
- * home screen without opening the app.
+ *
+ * The source is chosen from the host app's settings screen and nowhere else — the grid widget has
+ * **no source pill** and no on-widget toggle (WD-10c). [CALCULATION] is the name persisted in the
+ * wire format and therefore frozen; `WidgetLocalization.sourceLabel` already renders it as
+ * "Umm al-Qura"/"Calculation", and `@JsonNames` carries the accurate `"UAQ"`/`"UM_AL_QURA"`
+ * spellings so a future rename does not invalidate a stored widget.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 public enum class WidgetSource(public val pakistan: Boolean) {
+    // `UAQ` and `UM_AL_QURA` are the *accurate* spellings: this source is Umm al-Qura, and
+    // `WidgetLocalization.sourceLabel` already renders it as "Umm al-Qura" in Urdu contexts. If the
+    // entry is ever renamed to match, these aliases keep every stored widget readable (WD-06).
+    @JsonNames("UAQ", "UM_AL_QURA", "CALCULATION_SOURCE")
     CALCULATION(pakistan = false),
+
+    @JsonNames("RUET_E_HILAL", "RUET")
     PAKISTAN(pakistan = true),
     ;
 
@@ -61,8 +85,12 @@ public data class HijriDayWidgetData(
 
 /**
  * One rendered Hijri month in widget form: a 6x7 grid plus the header data the native
- * renderers need (Hijri + Gregorian month titles on one line, Gregorian range line,
- * weekday headers).
+ * renderers need (Hijri + Gregorian month titles on one line, weekday headers).
+ *
+ * [gregorianRange] is the one field with no single-month invariant: it can read
+ * "December 2026 - January 2027" when a Hijri month straddles two Gregorian ones. **Only iOS renders
+ * it** — the Android grid widget's header shows [gregorianMonthTitle] alone on one centred line
+ * (WD-10c).
  */
 @Serializable
 public data class HijriMonthWidgetData(
@@ -74,6 +102,7 @@ public data class HijriMonthWidgetData(
      * so a header can show both calendars on one line — `hijriMonthName hijriYear ·  title`.
      */
     val gregorianMonthTitle: String,
+    /** The month's full Gregorian extent, e.g. `"September - October 2026"`. iOS only; see the class. */
     val gregorianRange: String,
     val weekdayHeaders: List<String>,
     val days: List<HijriDayWidgetData>,

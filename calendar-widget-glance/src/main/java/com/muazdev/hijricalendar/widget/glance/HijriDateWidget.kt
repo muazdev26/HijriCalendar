@@ -7,7 +7,6 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.ExperimentalGlanceApi
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.LocalContext
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -24,7 +23,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.muazdev.hijricalendar.widget.glance.R
+import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
+import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 
 /**
  * A fixed 1x1 tile showing today's Hijri date as a big day figure with the localized month name
@@ -60,6 +60,7 @@ public class HijriDateWidget : GlanceAppWidget() {
                 monthText = today?.hijriMonthName,
                 colors = colors,
                 openAction = openAction,
+                language = options.language,
             )
         }
     }
@@ -82,6 +83,7 @@ public class HijriDateWidget : GlanceAppWidget() {
                 monthText = data.todayHijri?.hijriMonthName,
                 colors = colors,
                 openAction = null,
+                language = options.language,
             )
         }
     }
@@ -117,6 +119,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
                 monthText = today?.gregorianMonthName,
                 colors = colors,
                 openAction = openAction,
+                language = options.language,
             )
         }
     }
@@ -139,6 +142,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
                 monthText = data.todayHijri?.gregorianMonthName,
                 colors = colors,
                 openAction = null,
+                language = options.language,
             )
         }
     }
@@ -154,6 +158,7 @@ internal fun DateTileRoot(
     monthText: String?,
     colors: WidgetColors,
     openAction: Action?,
+    language: WidgetLanguage,
 ) {
     val modifier = GlanceModifier.fillMaxSize().background(colors.background)
     val clickableModifier = if (openAction != null) modifier.clickable(openAction) else modifier
@@ -165,7 +170,9 @@ internal fun DateTileRoot(
     ) {
         if (dayText == null) {
             Text(
-                text = LocalContext.current.getString(R.string.hijri_widget_unavailable),
+                // Resolved from the widget's own language, not the device locale (WG-12) — see
+                // [WidgetLocalization.ChromeLabels].
+                text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                 style = TextStyle(
                     color = ColorProvider(colors.secondaryText),
                     fontSize = 11.sp,

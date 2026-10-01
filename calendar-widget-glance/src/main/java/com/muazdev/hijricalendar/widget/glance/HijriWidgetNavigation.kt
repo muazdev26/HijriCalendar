@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
-import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 
@@ -68,19 +67,21 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
         todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
     }
     val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
-    val baseYear = viewed?.first ?: options.pinnedYear ?: todayHijri?.hijriYear ?: run {
+    // The same resolver the projection and the render cache use, so a tap steps from exactly the
+    // month the widget is showing. Reading `pinnedYear`/`pinnedMonth` here independently is what let
+    // a half-set pin step from a stored year paired with today's month (WD-03).
+    val (baseYear, baseMonth) = resolveGridMonth(options, viewed, todayHijri) ?: run {
         HijriWidgetRefreshLog.d(
             "nav:step($step)",
             "DROPPED tap: no viewed month, no pin and today unresolvable (source=${options.source})",
         )
         return
     }
-    val baseMonth = viewed?.second ?: options.pinnedMonth ?: todayHijri?.hijriMonth ?: return
     val next = offsetHijriMonth(baseYear, baseMonth, step) ?: run {
         HijriWidgetRefreshLog.d("nav:step($step)", "no-op: month $baseYear-$baseMonth is at the supported edge")
         return
     }
-    HijriWidgetRefreshLog.d("nav:step($step)", "base=$baseYear-$baseMonth -> next=${next.year}-${next.month.number}")
-    HijriWidgetConfig.setViewedMonth(context, glanceId, next.year, next.month.number)
+    HijriWidgetRefreshLog.d("nav:step($step)", "base=$baseYear-$baseMonth -> next=$next")
+    HijriWidgetConfig.setViewedMonth(context, glanceId, next.year, next.month)
     HijriWidgetRenderQueue.render(context, glanceId)
 }

@@ -92,7 +92,7 @@ enum HijriShared {
     private static func describe(_ options: WidgetOptions) -> String {
         "language=\(options.language.name) monthNames=\(options.effectiveMonthNameLanguage.name) "
             + "source=\(options.source.name) numerals=\(options.numeralStyle.name) "
-            + "adjustment=\(options.adjustmentDays) firstDay=\(options.firstDayOfWeekIndex) "
+            + "adjustment=\(options.adjustmentDays) firstDay=\(options.effectiveWeekStart) "
             + "pinned=\(options.isPinned)"
     }
 
@@ -145,10 +145,16 @@ enum HijriShared {
             adjustmentDays: object["adjustmentDays"] as? Int32 ?? 0,
             numeralStyle: (object["numeralStyle"] as? String)
                 .flatMap { $0.lowercased() == "western" ? .western : .arabicIndic } ?? .arabicIndic,
-            firstDayOfWeekIndex: object["firstDayOfWeekIndex"] as? Int32 ?? 0,
+            // The pre-`WeekStart` blob stored an index; map it through the enum so the
+            // shared value is name-backed. `WeekStart.fromIndex(_:)` clamps out-of-range.
+            weekStart: WeekStart.fromIndex(index: Int(object["firstDayOfWeekIndex"] as? Int32 ?? 0)),
             pinsMonth: (object["pinsMonth"] as? Bool) ?? false,
             pinnedYear: (object["pinnedYear"] as? Int32) ?? 0,
-            pinnedMonth: (object["pinnedMonth"] as? Int32) ?? 1
+            pinnedMonth: (object["pinnedMonth"] as? Int32) ?? 1,
+            // The pre-1.0 schema had no month-length overrides, so there is nothing to migrate —
+            // an empty map means "follow the process-wide table", which is what an unconfigured
+            // widget did before.
+            overridesCsv: nil
         )
     }
 
@@ -157,14 +163,16 @@ enum HijriShared {
     // iOS hands an extension no widget instance id, so the viewed month is keyed by widget kind
     // and lives in the same app-group store the app reads.
 
-    static func viewedMonth(for kind: HijriWidgetKind) -> (year: Int, month: Int)? {
+    /// The viewed month is now a `HijriYearMonth` (WD-07), which is what `HijriWidgetConfig` speaks.
+    static func viewedMonth(for kind: HijriWidgetKind) -> HijriYearMonth? {
         guard let raw = defaults.string(forKey: viewedPrefix + kind.rawValue) else { return nil }
         let parts = raw.split(separator: ":").compactMap { Int($0) }
-        guard parts.count == 2 else { return nil }
-        return (parts[0], parts[1])
+        guard parts.count == 2, parts[1] >= 1, parts[1] <= 12 else { return nil }
+        // The stored form is unchanged, so a viewed month already in the app group still loads.
+        return HijriYearMonth(year: parts[0], month: parts[1])
     }
 
-    static func setViewedMonth(_ viewed: (year: Int, month: Int)?, for kind: HijriWidgetKind) {
+    static func setViewedMonth(_ viewed: HijriYearMonth?, for kind: HijriWidgetKind) {
         let key = viewedPrefix + kind.rawValue
         if let viewed {
             defaults.set("\(viewed.year):\(viewed.month)", forKey: key)
@@ -174,7 +182,7 @@ enum HijriShared {
     }
 
     /// Steps the viewed month, wrapping across the 12-month year the way the grid header does.
-    static func stepViewedMonth(for kind: HijriWidgetKind, from base: (year: Int, month: Int), by delta: Int) {
+    static func stepViewedMonth(for kind: HijriWidgetKind, from base: HijriYearMonth, by delta: Int) {
         var year = base.year
         var month = base.month + delta
         while month < 1 {
@@ -185,7 +193,7 @@ enum HijriShared {
             month -= 12
             year += 1
         }
-        setViewedMonth((year, month), for: kind)
+        setViewedMonth(HijriYearMonth(year: year, month: month), for: kind)
     }
 
     static func clearViewedMonth(for kind: HijriWidgetKind) {

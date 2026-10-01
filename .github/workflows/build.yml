@@ -55,6 +55,19 @@ jobs:
       - name: Assemble sample debug APK
         run: ./gradlew :sample-android-app:assembleDebug --console=plain
 
+      # Publishes the four modules to a scratch repo and compiles a throwaway consumer against
+      # only those artifacts. This is the only check that can see a dependency-scope mistake: the
+      # sample app declares its own Compose/Glance dependencies, so an `implementation` that should
+      # have been `api` keeps every in-repo check green while the published POM is unusable.
+      - name: Consumer resolution (published POMs are consumable)
+        run: ./.github/scripts/check-consumer-resolution.sh
+
+      # calendar-widget-glance is in `apiValidation.ignoredProjects`, so apiCheck registers no dump
+      # task for it and no signature change there is visible to any gate. This diffs its public
+      # surface against a checked-in, per-declaration list.
+      - name: Widget-glance public surface is reviewed
+        run: ./.github/scripts/check-widget-glance-surface.sh
+
   ios:
     name: iOS (compile arm64 + simulator)
     runs-on: macos-latest
@@ -94,6 +107,15 @@ jobs:
             :calendar-widget-data:compileKotlinIosArm64 \
             :calendar-widget-data:compileKotlinIosSimulatorArm64 \
             --console=plain
+
+      # `WidgetOptionsJson` is the shared wire format for BOTH platforms — Android on the JVM, iOS
+      # through the `WidgetCalendar` K/N framework — and compiling the target only proves the code
+      # builds, not that it *behaves* the same. These are `commonTest` cases (WD-08): number width at
+      # the Int/Long boundary, Unicode escaping, map keys, and which inputs are rejected at all. A
+      # divergence is not a crash but a widget rendering the wrong content forever, because
+      # `HijriSharedOptions.swift` re-encodes through this codec on every `loadOptions`.
+      - name: Widget-data tests on Kotlin/Native (shared JSON codec)
+        run: ./gradlew :calendar-widget-data:iosSimulatorArm64Test --console=plain
 
       - name: Build iOS app + widget extension (unsigned simulator)
         run: |

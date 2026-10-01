@@ -22,7 +22,6 @@
     <ID>ArgumentListWrapping:UrduCalendarNamesTest.kt$UrduCalendarNamesTest$(WeekDay.entries.map { UrduCalendarNames.weekdays.getValue(it) }, UrduCalendarNames.weekdayShortNames)</ID>
     <ID>ArgumentListWrapping:UrduCalendarNamesTest.kt$UrduCalendarNamesTest$(it)</ID>
     <ID>FinalNewline:ObservedHijriCalendar.kt$com.muazdev.hijricalendar.core.ObservedHijriCalendar.kt</ID>
-    <ID>FinalNewline:PakistanCalendarMonthTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarMonthTest.kt</ID>
     <ID>FinalNewline:PakistanCalendarPerformanceTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarPerformanceTest.kt</ID>
     <ID>FinalNewline:PakistanHijriCalendar.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendar.kt</ID>
     <ID>FinalNewline:PakistanHijriCalendarTest.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendarTest.kt</ID>
@@ -50,7 +49,6 @@
     <ID>MaximumLineLength:PakistanHijriCalendarTest.kt$PakistanHijriCalendarTest$ </ID>
     <ID>MaximumLineLength:UrduCalendarNamesTest.kt$UrduCalendarNamesTest$ </ID>
     <ID>NewLineAtEndOfFile:ObservedHijriCalendar.kt$com.muazdev.hijricalendar.core.ObservedHijriCalendar.kt</ID>
-    <ID>NewLineAtEndOfFile:PakistanCalendarMonthTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarMonthTest.kt</ID>
     <ID>NewLineAtEndOfFile:PakistanCalendarPerformanceTest.kt$com.muazdev.hijricalendar.core.PakistanCalendarPerformanceTest.kt</ID>
     <ID>NewLineAtEndOfFile:PakistanHijriCalendar.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendar.kt</ID>
     <ID>NewLineAtEndOfFile:PakistanHijriCalendarTest.kt$com.muazdev.hijricalendar.core.PakistanHijriCalendarTest.kt</ID>

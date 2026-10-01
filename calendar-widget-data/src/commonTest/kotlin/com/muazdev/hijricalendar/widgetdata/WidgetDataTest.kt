@@ -18,14 +18,14 @@ class WidgetDataTest {
         y: Int = 1447,
         m: Int = 9,
         adjustmentDays: Int = 0,
-        firstDayOfWeekIndex: Int = WeekDay.DEFAULT_FIRST_DAY.index,
+        weekStart: WeekStart = WeekStart.DEFAULT,
         numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     ): HijriMonthWidgetData = assertNotNull(
         buildHijriMonthWidgetData(
             hijriYear = y,
             hijriMonth = m,
             adjustmentDays = adjustmentDays,
-            firstDayOfWeekIndex = firstDayOfWeekIndex,
+            weekStart = weekStart,
             numeralStyle = numeralStyle,
         )
     )
@@ -37,21 +37,21 @@ class WidgetDataTest {
 
     @Test
     fun grid_has7WeekdayHeadersInWeekDayEnumOrder() {
-        val headers = month(firstDayOfWeekIndex = WeekDay.SATURDAY.index).weekdayHeaders
+        val headers = month(weekStart = WeekStart.SATURDAY).weekdayHeaders
         assertEquals(7, headers.size)
         assertEquals(WeekDay.entries.map { it.shortName }, headers)
     }
 
     @Test
     fun grid_headersFollowConfiguredFirstDay() {
-        val headers = month(firstDayOfWeekIndex = WeekDay.SUNDAY.index).weekdayHeaders
+        val headers = month(weekStart = WeekStart.SUNDAY).weekdayHeaders
         assertEquals(WeekDay.SUNDAY.shortName, headers.first())
         assertEquals(WeekDay.SATURDAY.shortName, headers.last())
     }
 
     @Test
     fun grid_firstCellAlignsWithConfiguredFirstDay() {
-        val data = month(firstDayOfWeekIndex = WeekDay.SUNDAY.index)
+        val data = month(weekStart = WeekStart.SUNDAY)
         val firstCell = LocalDate.fromEpochDays(data.days.first().gregorianEpochDay)
         assertEquals(WeekDay.SUNDAY, WeekDay.fromDayOfWeek(firstCell.dayOfWeek))
     }

@@ -7,6 +7,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -49,7 +50,15 @@ class OutOfRangeTest {
     @Test
     fun illegalArgumentExceptionIsOutOfRange() {
         assertNull(recording { throw IllegalArgumentException("out of range") })
-        assertSame(IllegalArgumentException::class.java, caught.single()::class.java)
+        // Compared as `KClass` rather than through `::class.java`, which does not exist on
+        // Kotlin/Native: this lives in `commonTest`, so `::class.java` compiled for the JVM targets
+        // and failed `compileTestKotlinIos*`, taking `./gradlew build` down with it.
+        //
+        // `assertEquals`, not `assertSame`: a `KClass` reference is a wrapper, and each
+        // `X::class` allocates a fresh one, so an identity check fails on the JVM even when the
+        // underlying class is the same. `KClass` equality compares the class itself, which is what
+        // this assertion means.
+        assertEquals(IllegalArgumentException::class, caught.single()::class)
     }
 
     @Test
@@ -57,7 +66,7 @@ class OutOfRangeTest {
         // It extends RuntimeException, not IllegalArgumentException — catching only the latter
         // would let this escape, which is exactly the bug this helper exists to prevent.
         assertNull(recording { throw DateTimeArithmeticException("out of range") })
-        assertSame(DateTimeArithmeticException::class.java, caught.single()::class.java)
+        assertEquals(DateTimeArithmeticException::class, caught.single()::class)
     }
 
     @Test

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The filled "today" cell background, as a static preview can express it.
+
+    The live render applies this colour with `cornerRadius(14.dp)` from Glance, which a
+    `previewLayout` cannot do inline; a shape drawable is the framework-side equivalent. The radius
+    is matched to the live one so the picker preview does not show a square where the placed widget
+    shows a rounded pill.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_today_background" />
+    <corners android:radius="14dp" />
+</shape>

@@ -3,12 +3,10 @@ package com.muazdev.hijricalendar.widget.glance
 import android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
 import android.content.Context
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.collection.intSetOf
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.setWidgetPreviews
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -27,11 +25,9 @@ import kotlinx.coroutines.launch
  */
 public object HijriWidgetPreviewPublisher {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
     /** Fire-and-forget [publishIfDue] for callers without a coroutine scope (receivers, app start). */
     public fun publishIfDueAsync(context: Context) {
-        scope.launch { publishIfDue(context) }
+        HijriWidgetScope.launch(context, "preview") { publishIfDue(it) }
     }
 
     /**
@@ -63,6 +59,16 @@ public object HijriWidgetPreviewPublisher {
         return anySuccess
     }
 
+    /**
+     * [GlanceAppWidgetManager.setWidgetPreviews] is API 35+, and this module's `minSdk` is 26.
+     *
+     * The runtime guard is the `SDK_INT` check at the top of [publishIfDue]; this annotation
+     * repeats it so lint can see it. Lint resolves [RequiresApi] per function, so a guard in the
+     * caller does not cover a call made from a callee — without this, `lintDebug` failed with
+     * `NewApi` even though the code was correctly guarded, and lint had been reporting it only
+     * because an unrelated compile failure had been stopping `build` before it ran.
+     */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private suspend fun publish(
         manager: GlanceAppWidgetManager,
         receiverClass: kotlin.reflect.KClass<out androidx.glance.appwidget.GlanceAppWidgetReceiver>,

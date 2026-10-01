@@ -17,7 +17,6 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
@@ -50,11 +49,12 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.WeekDay
-import com.muazdev.hijricalendar.widget.glance.R
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
+import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
+import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -139,10 +139,13 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
                 colors = colors,
-                openAction = openAction,
-                prevAction = prevAction,
-                nextAction = nextAction,
-                resetAction = resetAction,
+                language = options.language,
+                actions = WidgetActions(
+                    open = openAction,
+                    prev = prevAction,
+                    next = nextAction,
+                    reset = actionRunCallback<HijriWidgetTodayResetCallback>(),
+                ),
             )
         }
     }
@@ -167,10 +170,10 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
                 colors = colors,
-                openAction = null,
-                prevAction = null,
-                nextAction = null,
-                resetAction = null,
+                language = options.language,
+                // The picker preview is non-interactive by construction (WG-12's grouping makes
+                // that one value rather than four nulls a call site has to remember).
+                actions = WidgetActions(),
             )
         }
     }
@@ -194,21 +197,26 @@ internal data class HijriWidgetRenderData(
 
 /**
  * Builds the projection for [options]. Used by both [HijriCalendarWidget.provideGlance] and the
- * settings-screen preview, so the preview cannot drift from the real widget.
+ * settings-screen and picker previews, so the preview cannot drift from the real widget.
  */
 internal fun buildRenderData(
     context: Context,
     options: WidgetOptions,
-    viewedMonth: Pair<Int, Int>?,
+    viewedMonth: HijriYearMonth?,
 ): HijriWidgetRenderData {
     val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
-    val language = options.language
-    // The shared projection reads the adjustment, source, digit style and all three localized
-    // name lists straight off [WidgetOptions], so this call cannot drift from the settings screen.
-    val todayHijri = todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
-    val layoutRtl = computeLayoutRtl(context, language)
-    val monthData = buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
-    return HijriWidgetRenderData(todayHijri, todayEpochDay, monthData, layoutRtl)
+    val layoutRtl = computeLayoutRtl(context, options.language)
+    // Through [HijriWidgetRenderCache.render], which is what the live widget uses (WG-11). This used
+    // to call the projection builders directly, so the preview and the widget shared a *function*
+    // but not a *pipeline* — the live widget's grid was cached and the preview's was not, which is
+    // precisely the difference the cache's KDoc claimed could not exist.
+    return HijriWidgetRenderCache.render(
+        glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
+        options = options,
+        viewedMonth = viewedMonth,
+        todayEpochDay = todayEpochDay,
+        layoutRtl = layoutRtl,
+    )
 }
 
 /**
@@ -217,27 +225,59 @@ internal fun buildRenderData(
  * projection is pre-reversed whenever the two disagree; the net visual order is then always the
  * language's. On an LTR device this is just `language.isRtl`.
  */
-internal fun computeLayoutRtl(context: Context, language: WidgetLanguage): Boolean {
-    val deviceRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
-    return language.isRtl != deviceRtl
-}
+internal fun computeLayoutRtl(context: Context, language: WidgetLanguage): Boolean = resolveLayoutRtl(
+    deviceRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL,
+    language = language,
+)
 
 /**
- * Resolves the grid month as viewed (on-widget navigation) > config-pinned > today, so the arrows
- * and the month-name reset override the configured pin until the user returns to following today.
- * The source, language, digit style and reading direction all come from [options], so every
- * re-render path produces the same grid.
+ * The XOR on its own, so it can be tested without a `Configuration` (WG-16).
+ *
+ * The split is deliberate and not just about the test: reading the device's layout direction is
+ * plumbing that the platform owns, while the *decision* — whether the projection must pre-reverse
+ * to cancel a mirroring the platform will already apply — is the logic, and it is the half that is
+ * easy to get wrong. The interesting row is [deviceRtl] = `true` with an [WidgetLanguage.URDU]
+ * widget, where the answer is `false`: the platform is already mirroring the `LinearLayout` rows, so
+ * reversing as well would undo it. `language.isRtl` on its own — the obvious implementation — is
+ * wrong in both mixed rows.
+ */
+internal fun resolveLayoutRtl(deviceRtl: Boolean, language: WidgetLanguage): Boolean =
+    language.isRtl != deviceRtl
+
+/**
+ * The one place the grid month is resolved: viewed (on-widget navigation) > config-pinned > today.
+ * The arrows and the month-name reset therefore override the configured pin until the user returns
+ * to following today.
+ *
+ * This existed as three copies of the same two-line `?:` chain — in the projection, in the render
+ * cache key, and in the navigation stepper — and the copies disagreed with the iOS renderer about
+ * one input. A half-set pin (see [WidgetOptions.pinned]) is representable in the stored schema, and
+ * a chain that reads `pinnedYear` and `pinnedMonth` independently pairs a stored year with *today's*
+ * month: a grid labelled 1447 painting this year's days, with no error anywhere. `options.pinned`
+ * is a unit, so there is no way to take half of it.
+ *
+ * @return the Hijri year and month to render, or `null` when neither a viewed month, a pin, nor
+ *   today's date is available.
+ */
+internal fun resolveGridMonth(
+    options: WidgetOptions,
+    viewedMonth: HijriYearMonth?,
+    todayHijri: TodayHijriWidgetData?,
+): HijriYearMonth? = viewedMonth
+    ?: options.pinned
+    ?: todayHijri?.let { HijriYearMonth(year = it.hijriYear, month = it.hijriMonth) }
+
+/**
+ * Builds the month projection for an already-resolved grid month. The source, language, digit style
+ * and reading direction all come from [options], so every re-render path produces the same grid.
  */
 internal fun buildMonthData(
     options: WidgetOptions,
-    viewedMonth: Pair<Int, Int>?,
+    viewedMonth: HijriYearMonth?,
     todayHijri: TodayHijriWidgetData?,
     layoutRtl: Boolean,
 ): HijriMonthWidgetData? {
-    // Viewed month (navigation) > config-pinned > today. `resolveGridMonth` applies the pin, but a
-    // viewed month short-circuits it, so the fallback chain is spelled out here.
-    val year = viewedMonth?.first ?: options.pinnedYear ?: todayHijri?.hijriYear ?: return null
-    val month = viewedMonth?.second ?: options.pinnedMonth ?: todayHijri?.hijriMonth ?: return null
+    val (year, month) = resolveGridMonth(options, viewedMonth, todayHijri) ?: return null
     return buildHijriMonthWidgetData(
         hijriYear = year,
         hijriMonth = month,
@@ -253,17 +293,84 @@ internal fun buildMonthData(
  * Per-instance projection cache so a render that recomposes the same month (navigation tap,
  * covered background refresh, midnight pass) reuses the computed grid and "today" instead of
  * re-running the Hijri math every time. Keys cover everything that affects the output —
- * including [HijriMonthOverrides.currentRevision], so an override change invalidates both
- * projections even when the displayed month is unchanged.
+ * including the month-length table, so an override change invalidates both projections even when
+ * the displayed month is unchanged.
  *
- * Guarded by an internal monitor: reads can now come from inside the Glance composition (which
- * runs on the session worker and takes no render lock), and the settings preview never touches
- * this cache (it builds through [buildRenderData] instead), so a plain synchronized section is
- * safe. Keeps at most one month + one today per widget instance.
+ * The override key is the *options' own* table, not the process-wide global: the projection reads
+ * [WidgetOptions.overridesTable], so keying on `HijriMonthOverrides.currentRevision` alone used to
+ * invalidate the cache on a change that could not affect the output (and to miss one that could,
+ * when a widget carried its own map). See [overrideCacheKey] for the shape.
+ *
+ * **Bounded**, because a key is not just the widget id: it also carries the anchor day, the
+ * resolved month, the adjustment, the week start, the digit style, both languages, the source, the
+ * reading direction and the override table. The cache used to be a pair of unbounded `HashMap`s
+ * whose KDoc claimed "at most one month + one today per widget instance" — true when the key *was*
+ * the id, wrong from the moment the key grew, and nothing forced it to be re-examined (WG-04). The
+ * entries are large: a `HijriMonthWidgetData` is 42 cells of two `String`s each. And nothing in
+ * this module ever learns that a widget was removed — Glance deletes its own DataStore and says
+ * nothing — so an LRU is the only design that can be correct; a per-instance map cleaned on removal
+ * has no removal signal to hang off.
+ *
+ * **Thread-safety** is now [LruCache]'s own, per access, rather than one monitor held across the
+ * whole operation. That is the point of the `get`/build/`put` shape below: a build must never run
+ * under the cache's lock. It used to, which meant a real widget's render could be serialised behind
+ * a settings preview's cold Pakistan century-table build — a Glance composition can be the main
+ * thread on some devices, so that is a frame-time hazard in the host app, not just this module.
+ *
+ * The settings preview shares this cache too, under a stable synthetic id ([PREVIEW_CACHE_ID]), so
+ * "the preview cannot drift from the widget" is true of the path and not just of the function
+ * (WG-11). It used to key on the fresh random id that `GlanceAppWidget.compose()` mints per call —
+ * an entry no future read could ever hit, so the preview path grew the cache without bound and
+ * returned nothing for the cost.
  */
 internal object HijriWidgetRenderCache {
 
-    private val cacheLock = Any()
+    /**
+     * A stable synthetic id for every non-widget render path (the settings live preview and the
+     * Android 15+ `providePreview` trees).
+     *
+     * One id for all of them is deliberate. The cache key already carries the month, the language,
+     * the source and everything else that differentiates those projections, so the id only has to be
+     * *stable* — using `GlanceAppWidget.compose()`'s per-call random id made every entry
+     * unreachable, and using the widget kind instead would have fragmented a cache that has no
+     * reason to fragment.
+     */
+    internal const val PREVIEW_CACHE_ID: String = "preview"
+
+    /**
+     * How many projections to keep. Generous for the realistic case — a user places a handful of
+     * widgets, and the settings screen churns one more — while staying bounded on a device that has
+     * none. Roughly a dozen widgets' worth of month + today.
+     */
+    internal const val MAX_CACHE_ENTRIES: Int = 32
+
+    /** Total entries currently held across both caches. For tests, which assert the bound. */
+    internal val cachedEntryCountForTest: Int get() = todayCache.size() + monthCache.size()
+
+    /**
+     * Everything about a [WidgetOptions]'s month lengths that can change the projection: the
+     * widget's own override map, plus the process global's revision **only when that map is
+     * empty** — because that is the only case where the global is the table being read.
+     *
+     * Structural, not a hash. A single-entry `Map`'s `hashCode()` is `key.hashCode() xor
+     * value.hashCode()`, so two *different* override tables collide routinely (`{"1448-3" to 30}`
+     * and `{"1448-4" to 29}` do), and a collision here would hand a widget back a stale grid. A
+     * `HashMap` resolves collisions with `equals`, so storing the map is exact where a digest is
+     * not; `0L` in the unused branch keeps the two cases from masking each other.
+     */
+    private data class OverrideKey(
+        val overrides: Map<String, Int>,
+        val globalRevision: Long,
+    )
+
+    private fun overrideCacheKey(options: WidgetOptions): OverrideKey = OverrideKey(
+        overrides = options.monthLengthOverrides,
+        globalRevision = if (options.monthLengthOverrides.isEmpty()) {
+            HijriMonthOverrides.currentRevision
+        } else {
+            0L
+        },
+    )
 
     private data class TodayKey(
         val glanceId: String,
@@ -273,7 +380,7 @@ internal object HijriWidgetRenderCache {
         val monthNameLanguage: WidgetLanguage,
         val numeralStyle: NumeralStyle,
         val pakistan: Boolean,
-        val overridesRevision: Long,
+        val overrides: OverrideKey,
     )
 
     private data class MonthKey(
@@ -281,17 +388,17 @@ internal object HijriWidgetRenderCache {
         val year: Int,
         val month: Int,
         val adjustmentDays: Int,
-        val firstDayOfWeekIndex: Int,
+        val weekStart: WeekStart,
         val numeralStyle: NumeralStyle,
         val language: WidgetLanguage,
         val monthNameLanguage: WidgetLanguage,
         val pakistan: Boolean,
         val rightToLeft: Boolean,
-        val overridesRevision: Long,
+        val overrides: OverrideKey,
     )
 
-    private val todayCache = HashMap<TodayKey, TodayHijriWidgetData?>()
-    private val monthCache = HashMap<MonthKey, HijriMonthWidgetData?>()
+    private val todayCache = LruCache<TodayKey, TodayHijriWidgetData>(MAX_CACHE_ENTRIES)
+    private val monthCache = LruCache<MonthKey, HijriMonthWidgetData>(MAX_CACHE_ENTRIES)
 
     /**
      * Same contract as [buildRenderData]: resolves the grid month as viewed > pinned > today and
@@ -301,39 +408,39 @@ internal object HijriWidgetRenderCache {
     fun render(
         glanceId: String,
         options: WidgetOptions,
-        viewedMonth: Pair<Int, Int>?,
+        viewedMonth: HijriYearMonth?,
         todayEpochDay: Long,
         layoutRtl: Boolean,
     ): HijriWidgetRenderData {
         val todayHijri = today(glanceId, options, todayEpochDay)
-        val revision = HijriMonthOverrides.currentRevision
-        val monthYear = viewedMonth?.first ?: options.pinnedYear ?: todayHijri?.hijriYear
-        val monthNumber = viewedMonth?.second ?: options.pinnedMonth ?: todayHijri?.hijriMonth
-        val monthKey = if (monthYear == null || monthNumber == null) {
-            null
-        } else {
+        val overrideKey = overrideCacheKey(options)
+        val monthKey = resolveGridMonth(options, viewedMonth, todayHijri)?.let { (year, month) ->
             MonthKey(
                 glanceId,
-                monthYear,
-                monthNumber,
+                year,
+                month,
                 options.adjustmentDays,
-                options.firstDayOfWeekIndex,
+                options.effectiveWeekStart,
                 options.numeralStyle,
                 options.language,
                 options.effectiveMonthNameLanguage,
                 options.source.pakistan,
                 layoutRtl,
-                revision,
+                overrideKey,
             )
         }
         val monthData = if (monthKey == null) {
             null
         } else {
-            synchronized(cacheLock) {
-                monthCache.getOrPut(monthKey) {
-                    buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
-                }
-            }
+            // Read and write around the build, never across it (WG-04c). Two threads may build the
+            // same month concurrently — a wasted build, never a wrong result, since
+            // `HijriMonthWidgetData` is immutable — and that is strictly better than serialising
+            // every widget's render in the process on one monitor. The earlier `synchronized` also
+            // held this across a cold Pakistan century-table build, so a settings preview could
+            // block a real widget's render behind it.
+            monthCache.get(monthKey)
+                ?: buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
+                    ?.also { monthCache.put(monthKey, it) }
         }
         return HijriWidgetRenderData(todayHijri, todayEpochDay, monthData, layoutRtl)
     }
@@ -341,7 +448,7 @@ internal object HijriWidgetRenderCache {
     /**
      * Cached "today" projection shared by the month grid and the Today strip: keyed by
      * everything that affects the output (anchor day, adjustment, language, numerals, source and
-     * [HijriMonthOverrides.currentRevision]), so a recompose of an unchanged day skips the Hijri
+     * [WidgetOptions.overridesTable]), so a recompose of an unchanged day skips the Hijri
      * math — including a cold Pakistan century-table build.
      */
     fun today(
@@ -357,13 +464,13 @@ internal object HijriWidgetRenderCache {
             options.effectiveMonthNameLanguage,
             options.numeralStyle,
             options.source.pakistan,
-            HijriMonthOverrides.currentRevision,
+            overrideCacheKey(options),
         )
-        synchronized(cacheLock) {
-            return todayCache.getOrPut(key) {
-                todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
-            }
-        }
+        // Same read-write-build-write shape as [render] — see there for why the build is outside
+        // the cache's own lock (WG-04c).
+        return todayCache.get(key)
+            ?: todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
+                ?.also { todayCache.put(key, it) }
     }
 }
 
@@ -409,10 +516,11 @@ internal fun HijriWidgetRoot(
     todayEpochDay: Long,
     layoutRtl: Boolean,
     colors: WidgetColors,
-    openAction: Action?,
-    prevAction: Action?,
-    nextAction: Action?,
-    resetAction: Action?,
+    // The widget's own language, for the chrome's accessibility labels (WG-12). Not derivable from
+    // `monthData`: a widget that fell back to the today card has no month projection at all, and its
+    // labels still have to be in the right language.
+    language: WidgetLanguage,
+    actions: WidgetActions,
 ) {
     val size = LocalSize.current
     val useCompact = size.width < 180.dp || size.height < 200.dp
@@ -421,21 +529,20 @@ internal fun HijriWidgetRoot(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(colors.background)
-            .clickableWhen(openAction)
+            .clickableWhen(actions.open)
             .padding(10.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
         if (useCompact || monthData == null) {
-            TodayCard(today = todayHijri, colors = colors)
+            TodayCard(today = todayHijri, colors = colors, language = language)
         } else {
             MonthGrid(
                 month = monthData,
                 todayEpochDay = todayEpochDay,
                 layoutRtl = layoutRtl,
                 colors = colors,
-                prevAction = prevAction,
-                nextAction = nextAction,
-                resetAction = resetAction,
+                language = language,
+                actions = actions,
             )
         }
     }
@@ -445,10 +552,15 @@ internal fun HijriWidgetRoot(
 private fun TodayCard(
     today: TodayHijriWidgetData?,
     colors: WidgetColors,
+    language: WidgetLanguage,
 ) {
     if (today == null) {
         Text(
-            text = LocalContext.current.getString(R.string.hijri_widget_unavailable),
+            // Not `getString(R.string.hijri_widget_unavailable)`: that resolves against the
+            // *device* locale, so an Urdu widget on an English phone showed an English fallback.
+            // Every other string this widget renders is resolved from `options.language`, and this
+            // was the one that was not.
+            text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
             style = TextStyle(color = ColorProvider(colors.secondaryText), fontSize = 12.sp),
         )
         return
@@ -493,70 +605,98 @@ private fun TodayCard(
     }
 }
 
+/**
+ * The grid's header row: the two month arrows flanking the centred title line.
+ *
+ * Split out of [MonthGrid] when WG-12 threaded the widget's language into it for the chrome's
+ * accessibility labels and pushed the function past detekt's length limit. It is a natural seam —
+ * the header is the only part of the grid with a layout that depends on the reading direction, and
+ * keeping the two mirroring branches together makes them easy to compare.
+ */
+@Composable
+private fun MonthHeader(
+    month: HijriMonthWidgetData,
+    layoutRtl: Boolean,
+    colors: WidgetColors,
+    language: WidgetLanguage,
+    actions: WidgetActions,
+) {
+    val prevAvailable = offsetHijriMonth(
+        month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_PREVIOUS,
+    ) != null
+    val nextAvailable = offsetHijriMonth(
+        month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_NEXT,
+    ) != null
+
+    Row(
+        modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp),
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+    ) {
+        if (layoutRtl) {
+            // In RTL "next" sits on the left and points left; "previous" sits on the right and
+            // points right, matching the app's AutoMirrored header arrows.
+            NavigationArrow(
+                resId = R.drawable.ic_arrow_left,
+                enabled = nextAvailable,
+                action = actions.next,
+                color = colors.primaryText,
+                contentDescription = WidgetLocalization.ChromeLabels.nextMonth(language),
+            )
+            MonthTitle(
+                month = month,
+                resetAction = actions.reset,
+                colors = colors,
+                language = language,
+            )
+            NavigationArrow(
+                resId = R.drawable.ic_arrow_right,
+                enabled = prevAvailable,
+                action = actions.prev,
+                color = colors.primaryText,
+                contentDescription = WidgetLocalization.ChromeLabels.previousMonth(language),
+            )
+        } else {
+            NavigationArrow(
+                resId = R.drawable.ic_arrow_left,
+                enabled = prevAvailable,
+                action = actions.prev,
+                color = colors.primaryText,
+                contentDescription = WidgetLocalization.ChromeLabels.previousMonth(language),
+            )
+            MonthTitle(
+                month = month,
+                resetAction = actions.reset,
+                colors = colors,
+                language = language,
+            )
+            NavigationArrow(
+                resId = R.drawable.ic_arrow_right,
+                enabled = nextAvailable,
+                action = actions.next,
+                color = colors.primaryText,
+                contentDescription = WidgetLocalization.ChromeLabels.nextMonth(language),
+            )
+        }
+    }
+}
+
 @Composable
 private fun MonthGrid(
     month: HijriMonthWidgetData,
     todayEpochDay: Long,
     layoutRtl: Boolean,
     colors: WidgetColors,
-    prevAction: Action?,
-    nextAction: Action?,
-    resetAction: Action?,
+    language: WidgetLanguage,
+    actions: WidgetActions,
 ) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
-        // The arrows' glyphs follow the widget's language; their source order follows
-        // [layoutRtl], which already accounts for the platform mirroring on RTL-locale devices.
-        // The net visual order is always the language's reading direction.
-        val prevAvailable = offsetHijriMonth(
-            month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_PREVIOUS,
-        ) != null
-        val nextAvailable = offsetHijriMonth(
-            month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_NEXT,
-        ) != null
-
-        // Header: arrows step the grid one Hijri month at a time; the centred title line carries
-        // the Hijri month + year and the Gregorian month + year on one line, and tapping it
-        // returns the grid to following today.
-        Row(
-            modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
-        ) {
-            if (layoutRtl) {
-                // In RTL "next" sits on the left and points left; "previous" sits on the
-                // right and points right, matching the app's AutoMirrored header arrows.
-                NavigationArrow(
-                    resId = R.drawable.ic_arrow_left,
-                    enabled = nextAvailable,
-                    action = nextAction,
-                    color = colors.primaryText,
-                    contentDescription = "Next month",
-                )
-                MonthTitle(month = month, resetAction = resetAction, colors = colors)
-                NavigationArrow(
-                    resId = R.drawable.ic_arrow_right,
-                    enabled = prevAvailable,
-                    action = prevAction,
-                    color = colors.primaryText,
-                    contentDescription = "Previous month",
-                )
-            } else {
-                NavigationArrow(
-                    resId = R.drawable.ic_arrow_left,
-                    enabled = prevAvailable,
-                    action = prevAction,
-                    color = colors.primaryText,
-                    contentDescription = "Previous month",
-                )
-                MonthTitle(month = month, resetAction = resetAction, colors = colors)
-                NavigationArrow(
-                    resId = R.drawable.ic_arrow_right,
-                    enabled = nextAvailable,
-                    action = nextAction,
-                    color = colors.primaryText,
-                    contentDescription = "Next month",
-                )
-            }
-        }
+        MonthHeader(
+            month = month,
+            layoutRtl = layoutRtl,
+            colors = colors,
+            language = language,
+            actions = actions,
+        )
 
         Row(
             modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
@@ -601,12 +741,13 @@ private fun RowScope.MonthTitle(
     month: HijriMonthWidgetData,
     resetAction: Action?,
     colors: WidgetColors,
+    language: WidgetLanguage,
 ) {
     Box(
         modifier = GlanceModifier
             .defaultWeight()
             .clickableWhen(resetAction)
-            .semantics { contentDescription = "Go to current month" },
+            .semantics { contentDescription = WidgetLocalization.ChromeLabels.goToCurrentMonth(language) },
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {

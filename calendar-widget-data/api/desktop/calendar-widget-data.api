@@ -1,3 +1,12 @@
+public final class com/muazdev/hijricalendar/widgetdata/AdjustmentDaysSerializer : kotlinx/serialization/KSerializer {
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widgetdata/AdjustmentDaysSerializer;
+	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Integer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public fun serialize (Lkotlinx/serialization/encoding/Encoder;I)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+}
+
 public final class com/muazdev/hijricalendar/widgetdata/HijriDayWidgetData {
 	public static final field Companion Lcom/muazdev/hijricalendar/widgetdata/HijriDayWidgetData$Companion;
 	public fun <init> (ILjava/lang/String;ILjava/lang/String;JZZ)V
@@ -78,6 +87,43 @@ public final class com/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData$Com
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/muazdev/hijricalendar/widgetdata/HijriYearMonth {
+	public static final field Companion Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth$Companion;
+	public fun <init> (II)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun copy (II)Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;IIILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMonth ()I
+	public final fun getYear ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/muazdev/hijricalendar/widgetdata/HijriYearMonth$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/widgetdata/HijriYearMonth$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/widgetdata/MonthLengthOverridesKt {
+	public static final fun decodeMonthLengthsCsv (Ljava/lang/String;)Ljava/util/Map;
+	public static final fun encodeMonthLengthsCsv (Ljava/util/Map;)Ljava/lang/String;
+	public static final fun monthLengthKey (II)Ljava/lang/String;
+	public static final fun monthLengthsFrom (Ljava/util/Map;)Lcom/muazdev/hijricalendar/core/HijriMonthLengths;
+	public static final fun monthLengthsToMap (Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)Ljava/util/Map;
+}
+
 public final class com/muazdev/hijricalendar/widgetdata/NumeralStyle : java/lang/Enum {
 	public static final field ARABIC_INDIC Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;
 	public static final field Companion Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle$Companion;
@@ -142,12 +188,34 @@ public final class com/muazdev/hijricalendar/widgetdata/TodayHijriWidgetData$Com
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/muazdev/hijricalendar/widgetdata/WeekStart : java/lang/Enum {
+	public static final field Companion Lcom/muazdev/hijricalendar/widgetdata/WeekStart$Companion;
+	public static final field FRIDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static final field MONDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static final field SATURDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static final field SUNDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static final field THURSDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static final field TUESDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static final field WEDNESDAY Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public final fun getDayOfWeek ()Lcom/muazdev/hijricalendar/core/WeekDay;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public static fun values ()[Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+}
+
+public final class com/muazdev/hijricalendar/widgetdata/WeekStart$Companion {
+	public final fun fromIndex (I)Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public final fun getDEFAULT ()Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public final fun of (Lcom/muazdev/hijricalendar/core/WeekDay;)Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/muazdev/hijricalendar/widgetdata/WidgetDataApiKt {
-	public static final fun buildHijriMonthWidgetData (IIIILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZLjava/util/Set;ZLjava/util/List;Ljava/util/List;Ljava/util/List;)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
-	public static synthetic fun buildHijriMonthWidgetData$default (IIIILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZLjava/util/Set;ZLjava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
-	public static final fun offsetHijriMonth (III)Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;
-	public static final fun todayHijriWidgetData (JILjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Z)Lcom/muazdev/hijricalendar/widgetdata/TodayHijriWidgetData;
-	public static synthetic fun todayHijriWidgetData$default (JILjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/TodayHijriWidgetData;
+	public static final fun buildHijriMonthWidgetData (IIILcom/muazdev/hijricalendar/widgetdata/WeekStart;Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZLjava/util/Set;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
+	public static synthetic fun buildHijriMonthWidgetData$default (IIILcom/muazdev/hijricalendar/widgetdata/WeekStart;Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZLjava/util/Set;ZLjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
+	public static final fun offsetHijriMonth (III)Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
+	public static final fun todayHijriWidgetData (JILjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZLcom/muazdev/hijricalendar/core/HijriMonthLengths;)Lcom/muazdev/hijricalendar/widgetdata/TodayHijriWidgetData;
+	public static synthetic fun todayHijriWidgetData$default (JILjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ZLcom/muazdev/hijricalendar/core/HijriMonthLengths;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/TodayHijriWidgetData;
 }
 
 public final class com/muazdev/hijricalendar/widgetdata/WidgetLanguage : java/lang/Enum {
@@ -177,38 +245,53 @@ public final class com/muazdev/hijricalendar/widgetdata/WidgetLocalization {
 	public final fun weekdayNames (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/util/List;
 }
 
+public final class com/muazdev/hijricalendar/widgetdata/WidgetLocalization$ChromeLabels {
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widgetdata/WidgetLocalization$ChromeLabels;
+	public final fun goToCurrentMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
+	public final fun monthUnavailable (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
+	public final fun nextMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
+	public final fun previousMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
+}
+
 public final class com/muazdev/hijricalendar/widgetdata/WidgetOptions {
 	public static final field Companion Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions$Companion;
 	public fun <init> ()V
-	public fun <init> (ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ILjava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)V
-	public synthetic fun <init> (ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ILjava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Lcom/muazdev/hijricalendar/widgetdata/WeekStart;Ljava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Ljava/util/Map;)V
+	public synthetic fun <init> (ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Lcom/muazdev/hijricalendar/widgetdata/WeekStart;Ljava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()I
 	public final fun component2 ()Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;
-	public final fun component3 ()I
+	public final fun component3 ()Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
 	public final fun component4 ()Ljava/lang/Integer;
 	public final fun component5 ()Ljava/lang/Integer;
 	public final fun component6 ()Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;
 	public final fun component7 ()Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;
 	public final fun component8 ()Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;
-	public final fun copy (ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ILjava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
-	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;ILjava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun component9 ()Ljava/util/Map;
+	public final fun copy (ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Lcom/muazdev/hijricalendar/widgetdata/WeekStart;Ljava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Ljava/util/Map;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Lcom/muazdev/hijricalendar/widgetdata/WeekStart;Ljava/lang/Integer;Ljava/lang/Integer;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Ljava/util/Map;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAdjustmentDays ()I
 	public final fun getEffectiveMonthNameLanguage ()Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;
-	public final fun getFirstDayOfWeekIndex ()I
+	public final fun getEffectiveWeekStart ()Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
+	public final fun getFirstDayOfWeekIndexValue ()I
 	public final fun getLanguage ()Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;
 	public final fun getLocalizedGregorianMonthNames ()Ljava/util/List;
 	public final fun getLocalizedHijriMonthNames ()Ljava/util/List;
 	public final fun getLocalizedWeekdayNames ()Ljava/util/List;
+	public final fun getMonthLengthOverrides ()Ljava/util/Map;
 	public final fun getMonthNameLanguage ()Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;
 	public final fun getNumeralStyle ()Lcom/muazdev/hijricalendar/widgetdata/NumeralStyle;
+	public final fun getPinned ()Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
 	public final fun getPinnedMonth ()Ljava/lang/Integer;
 	public final fun getPinnedYear ()Ljava/lang/Integer;
 	public final fun getSource ()Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;
+	public final fun getWeekStart ()Lcom/muazdev/hijricalendar/widgetdata/WeekStart;
 	public fun hashCode ()I
 	public final fun hijriMonthName (I)Ljava/lang/String;
 	public final fun isPinned ()Z
-	public final fun resolveGridMonth (Lkotlin/Pair;)Lkotlin/Pair;
+	public final fun overridesTable ()Lcom/muazdev/hijricalendar/core/HijriMonthLengths;
+	public final fun resolveGridMonth (Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;)Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
+	public final fun resolveGridMonthOrNull (Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;)Lcom/muazdev/hijricalendar/widgetdata/HijriYearMonth;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -232,15 +315,31 @@ public final class com/muazdev/hijricalendar/widgetdata/WidgetOptionsJson {
 	public static final field INSTANCE Lcom/muazdev/hijricalendar/widgetdata/WidgetOptionsJson;
 	public final fun decode (Ljava/lang/String;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
 	public final fun decodeOrNull (Ljava/lang/String;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun decodeOrReport (Ljava/lang/String;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptionsJson$DecodeResult;
 	public final fun encode (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;)Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/widgetdata/WidgetOptionsJson$DecodeResult {
+	public fun <init> (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/List;)V
+	public synthetic fun <init> (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/List;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptionsJson$DecodeResult;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptionsJson$DecodeResult;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/List;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptionsJson$DecodeResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOptions ()Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun getRepairedFields ()Ljava/util/List;
+	public final fun getWasRepaired ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/muazdev/hijricalendar/widgetdata/WidgetOptionsKt {
 	public static final fun buildHijriMonthWidgetData (IILcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/Set;)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
 	public static final fun buildHijriMonthWidgetData (IILcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/Set;Z)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
 	public static synthetic fun buildHijriMonthWidgetData$default (IILcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/util/Set;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/HijriMonthWidgetData;
-	public static final fun createWidgetOptions (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;IZII)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
-	public static synthetic fun createWidgetOptions$default (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;IZIIILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public static final fun createWidgetOptions (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Lcom/muazdev/hijricalendar/widgetdata/WeekStart;ZIILjava/lang/String;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public static synthetic fun createWidgetOptions$default (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Lcom/muazdev/hijricalendar/widgetdata/WidgetSource;ILcom/muazdev/hijricalendar/widgetdata/NumeralStyle;Lcom/muazdev/hijricalendar/widgetdata/WeekStart;ZIILjava/lang/String;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
 	public static final fun todayHijriWidgetData (JLcom/muazdev/hijricalendar/widgetdata/WidgetOptions;)Lcom/muazdev/hijricalendar/widgetdata/TodayHijriWidgetData;
 }
 

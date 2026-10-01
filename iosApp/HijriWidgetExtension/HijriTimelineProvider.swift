@@ -69,18 +69,27 @@ enum HijriWidgetProjection {
 
     /// The month a grid renders: transient viewed month (on-widget navigation) wins over the
     /// configured pinned month, which in turn wins over the current Hijri month.
+    ///
+    /// Returns `nil` when none of the three is available — the app has no viewed month, no pin, and
+    /// today's date could not be resolved. That used to be a hardcoded `(1447, 1)`, which is a month
+    /// that is simply wrong whenever today is unknown (WD-07); the placeholder widget has a real
+    /// value to show instead.
     static func resolveGridMonth(
         kind: HijriWidgetKind,
         options: WidgetOptions,
         today: TodayHijriWidgetData?
-    ) -> (year: Int32, month: Int32) {
+    ) -> (year: Int32, month: Int32)? {
         if let viewed = HijriShared.viewedMonth(for: kind) { return (Int32(viewed.year), Int32(viewed.month)) }
         if options.isPinned, let year = options.pinnedYear, let month = options.pinnedMonth {
             return (year.int32Value, month.int32Value)
         }
-        guard let today else { return (1447, 1) }
+        guard let today else { return nil }
         return (today.hijriYear, today.hijriMonth)
     }
+
+    /// A real month to show when the grid month cannot be determined. Named once, rather than
+    /// inlined as a literal at each fallback site.
+    static let placeholderGridMonth = (year: Int32(1447), month: Int32(1))
 }
 
 // MARK: - Month grid widget provider
@@ -139,7 +148,15 @@ struct HijriGridTimelineProvider: TimelineProvider {
     private func entry(at date: Date, options: WidgetOptions) -> HijriEntry {
         let epoch = HijriWidgetProjection.localEpochDay(calendar, for: date)
         let today = HijriWidgetProjection.today(at: epoch, options: options)
+        // `nil` here means: no viewed month, no pin, and today unresolvable — an app whose local
+        // calendar could not produce a date. Falling back to a named placeholder month is honest;
+        // a hardcoded literal inlined here would have looked like a real answer (WD-07).
         let grid = HijriWidgetProjection.resolveGridMonth(kind: .calendar, options: options, today: today)
+            ?? HijriWidgetProjection.placeholderGridMonth
+        if grid == HijriWidgetProjection.placeholderGridMonth, today == nil, !options.isPinned {
+            Logger(subsystem: "com.muazdev.hijricalendar", category: "HijriWidgetOptions")
+                .warning("grid month unresolved; rendering the placeholder month")
+        }
         Logger(subsystem: "com.muazdev.hijricalendar", category: "HijriWidgetOptions")
             .debug("render kind=calendar year=\(grid.year) month=\(grid.month) today=\(today?.hijriDayText ?? "nil")")
         return HijriEntry(

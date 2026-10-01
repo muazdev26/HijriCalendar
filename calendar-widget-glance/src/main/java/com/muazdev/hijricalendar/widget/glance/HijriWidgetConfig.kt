@@ -2,7 +2,6 @@ package com.muazdev.hijricalendar.widget.glance
 
 import android.content.Context
 import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.listSaver
 import androidx.core.content.edit
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -10,8 +9,9 @@ import androidx.glance.GlanceId
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
+import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -91,48 +91,62 @@ public object HijriWidgetConfig {
     private const val NOT_PINNED = -1
 
     /**
+     * Fields the pre-shared format wrote as integer ordinals. At least one of these being an integer
+     * is what identifies a blob as legacy — see [decodeOptionsJson].
+     */
+    private val LEGACY_ENUM_KEYS = listOf("language", "numeralStyle", "source", "monthNameLanguage")
+
+    /**
+     * Whether this object was written by the pre-shared format, i.e. carries at least one enum field
+     * as an integer.
+     *
+     * `intOrNull` is the whole test and is deliberately the *only* one: it answers `null` for a
+     * string like `"URDU"`, so a blob in the current named format cannot match, and a JSON `null`
+     * cannot match either. There is no shape for which both formats are plausible, which is what
+     * makes this a discriminator rather than a heuristic.
+     */
+    private fun JsonObject.hasLegacyOrdinalEnum(): Boolean = LEGACY_ENUM_KEYS.any { key ->
+        (this[key] as? JsonPrimitive)?.intOrNull != null
+    }
+
+    /**
      * Fresh widgets default to Urdu names, Eastern Arabic-Indic digits and the Calculation
      * source, matching the app's Urdu labels. Existing widgets keep whatever they stored.
      */
     public val DEFAULTS: WidgetOptions = WidgetOptions.DEFAULTS
 
     /**
-     * A Bundle-safe [Saver] for [WidgetOptions] (enums as ordinals, nulls preserved), for host
-     * apps building their own settings screen: pass it to `rememberSaveable(stateSaver = ...)`
-     * so in-progress edits survive rotation/process death like the library's own screens did.
+     * A Bundle-safe [Saver] for [WidgetOptions], for host apps building their own settings screen:
+     * pass it to `rememberSaveable(stateSaver = ...)` so in-progress edits survive
+     * rotation/process death like the library's own screens did.
+     *
+     * Stores the options as one [WidgetOptionsJson] string rather than a positional list, and that
+     * is the whole design (WG-06). The previous version wrote enums as **ordinals** into a
+     * `listSaver`, then read them back with an unchecked `entries[ordinal]`. Two problems, one of
+     * them a crash:
+     *
+     *  - **Ordinals are not stable across a version boundary.** A Bundle outlives the process and
+     *    the app update. A saved list written by a build whose `NumeralStyle` had three entries,
+     *    read by one whose has two, indexes off the end. `listSaver.restore` runs inside
+     *    `rememberSaveable` on the main thread during composition, so the `IndexOutOfBoundsException`
+     *    escapes into composition and takes down the settings screen — the screen the user opened in
+     *    order to *fix* the widget.
+     *  - **Names survive all of it.** The shared codec already exists precisely because enums must
+     *    be stored by name; it is the module's own storage format and the one every other native
+     *    renderer writes. Delegating to it also removes the failure mode where the saver and the
+     *    JSON store disagree about the field set — this saver used to have its own copy, and
+     *    `WidgetOptions.monthLengthOverrides` had to be added to *both* (WG-01).
+     *
+     * **One-time cost:** saved state in a live Bundle across an in-place app update was written in
+     * the old positional format and will not decode, so in-progress settings edits are lost once.
+     * `decodeOrNull` returning `null` means that degrades to `DEFAULTS` rather than throwing, which
+     * is already a strict improvement over the crash.
      */
-    public fun widgetOptionsSaver(): Saver<WidgetOptions, Any> = listSaver(
-        save = {
-            listOf(
-                it.adjustmentDays,
-                it.numeralStyle.ordinal,
-                it.firstDayOfWeekIndex,
-                it.pinnedYear,
-                it.pinnedMonth,
-                it.source.ordinal,
-                it.language.ordinal,
-                // Saved as the effective language, not the nullable field: `monthNameLanguage` is
-                // absent only in options written before the option existed, and restoring the
-                // resolved value keeps the screen showing what the widget will render.
-                it.effectiveMonthNameLanguage.ordinal,
-            )
-        },
-        restore = {
-            val language = WidgetLanguage.entries[it[6] as Int]
-            WidgetOptions(
-                adjustmentDays = it[0] as Int,
-                numeralStyle = NumeralStyle.entries[it[1] as Int],
-                firstDayOfWeekIndex = it[2] as Int,
-                pinnedYear = it[3],
-                pinnedMonth = it[4],
-                source = WidgetSource.entries[it[5] as Int],
-                language = language,
-                // Lists saved before the month-name option existed have 7 entries; keep their
-                // month names tied to the widget language instead of crashing on index 7.
-                monthNameLanguage = it.getOrNull(7)?.let { ordinal -> WidgetLanguage.entries[ordinal as Int] }
-                    ?: language,
-            )
-        },
+    public fun widgetOptionsSaver(): Saver<WidgetOptions, Any> = Saver(
+        save = { WidgetOptionsJson.encode(it) },
+        // A `null` here would be a saved value that is not a String; fall back the same way an
+        // absent value does, so a Bundle written by some other saver cannot crash composition either.
+        restore = { WidgetOptionsJson.decodeOrNull(it as? String) },
     )
 
     // ── Per-widget state (Glance preferences store) ─────────────────────────
@@ -193,13 +207,18 @@ public object HijriWidgetConfig {
      * user edits from the widget itself: it is intentionally kept out of [WidgetOptions] so a
      * configuration-screen save never clobbers it.
      */
-    public suspend fun loadViewedMonth(context: Context, glanceId: GlanceId): Pair<Int, Int>? {
+    public suspend fun loadViewedMonth(context: Context, glanceId: GlanceId): HijriYearMonth? {
         migrateLegacyIfNeeded(context, glanceId)
         val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
         return decodeViewed(prefs)
     }
 
-    public suspend fun setViewedMonth(context: Context, glanceId: GlanceId, year: Int, month: Int) {
+    public suspend fun setViewedMonth(
+        context: Context,
+        glanceId: GlanceId,
+        year: Int,
+        month: Int,
+    ) {
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable[VIEWED_KEY] = encodeViewed(year, month)
         }
@@ -212,7 +231,7 @@ public object HijriWidgetConfig {
         }
     }
 
-    public val PREFS: PreferencesGlanceStateDefinition = PreferencesGlanceStateDefinition
+    internal val PREFS: PreferencesGlanceStateDefinition = PreferencesGlanceStateDefinition
 
     // ── Pure decode helpers, shared with the composable read ─────────────────
 
@@ -225,21 +244,78 @@ public object HijriWidgetConfig {
     /**
      * Decodes an encoded options JSON blob, or `null` when it is absent/malformed.
      *
-     * The current format is `calendar-widget-data`'s `WidgetOptionsJson` (enums by name), shared
-     * with every other native renderer. [decodeLegacyOrdinalJson] is tried second, so options
-     * written by an earlier version — which encoded the same fields as enum *ordinals* — still
-     * load, and are rewritten in the shared format by the next save.
+     * The current format is `calendar-widget-data`'s `WidgetOptionsJson` (enums by name, unknown
+     * *keys* ignored and unknown *values* coerced), shared with every other native renderer.
+     * [decodeLegacyOrdinalJson] is tried second for blobs the current format cannot read.
+     *
+     * **The two readers are told apart by shape, not by "the first one failed".** The legacy format
+     * wrote enum fields as integers; the current one writes them as names. The legacy reader requires
+     * at least one integer enum field before it will claim a blob, so a blob the current reader
+     * rejects for some *other* reason is not silently reinterpreted as legacy — see
+     * [decodeLegacyOrdinalJson] for what that cost when the distinction was not made.
      */
-    public fun decodeOptionsJson(raw: String): WidgetOptions? =
-        WidgetOptionsJson.decodeOrNull(raw) ?: decodeLegacyOrdinalJson(raw)
+    public fun decodeOptionsJson(raw: String): WidgetOptions? {
+        val element = raw.parseJsonObjectOrNull() ?: return null
+
+        // The discriminator, and it is a discriminator rather than "try one, then the other" because
+        // the two formats are *distinguishable*: the legacy one wrote enum fields as integers, the
+        // current one writes them as names.
+        //
+        // Routing on shape rather than on a failed parse matters in both directions now. "Try the
+        // shared decoder, then the legacy one" was the original design and it was wrong twice over:
+        // the shared decoder's failure used to send a *modern* blob into the legacy reader, which
+        // read every field as "not an integer" and returned all-defaults — a silent, permanent
+        // revert (WG-09). And once the shared decoder learned `coerceInputValues` (WD-06), it
+        // started *succeeding* on a legacy blob instead, coercing each integer enum to a default —
+        // quietly wrong values instead of a clean fall-through. Neither is reachable once the format
+        // is decided up front.
+        return if (element.hasLegacyOrdinalEnum()) {
+            decodeLegacyOrdinalJson(element)?.also {
+                // The legacy path is invisible by nature — it looks exactly like a successful read —
+                // so it says so. This is a render path, and a store stuck on the old format would
+                // otherwise be indistinguishable from a settled one.
+                HijriWidgetRefreshLog.d(
+                    "config",
+                    "read a pre-shared ordinal options blob; it will be rewritten on next save",
+                )
+            }
+        } else {
+            val decoded = WidgetOptionsJson.decodeOrReport(raw)
+            if (decoded != null && decoded.wasRepaired) {
+                // An impossible stored value — a month of 13, a half-set pin — used to decode
+                // cleanly and then render as a compact today card in a grid-sized frame, with no
+                // error anywhere (WD-09). The repair is the evidence, so it gets logged.
+                HijriWidgetRefreshLog.e(
+                    "config",
+                    "repaired impossible stored option(s): ${decoded.repairedFields.joinToString()}",
+                )
+            }
+            decoded?.options
+        }
+    }
 
     /**
-     * Reads the pre-1.0 storage format, which wrote the option fields as enum ordinals. Kept
-     * because ordinals are exactly what the shared named format fixed: reordering an enum entry
-     * used to silently reinterpret every stored widget.
+     * Reads the pre-1.0 storage format, which wrote the option fields as enum ordinals. Kept because
+     * ordinals are exactly what the shared named format fixed: reordering an enum entry used to
+     * silently reinterpret every stored widget.
+     *
+     * **Only reachable for a blob [JsonObject.hasLegacyOrdinalEnum] vouches for.** Every field below
+     * is `?: DEFAULTS.x`, so without that gate *any* JSON object decoded to a valid all-defaults
+     * `WidgetOptions` — answering "here are the defaults" for input it did not understand, which is
+     * a guess dressed as a result.
+     *
+     * The worked example, and the reason the gate lives in the dispatcher rather than here: a widget
+     * written by a newer app and read by an older library stored
+     * `{"language":"PERSIAN","adjustmentDays":-2}`. The shared decoder failed on the unknown enum
+     * name, the then-unfenced fallback read `"PERSIAN"` as "not an integer" so every field fell back,
+     * and the widget silently reverted to Urdu defaults, Western numerals and Umm al-Qura — no log,
+     * no error, no way for a user to tell (WG-09).
+     *
+     * Retire this once no installed build predates the named format: the shape test is then the only
+     * thing still routing blobs here, and deleting the reader is a strict improvement rather than a
+     * migration risk. AGENTS.md records the same lifecycle for the iOS `migrateLegacySwiftFormat`.
      */
-    private fun decodeLegacyOrdinalJson(raw: String): WidgetOptions? {
-        val json = raw.parseJsonObjectOrNull() ?: return null
+    private fun decodeLegacyOrdinalJson(json: JsonObject): WidgetOptions? {
         val language = json.intOrNull("language")?.let { WidgetLanguage.entries.getOrNull(it) }
             ?: DEFAULTS.language
         // A widget that never stored a numeral style follows its language's default (Eastern for
@@ -249,8 +325,12 @@ public object HijriWidgetConfig {
             adjustmentDays = json.intOrNull("adjustmentDays") ?: DEFAULTS.adjustmentDays,
             numeralStyle = json.intOrNull("numeralStyle")?.let { NumeralStyle.entries.getOrNull(it) }
                 ?: numeralDefault,
-            firstDayOfWeekIndex = (json.intOrNull("firstDayOfWeekIndex")
-                ?: DEFAULTS.firstDayOfWeekIndex).coerceIn(0, 6),
+            // This whole reader handles the ordinal format, so its weekday field is an index too;
+            // mapped into the name-backed enum the current schema uses (WD-05).
+            weekStart = WeekStart.fromIndex(
+                (json.intOrNull("firstDayOfWeekIndex") ?: DEFAULTS.firstDayOfWeekIndexValue)
+                    .coerceIn(0, 6),
+            ),
             pinnedYear = json.intOrNull("pinnedYear"),
             pinnedMonth = json.intOrNull("pinnedMonth"),
             source = json.intOrNull("source")?.let { WidgetSource.entries.getOrNull(it) }
@@ -263,24 +343,31 @@ public object HijriWidgetConfig {
     }
 
     /** Decodes the viewed month, or `null` when the widget is following today. */
-    public fun decodeViewed(prefs: Preferences): Pair<Int, Int>? {
+    public fun decodeViewed(prefs: Preferences): HijriYearMonth? {
         val json = prefs[VIEWED_KEY]?.parseJsonObjectOrNull() ?: return null
         val year = json.intOrNull("year")
-        val month = json.intOrNull("month")
-        return if (year == null || month == null) null else year to month
+        val month = json.intOrNull("month")?.takeIf { it in 1..12 }
+        return if (year == null || month == null) null else HijriYearMonth(year = year, month = month)
     }
 
     // ── Runtime markers (global SharedPreferences, not per-widget view state) ─
+    //
+    // All `internal` (WG-05). These are the switches that decide whether the widget updates, and a
+    // consumer has no legitimate reason to write them: `markUpdatedNow(today)` from outside
+    // suppresses every non-bypassing refresh for the rest of the day, permanently, with a log line
+    // reading "already refreshed". Every call site is in this module. They were public only because
+    // Kotlin demands explicit visibility and each one was written that way; see the public-surface
+    // list in the module KDoc.
 
     /** Marks the widget family as freshly updated for the current local calendar day. */
-    public fun markUpdatedNow(context: Context, epochDay: Long) {
+    internal fun markUpdatedNow(context: Context, epochDay: Long) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putLong(KEY_LAST_UPDATE_EPOCH_DAY, epochDay)
         }
     }
 
     /** True when the widget family already reflects the given local calendar day. */
-    public fun isFreshFor(context: Context, epochDay: Long): Boolean {
+    internal fun isFreshFor(context: Context, epochDay: Long): Boolean {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_LAST_UPDATE_EPOCH_DAY, Long.MIN_VALUE) >= epochDay
     }
@@ -290,20 +377,20 @@ public object HijriWidgetConfig {
      * persisted (not just in-memory) so a catch-up still happens if the process dies before the
      * app leaves the foreground; [HijriWidgetRefresher] clears it once the render lands.
      */
-    public fun markRefreshPending(context: Context, pending: Boolean) {
+    internal fun markRefreshPending(context: Context, pending: Boolean) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putBoolean(KEY_REFRESH_PENDING, pending)
         }
     }
 
     /** True when an earlier refresh was skipped and has not yet been applied. */
-    public fun isRefreshPending(context: Context): Boolean {
+    internal fun isRefreshPending(context: Context): Boolean {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_REFRESH_PENDING, false)
     }
 
     /** The epoch-day marker of the last successful family refresh, or [Long.MIN_VALUE]. */
-    public fun lastUpdatedEpochDay(context: Context): Long {
+    internal fun lastUpdatedEpochDay(context: Context): Long {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_LAST_UPDATE_EPOCH_DAY, Long.MIN_VALUE)
     }
@@ -311,13 +398,13 @@ public object HijriWidgetConfig {
     // ── Generated-preview marker ────────────────────────────────────────────
 
     /** The epoch-day the generated picker previews were last published, or [Long.MIN_VALUE]. */
-    public fun lastPreviewPublishedEpochDay(context: Context): Long {
+    internal fun lastPreviewPublishedEpochDay(context: Context): Long {
         return context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_PREVIEW_PUBLISHED_EPOCH_DAY, Long.MIN_VALUE)
     }
 
     /** Records that the generated picker previews now reflect the given local calendar day. */
-    public fun markPreviewsPublishedNow(context: Context, epochDay: Long) {
+    internal fun markPreviewsPublishedNow(context: Context, epochDay: Long) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putLong(KEY_PREVIEW_PUBLISHED_EPOCH_DAY, epochDay)
         }
@@ -340,7 +427,7 @@ public object HijriWidgetConfig {
         val viewed = readLegacyViewed(legacy, suffix)
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable[OPTIONS_KEY] = encodeOptions(options)
-            val viewedJson = viewed?.let { encodeViewed(it.first, it.second) }
+            val viewedJson = viewed?.let { encodeViewed(it.year, it.month) }
             if (viewedJson == null) {
                 mutable.remove(VIEWED_KEY)
             } else {
@@ -368,9 +455,10 @@ public object HijriWidgetConfig {
             numeralStyle = NumeralStyle.entries.getOrElse(
                 legacy.getInt("$KEY_NUMERAL_STYLE$key", numeralDefault.ordinal),
             ) { numeralDefault },
-            firstDayOfWeekIndex = legacy
-                .getInt("$KEY_FIRST_DAY$key", DEFAULTS.firstDayOfWeekIndex)
-                .coerceIn(0, 6),
+            // As above: the SharedPreferences store predates `weekStart` entirely.
+            weekStart = WeekStart.fromIndex(
+                legacy.getInt("$KEY_FIRST_DAY$key", DEFAULTS.firstDayOfWeekIndexValue).coerceIn(0, 6),
+            ),
             pinnedYear = legacy.getInt("$KEY_PINNED_YEAR$key", NOT_PINNED).let { if (it == NOT_PINNED) null else it },
             pinnedMonth = legacy.getInt("$KEY_PINNED_MONTH$key", NOT_PINNED).let { if (it == NOT_PINNED) null else it },
             source = WidgetSource.entries.getOrElse(
@@ -382,11 +470,14 @@ public object HijriWidgetConfig {
         )
     }
 
-    private fun readLegacyViewed(legacy: android.content.SharedPreferences, key: String): Pair<Int, Int>? {
+    private fun readLegacyViewed(
+        legacy: android.content.SharedPreferences,
+        key: String,
+    ): HijriYearMonth? {
         val year = legacy.getInt("$KEY_VIEWED_YEAR$key", NOT_PINNED)
         val month = legacy.getInt("$KEY_VIEWED_MONTH$key", NOT_PINNED)
-        if (year == NOT_PINNED || month == NOT_PINNED) return null
-        return year to month
+        if (year == NOT_PINNED || month == NOT_PINNED || month !in 1..12) return null
+        return HijriYearMonth(year = year, month = month)
     }
 
     private fun encodeOptions(options: WidgetOptions): String = WidgetOptionsJson.encode(options)
