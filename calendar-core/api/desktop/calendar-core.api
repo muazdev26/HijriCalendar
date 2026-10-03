@@ -177,6 +177,7 @@ public final class com/muazdev/hijricalendar/core/HijriCalendarState {
 	public final fun setMonthLength (III)V
 	public final fun setPakistanDates (Z)V
 	public final fun setShowAdjacentDays (Z)V
+	public final fun setWeekendDays (Ljava/util/Set;)V
 }
 
 public final class com/muazdev/hijricalendar/core/HijriCalendarStateKt {

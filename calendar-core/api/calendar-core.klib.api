@@ -232,6 +232,7 @@ final class com.muazdev.hijricalendar.core/HijriCalendarState { // com.muazdev.h
     final fun setMonthLength(kotlin/Int, kotlin/Int, kotlin/Int) // com.muazdev.hijricalendar.core/HijriCalendarState.setMonthLength|setMonthLength(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
     final fun setPakistanDates(kotlin/Boolean) // com.muazdev.hijricalendar.core/HijriCalendarState.setPakistanDates|setPakistanDates(kotlin.Boolean){}[0]
     final fun setShowAdjacentDays(kotlin/Boolean) // com.muazdev.hijricalendar.core/HijriCalendarState.setShowAdjacentDays|setShowAdjacentDays(kotlin.Boolean){}[0]
+    final fun setWeekendDays(kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay>) // com.muazdev.hijricalendar.core/HijriCalendarState.setWeekendDays|setWeekendDays(kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>){}[0]
 }
 
 final class com.muazdev.hijricalendar.core/HijriMonthLengths { // com.muazdev.hijricalendar.core/HijriMonthLengths|null[0]

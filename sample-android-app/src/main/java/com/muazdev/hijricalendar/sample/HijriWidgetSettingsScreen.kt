@@ -42,6 +42,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshScheduler
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WeekStart
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -304,6 +305,22 @@ internal fun HijriWidgetSettingsScreen(
             }
         }
 
+        SectionTitle("Weekend days")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WeekendPattern.entries.forEach { pattern ->
+                FilterChip(
+                    selected = options.weekendPattern == pattern,
+                    onClick = { update(options.copy(weekendPattern = pattern)) },
+                    label = { Text(pattern.settingsLabel()) },
+                )
+            }
+        }
+        Text(
+            "Which days the grid paints as non-working days. Friday+Saturday suits the Pakistan " +
+                "calendar, Sunday suits most of the Christian world.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
         // ── Adjacent-month days (grid only) ──────────────────────────────────────
         if (kind == WidgetKind.GRID) {
             SectionTitle("Neighbouring months")
@@ -403,6 +420,19 @@ private fun previewBorder(size: DpSize, borderColor: androidx.compose.ui.graphic
 @Composable
 private fun SectionTitle(text: String) {
     Text(text = text, style = MaterialTheme.typography.titleSmall)
+}
+
+/**
+ * The settings screen's label for a pattern.
+ *
+ * Abbreviated: four chips at readable width do not fit one row on a phone, and the full names are in
+ * the help text underneath.
+ */
+private fun WeekendPattern.settingsLabel(): String = when (this) {
+    WeekendPattern.FRIDAY_SATURDAY -> "Fri+Sat"
+    WeekendPattern.SUNDAY -> "Sun"
+    WeekendPattern.FRIDAY_ONLY -> "Fri"
+    WeekendPattern.NONE -> "None"
 }
 
 /** Switching language follows the new language's default digits unless a custom style was chosen. */

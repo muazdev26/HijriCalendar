@@ -33,9 +33,20 @@ import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
 
+/**
+ * The sample's calendar screen.
+ *
+ * `LongMethod` is suppressed rather than satisfied. The function's whole job is to lay out a list of
+ * independent option controls, each already its own composable and each gated on its own `show…` flag
+ * so a host can offer a subset. Wrapping the list in another composable would hide what the screen
+ * shows rather than shorten it, and the parameter list that wrapper needs is larger than the length it
+ * would avoid.
+ */
+@Suppress("LongMethod")
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
@@ -54,6 +65,8 @@ fun CalendarScreen(
     onMonthLengthOverridesChanged: (() -> Unit)? = null,
     showAdjacentDaysToggle: Boolean = false,
     onShowAdjacentDaysChange: ((Boolean) -> Unit)? = null,
+    showWeekendPatternToggle: Boolean = false,
+    onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
 ) {
     val selectedDateText = rememberSelectedDateText(state, dateDisplayMode)
 
@@ -107,6 +120,17 @@ fun CalendarScreen(
                 onSelect = { show ->
                     state.setShowAdjacentDays(show)
                     onShowAdjacentDaysChange?.invoke(show)
+                },
+            )
+        }
+
+        if (showWeekendPatternToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            WeekendPatternSelector(
+                selected = WeekendPattern.of(state.weekendDays),
+                onSelect = { pattern ->
+                    state.setWeekendDays(pattern.toWeekDays())
+                    onWeekendPatternChange?.invoke(pattern)
                 },
             )
         }
@@ -461,4 +485,43 @@ private fun rememberSelectedDateText(
     state.adjustmentDays,
 ) {
     selectedDateSummary(state, dateDisplayMode)
+}
+
+/**
+ * Which days the grid shades as non-working days.
+ *
+ * The selection is read back out of [HijriCalendarState.weekendDays] through [WeekendPattern.of]
+ * rather than held alongside it, so the selector cannot disagree with what the grid is painting — an
+ * out-of-sync highlight is worse than no highlight. A `null` selection, meaning a set none of the four
+ * patterns describes (a host that resolved its own), shows no chip selected rather than pretending.
+ */
+@Composable
+private fun WeekendPatternSelector(
+    selected: WeekendPattern?,
+    onSelect: (WeekendPattern) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Weekend", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            WeekendPattern.entries.forEachIndexed { index, pattern ->
+                SegmentedButton(
+                    selected = pattern == selected,
+                    onClick = { onSelect(pattern) },
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = WeekendPattern.entries.size,
+                    ),
+                ) {
+                    Text(pattern.displayLabel())
+                }
+            }
+        }
+    }
+}
+
+private fun WeekendPattern.displayLabel(): String = when (this) {
+    WeekendPattern.FRIDAY_SATURDAY -> "Fri+Sat"
+    WeekendPattern.SUNDAY -> "Sunday"
+    WeekendPattern.FRIDAY_ONLY -> "Friday"
+    WeekendPattern.NONE -> "None"
 }

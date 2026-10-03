@@ -93,6 +93,16 @@ public object HijriWidgetConfig {
     /**
      * Fields the pre-shared format wrote as integer ordinals. At least one of these being an integer
      * is what identifies a blob as legacy — see [decodeOptionsJson].
+     *
+     * **A field added since that format is deliberately absent**, and `weekendPattern` is the first
+     * one. The discriminator's contract is "the pre-shared format wrote enum fields as integers", and
+     * that format is frozen: it wrote exactly four enum fields, all of them above. Listing a fifth
+     * would widen the gate to blobs whose *other* enum fields are already named — and
+     * [decodeLegacyOrdinalJson] reads those as ordinals, so `intOrNull` answers `null` for `"URDU"`
+     * and the blob would silently lose its language, numerals, source and month-name language. A new
+     * field's *wrong* value is already handled where it belongs: `coerceInputValues` in
+     * [WidgetOptionsJson] folds an unreadable enum to its default, which for [weekendPattern] is the
+     * behaviour every widget rendered before the field existed.
      */
     private val LEGACY_ENUM_KEYS = listOf("language", "numeralStyle", "source", "monthNameLanguage")
 

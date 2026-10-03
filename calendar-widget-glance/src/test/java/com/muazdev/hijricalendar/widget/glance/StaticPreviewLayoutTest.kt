@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.widget.glance
 
 import com.muazdev.hijricalendar.core.CalendarMonth
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -178,22 +179,103 @@ class StaticPreviewLayoutTest {
         }
     }
 
+    /**
+     * The preview's weekday header row.
+     *
+     * Selected on `layout_height`, not on child tags: four of the six grid rows are also horizontal,
+     * seven-wide and all-`TextView` (every row but the one holding the today cell), so a selector that
+     * ignored height would match five rows instead of one.
+     */
+    private fun weekdayHeaderRow(): Element = gridPreview().children().single { row ->
+        row.attr("android:orientation") == "horizontal" &&
+            row.attr("android:layout_height") == "wrap_content" &&
+            row.children().size == CalendarMonth.DAYS_IN_WEEK &&
+            row.children().all { it.tagName == "TextView" }
+    }
+
     @Test
     fun theStaticGridHasOneWeekdayHeaderPerDay() {
-        // Selected on `layout_height`, not on child tags: four of the six grid rows are also
-        // horizontal, seven-wide and all-`TextView` (every row but the one holding the today cell),
-        // so a selector that ignored height would match five rows instead of one.
-        val header = gridPreview().children().single { row ->
-            row.attr("android:orientation") == "horizontal" &&
-                row.attr("android:layout_height") == "wrap_content" &&
-                row.children().size == CalendarMonth.DAYS_IN_WEEK &&
-                row.children().all { it.tagName == "TextView" }
-        }
         assertEquals(
             "weekday header count",
             CalendarMonth.DAYS_IN_WEEK,
-            header.children().size,
+            weekdayHeaderRow().children().size,
         )
+    }
+
+    /**
+     * The shaded columns are exactly the default weekend pattern's columns.
+     *
+     * A `previewLayout` is a fixed snapshot, so it can only show one configuration — the default. That
+     * is only defensible while the default is what it draws, which is what this asserts: the red cells
+     * are read back out of the layout by *column*, compared against the column positions
+     * [WeekendPattern.FRIDAY_SATURDAY] maps to given the preview's own weekday header row. Change the
+     * schema default and this fails, so the snapshot is updated with it rather than quietly continuing
+     * to advertise a pattern the widget will not render.
+     *
+     * Reading by column rather than counting cells is deliberate: a count would pass for a layout that
+     * shaded the right *number* of days in the wrong *columns*, which is the failure nobody sees in a
+     * picker preview.
+     */
+    @Test
+    fun theStaticGridShadesExactlyTheDefaultWeekendColumns() {
+        val header = weekdayHeaderRow()
+        val headerTexts = header.children().map { it.attr("android:text").orEmpty() }
+
+        val expectedColumns = urduWeekdayColumnsIn(WeekendPattern.FRIDAY_SATURDAY)
+        assertTrue(
+            "the default pattern's columns must be findable in the preview's own weekday headers, " +
+                "but $headerTexts does not contain them",
+            expectedColumns.isNotEmpty(),
+        )
+
+        // Rows of seven weighted cells below the header. The preview's rows are `0dp`-weighted
+        // inside the vertical container, not `match_parent`, which is the only thing telling a grid
+        // row apart from a header row once the tag is the same.
+        val gridRows = gridPreview().children().filter { row ->
+            row.attr("android:orientation") == "horizontal" &&
+                row.attr("android:layout_height") == "0dp" &&
+                row.children().size == CalendarMonth.DAYS_IN_WEEK
+        }
+        assertTrue("the static preview should have some grid rows", gridRows.isNotEmpty())
+
+        val shadedColumns = mutableSetOf<Int>()
+        gridRows.forEach { row ->
+            row.children().forEachIndexed { column, cell ->
+                if (cell.attr("android:textColor") == "@color/widget_weekend_text") {
+                    shadedColumns += column
+                }
+            }
+        }
+
+        assertEquals(
+            "the static preview shades $shadedColumns but the default pattern's columns are " +
+                "$expectedColumns",
+            expectedColumns,
+            shadedColumns,
+        )
+    }
+
+    /**
+     * The column positions [pattern] occupies, given the preview's Urdu weekday header row.
+     *
+     * The header runs Saturday-first (`ہفتہ`, `اتوار`, `پیر`, …), so "Friday and Saturday" is columns 6
+     * and 0 — which is why this reads the header rather than hardcoding indices: the same pattern in a
+     * Sunday-first layout would be different columns, and the point is that the *days* match.
+     */
+    private fun urduWeekdayColumnsIn(pattern: WeekendPattern): Set<Int> {
+        val urduNames = mapOf(
+            com.muazdev.hijricalendar.core.WeekDay.SATURDAY to "ہفتہ",
+            com.muazdev.hijricalendar.core.WeekDay.SUNDAY to "اتوار",
+            com.muazdev.hijricalendar.core.WeekDay.MONDAY to "پیر",
+            com.muazdev.hijricalendar.core.WeekDay.TUESDAY to "منگل",
+            com.muazdev.hijricalendar.core.WeekDay.WEDNESDAY to "بدھ",
+            com.muazdev.hijricalendar.core.WeekDay.THURSDAY to "جمعرات",
+            com.muazdev.hijricalendar.core.WeekDay.FRIDAY to "جمعہ",
+        )
+        val wanted = pattern.toWeekDays().map { urduNames.getValue(it) }
+        return weekdayHeaderRow().children()
+            .mapIndexedNotNull { index, child -> if (child.attr("android:text") in wanted) index else null }
+            .toSet()
     }
 
     @Test

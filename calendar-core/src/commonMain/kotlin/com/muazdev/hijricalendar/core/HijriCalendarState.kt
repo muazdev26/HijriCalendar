@@ -86,7 +86,7 @@ public class HijriCalendarState(
     pakistanDates: Boolean = false,
     initialSelectedPakistanDate: PakistanHijriDate? = null,
     initialSelectedObservedDate: ObservedHijriDate? = null,
-    public val weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
     /**
      * Whether the grid renders the days that belong to the neighbouring months — the dimmed
      * leading and trailing cells — or only this month's own days.
@@ -122,6 +122,23 @@ public class HijriCalendarState(
     private var _selectedObservedDate by mutableStateOf(initialSelectedObservedDate)
     private var _overridesRevision by mutableStateOf(monthLengths.currentRevision)
     private var _showAdjacentDays by mutableStateOf(showAdjacentDays)
+    private var _weekendDays by mutableStateOf(weekendDays)
+
+    /**
+     * The days the grid paints as non-working days. Presentational only — it does not affect
+     * selection, navigation or any date's value.
+     *
+     * Runtime-toggleable with [setWeekendDays], unlike [firstDayOfWeek] and the date bounds beside
+     * it: those describe the calendar and cannot change under the user, whereas which days a person
+     * does not work is a preference they are entitled to revise. The widget schema carries the same
+     * choice as `WeekendPattern`; this is the core-side holder it lands in.
+     */
+    public val weekendDays: Set<WeekDay> get() = _weekendDays
+
+    /** Sets the days the grid paints as non-working days. See [weekendDays]. */
+    public fun setWeekendDays(days: Set<WeekDay>) {
+        _weekendDays = days
+    }
 
     /**
      * Whether the grid paints the neighbouring months' days. See the constructor parameter — this

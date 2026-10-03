@@ -84,6 +84,23 @@ public data class WidgetOptions(
      * and no widget is left rendering a grid nobody asked for.
      */
     val showAdjacentDays: Boolean = false,
+    /**
+     * Which days the grid paints as non-working days.
+     *
+     * `FRIDAY_SATURDAY` by default, which is what every release before this field rendered — the set
+     * was a hardcoded literal at the one call site that built a month projection, so a widget had no
+     * way to change it and a user whose weekend is not Friday and Saturday had no way to either.
+     * A widget stored before this field existed decodes into `FRIDAY_SATURDAY`, so upgrading changes
+     * no already-placed widget's colours.
+     *
+     * A name-backed enum in this module rather than a set of [com.muazdev.hijricalendar.core.WeekDay]
+     * for the reason WD-05 removed `firstDayOfWeekIndex` from the schema: a set of another module's
+     * ordinals reinterprets itself the day someone inserts a `WeekDay` entry. See [WeekendPattern].
+     *
+     * [WeekDay.WEEKEND_DAYS] in `calendar-core` is **not** changed by this. It is a default for
+     * consumers who never see a widget, and the default moves in the schema, not in core.
+     */
+    val weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
 ) {
     /**
      * The first day of week to render with.
@@ -241,6 +258,7 @@ public data class WidgetOptions(
             language = WidgetLanguage.URDU,
             monthNameLanguage = WidgetLanguage.URDU,
             showAdjacentDays = false,
+            weekendPattern = WeekendPattern.FRIDAY_SATURDAY,
         )
     }
 }
@@ -437,6 +455,7 @@ public fun createWidgetOptions(
     pinnedMonth: Int = 1,
     overridesCsv: String? = null,
     showAdjacentDays: Boolean = false,
+    weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -448,6 +467,7 @@ public fun createWidgetOptions(
     monthNameLanguage = monthNameLanguage ?: language,
     monthLengthOverrides = decodeMonthLengthsCsv(overridesCsv),
     showAdjacentDays = showAdjacentDays,
+    weekendPattern = weekendPattern,
 )
 
 /**
@@ -467,7 +487,7 @@ public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
     options: WidgetOptions,
-    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    weekendDays: Set<WeekDay> = options.weekendPattern.toWeekDays(),
 ): HijriMonthWidgetData? = buildHijriMonthWidgetData(
     hijriYear = hijriYear,
     hijriMonth = hijriMonth,
@@ -476,7 +496,14 @@ public fun buildHijriMonthWidgetData(
     rightToLeft = options.language.isRtl,
 )
 
-/** As above, with an explicit reading direction for platforms that mirror rows themselves. */
+/**
+ * As above, with an explicit reading direction for platforms that mirror rows themselves, and an
+ * explicit weekend set.
+ *
+ * [weekendDays] is a parameter here only so a caller that has already resolved a set — a host
+ * rendering its own calendar, say — need not round-trip through an enum. A widget renderer should use
+ * the [options] overload above, which reads [WidgetOptions.weekendPattern] and cannot forget it.
+ */
 public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,

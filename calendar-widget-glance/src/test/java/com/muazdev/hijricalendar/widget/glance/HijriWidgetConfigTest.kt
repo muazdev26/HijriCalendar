@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WeekStart
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetOptionsJson
@@ -79,6 +80,7 @@ class HijriWidgetConfigTest {
             monthNameLanguage = WidgetLanguage.URDU,
             monthLengthOverrides = mapOf(monthLengthKey(1447, 11) to 29),
             showAdjacentDays = true,
+            weekendPattern = WeekendPattern.SUNDAY,
         )
         val restored = HijriWidgetConfig.widgetOptionsSaver().roundTrip(options)
 
@@ -110,6 +112,7 @@ class HijriWidgetConfigTest {
             if (options.monthNameLanguage == restored.monthNameLanguage) add("monthNameLanguage")
             if (options.monthLengthOverrides == restored.monthLengthOverrides) add("monthLengthOverrides")
             if (options.showAdjacentDays == restored.showAdjacentDays) add("showAdjacentDays")
+            if (options.weekendPattern == restored.weekendPattern) add("weekendPattern")
         }
         return surviving
     }

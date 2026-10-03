@@ -48,7 +48,6 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
-import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
@@ -296,7 +295,11 @@ internal fun buildMonthData(
         hijriYear = year,
         hijriMonth = month,
         options = options,
-        weekendDays = WeekDay.WEEKEND_DAYS,
+        // From the widget's own options (FD-03). This used to be the literal
+        // `WeekDay.WEEKEND_DAYS`, so every widget shaded Friday and Saturday and nobody could change
+        // it — which is right for the Pakistan calendar the library also supports, and wrong for a
+        // user whose weekend is not Friday and Saturday.
+        weekendDays = options.weekendPattern.toWeekDays(),
         // The projection is pre-reversed for the device's mirroring, so the net visual order is
         // the option language's — which is what `layoutRtl` already encodes.
         rightToLeft = layoutRtl,

@@ -27,6 +27,24 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   A widget stored before this field existed decodes into the new behaviour, so upgrading changes
   every already-placed grid. Set `showAdjacentDays = true` to keep the old look.
 
+### Added
+
+- **Which days the widget and the in-app calendar paint as non-working days is now an option.**
+  `WidgetOptions.weekendPattern` (a new `WeekendPattern`: Friday+Saturday, Sunday, Friday only, none)
+  and `HijriCalendarState.setWeekendDays(...)` replace a hardcoded `WeekDay.WEEKEND_DAYS` literal at
+  the single call site that built a projection. The default is Friday+Saturday, which is what every
+  release before this rendered, so no already-placed widget changes. ([FD-03](docs/issues/2026-10-03/FD-03-configurable-weekend-days.md))
+
+  It was reported as "two red days, every calendar shows one" — they were Friday and Saturday, which is
+  the correct weekend for the Pakistan calendar this library also supports. The behaviour was right and
+  the *configuration* was missing, so nothing about the default changed; what changed is that a user
+  whose weekend is not Friday and Saturday now has somewhere to say so. `WeekDay.WEEKEND_DAYS` in
+  `calendar-core` is untouched — it is a default for consumers who never see a widget.
+
+  `WeekendPattern` is a name-backed enum owned by `calendar-widget-data` rather than a set of
+  `WeekDay` ordinals, which would have been the WD-05 hazard arriving a second time: inserting a
+  `WeekDay` entry would silently re-interpret every stored widget.
+
 ### Fixed
 
 - **The 1×1 date tiles now name the day they are showing.** `HijriDateWidget` and

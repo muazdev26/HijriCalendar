@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
                         showMonthLengthSettings = true,
                         onMonthLengthOverridesChanged = viewModel::persistMonthLengthOverrides,
                         showAdjacentDaysToggle = true,
+                        showWeekendPatternToggle = true,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),
