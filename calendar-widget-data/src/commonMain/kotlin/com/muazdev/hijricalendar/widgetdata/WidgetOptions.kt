@@ -209,6 +209,19 @@ public data class WidgetOptions(
      * raw, un-normalised pair — so two options that mean the same thing (`pinnedYear = 1447` and no
      * pin at all) would compare unequal. Overridden so the value type describes the state a
      * renderer actually sees, which is the whole point of normalising.
+     *
+     * ## ⚠️ Every field must be listed, and `WidgetOptionsEqualityTest` enforces it
+     *
+     * A hand-written `equals` does not fall behind its class the way a generated one does — it just
+     * quietly stops comparing the fields added after it. And the failure is **silent and total**:
+     * `copy(showCellBorders = true) == copy(showCellBorders = false)`, so the settings screen's
+     * `if (newOptions == options) return` discards every change to that field and the toggle appears
+     * dead. Three options shipped that way before the test existed.
+     *
+     * So the field list is asserted by reflection — the same shape as
+     * `HijriWidgetConfigTest.widgetOptionsSaver_roundTripsEveryOptionItDeclares`, which exists for
+     * the identical reason on the saver. Adding a field without updating either fails the build
+     * rather than a user's widget.
      */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -220,7 +233,10 @@ public data class WidgetOptions(
             source == other.source &&
             language == other.language &&
             monthNameLanguage == other.monthNameLanguage &&
-            monthLengthOverrides == other.monthLengthOverrides
+            monthLengthOverrides == other.monthLengthOverrides &&
+            showAdjacentDays == other.showAdjacentDays &&
+            weekendPattern == other.weekendPattern &&
+            showCellBorders == other.showCellBorders
     }
 
     override fun hashCode(): Int {
@@ -232,6 +248,9 @@ public data class WidgetOptions(
         result = 31 * result + language.hashCode()
         result = 31 * result + (monthNameLanguage?.hashCode() ?: 0)
         result = 31 * result + monthLengthOverrides.hashCode()
+        result = 31 * result + showAdjacentDays.hashCode()
+        result = 31 * result + weekendPattern.hashCode()
+        result = 31 * result + showCellBorders.hashCode()
         return result
     }
 
@@ -544,7 +563,7 @@ public fun buildHijriMonthWidgetData(
     overrides = options.overridesTable(),
     // Era markers follow `effectiveMonthNameLanguage`, not `language`: an era marker is *text* that
     // sits beside the month names, so it belongs to the same locale as the names it is read with.
-    // Using `language` here produced "April - May 2026 ئے" — a Latin month range with an Urdu suffix —
+    // Using `language` here produced "April - May 2026 ء" — a Latin month range with an Urdu suffix —
     // for exactly the widget that had asked for English month names.
     //
     // Numerals stay independent, because `numeralStyle` is an explicit user choice rather than a

@@ -61,6 +61,7 @@ import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WeekStart
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -457,6 +458,20 @@ internal object HijriWidgetRenderCache {
         val pakistan: Boolean,
         val rightToLeft: Boolean,
         val overrides: OverrideKey,
+        /**
+         * FD-03. **This key omitted the weekend set for one commit**, and the symptom was that the
+         * weekend setting appeared to do nothing: a render after the change served a month built with
+         * the previous set, so the shaded columns stayed exactly where they were while the UI reported
+         * a new choice.
+         *
+         * This is precisely the trap the class KDoc warns about — "keys cover everything that affects
+         * the output" — and the reason this field is written out by name rather than folded into
+         * something coarser. The three options that do **not** appear here are the ones that cannot
+         * alter a single cell: [WidgetOptions.showAdjacentDays] and [WidgetOptions.showCellBorders] are
+         * applied by the renderer to an unchanged projection, and a selection is widget state, not an
+         * option.
+         */
+        val weekendPattern: WeekendPattern,
     )
 
     private val todayCache = LruCache<TodayKey, TodayHijriWidgetData>(MAX_CACHE_ENTRIES)
@@ -489,6 +504,7 @@ internal object HijriWidgetRenderCache {
                 options.source.pakistan,
                 layoutRtl,
                 overrideKey,
+                options.weekendPattern,
             )
         }
         val monthData = if (monthKey == null) {
@@ -888,21 +904,18 @@ private fun MonthGrid(
             }
         }
 
-        // The weekday header sits *on* the divider line rather than below it, so a divider is visible
-        // above every day row and below the header without the header needing one of its own.
-        if (showCellBorders) {
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(colors.cellBorder),
-            ) {}
-        }
-
         // [HijriMonthWidgetData.weeksToRender] and [HijriMonthWidgetData.paintsDay] are the shared
         // definition of the grid's shape, so this composable, calendar-ui's MonthGrid and the Swift
         // grid cannot disagree about the row count or about which column the 1st sits under.
-        month.weeksToRender(showAdjacentDays).forEach { week ->
+        //
+        // A horizontal rule above the first row and between every row after it, plus the vertical
+        // rules each cell draws on its trailing edge. Both directions were asked for: a grid with only
+        // verticals divides the columns but leaves the rows to be counted by eye, which is most of the
+        // work undone. One rule per row rather than a border per cell, for the reason on
+        // [CellDivider].
+        val weeks = month.weeksToRender(showAdjacentDays)
+        weeks.forEachIndexed { rowIndex, week ->
+            if (showCellBorders) RowDivider(colors)
             Row(
                 modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
                 verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -1238,6 +1251,25 @@ private fun RowScope.DayCell(
         }
         if (dividerAfter) CellDivider(colors)
     }
+}
+
+/**
+ * A full-width horizontal rule, above the first row of days and between each pair of rows (FD-04).
+ *
+ * The counterpart to [CellDivider]. Together they make the grid a *grid*: verticals alone divide the
+ * columns but leave the reader counting rows by eye, which is most of the work the divider was meant
+ * to do.
+ *
+ * One rule per row — at most six — rather than a top and bottom edge on all 42 cells.
+ */
+@Composable
+private fun RowDivider(colors: WidgetColors) {
+    Box(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(colors.cellBorder),
+    ) {}
 }
 
 /**

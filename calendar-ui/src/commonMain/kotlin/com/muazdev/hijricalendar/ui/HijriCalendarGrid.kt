@@ -1,9 +1,12 @@
 package com.muazdev.hijricalendar.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -265,6 +268,17 @@ private fun MonthGrid(
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         weeks.forEach { weekDays ->
+            // A full-width rule above the first row and between each pair of rows, matching the widget's
+            // [RowDivider]. Both directions were asked for: verticals alone divide the columns but
+            // leave the reader counting rows by eye, which is most of the work the divider does.
+            if (showCellBorders) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(colors.cellBorderColor),
+                )
+            }
             HijriWeekRow(
                 days = weekDays,
                 showAdjacentDays = showAdjacentDays,

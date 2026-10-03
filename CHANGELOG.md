@@ -47,7 +47,7 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ### Added
 
-- **Years now carry their era marker.** `AH`/`AD` in English, `ھ`/`ئے` in Urdu, on the widget grid
+- **Years now carry their era marker.** `AH`/`AD` in English, `ھ`/`ء` in Urdu, on the widget grid
   header, the today strip, both 1×1 tiles, and the in-app calendar's header and selected-date card.
   ([FD-05](docs/issues/2026-10-03/FD-05-era-markers.md))
 

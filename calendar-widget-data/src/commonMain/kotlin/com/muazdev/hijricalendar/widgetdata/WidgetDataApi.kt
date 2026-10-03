@@ -110,18 +110,28 @@ public object WidgetLocalization {
          * writing * hijri sani* — the year. `ہ` is the do-chashmi he and belongs to words, not to a
          * numeral suffix. It is a different codepoint, so this is not a stylistic choice.
          *
-         * `AD` rather than `CE` for the Gregorian side: the Urdu [gregorianEra] is in the AD lineage
-         * and so is the Indian convention, and mixing `CE` into a Hijri calendar's chrome reads as an
-         * import.
+         * See [gregorianEra] for the Gregorian side's marker.
          */
         public fun hijriEra(language: WidgetLanguage): String = when (language) {
             WidgetLanguage.URDU -> "\u06BE"
             WidgetLanguage.ENGLISH -> "AH"
         }
 
-        /** The Gregorian era marker, appended to a Gregorian year: `2026 AD` / `٢٠٢٦ ئے`. */
+        /**
+         * The Gregorian era marker, appended to a Gregorian year: `2026 AD` / `٢٠٢٦ ء`.
+         *
+         * **`ء` (U+0621), the standalone hamza**, in Urdu — chosen deliberately over the two-character
+         * `ئے` that a literal transliteration of "era" would suggest. A single hamza is the marker
+         * Urdu typography uses for the Gregorian era, and it balances the one-character `ھ` opposite
+         * it: both years then carry a single glyph, which is what makes the pair readable at the small
+         * type a widget renders.
+         *
+         * Asserted on its codepoint in `EraMarkersTest`, because the neighbouring Urdu letters are
+         * visually close and a wrong one still renders as plausible Urdu — this is the same reason
+         * [hijriEra] is asserted rather than eyeballed.
+         */
         public fun gregorianEra(language: WidgetLanguage): String = when (language) {
-            WidgetLanguage.URDU -> "\u0626\u06D2"
+            WidgetLanguage.URDU -> "\u0621"
             WidgetLanguage.ENGLISH -> "AD"
         }
 

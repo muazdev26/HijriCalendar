@@ -228,7 +228,7 @@ public data class TodayHijriWidgetData(
     val gregorianYear: Int,
     /**
      * The Gregorian year **with its era marker**, in the widget's own language and digit style (FD-05):
-     * `2026 AD` or `٢٠٢٦ ئے`.
+     * `2026 AD` or `٢٠٢٦ ء`.
      *
      * The counterpart to [hijriYearText], for the same reason: the bare [gregorianYear] is what
      * arithmetic wants, this is what a renderer displays, and the marker belongs to the widget's

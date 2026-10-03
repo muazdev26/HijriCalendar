@@ -8,8 +8,14 @@ import kotlinx.datetime.LocalDate
 /** Urdu *hijri sani*: U+06BE, the Heh-goal that suffixes a Hijri year. Not `ہ`, which is a word letter. */
 private const val URDU_HIJRI_ERA = "ھ"
 
-/** Urdu for the Gregorian era, in the AD lineage — the Indian convention, not `CE`. */
-private const val URDU_GREGORIAN_ERA = "ئے"
+/**
+ * Urdu for the Gregorian era: the standalone hamza, `ء` (U+0621).
+ *
+ * One character, which balances the one-character `ھ` above it — both years then carry a single
+ * glyph. Mirrors `WidgetLocalization.ChromeLabels.gregorianEra`, which is what the widget side reads;
+ * this is the in-app copy, because `calendar-ui` has no access to the widget schema.
+ */
+private const val URDU_GREGORIAN_ERA = "\u0621"
 
 /**
  * The Urdu label bundle, built **once and held**.
@@ -50,7 +56,7 @@ val UrduCalendarLabels = HijriCalendarLabels(
  * The header's Gregorian line in Urdu, with its era.
  *
  * Same three cases as the library's default — one month name, two names in one year, two names across
- * a year boundary — with `ئے` appended to the year that is actually shown.
+ * a year boundary — with `ء` appended to the year that is actually shown.
  */
 private fun urduGregorianRange(first: LocalDate, last: LocalDate): String {
     fun name(date: LocalDate): String = UrduCalendarNames.gregorianMonths[date.month.ordinal - 1]

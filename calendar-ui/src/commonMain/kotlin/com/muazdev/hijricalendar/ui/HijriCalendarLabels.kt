@@ -52,7 +52,7 @@ public data class HijriCalendarLabels(
      */
     val hijriEra: String = "",
 
-    /** The Gregorian era marker, appended to a Gregorian year: `AD` in English, `ئے` in Urdu. */
+    /** The Gregorian era marker, appended to a Gregorian year: `AD` in English, `ء` in Urdu. */
     val gregorianEra: String = "",
 
     /**

@@ -7,7 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-05: era markers — `AH` / `AD` in English, `ھ` / `ئے` in Urdu.
+ * FD-05: era markers — `AH` / `AD` in English, `ھ` / `ء` in Urdu.
  *
  * The reason this exists at all: a Hijri year and a Gregorian year are both four digits, and this is
  * a **bilingual** calendar that shows one under the other. `١٤٤٨` above `2026` leaves a reader
@@ -55,11 +55,31 @@ class EraMarkersTest {
         )
     }
 
+    /**
+     * The Gregorian era in Urdu is the standalone hamza, `ء` (U+0621).
+     *
+     * One character, and it balances the one-character `ھ` opposite it — both years then carry a
+     * single glyph, which is what makes the pair readable at the small type a widget renders. The
+     * two-character `ئے` that a literal transliteration of "era" suggests is *not* it.
+     *
+     * Asserted on the codepoint: the neighbouring Urdu letters are visually close, and a wrong one
+     * still renders as plausible Urdu — which is exactly why this cannot be an eyeball check.
+     */
     @Test
-    fun urduUsesTheAdLineageForTheGregorianEra() {
-        // `CE` would be the European marker; the Urdu and Indian convention is `AD`, and mixing the
-        // two into a Hijri calendar's chrome reads as an import.
-        assertEquals("ئے", WidgetLocalization.ChromeLabels.gregorianEra(WidgetLanguage.URDU))
+    fun urduUsesTheStandaloneHamzaForTheGregorianEra() {
+        val gregorian = WidgetLocalization.ChromeLabels.gregorianEra(WidgetLanguage.URDU)
+
+        assertEquals("ء", gregorian)
+        assertEquals(
+            0x0621,
+            gregorian.first().code,
+            "the Gregorian era must be the standalone hamza (U+0621), and must be a single character",
+        )
+        assertEquals(
+            1,
+            gregorian.length,
+            "one character, to balance the one-character Hijri era beside it",
+        )
     }
 
     /** Both supported languages write the era *after* the year, so there is no prefix case to get wrong. */
@@ -81,7 +101,7 @@ class EraMarkersTest {
      * The marker follows the same locale as the month names it sits beside.
      *
      * An era marker is text, and text reads with the names next to it — so `monthNameLanguage`, not
-     * `language`. The first version of this rule used `language`, which produced `April - May 2026 ئے`
+     * `language`. The first version of this rule used `language`, which produced `April - May 2026 ء`
      * for exactly the widget that had asked for English month names: a Latin month range with an Urdu
      * suffix.
      *
