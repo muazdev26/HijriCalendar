@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Static preview shown in the Android 12-14 widget picker for the Hijri
-     1x1 date tile: the weekday and month names over a big accent day figure, mirroring the live
-     tile. Every size here is a hand-maintained mirror of DateTileTypography and must move with it;
-     DateTilePreviewLayoutTest asserts they do. -->
+     1x1 date tile: the weekday name on top, a big accent day figure in the middle, the month name
+     at the bottom — mirroring the live tile. Every size here is a hand-maintained mirror of
+     DateTileTypography and must move with it; DateTilePreviewLayoutTest asserts they do. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -10,7 +10,7 @@
     android:background="@color/widget_background"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="3dp"
+    android:padding="2dp"
     tools:ignore="UnusedAttribute">
 
     <TextView
@@ -19,7 +19,7 @@
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
         android:maxLines="1"
-        android:text="جمعرات · محرم"
+        android:text="جمعرات"
         android:textColor="@color/widget_text_secondary"
         android:textSize="10sp" />
 
@@ -31,6 +31,17 @@
         android:maxLines="1"
         android:text="۲۱"
         android:textColor="@color/widget_accent"
-        android:textSize="17sp"
+        android:textSize="26sp"
         android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="محرم"
+        android:textColor="@color/widget_text_primary"
+        android:textSize="11sp" />
 </LinearLayout>

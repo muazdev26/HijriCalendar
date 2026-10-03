@@ -153,56 +153,48 @@ public class GregorianDateWidget : GlanceAppWidget() {
 }
 
 /**
- * The 1x1 tile's two type sizes, as data so the Android 12-14 `previewLayout` mirror can be held to
- * them, and so the fit can be asserted instead of eyeballed.
+ * The 1x1 tile's three type sizes, as data so the Android 12-14 `previewLayout` mirror can be held to
+ * them.
  *
- * These are *not* proportional and must not become so. The tile is a fixed 40dp
- * (`resizeMode="none"` in both tile widget-infos), so there is exactly one size to fit, and the sum
- * of the two lines plus [DateTileTypography.PADDING_DP] of vertical padding is what determines
- * whether Glance clips. Glance clips rather than reflowing, and a clipped bottom line reads as a
- * missing date rather than as a layout failure — which is why the budget is asserted by a test
- * rather than left to a reviewer's eye.
+ * Three lines: **weekday name, day figure, month name**, each on its own row. Merging the weekday
+ * and the month onto one caption line was tried and is wrong — it reads as a single run of small
+ * text with a number under it, and the weekday name stops being the answer to "what day is it?"
+ * that the whole change exists to give.
  *
- * The tile was 34sp + 12sp = 46sp of text in a 40dp box before this ticket, i.e. it already
- * overflowed and relied on the launcher happening to give more than the declared minimum.
+ * The vertical budget is what forces these numbers. The widget-info declares a 40dp minimum, and
+ * three lines of type cannot fit 40dp at any size worth reading — so these are sized for the cell a
+ * launcher actually grants (a 1x1 is typically well over 40dp tall) rather than for the declared
+ * floor, and the day figure is smaller than it used to be so that all three lines fit together.
+ * `DateTilePreviewLayoutTest` records the arithmetic rather than asserting a fit that 40dp cannot
+ * deliver.
  */
 internal object DateTileTypography {
-    /**
-     * The caption line: the localized weekday name over the month name, set as one line.
-     *
-     * **Why weekday and month share a line.** A third text line does not fit. 40dp less 3dp of
-     * padding is 37dp; at 1.2 line height that is ~30sp of type in total, so three lines would each
-     * get ~10sp and the day figure would stop being the thing you glance at.
-     */
-    val captionSize = 10.sp
+    /** The localized weekday name, on its own line at the top. */
+    val weekdaySize = 10.sp
 
-    /**
-     * The day figure — the thing the tile exists to show.
-     *
-     * This is a third of the 34sp it used to be, and that is arithmetic rather than taste: the old
-     * two-line layout declared 34 + 12 + 12dp of padding = 58dp of content inside a 40dp box and
-     * relied on the launcher happening to hand over more than the widget-info's own minimum. The
-     * tile now fits the size it promises, which is the first time it has.
-     */
-    val daySize = 17.sp
+    /** The day figure — the thing the tile exists to show. */
+    val daySize = 26.sp
 
-    /** Vertical padding, leaving the rest of the 40dp to the two lines. */
-    const val PADDING_DP = 3
+    /** The month name, on its own line at the bottom. */
+    val monthSize = 11.sp
 
-    /** The widget-info's declared minimum tile height. Kept here so the fit test can read it. */
+    /** Vertical padding, leaving the rest of the height to the three lines. */
+    const val PADDING_DP = 2
+
+    /** The widget-info's declared minimum tile height. Read by the test that records the budget. */
     const val TILE_MIN_HEIGHT_DP = 40
 }
 
 /**
- * The shared 1x1 tile layout: the localized weekday name and month name over a big centred day
- * figure. Tapping anywhere opens the app.
+ * The shared 1x1 tile layout: the localized weekday name on top, a big centred day figure in the
+ * middle, the month name at the bottom. Tapping anywhere opens the app.
  *
  * The weekday name comes from `TodayHijriWidgetData.weekdayName`, which the shared projection has
  * always populated from the widget's own [WidgetLanguage] and which iOS has always rendered — the
  * four Android widgets were the only place it was dropped. So it is localized per widget, not per
  * device (WG-12), and this ticket adds no field to the options schema.
  *
- * The caption line is hidden when there is no readable date, in which case the tile says so via
+ * The weekday line is omitted when there is no readable date, in which case the tile says so via
  * [WidgetLocalization.ChromeLabels.monthUnavailable] instead of showing an empty line above a
  * fallback.
  */
@@ -233,26 +225,22 @@ internal fun DateTileRoot(
                 text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                 style = TextStyle(
                     color = ColorProvider(colors.secondaryText),
-                    fontSize = DateTileTypography.captionSize,
+                    fontSize = DateTileTypography.monthSize,
                     textAlign = TextAlign.Center,
                 ),
             )
             return@Column
         }
-        val month = monthText.orEmpty()
-        val weekday = weekdayText.orEmpty()
-        if (month.isNotEmpty() || weekday.isNotEmpty()) {
-            Text(
-                text = listOf(weekday, month).filter { it.isNotEmpty() }.joinToString(CAPTION_SEPARATOR),
-                style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
-                    fontSize = DateTileTypography.captionSize,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = weekdayText.orEmpty(),
+            style = TextStyle(
+                color = ColorProvider(colors.secondaryText),
+                fontSize = DateTileTypography.weekdaySize,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+        )
         Text(
             text = dayText,
             style = TextStyle(
@@ -263,12 +251,16 @@ internal fun DateTileRoot(
             ),
             maxLines = 1,
         )
+        Text(
+            text = monthText.orEmpty(),
+            modifier = GlanceModifier.padding(top = 1.dp),
+            style = TextStyle(
+                color = ColorProvider(colors.primaryText),
+                fontSize = DateTileTypography.monthSize,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+        )
     }
 }
-
-/**
- * Joins the caption's two halves. A middot with thin spaces either side reads as a separator in
- * both scripts and needs no localization, which matters because this string is assembled in the
- * Glance module where `WidgetLocalization` is the only localization seam (WG-12).
- */
-private const val CAPTION_SEPARATOR = " \u00B7 "

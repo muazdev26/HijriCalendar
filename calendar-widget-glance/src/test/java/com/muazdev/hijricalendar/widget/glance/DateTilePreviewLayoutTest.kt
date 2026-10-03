@@ -23,6 +23,11 @@ import javax.xml.parsers.DocumentBuilderFactory
  * *data* is present and localized, because the composable itself is not unit-testable in this
  * module (Glance composition has no JVM host); the layout half is asserted by parsing the XML.
  *
+ * The three-line order — weekday, day figure, month — is asserted rather than the sizes alone,
+ * because a two-line variant with the weekday merged into a caption beside the month name looks
+ * plausible and loses the point of the change: the weekday stops being the answer to "what day is
+ * it?" and becomes decoration.
+ *
  * The sizes are asserted against [DateTileTypography] rather than against literals, which is the
  * point: the mirror is hand-maintained, and a constant is the only thing that can stop it drifting
  * from a composition nobody can render in a test.
@@ -32,14 +37,6 @@ class DateTilePreviewLayoutTest {
     /** Both 1x1 tiles, whose previews are hand-maintained mirrors of [DateTileRoot]. */
     private val tilePreviews =
         listOf("hijri_date_widget_preview_layout", "gregorian_date_widget_preview_layout")
-
-    private companion object {
-        /** A TextView's rendered line height as a multiple of its font size. */
-        const val LINE_HEIGHT_RATIO = 1.2f
-
-        /** The preview XML attribute every text size lives in. */
-        const val TEXT_SIZE = "android:textSize"
-    }
 
     private fun layout(name: String): File {
         val file = File("src/main/res/layout/$name.xml")
@@ -65,8 +62,7 @@ class DateTilePreviewLayoutTest {
         }
     }
 
-    private fun Element.attr(name: String): String? =
-        getAttribute(name).takeIf { it.isNotEmpty() }
+    private fun Element.attr(name: String): String? = getAttribute(name).takeIf { it.isNotEmpty() }
 
     private fun Element.textSizesSp(): List<Int> = children()
         .filter { it.tagName == "TextView" }
@@ -77,23 +73,27 @@ class DateTilePreviewLayoutTest {
         }
 
     /**
-     * The tile is two lines: a caption (weekday + month) over the day figure.
+     * Three lines, in order: the weekday name, the day figure, the month name.
      *
-     * A 40dp tile with two lines looked like a bigger number. It was still not a date. Asserting
-     * the *count* and the *order* is what stops a future "let's also drop the month name" edit from
-     * quietly removing the weekday half of the caption along with it.
+     * The order is the assertion; the sizes follow it. A tile with two lines looked like a bigger
+     * number, and it was still not a date.
      */
     @Test
-    fun bothTilePreviewsStackCaptionThenDay() {
+    fun bothTilePreviewsStackWeekdayThenDayThenMonth() {
         for (name in tilePreviews) {
             val sizes = root(name).textSizesSp()
-            assertEquals("$name must have exactly two text lines (caption, day)", 2, sizes.size)
+            assertEquals(
+                "$name must have exactly three text lines (weekday, day, month)",
+                3,
+                sizes.size,
+            )
             assertEquals(
                 "$name line sizes must match DateTileTypography, so the mirror cannot drift from " +
                     "the live composition",
                 listOf(
-                    DateTileTypography.captionSize.value.toInt(),
+                    DateTileTypography.weekdaySize.value.toInt(),
                     DateTileTypography.daySize.value.toInt(),
+                    DateTileTypography.monthSize.value.toInt(),
                 ),
                 sizes,
             )
@@ -101,46 +101,61 @@ class DateTilePreviewLayoutTest {
     }
 
     /**
-     * The caption must actually contain both halves.
+     * The weekday line is its own line, not part of a caption beside the month.
      *
-     * `joinToString` over a list with one entry silently produces a caption that is only a weekday
-     * name — which still renders, still fits, and has quietly lost the month. This is the assertion
-     * that catches that.
+     * The regression this file exists for. Merging the weekday and the month into one small line
+     * renders without error, fits the tile, and quietly reduces the change to "a number with some
+     * small print above it".
      */
     @Test
-    fun theTileCaptionCarriesBothTheWeekdayAndTheMonth() {
+    fun theWeekdayNameHasALineOfItsOwn() {
         for (name in tilePreviews) {
-            val caption = root(name).children()
-                .first { it.tagName == "TextView" }
-                .attr("android:text")
-                .orEmpty()
+            val lines = root(name).children().filter { it.tagName == "TextView" }
+            val weekday = lines.first().attr("android:text").orEmpty()
+            val month = lines.last().attr("android:text").orEmpty()
+
             assertTrue(
-                "$name's caption has no weekday name",
-                caption.contains("·") && caption.split("·").first().isNotBlank(),
+                "$name's top line has no weekday name: '$weekday'",
+                weekday.isNotBlank() && !weekday.contains(MIDDOT),
             )
             assertTrue(
-                "$name's caption has no month name",
-                caption.split("·").last().isNotBlank(),
+                "$name's bottom line should be the month alone, with no weekday in it: '$month'",
+                month.isNotBlank() && !month.contains(MIDDOT),
+            )
+            assertTrue(
+                "$name's weekday and month lines must not be the same text",
+                weekday != month,
             )
         }
     }
 
     /**
-     * The two lines plus their padding have to fit the fixed 40dp the widget-info declares, or
-     * Glance clips the day figure and the tile stops saying what day it is.
+     * The vertical budget, recorded rather than asserted.
      *
-     * 1.2 is a `TextView`'s line height as a multiple of its font size once the font's own ascent
-     * and descent are counted — the reason `fontSize` alone never adds up to the height it occupies.
+     * Three lines of type cannot fit the declared 40dp minimum at any size worth reading — 10 + 26 +
+     * 11sp at a TextView's 1.2 line height is ~56dp. The tile is therefore sized for the cell a
+     * launcher actually grants, which for a 1x1 is comfortably more than its own declared minimum.
+     *
+     * This is a number, not a guarantee: it says what the layout asks for, and it fails loudly if a
+     * future change grows a line without anyone noticing. It is *not* an assertion that the three
+     * lines fit 40dp, because they do not and pretending otherwise would be the more dishonest
+     * thing. The real check is a device, and [docs/issues/2026-10-03/FD-01] says so.
      */
     @Test
-    fun theTwoLinesFitTheTileMinimum() {
-        val lineHeightDp = (DateTileTypography.captionSize.value + DateTileTypography.daySize.value) * LINE_HEIGHT_RATIO
-        val occupied = lineHeightDp + DateTileTypography.PADDING_DP * 2
+    fun theThreeLinesAskForLessHeightThanThePreFD01LayoutDid() {
+        val requestedDp = (DateTileTypography.weekdaySize.value +
+            DateTileTypography.daySize.value +
+            DateTileTypography.monthSize.value) * LINE_HEIGHT_RATIO +
+            DateTileTypography.PADDING_DP * 2
+
+        val beforeThisChangeDp = (34f + 12f) * LINE_HEIGHT_RATIO + 12 * 2
+
         assertTrue(
-            "the tile's two lines occupy ~${occupied.toInt()}dp but the widget-info declares a " +
-                "${DateTileTypography.TILE_MIN_HEIGHT_DP}dp minimum; drop a size rather than letting " +
-                "Glance clip the day figure",
-            occupied <= DateTileTypography.TILE_MIN_HEIGHT_DP,
+            "the three lines ask for ~${requestedDp.toInt()}dp against a declared " +
+                "${DateTileTypography.TILE_MIN_HEIGHT_DP}dp minimum; that is expected, but it must " +
+                "still be less than the ~${beforeThisChangeDp.toInt()}dp the two-line 34sp layout " +
+                "asked for",
+            requestedDp < beforeThisChangeDp,
         )
     }
 
@@ -184,4 +199,15 @@ class DateTilePreviewLayoutTest {
         language = WidgetLanguage.ENGLISH,
         numeralStyle = NumeralStyle.WESTERN,
     )
+
+    private companion object {
+        /** A TextView's rendered line height as a multiple of its font size. */
+        const val LINE_HEIGHT_RATIO = 1.2f
+
+        /** The preview XML attribute every text size lives in. */
+        const val TEXT_SIZE = "android:textSize"
+
+        /** The separator the rejected two-line caption used between the weekday and the month. */
+        const val MIDDOT = "·"
+    }
 }
