@@ -130,6 +130,43 @@ class DateTilePreviewLayoutTest {
     }
 
     /**
+     * The weekday line is styled as part of the date, not as a caption under it.
+     *
+     * It shipped as 10sp Medium in `widget_text_secondary`, which made it the weakest line on a tile
+     * whose whole point is the date — the weekday name is half the answer to "what day is it?" and it
+     * was rendered like a footnote. It now matches the month name's size and emphasis and reads in
+     * the primary text colour, so the two names bracket the day figure as a pair.
+     *
+     * Asserted against the live composition's own constants and then against the mirror, because a
+     * size assertion alone would still pass with the weekday back at 10sp in the muted tone.
+     */
+    @Test
+    fun theWeekdayLineIsNotStyledAsACaption() {
+        assertEquals(
+            "the weekday name must be the same size as the month name",
+            DateTileTypography.monthSize.value,
+            DateTileTypography.weekdaySize.value,
+        )
+
+        for (name in tilePreviews) {
+            val weekday = root(name).children().first { it.tagName == "TextView" }
+
+            // JUnit's three-argument assertEquals is (message, expected, actual).
+            assertEquals(
+                "$name's weekday line must be bold",
+                "bold",
+                weekday.attr("android:textStyle"),
+            )
+            assertEquals(
+                "$name's weekday line must use the primary text colour, not the muted one — that " +
+                    "is what made it read as a caption rather than as part of the date",
+                "@color/widget_text_primary",
+                weekday.attr("android:textColor"),
+            )
+        }
+    }
+
+    /**
      * The vertical budget, recorded rather than asserted.
      *
      * Three lines of type cannot fit the declared 40dp minimum at any size worth reading — 10 + 26 +

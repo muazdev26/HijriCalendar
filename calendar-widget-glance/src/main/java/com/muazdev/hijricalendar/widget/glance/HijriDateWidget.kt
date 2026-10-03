@@ -169,8 +169,15 @@ public class GregorianDateWidget : GlanceAppWidget() {
  * deliver.
  */
 internal object DateTileTypography {
-    /** The localized weekday name, on its own line at the top. */
-    val weekdaySize = 10.sp
+    /**
+     * The localized weekday name, on its own line at the top.
+     *
+     * **Same size as the month name and bold, deliberately.** It was 10sp Medium in
+     * `widget_text_secondary` and read as a caption rather than as part of the date — the weekday is
+     * half the answer to "what day is it?", and it was the weakest line on the tile. It now matches
+     * [monthSize] in size and emphasis so the two names read as a pair bracketing the day figure.
+     */
+    val weekdaySize = 11.sp
 
     /** The day figure — the thing the tile exists to show. */
     val daySize = 26.sp
@@ -234,9 +241,11 @@ internal fun DateTileRoot(
         Text(
             text = weekdayText.orEmpty(),
             style = TextStyle(
-                color = ColorProvider(colors.secondaryText),
+                // `primaryText`, not `secondaryText`: the weekday is part of the date, not a caption
+                // under it, and the secondary tone is what made it read as one.
+                color = ColorProvider(colors.primaryText),
                 fontSize = DateTileTypography.weekdaySize,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,

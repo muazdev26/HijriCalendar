@@ -35,6 +35,11 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   always rendered by iOS; the two Android tiles were the only place it was dropped, so `21 محرم`
   was all a user could read. No schema change — the name follows `options.language`, not the
   device locale. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
+- **The weekday line on the tiles reads as part of the date.** It shipped at 10sp Medium in
+  `widget_text_secondary`, which made it the weakest line on a tile whose whole content is a date —
+  the weekday name is half the answer to "what day is it?" and it was drawn like a footnote. It is
+  now 11sp Bold in `widget_text_primary`, matching the month name, so the two names bracket the day
+  figure as a pair. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
 - **The tiles declare less content than before.** They laid out 34sp + 12sp plus 12dp of padding —
   58dp of text inside a 40dp box — and relied on the launcher handing over more than the
   widget-info's own minimum. Three lines now ask for ~47dp against the 34sp + 12sp layout's ~62dp,
