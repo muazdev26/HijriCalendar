@@ -146,8 +146,9 @@ enum HijriShared {
             numeralStyle: (object["numeralStyle"] as? String)
                 .flatMap { $0.lowercased() == "western" ? .western : .arabicIndic } ?? .arabicIndic,
             // The pre-`WeekStart` blob stored an index; map it through the enum so the
-            // shared value is name-backed. `WeekStart.fromIndex(_:)` clamps out-of-range.
-            weekStart: WeekStart.fromIndex(index: Int(object["firstDayOfWeekIndex"] as? Int32 ?? 0)),
+            // shared value is name-backed. `fromIndex` is on the companion, which Swift reaches as
+            // `WeekStart.Companion.shared`, and it clamps out-of-range.
+            weekStart: WeekStart.Companion.shared.fromIndex(index: object["firstDayOfWeekIndex"] as? Int32 ?? 0),
             pinsMonth: (object["pinsMonth"] as? Bool) ?? false,
             pinnedYear: (object["pinnedYear"] as? Int32) ?? 0,
             pinnedMonth: (object["pinnedMonth"] as? Int32) ?? 1,
@@ -166,7 +167,10 @@ enum HijriShared {
     /// The viewed month is now a `HijriYearMonth` (WD-07), which is what `HijriWidgetConfig` speaks.
     static func viewedMonth(for kind: HijriWidgetKind) -> HijriYearMonth? {
         guard let raw = defaults.string(forKey: viewedPrefix + kind.rawValue) else { return nil }
-        let parts = raw.split(separator: ":").compactMap { Int($0) }
+        // Parsed straight to `Int32` rather than `Int`: `HijriYearMonth`'s fields are Kotlin `Int`,
+        // which reaches Swift as `Int32`. This file is the one place both iOS targets share, and it
+        // is the only place that was left on Swift `Int` — which is why it failed to compile.
+        let parts = raw.split(separator: ":").compactMap { Int32($0) }
         guard parts.count == 2, parts[1] >= 1, parts[1] <= 12 else { return nil }
         // The stored form is unchanged, so a viewed month already in the app group still loads.
         return HijriYearMonth(year: parts[0], month: parts[1])
@@ -182,7 +186,7 @@ enum HijriShared {
     }
 
     /// Steps the viewed month, wrapping across the 12-month year the way the grid header does.
-    static func stepViewedMonth(for kind: HijriWidgetKind, from base: HijriYearMonth, by delta: Int) {
+    static func stepViewedMonth(for kind: HijriWidgetKind, from base: HijriYearMonth, by delta: Int32) {
         var year = base.year
         var month = base.month + delta
         while month < 1 {

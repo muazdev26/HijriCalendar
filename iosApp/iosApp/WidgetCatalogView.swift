@@ -72,7 +72,7 @@ struct WidgetCatalogView: View {
             pinnedYear: pinnedYear,
             pinnedMonth: pinnedMonth,
             overridesCsv: MonthLengthOverridesKt.encodeMonthLengthsCsv(
-                HijriShared.loadOptions().monthLengthOverrides
+                overrides: HijriShared.loadOptions().monthLengthOverrides
             )
         )
     }
@@ -137,9 +137,11 @@ struct WidgetCatalogView: View {
                     Picker("First day of week", selection: $weekStart) {
                         // Tagged by the enum, not by an index: the stored option is a name, and a
                         // picker that speaks indices would reintroduce the ordinal hazard WD-05
-                        // removed.
-                        ForEach(WeekStart.allCases, id: \.self) { start in
-                            Text(Self.weekdayNames[start.dayOfWeek.index]).tag(start)
+                        // removed. `entries` is the Kotlin enum's, bridging to a Swift `[WeekStart]` —
+                        // a Kotlin enum class is not a Swift enum, so there is no `allCases`, and
+                        // `values()` would hand back a `KotlinArray` that `ForEach` cannot walk.
+                        ForEach(WeekStart.entries, id: \.self) { start in
+                            Text(Self.weekdayNames[Int(start.dayOfWeek.index)]).tag(start)
                         }
                     }
                 }
