@@ -164,7 +164,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٢٥\n8"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -177,7 +177,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٢٦\n9"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -190,7 +190,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٢٧\n10"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -203,7 +203,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٢٨\n11"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -216,7 +216,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٢٩\n12"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -229,7 +229,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٣٠\n13"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -676,7 +676,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="١\n12"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -689,7 +689,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٢\n13"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -702,7 +702,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٣\n14"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -715,7 +715,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٤\n15"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -728,7 +728,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٥\n16"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -741,7 +741,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٦\n17"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
         <TextView
@@ -754,7 +754,7 @@
             android:lineSpacingMultiplier="0.8"
             android:maxLines="2"
             android:text="٧\n18"
-            android:textColor="@color/widget_text_muted"
+            android:textColor="@color/widget_day_out_of_month"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>

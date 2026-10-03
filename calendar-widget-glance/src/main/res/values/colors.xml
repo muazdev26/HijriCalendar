@@ -9,17 +9,28 @@
     <color name="widget_weekend_text">#B3261E</color>
 
     <!--
-        Flattened stand-ins for the two out-of-month alphas the live Glance render computes at
-        runtime: `primaryText.copy(alpha = 0.38f)` for the Hijri digit and `0.24f` for the Gregorian
-        one (see `DayCell` in HijriCalendarWidget.kt). A `previewLayout` is inflated by the framework,
-        not by Glance, so it cannot apply the alpha itself and needs the blend baked in.
+        The three dimmed day figures (FD-07).
 
-        These are `widget_text_primary` (#1C1B1F) composited over `widget_background` (#FBF7F1) at
-        the two alphas above. If either of those two colours changes, these need recomputing 
-        `StaticPreviewLayoutTest` cannot see a colour value, so this comment is the only thing tying
-        them together. Deliberately not asserted in a test: a colour assertion here would only
-        prove the XML says what the XML says.
+        These used to be `primaryText.copy(alpha = …)` computed in Kotlin, which had two costs: the
+        alpha could not survive a night-mode switch (see below), and a colour could not be asserted.
+
+        **They are now real resources, which means they are resolved by the launcher against its own
+        configuration at bind time.** Before this they were literals baked into the composition, so a
+        night-mode switch invalidated the whole `RemoteViews` and rebuilt it — the "restart" the report
+        describes. There is a night variant of each.
+
+        Each is `widget_text_primary` composited over `widget_background` at the alpha its name
+        records, so they can be recomputed by hand if either of those two changes:
+
+            day_out_of_month   primary at 38%   (the dimmed Hijri figure of a neighbouring month)
+            day_gregorian_sub  primary at 60%   (the Gregorian day under an in-month Hijri figure)
+            day_out_faint      primary at 24%   (the Gregorian day of a neighbouring month)
+
+        A test asserts every colour resolves to a *different* value under `values-night`; it cannot
+        assert the value itself, since that would only prove the XML says what the XML says.
     -->
-    <color name="widget_text_muted">#A6A3A1</color>
-    <color name="widget_text_faint">#C5C2BF</color>
+    <color name="widget_day_out_of_month">#A6A3A1</color>
+    <color name="widget_day_gregorian_sub">#757373</color>
+    <color name="widget_day_out_faint">#C5C2BF</color>
+    <color name="widget_arrow_dimmed">#8F8B85</color>
 </resources>

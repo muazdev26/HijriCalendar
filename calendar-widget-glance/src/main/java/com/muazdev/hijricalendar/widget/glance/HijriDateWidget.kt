@@ -25,7 +25,6 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 
@@ -49,7 +48,7 @@ public class HijriDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
@@ -85,7 +84,7 @@ public class HijriDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             DateTileRoot(
@@ -122,7 +121,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
@@ -158,7 +157,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             DateTileRoot(
@@ -346,7 +345,7 @@ internal fun DateTileRoot(
                 // [WidgetLocalization.ChromeLabels].
                 text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                 style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
+                    color = colors.secondaryText,
                     fontSize = DateTileTypography.monthLineSizeFor(availableWidth),
                     textAlign = TextAlign.Center,
                 ),
@@ -358,7 +357,7 @@ internal fun DateTileRoot(
             style = TextStyle(
                 // `primaryText`, not `secondaryText`: the weekday is part of the date, not a caption
                 // under it, and the secondary tone is what made it read as one.
-                color = ColorProvider(colors.primaryText),
+                color = colors.primaryText,
                 fontSize = DateTileTypography.weekdaySizeFor(availableWidth),
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -368,7 +367,7 @@ internal fun DateTileRoot(
         Text(
             text = dayText,
             style = TextStyle(
-                color = ColorProvider(colors.accent),
+                color = colors.accent,
                 fontSize = DateTileTypography.daySize,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -379,7 +378,7 @@ internal fun DateTileRoot(
             text = captionText ?: monthText.orEmpty(),
             modifier = GlanceModifier.padding(top = 1.dp),
             style = TextStyle(
-                color = ColorProvider(colors.primaryText),
+                color = colors.primaryText,
                 fontSize = DateTileTypography.monthLineSizeFor(availableWidth),
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,

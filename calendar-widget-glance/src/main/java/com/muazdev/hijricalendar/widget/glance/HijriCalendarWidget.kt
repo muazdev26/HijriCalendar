@@ -4,9 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.view.View
-import androidx.annotation.ColorRes
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -113,7 +111,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             // join it instead of building the century table inline on this composition.
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
         val prevAction = actionRunCallback<HijriWidgetPrevMonthCallback>()
         val nextAction = actionRunCallback<HijriWidgetNextMonthCallback>()
@@ -161,7 +159,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             HijriWidgetRoot(
@@ -498,32 +496,57 @@ internal object HijriWidgetRenderCache {
 }
 
 /**
- * Day/night aware widget colors, resolved from resources once per render so Glance views are
- * correct whether the widget is drawn in light or dark mode.
+ * The widget's palette, as **resource ids** rather than resolved colours (FD-07).
+ *
+ * Each member is a `ColorProvider` built from an `@ColorRes`, so what Glance serialises into the
+ * `RemoteViews` is the resource reference and the launcher resolves it against **its own**
+ * configuration at bind time. A night-mode switch then re-resolves ten colours inside the existing
+ * view: no re-compose, no invalidation, no placeholder, no restart.
+ *
+ * The previous shape resolved everything eagerly — `context.getColor(R.color.x)` — and handed Glance
+ * a literal int. A number carries no idea of where it came from, so the launcher could not re-resolve
+ * it, and a night-mode switch had to invalidate the whole view to change anything. That is the restart
+ * the report describes, and no amount of `updatePeriodMillis` removes it: re-rendering is the restart.
+ * A `uiMode` broadcast receiver would only make the rebuild *faster*.
+ *
+ * Because a `ColorProvider` cannot carry an alpha (Glance 1.2 has only the `Color` and `Int` factories),
+ * the three dimmed day figures are real colour resources with their own night variants rather than
+ * `primaryText.copy(alpha = …)`. See `values/colors.xml`.
+ *
+ * This takes no `Context` at all now — that is the point, and it is why the members are `val`s on a
+ * class rather than something computed per render.
  */
+@Suppress("LongParameterList")
 internal class WidgetColors(
-    val background: Color,
-    val accent: Color,
-    val primaryText: Color,
-    val secondaryText: Color,
-    val weekendText: Color,
-    val todayBackground: Color,
-    val onTodayText: Color,
+    val background: ColorProvider,
+    val accent: ColorProvider,
+    val primaryText: ColorProvider,
+    val secondaryText: ColorProvider,
+    /** A day of a neighbouring Hijri month, when `showAdjacentDays` paints them (FD-02). */
+    val outOfMonthDay: ColorProvider,
+    /** The Gregorian day under an in-month Hijri figure. */
+    val gregorianDay: ColorProvider,
+    /** The Gregorian day under a neighbouring month's figure. */
+    val outOfMonthGregorianDay: ColorProvider,
+    val weekendText: ColorProvider,
+    val todayBackground: ColorProvider,
+    val onTodayText: ColorProvider,
 ) {
     companion object {
-        fun from(context: Context) = WidgetColors(
-            background = context.widgetColor(R.color.widget_background),
-            accent = context.widgetColor(R.color.widget_accent),
-            primaryText = context.widgetColor(R.color.widget_text_primary),
-            secondaryText = context.widgetColor(R.color.widget_text_secondary),
-            weekendText = context.widgetColor(R.color.widget_weekend_text),
-            todayBackground = context.widgetColor(R.color.widget_today_background),
-            onTodayText = context.widgetColor(R.color.widget_on_today),
+        val DEFAULT: WidgetColors = WidgetColors(
+            background = ColorProvider(R.color.widget_background),
+            accent = ColorProvider(R.color.widget_accent),
+            primaryText = ColorProvider(R.color.widget_text_primary),
+            secondaryText = ColorProvider(R.color.widget_text_secondary),
+            outOfMonthDay = ColorProvider(R.color.widget_day_out_of_month),
+            gregorianDay = ColorProvider(R.color.widget_day_gregorian_sub),
+            outOfMonthGregorianDay = ColorProvider(R.color.widget_day_out_faint),
+            weekendText = ColorProvider(R.color.widget_weekend_text),
+            todayBackground = ColorProvider(R.color.widget_today_background),
+            onTodayText = ColorProvider(R.color.widget_on_today),
         )
     }
 }
-
-private fun Context.widgetColor(@ColorRes resId: Int): Color = Color(getColor(resId))
 
 /**
  * Applies [clickable] only when an action is present. The settings preview renders the same tree
@@ -587,7 +610,7 @@ private fun TodayCard(
             // Every other string this widget renders is resolved from `options.language`, and this
             // was the one that was not.
             text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
-            style = TextStyle(color = ColorProvider(colors.secondaryText), fontSize = 12.sp),
+            style = TextStyle(color = colors.secondaryText, fontSize = 12.sp),
         )
         return
     }
@@ -606,7 +629,7 @@ private fun TodayCard(
         Text(
             text = today.hijriDayText,
             style = TextStyle(
-                color = ColorProvider(colors.accent),
+                color = colors.accent,
                 fontSize = dayFontSize,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -616,7 +639,7 @@ private fun TodayCard(
         Text(
             text = "${today.hijriMonthName} ${today.hijriYear}",
             style = TextStyle(
-                color = ColorProvider(colors.primaryText),
+                color = colors.primaryText,
                 fontSize = monthFontSize,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
@@ -625,7 +648,7 @@ private fun TodayCard(
         )
         Text(
             text = today.gregorianDate,
-            style = TextStyle(color = ColorProvider(colors.secondaryText), fontSize = gregorianFontSize, textAlign = TextAlign.Center),
+            style = TextStyle(color = colors.secondaryText, fontSize = gregorianFontSize, textAlign = TextAlign.Center),
             maxLines = 1,
         )
     }
@@ -734,7 +757,7 @@ private fun MonthGrid(
                     text = name,
                     modifier = GlanceModifier.defaultWeight(),
                     style = TextStyle(
-                        color = ColorProvider(colors.secondaryText),
+                        color = colors.secondaryText,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
@@ -795,7 +818,7 @@ private fun RowScope.MonthTitle(
                 // own marker inside `gregorianMonthTitle`.
                 text = "${month.hijriMonthName} ${month.hijriYearText}",
                 style = TextStyle(
-                    color = ColorProvider(colors.primaryText),
+                    color = colors.primaryText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -805,7 +828,7 @@ private fun RowScope.MonthTitle(
             Text(
                 text = " · ",
                 style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
+                    color = colors.secondaryText,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
                 ),
@@ -814,7 +837,7 @@ private fun RowScope.MonthTitle(
             Text(
                 text = month.gregorianMonthTitle,
                 style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
+                    color = colors.secondaryText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
@@ -836,7 +859,7 @@ private fun NavigationArrow(
     resId: Int,
     enabled: Boolean,
     action: Action?,
-    color: Color,
+    color: ColorProvider,
     contentDescription: String,
 ) {
     val modifier = GlanceModifier
@@ -850,7 +873,11 @@ private fun NavigationArrow(
             provider = ImageProvider(resId),
             contentDescription = null,
             colorFilter = ColorFilter.tint(
-                ColorProvider(if (enabled) color else color.copy(alpha = 0.35f))
+                // A disabled arrow is dimmed. That used to be `color.copy(alpha = 0.35f)` on a
+                // resolved colour; a `ColorProvider` cannot carry an alpha, and re-resolving one per
+                // render is exactly what FD-07 removed — so the dimmed state is its own resource
+                // (`widget_arrow_dimmed`) and therefore follows night mode for free.
+                if (enabled) color else ColorProvider(R.color.widget_arrow_dimmed)
             ),
             modifier = GlanceModifier.size(40.dp)
         )
@@ -885,14 +912,14 @@ private fun RowScope.DayCell(
     // weekend > regular.
     val hijriColor = when {
         isToday -> colors.onTodayText
-        !cell.isCurrentMonth -> colors.primaryText.copy(alpha = 0.38f)
+        !cell.isCurrentMonth -> colors.outOfMonthDay
         cell.isWeekend -> colors.weekendText
         else -> colors.primaryText
     }
     val gregorianColor = when {
-        isToday -> colors.onTodayText.copy(alpha = 0.8f)
-        !cell.isCurrentMonth -> colors.primaryText.copy(alpha = 0.24f)
-        else -> colors.primaryText.copy(alpha = 0.6f)
+        isToday -> colors.onTodayText
+        !cell.isCurrentMonth -> colors.outOfMonthGregorianDay
+        else -> colors.gregorianDay
     }
 
     Box(modifier = base) {
@@ -913,7 +940,7 @@ private fun RowScope.DayCell(
             Text(
                 text = cell.dayText,
                 style = TextStyle(
-                    color = ColorProvider(hijriColor),
+                    color = hijriColor,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -923,7 +950,7 @@ private fun RowScope.DayCell(
             Text(
                 text = cell.gregorianDayText,
                 style = TextStyle(
-                    color = ColorProvider(gregorianColor),
+                    color = gregorianColor,
                     fontSize = 8.sp,
                     textAlign = TextAlign.Center,
                 ),

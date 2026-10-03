@@ -368,6 +368,7 @@ private fun formatGregorianRange(
     era: String? = null,
 ): String {
     fun monthName(date: LocalDate): String = names[date.month.ordinal]
+
     // `null` — a caller that passed no marker — leaves the years bare, which is what the default
     // parameter means, so nothing changes for a leaf caller that has not opted in (FD-05).
     fun year(y: Int): String = withEra(y.toString(), era)

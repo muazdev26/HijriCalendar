@@ -2,7 +2,6 @@ package com.muazdev.hijricalendar.widget.glance
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,7 +65,7 @@ public class HijriTodayWidget : GlanceAppWidget() {
         if (peeked.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
@@ -96,7 +95,7 @@ public class HijriTodayWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             HijriTodayRoot(
@@ -137,7 +136,7 @@ internal fun HijriTodayRoot(
                 // [WidgetLocalization.ChromeLabels].
                 text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                 style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
+                    color = colors.secondaryText,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                 ),
@@ -181,8 +180,8 @@ internal fun HijriTodayRoot(
 private fun RowScope.DateSide(
     dayText: String,
     caption: String,
-    dayColor: Color,
-    captionColor: Color,
+    dayColor: ColorProvider,
+    captionColor: ColorProvider,
 ) {
     Column(
         modifier = GlanceModifier.defaultWeight(),
@@ -192,7 +191,7 @@ private fun RowScope.DateSide(
         Text(
             text = dayText,
             style = TextStyle(
-                color = ColorProvider(dayColor),
+                color = dayColor,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -203,7 +202,7 @@ private fun RowScope.DateSide(
             text = caption,
             modifier = GlanceModifier.padding(top = 1.dp),
             style = TextStyle(
-                color = ColorProvider(captionColor),
+                color = captionColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,

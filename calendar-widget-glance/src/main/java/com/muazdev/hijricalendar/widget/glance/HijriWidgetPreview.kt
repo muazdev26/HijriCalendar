@@ -60,7 +60,7 @@ internal class HijriCalendarWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val data = buildRenderData(context, options, viewedMonth)
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             HijriWidgetRoot(
                 monthData = data.monthData,
@@ -132,7 +132,7 @@ internal class HijriTodayWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         // The stable preview id, never `id.toString()` (WG-04b): `compose()` mints a fresh random
         // fake app-widget id per call, so keying on it inserted an entry no future read could ever
         // hit — the settings screen grew the cache without bound and got nothing for the cost.
@@ -197,7 +197,7 @@ internal class HijriDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
@@ -234,7 +234,7 @@ internal class GregorianDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,

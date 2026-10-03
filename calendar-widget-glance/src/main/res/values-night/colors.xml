@@ -7,4 +7,16 @@
     <color name="widget_today_background">#81C784</color>
     <color name="widget_on_today">#1C1B1F</color>
     <color name="widget_weekend_text">#F2B8B5</color>
+
+    <!--
+        The three dimmed day figures, night variants (FD-07). `widget_text_primary` (#E6E1E5)
+        composited over `widget_background` (#1C1B1F) at 38%, 60% and 24% respectively.
+
+        These existed only in the default folder before FD-07, which meant a dimmed day figure was the
+        one thing on the widget whose colour could not follow a night-mode switch.
+    -->
+    <color name="widget_day_out_of_month">#69666A</color>
+    <color name="widget_day_gregorian_sub">#959296</color>
+    <color name="widget_day_out_faint">#4C4A4E</color>
+    <color name="widget_arrow_dimmed">#55524E</color>
 </resources>

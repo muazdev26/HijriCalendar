@@ -79,6 +79,24 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   `gregorianMonthTitle`, and the truncated field is gone. A month that fits inside one Gregorian month
   is unchanged.
 
+- **Switching dark mode no longer tears the widgets down and rebuilds them.** The widget palette was
+  resolved with `context.getColor(…)` at compose time and handed to Glance as a literal int. A number
+  carries no idea of where it came from, so the launcher could not re-resolve it and a night-mode
+  switch had to invalidate the whole `RemoteViews` and rebuild it — the widget went blank while the new
+  one was composed. The palette is now built from `@ColorRes` ids, so Glance serialises a resource
+  reference and the launcher resolves it against **its own** configuration at bind time: a theme switch
+  repaints inside the existing view, with no re-compose and no placeholder.
+  ([FD-07](docs/issues/2026-10-03/FD-07-day-night-colour-reresolution.md))
+
+  No `uiMode` broadcast receiver was added, deliberately: re-rendering *is* the restart, so a receiver
+  would only make the rebuild faster while adding a background Glance render. The three dimmed day
+  figures and the dimmed nav arrow became real colour resources with night variants, because a
+  `ColorProvider` cannot carry an alpha — and two of them had no night variant at all before, so a
+  dimmed day figure was the one thing on the widget that could not follow the theme.
+
+  This is the one change here that needs a device pass (`adb shell cmd uimode night yes|no` with a
+  widget placed); no desktop test can see the restart it removes.
+
 - **The 1×1 date tiles now name the day they are showing.** `HijriDateWidget` and
   `GregorianDateWidget` render the localized weekday name above a big day figure above the month
   name. `TodayHijriWidgetData.weekdayName` has always been computed by the shared projection and

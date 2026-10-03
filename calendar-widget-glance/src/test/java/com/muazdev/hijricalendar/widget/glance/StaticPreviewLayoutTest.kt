@@ -167,7 +167,7 @@ class StaticPreviewLayoutTest {
         val referenced = root.deepAttr("android:textColor") + root.deepAttr("android:background")
         listOf(
             "widget_text_primary" to "in-month days",
-            "widget_text_muted" to "out-of-month days",
+            "widget_day_out_of_month" to "out-of-month days",
             "widget_weekend_text" to "weekend days",
             "widget_today_background" to "today's fill",
             "widget_on_today" to "today's content",
