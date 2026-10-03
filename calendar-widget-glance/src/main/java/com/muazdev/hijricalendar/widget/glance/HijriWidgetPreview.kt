@@ -206,6 +206,7 @@ internal class HijriDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.hijriDayText,
                 monthText = today?.hijriMonthName,
+                weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
@@ -236,6 +237,7 @@ internal class GregorianDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.gregorianDayText,
                 monthText = today?.gregorianMonthName,
+                weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
                 language = options.language,

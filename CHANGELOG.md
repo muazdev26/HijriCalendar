@@ -7,6 +7,21 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ## Unreleased
 
+### Fixed
+
+- **The 1×1 date tiles now name the day they are showing.** `HijriDateWidget` and
+  `GregorianDateWidget` render the localized weekday name, which the shared projection has always
+  computed and iOS has always rendered — the two Android tiles were the only place it was dropped,
+  so `21 محرم` was all a user could read. No schema change: the weekday name follows
+  `options.language`, not the device locale. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
+- **The tiles now fit the size they promise.** Both tiles declared 34sp + 12sp of text plus 12dp of
+  padding — 58dp of content inside a 40dp box — and relied on the launcher handing over more than
+  the widget-info's own minimum, clipping the bottom line when it did not. The day figure is now
+  17sp under a 10sp caption (weekday and month on one line, since three lines do not fit 40dp), for
+  38dp total. This is a visible reduction in the size of the day figure and it is deliberate; a tile
+  that clips its own date is worse than one whose number is smaller.
+  ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
+
 ## 2.0.0 - 2026-10-03
 
 Remediation of the `calendar-core` architecture review — see
