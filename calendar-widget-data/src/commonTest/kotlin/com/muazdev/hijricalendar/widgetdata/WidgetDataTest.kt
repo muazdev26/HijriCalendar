@@ -188,19 +188,49 @@ class WidgetDataTest {
         assertEquals(2026, today.gregorianYear)
     }
 
+    /**
+     * The header's Gregorian half is the month's whole extent, not its first day.
+     *
+     * This test previously asserted `"<first Gregorian month> <year>"` — it encoded the truncation as
+     * the expected behaviour, which is what made the defect survive (FD-06). A Hijri month is 29 or 30
+     * days and a Gregorian month is 28-31, so roughly half of all Hijri months start in one Gregorian
+     * month and end in another; for those, naming only the first describes a Gregorian month the Hijri
+     * month has almost nothing to do with.
+     *
+     * Now derived from the month itself — first and last painted day — so it holds for every month
+     * rather than for the one whose two ends happen to agree.
+     */
     @Test
-    fun grid_gregorianMonthTitleMatchesFirstGregorianDay() {
+    fun grid_gregorianMonthTitleSpansTheWholeMonth() {
         val defaultGregorianNames = listOf(
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December",
         )
-        val data = month(1447, 11) // Shawwal 1447
-        val firstCurrent = data.days.first { it.isCurrentMonth }
-        val firstGregorian = LocalDate.fromEpochDays(firstCurrent.gregorianEpochDay)
-        assertEquals(
-            "${defaultGregorianNames[firstGregorian.month.ordinal]} ${firstGregorian.year}",
-            data.gregorianMonthTitle,
-        )
+
+        for (year in 1440..1450) {
+            for (month in 1..12) {
+                val data = assertNotNull(
+                    buildHijriMonthWidgetData(hijriYear = year, hijriMonth = month, adjustmentDays = 0),
+                    "no projection for $year-$month",
+                )
+                val own = data.days.filter { it.isCurrentMonth }
+                val first = LocalDate.fromEpochDays(own.first().gregorianEpochDay)
+                val last = LocalDate.fromEpochDays(own.last().gregorianEpochDay)
+
+                val expected = when {
+                    first.month == last.month && first.year == last.year ->
+                        "${defaultGregorianNames[first.month.ordinal]} ${first.year}"
+                    first.year == last.year ->
+                        "${defaultGregorianNames[first.month.ordinal]} - " +
+                            "${defaultGregorianNames[last.month.ordinal]} ${first.year}"
+                    else ->
+                        "${defaultGregorianNames[first.month.ordinal]} ${first.year} - " +
+                            "${defaultGregorianNames[last.month.ordinal]} ${last.year}"
+                }
+
+                assertEquals(expected, data.gregorianMonthTitle, "$year-$month")
+            }
+        }
     }
 
     @Test

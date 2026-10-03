@@ -78,17 +78,21 @@ class EraMarkersTest {
     }
 
     /**
-     * The marker follows `options.language`, not the device and not the month-name language.
+     * The marker follows the same locale as the month names it sits beside.
      *
-     * The last distinction is the one worth stating: a widget can show Eastern digits with **English**
-     * month names (`monthNameLanguage`), and it must still write `1447 AH` in Latin script — the era
-     * is about which calendar, not about which script.
+     * An era marker is text, and text reads with the names next to it — so `monthNameLanguage`, not
+     * `language`. The first version of this rule used `language`, which produced `April - May 2026 ئے`
+     * for exactly the widget that had asked for English month names: a Latin month range with an Urdu
+     * suffix.
+     *
+     * `language` still decides layout direction and, together with `numeralStyle`, the digits — those
+     * are the widget's presentation, not its vocabulary.
      */
     @Test
-    fun theEraFollowsTheWidgetsLanguageNotItsMonthNameLanguage() {
+    fun theEraFollowsTheMonthNameLanguageSoItReadsWithTheNames() {
         val options = createWidgetOptions(
-            language = WidgetLanguage.ENGLISH,
-            monthNameLanguage = WidgetLanguage.URDU,
+            language = WidgetLanguage.URDU,
+            monthNameLanguage = WidgetLanguage.ENGLISH,
         )
         val month = assertNotNull(buildHijriMonthWidgetData(1447, 9, options))
         val today = assertNotNull(todayHijriWidgetData(anchorEpochDay = 20_731, options = options))
@@ -96,11 +100,11 @@ class EraMarkersTest {
         assertEquals(
             "1447 AH",
             month.hijriYearText,
-            "an English widget writes a Latin era even with Urdu month names",
+            "the era must be in the same script as the English month names beside it",
         )
         assertTrue(
-            month.hijriMonthName.any { it.code > 0x7F },
-            "the Urdu month name must still be Urdu, or this test is not exercising the split",
+            month.hijriMonthName.all { it.code < 0x80 },
+            "and the month names must still be English, or this test is not exercising the split",
         )
         assertTrue(
             today.hijriYearText.endsWith(" AH"),

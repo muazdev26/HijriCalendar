@@ -67,6 +67,18 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ### Fixed
 
+- **The widget header no longer names a Gregorian month the Hijri month has nothing to do with.** A
+  Hijri month is 29 or 30 days and a Gregorian month is 28-31, so roughly half of all Hijri months
+  start in one Gregorian month and end in another — and the widget named only the first. Safar 1448
+  began on 30 July 2026, so that header read `July 2026` for a month with not one day in it.
+  ([FD-06](docs/issues/2026-10-03/FD-06-widget-header-both-gregorian-months.md))
+
+  This was never a missing feature so much as a **disagreement**: the in-app header already rendered
+  the range (`September - October 2026`), and a user comparing the two surfaces concluded one was
+  broken. `HijriMonthWidgetData.gregorianRange` — the correct, iOS-only string — is now folded into
+  `gregorianMonthTitle`, and the truncated field is gone. A month that fits inside one Gregorian month
+  is unchanged.
+
 - **The 1×1 date tiles now name the day they are showing.** `HijriDateWidget` and
   `GregorianDateWidget` render the localized weekday name above a big day figure above the month
   name. `TodayHijriWidgetData.weekdayName` has always been computed by the shared projection and

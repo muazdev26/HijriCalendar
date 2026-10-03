@@ -48,7 +48,7 @@
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:maxLines="1"
-            android:text="محرم ۱۴۴۸ ھ · August 2026 AD"
+            android:text="محرم ۱۴۴۸ ھ · July - August 2026 AD"
             android:textColor="@color/widget_text_primary"
             android:textSize="15sp"
             android:textStyle="bold" />

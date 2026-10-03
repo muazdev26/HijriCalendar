@@ -309,13 +309,16 @@ public fun buildHijriMonthWidgetData(
     // ignoring the caller's table no matter how correctly the grid honoured it.
     val gregorianFirst = calendarMonth.gregorianFirstDay
     val gregorianLast = calendarMonth.gregorianLastDay
-    val gregorianRange = formatGregorianRange(gregorianFirst, gregorianLast, gregorianMonthNames)
-    // Era-appended (FD-05). `null` — a caller that passed no marker — leaves the year bare, which is
-    // what the default parameters mean, so nothing changes for a leaf caller that has not opted in.
-    val gregorianMonthTitle = withEra(
-        "${gregorianMonthNames[gregorianFirst.month.ordinal]} ${gregorianFirst.year}",
-        gregorianEra,
-    )
+    // A **range**, not the first in-month Gregorian month (FD-06). A Hijri month is 29 or 30 days
+    // and a Gregorian month is 28-31, so roughly half of all Hijri months start in one Gregorian
+    // month and end in another — Safar 1448 began on 30 July 2026, and the header used to say
+    // "July 2026" for a month with not one day in it.
+    //
+    // This is the same string `formatGregorianRange` has always produced for `gregorianRange`, which
+    // was iOS-only. Two fields holding the same range, one of them truncated, is how the app and the
+    // widget came to disagree; the truncated one is now the only one.
+    val gregorianMonthTitle =
+        formatGregorianRange(gregorianFirst, gregorianLast, gregorianMonthNames, gregorianEra)
 
     val days = calendarMonth.days.map { day ->
         val local = day.localDate
@@ -347,7 +350,6 @@ public fun buildHijriMonthWidgetData(
         hijriMonth = hijriMonth,
         hijriMonthName = hijriMonthName,
         gregorianMonthTitle = gregorianMonthTitle,
-        gregorianRange = gregorianRange,
         weekdayHeaders = weekdayHeaders,
         days = days,
         adjustmentDays = adjustmentDays,
@@ -363,15 +365,21 @@ private fun formatGregorianRange(
     first: LocalDate,
     last: LocalDate,
     names: List<String>,
-): String = when {
-    first.month == last.month && first.year == last.year ->
-        "${names[first.month.ordinal]} ${first.year}"
-    first.year == last.year ->
-        "${names[first.month.ordinal]} - " +
-            "${names[last.month.ordinal]} ${first.year}"
-    else ->
-        "${names[first.month.ordinal]} ${first.year} - " +
-            "${names[last.month.ordinal]} ${last.year}"
+    era: String? = null,
+): String {
+    fun monthName(date: LocalDate): String = names[date.month.ordinal]
+    // `null` — a caller that passed no marker — leaves the years bare, which is what the default
+    // parameter means, so nothing changes for a leaf caller that has not opted in (FD-05).
+    fun year(y: Int): String = withEra(y.toString(), era)
+
+    return when {
+        first.month == last.month && first.year == last.year ->
+            "${monthName(first)} ${year(first.year)}"
+        first.year == last.year ->
+            "${monthName(first)} - ${monthName(last)} ${year(first.year)}"
+        else ->
+            "${monthName(first)} ${year(first.year)} - ${monthName(last)} ${year(last.year)}"
+    }
 }
 
 /**

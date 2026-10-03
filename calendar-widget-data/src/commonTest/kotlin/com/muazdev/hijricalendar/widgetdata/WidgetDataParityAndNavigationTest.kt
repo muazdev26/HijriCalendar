@@ -197,7 +197,7 @@ class WidgetDataParityAndNavigationTest {
         // 1448-03 starts on 2026-08-15 and is 30 days long -> 15 Aug - 13 Sep 2026.
         val first = PakistanHijriCalendar.hijriToGregorian(1448, 3, 1)
         val last = first.plus(PakistanHijriCalendar.lengthOfMonth(1448, 3) - 1, DateTimeUnit.DAY)
-        assertEquals("August - September 2026", data.gregorianRange)
+        assertEquals("August - September 2026", data.gregorianMonthTitle)
         assertEquals(first, LocalDate(2026, 8, 15))
         assertEquals(last, LocalDate(2026, 9, 13))
     }
@@ -341,8 +341,8 @@ class WidgetDataParityAndNavigationTest {
         assertEquals(UrduCalendarNames.hijriMonths[3], data.hijriMonthName)
         assertEquals(UrduCalendarNames.weekdayShortNames, data.weekdayHeaders)
         // 1448-04 (Ruet-e-Hilal) spans 14 Sep - 13 Oct 2026.
-        assertTrue(data.gregorianRange.contains("ستمبر"), "got ${data.gregorianRange}")
-        assertTrue(data.gregorianRange.contains("اکتوبر"), "got ${data.gregorianRange}")
+        assertTrue(data.gregorianMonthTitle.contains("ستمبر"), "got ${data.gregorianMonthTitle}")
+        assertTrue(data.gregorianMonthTitle.contains("اکتوبر"), "got ${data.gregorianMonthTitle}")
     }
 
     @Test

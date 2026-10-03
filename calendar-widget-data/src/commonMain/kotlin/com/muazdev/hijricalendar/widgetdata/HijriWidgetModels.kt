@@ -88,10 +88,9 @@ public data class HijriDayWidgetData(
  * One rendered Hijri month in widget form: a 6x7 grid plus the header data the native
  * renderers need (Hijri + Gregorian month titles on one line, weekday headers).
  *
- * [gregorianRange] is the one field with no single-month invariant: it can read
- * "December 2026 - January 2027" when a Hijri month straddles two Gregorian ones. **Only iOS renders
- * it** — the Android grid widget's header shows [gregorianMonthTitle] alone on one centred line
- * (WD-10c).
+ * [gregorianMonthTitle] is the one field with no single-month invariant: it can read
+ * "December 2026 - January 2027" when a Hijri month straddles two Gregorian ones, because a Hijri
+ * month is 29 or 30 days and a Gregorian month is 28-31, so they do not divide evenly.
  */
 @Serializable
 public data class HijriMonthWidgetData(
@@ -109,12 +108,18 @@ public data class HijriMonthWidgetData(
     val hijriMonth: Int,
     val hijriMonthName: String,
     /**
-     * The Gregorian month name + year of the Hijri month's first day (e.g. "September 2026"),
-     * so a header can show both calendars on one line — `hijriMonthName hijriYear ·  title`.
+     * The month's Gregorian extent, era-marked, for the header's other half —
+     * `hijriMonthName hijriYearText · gregorianMonthTitle`, e.g. `محرم ۱۴۴۸ ھ · August - September 2026 AD`.
+     *
+     * A **range**, not the first in-month Gregorian month (FD-06). Roughly half of all Hijri months
+     * straddle two Gregorian ones, and the header used to name only the first — so for those months it
+     * described a Gregorian month the Hijri month had almost nothing to do with.
+     *
+     * This was `gregorianRange` (iOS-only, correct) alongside a truncated `gregorianMonthTitle` (both
+     * platforms, wrong), which is how the app and the widget came to disagree for half the calendar.
+     * The truncated field is gone.
      */
     val gregorianMonthTitle: String,
-    /** The month's full Gregorian extent, e.g. `"September - October 2026"`. iOS only; see the class. */
-    val gregorianRange: String,
     val weekdayHeaders: List<String>,
     /**
      * The month's **padded** day cells — always [com.muazdev.hijricalendar.core.CalendarMonth.TOTAL_DAYS]

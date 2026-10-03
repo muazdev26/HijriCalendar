@@ -523,10 +523,16 @@ public fun buildHijriMonthWidgetData(
     localizedGregorianMonthNames = options.localizedGregorianMonthNames,
     localizedWeekdayNames = options.localizedWeekdayNames,
     overrides = options.overridesTable(),
-    // Era markers follow `language`, not `effectiveMonthNameLanguage`: a widget that shows Eastern
-    // digits with English month names still writes "1447 AH" in Latin script.
-    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.language),
-    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.language),
+    // Era markers follow `effectiveMonthNameLanguage`, not `language`: an era marker is *text* that
+    // sits beside the month names, so it belongs to the same locale as the names it is read with.
+    // Using `language` here produced "April - May 2026 ئے" — a Latin month range with an Urdu suffix —
+    // for exactly the widget that had asked for English month names.
+    //
+    // Numerals stay independent, because `numeralStyle` is an explicit user choice rather than a
+    // locale: a widget may show Arabic-Indic digits with English month names, and that mix is what it
+    // asked for.
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
 )
 
 /** [todayHijriWidgetData] driven straight from [options]. See the grid overload for why. */
@@ -542,6 +548,6 @@ public fun todayHijriWidgetData(
     numeralStyle = options.numeralStyle,
     pakistan = options.source.pakistan,
     overrides = options.overridesTable(),
-    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.language),
-    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.language),
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
 )
