@@ -229,13 +229,20 @@ class StaticPreviewLayoutTest {
     }
 
     @Test
-    fun theTilePreviewsShowADayOverAMonthAndNoYear() {
-        // Matches the live `DateTileRoot`: a day figure and a month. The year is deliberately
-        // absent — the tile is too small for one — so the count is the assertion.
+    fun theTilePreviewsShowAWeekdayADayAndAMonthAndNoYear() {
+        // Matches the live `DateTileRoot`: a weekday name, a day figure and a month, on three lines.
+        // The year is still deliberately absent — the tile has no room for one — so the count is the
+        // assertion. Raised from two lines to three by FD-01, which added the weekday name; the
+        // order and the sizes are asserted by `DateTilePreviewLayoutTest`, which is where that
+        // concern lives now.
         listOf("hijri_date_widget_preview_layout", "gregorian_date_widget_preview_layout")
             .forEach { name ->
                 val texts = root(name).deepAttr("android:text")
-                assertEquals("$name should show exactly a day and a month", 2, texts.size)
+                assertEquals(
+                    "$name should show exactly a weekday, a day and a month",
+                    3,
+                    texts.size,
+                )
             }
     }
 }

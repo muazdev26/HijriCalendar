@@ -88,6 +88,26 @@ public class HijriCalendarState(
     initialSelectedObservedDate: ObservedHijriDate? = null,
     public val weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
     /**
+     * Whether the grid renders the days that belong to the neighbouring months — the dimmed
+     * leading and trailing cells — or only this month's own days.
+     *
+     * `false` by default, and the grid then has **five or six rows instead of always six**: the
+     * padded month is still built (see [CalendarMonth.days]), it is just filtered before it is
+     * chunked into weeks, so a month that needs five rows stops occupying a sixth. That is why
+     * this is rendering-only rather than a change to how a month is computed.
+     *
+     * **Presentational only**, like [weekendDays]: it does not change which days exist, what any of
+     * them resolve to, or whether they are selectable. A hidden day is not a disabled day — it is
+     * not in the list, so there is nothing to tap. [selectDate] still moves the grid across a
+     * month boundary when a *programmatic* selection lands outside the current month; the flag
+     * governs what is painted and must not be consulted from the state machine.
+     *
+     * Runtime-toggleable with [setShowAdjacentDays], unlike [weekendDays] — unlike the weekend set,
+     * this is something a host offers as a settings row and a user expects to see take effect
+     * immediately, so it is snapshot state rather than configuration frozen at first composition.
+     */
+    showAdjacentDays: Boolean = false,
+    /**
      * Month-length overrides owned by this state holder. Defaults to the process-wide
      * [HijriMonthOverrides.current]; pass your own [HijriMonthLengths] to scope overrides to this
      * calendar so two calendars in one process can disagree about month lengths.
@@ -101,6 +121,21 @@ public class HijriCalendarState(
     private var _selectedPakistanDate by mutableStateOf(initialSelectedPakistanDate)
     private var _selectedObservedDate by mutableStateOf(initialSelectedObservedDate)
     private var _overridesRevision by mutableStateOf(monthLengths.currentRevision)
+    private var _showAdjacentDays by mutableStateOf(showAdjacentDays)
+
+    /**
+     * Whether the grid paints the neighbouring months' days. See the constructor parameter — this
+     * is the readable half, and [setShowAdjacentDays] is the writable one.
+     *
+     * Read inside the grid's `derivedStateOf`, so flipping it repaints the grid without the month
+     * being rebuilt.
+     */
+    public val showAdjacentDays: Boolean get() = _showAdjacentDays
+
+    /** Turns the neighbouring months' days in the grid on or off. See [showAdjacentDays]. */
+    public fun setShowAdjacentDays(show: Boolean) {
+        _showAdjacentDays = show
+    }
 
     public val adjustmentDays: Int get() = _adjustmentDays
 
@@ -441,6 +476,7 @@ public fun rememberHijriCalendarState(
     pakistanDates: Boolean = false,
     initialSelectedPakistanDate: PakistanHijriDate? = null,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    showAdjacentDays: Boolean = false,
 ): HijriCalendarState {
     return remember {
         HijriCalendarState(
@@ -453,6 +489,7 @@ public fun rememberHijriCalendarState(
             pakistanDates = pakistanDates,
             initialSelectedPakistanDate = initialSelectedPakistanDate,
             weekendDays = weekendDays,
+            showAdjacentDays = showAdjacentDays,
         )
     }
 }
@@ -476,9 +513,32 @@ public fun rememberSaveableHijriCalendarState(
     pakistanDates: Boolean = false,
     initialSelectedPakistanDate: PakistanHijriDate? = null,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    showAdjacentDays: Boolean = false,
 ): HijriCalendarState {
-    val config = remember(firstDayOfWeek, minDate, maxDate, adjustmentDays, pakistanDates, weekendDays) {
-        HijriCalendarStateConfig(firstDayOfWeek, minDate, maxDate, adjustmentDays, pakistanDates, weekendDays)
+    // `remember` takes a vararg, so the keys are assembled as a list rather than named one per
+    // line. Everything the restored state is configured from has to be here: a key this list
+    // forgets is a change the host makes that a restore silently ignores.
+    val configKeys = arrayOf<Any?>(
+        firstDayOfWeek,
+        minDate,
+        maxDate,
+        adjustmentDays,
+        pakistanDates,
+        weekendDays,
+        showAdjacentDays,
+    )
+
+    @Suppress("SpreadOperator")
+    val config = remember(*configKeys) {
+        HijriCalendarStateConfig(
+            firstDayOfWeek = firstDayOfWeek,
+            minDate = minDate,
+            maxDate = maxDate,
+            adjustmentDays = adjustmentDays,
+            pakistanDates = pakistanDates,
+            weekendDays = weekendDays,
+            showAdjacentDays = showAdjacentDays,
+        )
     }
     val saver = remember(config) { hijriCalendarStateSaver(config) }
     return rememberSaveable(saver = saver) {
@@ -503,6 +563,7 @@ internal data class HijriCalendarStateConfig(
     val adjustmentDays: Int,
     val pakistanDates: Boolean = false,
     val weekendDays: Set<WeekDay>,
+    val showAdjacentDays: Boolean = false,
 )
 
 /**
@@ -609,6 +670,7 @@ internal fun hijriCalendarStateSaver(
             initialSelectedPakistanDate = initialSelectedPakistanDate,
             initialSelectedObservedDate = initialSelectedObservedDate,
             weekendDays = config.weekendDays,
+            showAdjacentDays = config.showAdjacentDays,
         )
     },
 )

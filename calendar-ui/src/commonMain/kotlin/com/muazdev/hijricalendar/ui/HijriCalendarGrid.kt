@@ -166,6 +166,7 @@ internal fun HijriCalendarGrid(
             val calMonth by remember(month) { derivedStateOf { state.calendarMonthFor(month) } }
             MonthGrid(
                 days = calMonth.days,
+                showAdjacentDays = state.showAdjacentDays,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,
@@ -203,9 +204,51 @@ private fun DayOfWeekLabels(
     }
 }
 
+/**
+ * The week rows for one month.
+ *
+ * [days] is always the padded month ([CalendarMonth.days] is 42 entries) — the padding is what
+ * makes every month occupy the same number of cells, and it is load-bearing for the render cache and
+ * the pager's page arithmetic. [showAdjacentDays] decides how much of that padding is *visible*,
+ * and it is deliberately not a filter over the cell list:
+ *
+ * - **Cells are blanked, not removed.** A Hijri month can begin on any weekday, so the first padded
+ *   week holds some of the previous month's days before the 1st. Removing those cells would slide
+ *   the 1st into column zero and put every day of the month under the wrong weekday heading. So the
+ *   padded list is kept and [HijriCalendarDayCell] is told to paint nothing.
+ * - **Trailing weeks are dropped.** That is what turns six rows into five: a 29-day month spans
+ *   `ceil((leading + length) / 7)` weeks, not a constant six.
+ *
+ * The arithmetic mirrors `HijriMonthWidgetData.weeksToRender` in `calendar-widget-data`, which the
+ * widget renderers use. Both are spelled out rather than shared because `calendar-ui` cannot depend
+ * on the widget module — but they must keep agreeing, and a test in each asserts the row count.
+ */
+/**
+ * The week rows a grid lays out for [days], a padded 42-cell month.
+ *
+ * The whole of the adjacent-day behaviour, as one pure function so it can be asserted without
+ * composing a UI. Mirrors `HijriMonthWidgetData.weeksToRender` in `calendar-widget-data`, which the
+ * Glance and Swift grids use — spelled out twice rather than shared because `calendar-ui` cannot
+ * depend on the widget module. `AdjacentDaysGridMathTest` in `calendar-ui` and `AdjacentDaysTest` in
+ * `calendar-widget-data` assert the same row counts from the same months, which is what keeps the
+ * two copies honest.
+ *
+ * Trims by emptiness rather than from a named end, and blanking is left to [HijriCalendarDayCell]:
+ * see [MonthGrid]'s KDoc for why neither of those can be a filter.
+ */
+internal fun gridWeeks(days: List<CalendarDay>, showAdjacentDays: Boolean): List<List<CalendarDay>> {
+    val padded = days.chunked(CalendarMonth.DAYS_IN_WEEK)
+    val first = padded.indexOfFirst { week -> week.any { it.isCurrentMonth } }
+    val last = padded.indexOfLast { week -> week.any { it.isCurrentMonth } }
+
+    return if (showAdjacentDays || first < 0) padded else padded.subList(first, last + 1)
+}
+
+@Suppress("LongParameterList")
 @Composable
 private fun MonthGrid(
     days: List<CalendarDay>,
+    showAdjacentDays: Boolean,
     onDayClick: (CalendarDay) -> Unit,
     colors: HijriCalendarColors,
     useArabicIndicNumerals: Boolean,
@@ -214,7 +257,7 @@ private fun MonthGrid(
     labels: HijriCalendarLabels,
     dayContent: (@Composable (CalendarDay) -> Unit)?,
 ) {
-    val weeks = remember(days) { days.chunked(CalendarMonth.DAYS_IN_WEEK) }
+    val weeks = remember(days, showAdjacentDays) { gridWeeks(days, showAdjacentDays) }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -222,6 +265,7 @@ private fun MonthGrid(
         weeks.forEach { weekDays ->
             HijriWeekRow(
                 days = weekDays,
+                showAdjacentDays = showAdjacentDays,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,

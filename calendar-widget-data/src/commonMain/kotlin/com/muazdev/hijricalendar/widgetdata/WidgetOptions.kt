@@ -64,6 +64,26 @@ public data class WidgetOptions(
      * `Pair<Int, Int>`, which stays out of the published ABI — WD-07).
      */
     val monthLengthOverrides: Map<String, Int> = emptyMap(),
+    /**
+     * Whether the grid also paints the days belonging to the neighbouring Hijri months.
+     *
+     * `false` by default, which is a **change** from every release before this one — adjacent days
+     * were not optional, there was no flag to turn them off. With the flag off a widget's grid
+     * takes five or six rows instead of always six, because the padded month's leading and
+     * trailing cells are filtered before the grid chunks them into weeks; see
+     * [HijriMonthWidgetData.visibleDays], which is the single place that filtering is defined.
+     *
+     * Presentational, like `weekendDays` is on the in-app side: it does not change which days
+     * exist, what any of them resolve to, or the month the grid is showing. A hidden day is not a
+     * disabled day — it is simply not in the list, so there is nothing to tap and nothing to
+     * select.
+     *
+     * A widget stored before this field existed decodes into `false`, because the codec fills a
+     * missing key with the data-class default. That is the intended upgrade: the field's default is
+     * the behaviour the field was added to change, so "not configured" and "configured off" agree,
+     * and no widget is left rendering a grid nobody asked for.
+     */
+    val showAdjacentDays: Boolean = false,
 ) {
     /**
      * The first day of week to render with.
@@ -220,6 +240,7 @@ public data class WidgetOptions(
             source = WidgetSource.CALCULATION,
             language = WidgetLanguage.URDU,
             monthNameLanguage = WidgetLanguage.URDU,
+            showAdjacentDays = false,
         )
     }
 }
@@ -415,6 +436,7 @@ public fun createWidgetOptions(
     pinnedYear: Int = 0,
     pinnedMonth: Int = 1,
     overridesCsv: String? = null,
+    showAdjacentDays: Boolean = false,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -425,6 +447,7 @@ public fun createWidgetOptions(
     language = language,
     monthNameLanguage = monthNameLanguage ?: language,
     monthLengthOverrides = decodeMonthLengthsCsv(overridesCsv),
+    showAdjacentDays = showAdjacentDays,
 )
 
 /**

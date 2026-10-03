@@ -304,6 +304,27 @@ internal fun HijriWidgetSettingsScreen(
             }
         }
 
+        // ── Adjacent-month days (grid only) ──────────────────────────────────────
+        if (kind == WidgetKind.GRID) {
+            SectionTitle("Neighbouring months")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !options.showAdjacentDays,
+                    onClick = { update(options.copy(showAdjacentDays = false)) },
+                    label = { Text("Hide") },
+                )
+                FilterChip(
+                    selected = options.showAdjacentDays,
+                    onClick = { update(options.copy(showAdjacentDays = true)) },
+                    label = { Text("Show") },
+                )
+            }
+            Text(
+                "Hidden by default. The grid then takes five or six rows instead of always six.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
         // ── Optional pinned month (grid only) ─────────────────────────────────
         if (kind == WidgetKind.GRID) {
             SectionTitle("Fixed month (optional)")

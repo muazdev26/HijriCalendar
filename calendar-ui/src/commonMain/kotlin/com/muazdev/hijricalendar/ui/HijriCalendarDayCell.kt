@@ -60,8 +60,28 @@ public fun HijriCalendarDayCell(
     dayCellSize: Dp? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     content: (@Composable (CalendarDay) -> Unit)? = null,
+    /**
+     * Paints nothing at all: no day figure, no Gregorian gloss, no background, no border, no
+     * content description and no click target.
+     *
+     * This exists so a grid can blank a neighbouring month's day **without removing its cell** — a
+     * Hijri month can start mid-week, so the first padded week holds some of the previous month's
+     * days before the 1st. Removing the cells would slide the 1st into column zero and put every day
+     * of the month under the wrong weekday heading. The cell keeps its width; only its ink and its
+     * semantics go.
+     *
+     * Default `true`, so every existing caller — including a host rendering its own cells — is
+     * unchanged. See [HijriCalendarState.showAdjacentDays] for the grid-level behaviour.
+     */
+    visible: Boolean = true,
 ) {
     val cellSize = dayCellSize ?: HijriCalendarDefaults.SingleLineCellSize
+
+    if (!visible) {
+        // Sized, so the week's columns still line up under the weekday headings, and nothing else.
+        Box(modifier = modifier.size(cellSize))
+        return
+    }
 
     val style = day.cellStyle(colors)
     val clickLabel = remember(day, labels) { labels.dayContentDescription(day) }

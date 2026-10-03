@@ -138,6 +138,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayHijri = data.todayHijri,
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
+                showAdjacentDays = data.showAdjacentDays,
                 colors = colors,
                 language = options.language,
                 actions = WidgetActions(
@@ -169,6 +170,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayHijri = data.todayHijri,
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
+                showAdjacentDays = data.showAdjacentDays,
                 colors = colors,
                 language = options.language,
                 // The picker preview is non-interactive by construction (WG-12's grouping makes
@@ -193,6 +195,18 @@ internal data class HijriWidgetRenderData(
     val todayEpochDay: Long,
     val monthData: HijriMonthWidgetData?,
     val layoutRtl: Boolean,
+    /**
+     * Carried through the render data rather than read from [options] inside the composable,
+     * alongside [layoutRtl] for the same reason: the grid must paint exactly what the projection
+     * that produced [monthData] was configured for, and the two cannot drift because neither is
+     * re-read from the options at compose time.
+     *
+     * It is deliberately **not** in [HijriWidgetRenderCache]'s keys. The projection's output does
+     * not depend on it — [HijriMonthWidgetData.days] is the padded month either way — so folding it
+     * into `MonthKey` would invalidate 42 cells of cached projection on a change that cannot alter
+     * a single one of them.
+     */
+    val showAdjacentDays: Boolean,
 )
 
 /**
@@ -442,7 +456,13 @@ internal object HijriWidgetRenderCache {
                 ?: buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
                     ?.also { monthCache.put(monthKey, it) }
         }
-        return HijriWidgetRenderData(todayHijri, todayEpochDay, monthData, layoutRtl)
+        return HijriWidgetRenderData(
+            todayHijri = todayHijri,
+            todayEpochDay = todayEpochDay,
+            monthData = monthData,
+            layoutRtl = layoutRtl,
+            showAdjacentDays = options.showAdjacentDays,
+        )
     }
 
     /**
@@ -510,11 +530,13 @@ private fun GlanceModifier.clickableWhen(action: Action?): GlanceModifier =
     if (action != null) this.clickable(action) else this
 
 @Composable
+@Suppress("LongParameterList")
 internal fun HijriWidgetRoot(
     monthData: HijriMonthWidgetData?,
     todayHijri: TodayHijriWidgetData?,
     todayEpochDay: Long,
     layoutRtl: Boolean,
+    showAdjacentDays: Boolean,
     colors: WidgetColors,
     // The widget's own language, for the chrome's accessibility labels (WG-12). Not derivable from
     // `monthData`: a widget that fell back to the today card has no month projection at all, and its
@@ -540,6 +562,7 @@ internal fun HijriWidgetRoot(
                 month = monthData,
                 todayEpochDay = todayEpochDay,
                 layoutRtl = layoutRtl,
+                showAdjacentDays = showAdjacentDays,
                 colors = colors,
                 language = language,
                 actions = actions,
@@ -685,6 +708,7 @@ private fun MonthGrid(
     month: HijriMonthWidgetData,
     todayEpochDay: Long,
     layoutRtl: Boolean,
+    showAdjacentDays: Boolean,
     colors: WidgetColors,
     language: WidgetLanguage,
     actions: WidgetActions,
@@ -716,13 +740,23 @@ private fun MonthGrid(
             }
         }
 
-        month.days.chunked(7).forEach { week ->
+        // [HijriMonthWidgetData.weeksToRender] and [HijriMonthWidgetData.paintsDay] are the shared
+        // definition of the grid's shape, so this composable, calendar-ui's MonthGrid and the Swift
+        // grid cannot disagree about the row count or about which column the 1st sits under.
+        month.weeksToRender(showAdjacentDays).forEach { week ->
             Row(
                 modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
                 verticalAlignment = Alignment.Vertical.CenterVertically,
             ) {
                 week.forEach { cell ->
-                    DayCell(cell = cell, todayEpochDay = todayEpochDay, colors = colors)
+                    DayCell(
+                        cell = cell,
+                        todayEpochDay = todayEpochDay,
+                        colors = colors,
+                        // Blank rather than removed: the cell has to stay so the 1st keeps its
+                        // column under the right weekday heading.
+                        paint = month.paintsDay(cell, showAdjacentDays),
+                    )
                 }
             }
         }
@@ -821,12 +855,23 @@ private fun RowScope.DayCell(
     cell: HijriDayWidgetData,
     todayEpochDay: Long,
     colors: WidgetColors,
+    paint: Boolean,
 ) {
-    val isToday = cell.gregorianEpochDay == todayEpochDay
+    val isToday = paint && cell.gregorianEpochDay == todayEpochDay
     val base = GlanceModifier
         .defaultWeight()
         .fillMaxHeight()
         .padding(horizontal = 1.dp, vertical = 1.dp)
+
+    // A cell the widget is configured not to show. It keeps its slot so the rest of the week stays
+    // under the right weekday headings, and it draws nothing at all — not a dimmed digit, not the
+    // today highlight. There is no action on any cell yet (FD-09), so there is nothing to suppress
+    // there; when day taps land, a hidden cell must stay untappable rather than becoming an
+    // invisible target.
+    if (!paint) {
+        Box(modifier = base) {}
+        return
+    }
 
     // Today is a filled highlight like the in-app selected day: the accent container with its
     // "on-today" content colour. Everything else matches the app's precedence: out-of-month >

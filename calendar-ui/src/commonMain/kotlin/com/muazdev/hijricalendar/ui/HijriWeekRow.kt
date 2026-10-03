@@ -20,6 +20,7 @@ internal fun HijriWeekRow(
     dayCellSize: Dp? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    showAdjacentDays: Boolean = true,
 ) {
     // Not a consumer-reachable crash any more: this composable is internal, so the only caller
     // chunks the grid's 42 cells. The check stays because a silent wrong row would be harder to
@@ -43,6 +44,7 @@ internal fun HijriWeekRow(
                     dayCellSize = dayCellSize,
                     labels = labels,
                     content = dayContent,
+                    visible = showAdjacentDays || day.isCurrentMonth,
                 )
             }
         }

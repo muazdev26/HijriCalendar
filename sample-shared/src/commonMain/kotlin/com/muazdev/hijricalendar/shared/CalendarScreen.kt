@@ -52,27 +52,10 @@ fun CalendarScreen(
     onPakistanDatesChange: ((Boolean) -> Unit)? = null,
     showMonthLengthSettings: Boolean = false,
     onMonthLengthOverridesChanged: (() -> Unit)? = null,
+    showAdjacentDaysToggle: Boolean = false,
+    onShowAdjacentDaysChange: ((Boolean) -> Unit)? = null,
 ) {
-    // Selection lives in one of three spaces, and which one is not a free choice the caller makes:
-    // `selectDay` routes to observed space whenever a month-length override is in force, because a
-    // day past the calculated length has no Umm al-Qura coordinate. So reading only the first two
-    // made the summary say "No date selected" while the grid right above it highlighted the day —
-    // the same class of bug the UI review fixed in the grid. `pakistanDates` is keyed explicitly
-    // because switching spaces moves the selection between holders.
-    val selectedDate = state.selectedDate
-    val pakistanDate = state.selectedPakistanDate
-    val observedDate = state.selectedObservedDate
-
-    val selectedDateText = remember(
-        selectedDate,
-        pakistanDate,
-        observedDate,
-        state.pakistanDates,
-        dateDisplayMode,
-        state.adjustmentDays,
-    ) {
-        selectedDateSummary(state, dateDisplayMode)
-    }
+    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode)
 
     Column(
         modifier = modifier
@@ -113,6 +96,17 @@ fun CalendarScreen(
                 onSelect = { enabled ->
                     state.setPakistanDates(enabled)
                     onPakistanDatesChange?.invoke(enabled)
+                },
+            )
+        }
+
+        if (showAdjacentDaysToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            AdjacentDaysSelector(
+                showAdjacentDays = state.showAdjacentDays,
+                onSelect = { show ->
+                    state.setShowAdjacentDays(show)
+                    onShowAdjacentDaysChange?.invoke(show)
                 },
             )
         }
@@ -409,4 +403,62 @@ private fun HijrahYearMonth.minusMonthOrNull(months: Int): HijrahYearMonth? {
     } catch (_: Exception) {
         null
     }
+}
+
+/**
+ * Show/hide the neighbouring months' days in the grid.
+ *
+ * Hidden by default: a Hijri month is 29 or 30 days, so a padded six-row grid spends a quarter of
+ * its cells on days that belong to the month before or after. Hiding them lets the grid take five
+ * rows when the month does not need a sixth.
+ */
+@Composable
+private fun AdjacentDaysSelector(
+    showAdjacentDays: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Neighbouring months", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !showAdjacentDays,
+                onClick = { onSelect(false) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+                Text("Hide")
+            }
+            SegmentedButton(
+                selected = showAdjacentDays,
+                onClick = { onSelect(true) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+                Text("Show")
+            }
+        }
+    }
+}
+
+/**
+ * The selected date, rendered as one line of text.
+ *
+ * Selection lives in one of three spaces, and which one is not a free choice the caller makes:
+ * `selectDay` routes to observed space whenever a month-length override is in force, because a day
+ * past the calculated length has no Umm al-Qura coordinate. So reading only the first two made the
+ * summary say "No date selected" while the grid right above it highlighted the day — the same class
+ * of bug the UI review fixed in the grid. `pakistanDates` is keyed explicitly because switching
+ * spaces moves the selection between holders.
+ */
+@Composable
+private fun rememberSelectedDateText(
+    state: HijriCalendarState,
+    dateDisplayMode: DateDisplayMode,
+): String? = remember(
+    state.selectedDate,
+    state.selectedPakistanDate,
+    state.selectedObservedDate,
+    state.pakistanDates,
+    dateDisplayMode,
+    state.adjustmentDays,
+) {
+    selectedDateSummary(state, dateDisplayMode)
 }

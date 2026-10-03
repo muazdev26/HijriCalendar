@@ -23,6 +23,7 @@ import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.core.toCalendarMonth
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -84,12 +85,25 @@ class HijriCalendarInteractionTest {
         month: Int = 9,
         minDate: HijrahDate? = null,
         maxDate: HijrahDate? = null,
+        showAdjacentDays: Boolean = false,
     ) = HijriCalendarState(
         initialMonth = HijrahYearMonth(year, month),
         firstDayOfWeek = WeekDay.SATURDAY,
         minDate = minDate,
         maxDate = maxDate,
+        showAdjacentDays = showAdjacentDays,
     )
+
+    /**
+     * The number of day cells the grid actually paints for [year]-[month].
+     *
+     * Counted from the month's own days rather than from a constant, because the count is now a
+     * function of the month (FD-02): with the neighbours hidden the grid paints exactly this month's
+     * days, and a hardcoded 42 would only pass for the months that happen to need six rows.
+     */
+    private fun paintedCells(year: Int, month: Int): Int =
+        HijrahYearMonth(year, month).toCalendarMonth(firstDayOfWeek = WeekDay.SATURDAY)
+            .days.count { it.isCurrentMonth }
 
     private fun ComposeUiTest.cellCount(): Int =
         onAllNodes(hasContentDescription(cellMarker, substring = true))
@@ -97,17 +111,48 @@ class HijriCalendarInteractionTest {
 
     // ── the pager and the state agree ─────────────────────────────────
 
+    /**
+     * With the neighbours shown, the grid is still the full padded 42.
+     *
+     * The unchanged half of FD-02, and the half worth asserting: a host that turns the neighbours
+     * on must get exactly what it got before.
+     */
     @Test
-    fun headerShowsTheInitialMonthAndFortyTwoCells() = runComposeUiTest {
+    fun withAdjacentDaysShown_theGridIsStillFortyTwoCells() = runComposeUiTest {
+        val state = stateFor(showAdjacentDays = true)
+        setContent { host(state)() }
+
+        onNodeWithText(hijriMonthLabel(1447, 9)).assertExists()
+        assertEquals(42, cellCount(), "a month grid is 42 cells when the padding is painted")
+    }
+
+    /**
+     * With them hidden — the default — the grid paints exactly this month's days.
+     *
+     * Counted through the semantics tree rather than by inspecting layout, so it also proves the
+     * hidden cells carry **no content description**: a blank cell that is still announced to a
+     * screen reader as "Day 12" is a defect a cell-count-from-source test would miss.
+     */
+    @Test
+    fun withAdjacentDaysHidden_theGridPaintsOnlyThisMonthsDays() = runComposeUiTest {
         val state = stateFor()
         setContent { host(state)() }
 
         onNodeWithText(hijriMonthLabel(1447, 9)).assertExists()
-        assertEquals(42, cellCount(), "a month grid is always 42 cells")
+        assertEquals(
+            paintedCells(1447, 9),
+            cellCount(),
+            "only this month's days should be painted",
+        )
+        assertTrue(
+            paintedCells(1447, 9) < 42,
+            "1447-09 needs fewer than the full padded grid; pick a month that does not, or this " +
+                "test proves nothing",
+        )
     }
 
     @Test
-    fun goToNextMonth_movesTheHeaderAndKeepsFortyTwoCells() = runComposeUiTest {
+    fun goToNextMonth_movesTheHeaderAndPaintsTheNewMonthsOwnDays() = runComposeUiTest {
         val state = stateFor()
         setContent { host(state)() }
 
@@ -115,7 +160,11 @@ class HijriCalendarInteractionTest {
         waitForIdle()
 
         onNodeWithText(hijriMonthLabel(1447, 10)).assertExists()
-        assertEquals(42, cellCount(), "navigating must not leave a partially built grid")
+        assertEquals(
+            paintedCells(1447, 10),
+            cellCount(),
+            "navigating must not leave a partially built grid",
+        )
     }
 
     @Test
@@ -164,7 +213,11 @@ class HijriCalendarInteractionTest {
 
             val current = state.currentMonth
             onNodeWithText(hijriMonthLabel(current.year, current.month.number)).assertExists()
-            assertEquals(42, cellCount())
+            assertEquals(
+                paintedCells(current.year, current.month.number),
+                cellCount(),
+                "${current.year}-${current.month.number} painted the wrong number of days",
+            )
         }
     }
 

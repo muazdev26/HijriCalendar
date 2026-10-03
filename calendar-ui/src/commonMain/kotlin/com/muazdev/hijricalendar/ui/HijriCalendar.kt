@@ -218,6 +218,12 @@ public fun rememberHijriCalendarState(
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /**
+     * Whether the grid also renders the neighbouring months' days. `false` — the default — shows
+     * only this month's own days, and the grid then takes five or six rows instead of always six.
+     * Presentational only; see [HijriCalendarState.showAdjacentDays].
+     */
+    showAdjacentDays: Boolean = false,
 ): HijriCalendarState = coreRememberHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
@@ -227,6 +233,7 @@ public fun rememberHijriCalendarState(
     adjustmentDays = adjustmentDays,
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
+    showAdjacentDays = showAdjacentDays,
 )
 
 @Composable
@@ -239,6 +246,12 @@ public fun rememberSaveableHijriCalendarState(
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /**
+     * Whether the grid also renders the neighbouring months' days. `false` — the default — shows
+     * only this month's own days, and the grid then takes five or six rows instead of always six.
+     * Presentational only; see [HijriCalendarState.showAdjacentDays].
+     */
+    showAdjacentDays: Boolean = false,
 ): HijriCalendarState = coreRememberSaveableHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
@@ -248,4 +261,5 @@ public fun rememberSaveableHijriCalendarState(
     adjustmentDays = adjustmentDays,
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
+    showAdjacentDays = showAdjacentDays,
 )

@@ -7,20 +7,40 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ## Unreleased
 
+### Breaking
+
+- **Adjacent-month days are no longer shown unless you ask for them.** Every grid in the library
+  padded each Hijri month to a fixed 42 cells and painted the neighbours' days in a dimmer
+  colour. They were not optional — there was no flag — so every consumer has been seeing them
+  regardless of what it wanted. `WidgetOptions.showAdjacentDays` (default `false`) and
+  `HijriCalendarState.showAdjacentDays` (default `false`) turn them off, and the grid then takes
+  **five or six rows instead of always six**. A `rememberHijriCalendarState` /
+  `rememberSaveableHijriCalendarState` parameter of the same name carries it on the in-app side,
+  and `HijriCalendarDayCell` gained a `visible` parameter defaulting to `true`.
+  ([FD-02](docs/issues/2026-10-03/FD-02-hide-adjacent-days-by-default.md))
+
+  Neighbours are **blanked, not removed**: a Hijri month can begin mid-week, so the first padded
+  week holds some of the previous month's days before the 1st, and dropping those cells would slide
+  the 1st into column zero and put every day of the month under the wrong weekday heading. What is
+  removed is any week with no day of the month in it.
+
+  A widget stored before this field existed decodes into the new behaviour, so upgrading changes
+  every already-placed grid. Set `showAdjacentDays = true` to keep the old look.
+
 ### Fixed
 
 - **The 1×1 date tiles now name the day they are showing.** `HijriDateWidget` and
-  `GregorianDateWidget` render the localized weekday name, which the shared projection has always
-  computed and iOS has always rendered — the two Android tiles were the only place it was dropped,
-  so `21 محرم` was all a user could read. No schema change: the weekday name follows
-  `options.language`, not the device locale. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
-- **The tiles now fit the size they promise.** Both tiles declared 34sp + 12sp of text plus 12dp of
-  padding — 58dp of content inside a 40dp box — and relied on the launcher handing over more than
-  the widget-info's own minimum, clipping the bottom line when it did not. The day figure is now
-  17sp under a 10sp caption (weekday and month on one line, since three lines do not fit 40dp), for
-  38dp total. This is a visible reduction in the size of the day figure and it is deliberate; a tile
-  that clips its own date is worse than one whose number is smaller.
-  ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
+  `GregorianDateWidget` render the localized weekday name above a big day figure above the month
+  name. `TodayHijriWidgetData.weekdayName` has always been computed by the shared projection and
+  always rendered by iOS; the two Android tiles were the only place it was dropped, so `21 محرم`
+  was all a user could read. No schema change — the name follows `options.language`, not the
+  device locale. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
+- **The tiles declare less content than before.** They laid out 34sp + 12sp plus 12dp of padding —
+  58dp of text inside a 40dp box — and relied on the launcher handing over more than the
+  widget-info's own minimum. Three lines now ask for ~47dp against the 34sp + 12sp layout's ~62dp,
+  so the day figure is smaller (26sp rather than 34sp) and the month name is no longer the line that
+  gets clipped. The 40dp minimum still cannot hold three lines of type; the tile is sized for the
+  cell a launcher actually grants. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
 
 ## 2.0.0 - 2026-10-03
 

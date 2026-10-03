@@ -45,11 +45,12 @@ struct HijriGridEntryView: View {
                             columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7),
                             spacing: rows == 4 ? 1 : 3
                         ) {
-                            ForEach(Array(month.days.enumerated()), id: \.offset) { _, day in
+                            ForEach(Array(renderableDays(month).enumerated()), id: \.offset) { _, day in
                                 DayCell(
                                     day: day,
                                     isToday: day.gregorianEpochDay == entry.anchorEpochDay,
-                                    compact: rows == 4
+                                    compact: rows == 4,
+                                    visible: day.isCurrentMonth
                                 )
                             }
                         }
@@ -61,6 +62,31 @@ struct HijriGridEntryView: View {
                 unavailable
             }
         }
+    }
+
+    /// The cells this grid lays out, honouring `showAdjacentDays`.
+    ///
+    /// `month.days` is the padded month (42 cells) whatever the widget is configured for — that is
+    /// what the shared projection builds, so the widget render cache and the page arithmetic stay
+    /// grid-shaped. Two things then happen, and only two:
+    ///
+    /// 1. The neighbours are **blanked, not removed** (`DayCell`'s `visible`). A Hijri month can
+    ///    start mid-week, so the first padded week holds some of the previous month's days before
+    ///    the 1st; dropping those cells would slide the 1st into column zero and put every day under
+    ///    the wrong weekday heading.
+    /// 2. The tail is **trimmed to whole weeks**, which is what shrinks `LazyVGrid` to five rows
+    ///    when the month spans five.
+    ///
+    /// The arithmetic mirrors `HijriMonthWidgetData.weeksToRender` on the Kotlin side, which the
+    /// Glance and Compose grids use.
+    private func renderableDays(_ month: HijriMonthWidgetData) -> [HijriDayWidgetData] {
+        guard !entry.options.showAdjacentDays else { return month.days }
+        let columns = 7
+        guard let lastCurrent = month.days.lastIndex(where: { $0.isCurrentMonth }) else {
+            return month.days
+        }
+        let lastUsedIndex = min(month.days.count, (lastCurrent / columns + 1) * columns)
+        return Array(month.days.prefix(lastUsedIndex))
     }
 
     /// Two 44pt touch targets around one centred combined title. The Hijri month + year and the
@@ -160,17 +186,22 @@ private struct DayCell: View {
     let day: HijriDayWidgetData
     let isToday: Bool
     let compact: Bool
+    /// `false` for a neighbouring month's day the widget is configured to hide. The cell keeps its
+    /// slot so the week stays under the right weekday headings and draws nothing at all.
+    let visible: Bool
 
     var body: some View {
         ZStack {
-            if isToday {
+            if visible, isToday {
                 Circle().fill(todayBackground)
             }
-            Text(day.dayText)
-                .font(.system(size: compact ? 11 : 13, weight: isToday ? .bold : .regular))
-                .foregroundStyle(isToday ? .white : day.isCurrentMonth ? .primary : .secondary)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
+            if visible {
+                Text(day.dayText)
+                    .font(.system(size: compact ? 11 : 13, weight: isToday ? .bold : .regular))
+                    .foregroundStyle(isToday ? .white : day.isCurrentMonth ? .primary : .secondary)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: compact ? 17 : 22)

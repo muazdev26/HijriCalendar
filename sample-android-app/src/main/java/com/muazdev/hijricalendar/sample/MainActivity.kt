@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
                         onPakistanDatesChange = viewModel::onPakistanDatesChange,
                         showMonthLengthSettings = true,
                         onMonthLengthOverridesChanged = viewModel::persistMonthLengthOverrides,
+                        showAdjacentDaysToggle = true,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding),

@@ -78,6 +78,7 @@ class HijriWidgetConfigTest {
             language = WidgetLanguage.ENGLISH,
             monthNameLanguage = WidgetLanguage.URDU,
             monthLengthOverrides = mapOf(monthLengthKey(1447, 11) to 29),
+            showAdjacentDays = true,
         )
         val restored = HijriWidgetConfig.widgetOptionsSaver().roundTrip(options)
 
@@ -108,6 +109,7 @@ class HijriWidgetConfigTest {
             if (options.language == restored.language) add("language")
             if (options.monthNameLanguage == restored.monthNameLanguage) add("monthNameLanguage")
             if (options.monthLengthOverrides == restored.monthLengthOverrides) add("monthLengthOverrides")
+            if (options.showAdjacentDays == restored.showAdjacentDays) add("showAdjacentDays")
         }
         return surviving
     }

@@ -143,10 +143,10 @@ class DateTilePreviewLayoutTest {
      */
     @Test
     fun theThreeLinesAskForLessHeightThanThePreFD01LayoutDid() {
-        val requestedDp = (DateTileTypography.weekdaySize.value +
+        val lineSp = DateTileTypography.weekdaySize.value +
             DateTileTypography.daySize.value +
-            DateTileTypography.monthSize.value) * LINE_HEIGHT_RATIO +
-            DateTileTypography.PADDING_DP * 2
+            DateTileTypography.monthSize.value
+        val requestedDp = lineSp * LINE_HEIGHT_RATIO + DateTileTypography.PADDING_DP * 2
 
         val beforeThisChangeDp = (34f + 12f) * LINE_HEIGHT_RATIO + 12 * 2
 

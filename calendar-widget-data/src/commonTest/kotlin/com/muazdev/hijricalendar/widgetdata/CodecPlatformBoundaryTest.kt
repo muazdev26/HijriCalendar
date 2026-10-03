@@ -1,9 +1,11 @@
 package com.muazdev.hijricalendar.widgetdata
 
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
+import com.muazdev.hijricalendar.core.CalendarMonth
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -53,6 +55,60 @@ class CodecPlatformBoundaryTest {
         val clamped = WidgetOptions(adjustmentDays = Int.MAX_VALUE)
         assertEquals(100, clamped.adjustmentDays.coerceIn(-100, 100))
         assertEquals(100, WidgetOptionsJson.decode(WidgetOptionsJson.encode(clamped)).adjustmentDays)
+    }
+
+    /**
+     * WD-08, for FD-02: a blob written **before** `showAdjacentDays` existed decodes into the new
+     * behaviour, on whichever platform's parser runs.
+     *
+     * `WidgetOptionsJson` is the shared wire format for Android *and* iOS — `HijriSharedOptions.swift`
+     * re-encodes through it on every `loadOptions` — so this is asserted in `commonTest` precisely so
+     * it executes under `:calendar-widget-data:iosSimulatorArm64Test` and not only on the JVM.
+     * Compiling the target proves the code builds; it does not prove two platforms read the same
+     * blob the same way, and a divergence here is a widget rendering the wrong grid forever.
+     *
+     * The field's default *is* the behaviour the field was added to change, so "not configured" and
+     * "configured off" have to agree. The blob below is the exact 2.0.0 encoding: every field that
+     * existed then, and no `showAdjacentDays`.
+     */
+    @Test
+    fun aPreAdjacentDaysBlobDecodesIntoTheCollapsedGridOnEveryPlatform() {
+        val fromTwoZeroZero = """
+            {"adjustmentDays":-1,"numeralStyle":"ARABIC_INDIC","weekStart":"MONDAY",
+             "pinnedYear":1447,"pinnedMonth":9,"source":"PAKISTAN","language":"URDU",
+             "monthNameLanguage":"URDU","monthLengthOverrides":{"1447-9":30}}
+        """.trimIndent()
+
+        val decoded = assertNotNull(
+            WidgetOptionsJson.decodeOrNull(fromTwoZeroZero),
+            "the 2.0.0 blob must decode on this platform",
+        )
+
+        assertFalse(
+            decoded.showAdjacentDays,
+            "a widget stored before the field existed must land on the new default",
+        )
+        // Every other field must survive untouched, or the upgrade would silently reset the user's
+        // whole configuration over one missing key — the WD-06 failure mode.
+        assertEquals(-1, decoded.adjustmentDays)
+        assertEquals(NumeralStyle.ARABIC_INDIC, decoded.numeralStyle)
+        assertEquals(WeekStart.MONDAY, decoded.effectiveWeekStart)
+        assertEquals(WidgetSource.PAKISTAN, decoded.source)
+        assertEquals(WidgetLanguage.URDU, decoded.language)
+        assertEquals(1447 to 9, decoded.pinned?.let { it.year to it.month })
+        assertEquals(1, decoded.monthLengthOverrides.size)
+
+        // And it renders the collapsed grid, which is the whole point of the default.
+        val month = assertNotNull(
+            buildHijriMonthWidgetData(hijriYear = 1447, hijriMonth = 9, options = decoded),
+            "no projection for the decoded options",
+        )
+        val weeks = month.weeksToRender(showAdjacentDays = decoded.showAdjacentDays)
+        assertEquals(
+            CalendarMonth.DAYS_IN_WEEK,
+            weeks.first().size,
+            "the decoded widget must render whole weeks",
+        )
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.muazdev.hijricalendar.widgetdata
 
+import com.muazdev.hijricalendar.core.CalendarMonth
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
@@ -105,9 +106,66 @@ public data class HijriMonthWidgetData(
     /** The month's full Gregorian extent, e.g. `"September - October 2026"`. iOS only; see the class. */
     val gregorianRange: String,
     val weekdayHeaders: List<String>,
+    /**
+     * The month's **padded** day cells — always [com.muazdev.hijricalendar.core.CalendarMonth.TOTAL_DAYS]
+     * of them, the same list `calendar-ui` builds. Renderers must not filter this themselves;
+     * [visibleDays] is the one place that knows how a grid turns a padded month into rows.
+     */
     val days: List<HijriDayWidgetData>,
     val adjustmentDays: Int,
-)
+) {
+    /**
+     * The weeks a grid should lay out, for a widget configured with [showAdjacentDays].
+     *
+     * **The cells stay padded even when the neighbours are hidden.** That is the whole design, and
+     * it is the opposite of filtering: a Hijri month can begin on any weekday, so the first row of
+     * a padded month holds some of the *previous* month's days before the 1st. Dropping those cells
+     * outright would slide the 1st into column zero and put every day of the month under the wrong
+     * weekday heading — a grid that looks plausible and is systematically off by [leading] columns.
+     * So the cell list is left alone and [paintsDay] decides what is inked; the 1st stays under its
+     * own weekday.
+     *
+     * What *is* removed is whole weeks that contain no day of this month at all: padding often adds
+     * one, and dropping it is what turns six rows into five. A month therefore occupies
+     * `ceil((leading + length) / 7)` rows rather than a constant `CalendarMonth.WEEKS_IN_MONTH` —
+     * for a 29-day month that is always five.
+     *
+     * The trim is by emptiness rather than by "the last row", because [days] is pre-reversed for an
+     * RTL widget and the padding then sits at the other end.
+     *
+     * Callers must not chunk this themselves, and must not reimplement the trailing-week trim: both
+     * the row count and the column alignment depend on it, and three renderers (Glance, Compose,
+     * Swift) would each get one subtly wrong.
+     */
+    public fun weeksToRender(showAdjacentDays: Boolean): List<List<HijriDayWidgetData>> {
+        val padded = days.chunked(CalendarMonth.DAYS_IN_WEEK)
+
+        // Trim by *emptiness*, not from a named end. `days` is reversed per row for an RTL widget, so
+        // a month that begins at the top of the list in English begins at the bottom of it in Urdu —
+        // and "drop the last N rows" would then trim the wrong ones, silently deleting the first week
+        // of the month on exactly the devices whose language the projection went to the trouble of
+        // reversing for. A week with no current-month day in it can only ever sit at one end, so
+        // searching for the first and last such week is correct in both directions.
+        val firstWeek = padded.indexOfFirst { it.any { day -> day.isCurrentMonth } }
+        val lastWeek = padded.indexOfLast { it.any { day -> day.isCurrentMonth } }
+
+        return if (showAdjacentDays || firstWeek < 0) {
+            padded
+        } else {
+            padded.subList(firstWeek, lastWeek + 1)
+        }
+    }
+
+    /**
+     * Whether [day] should be inked at all, given [showAdjacentDays].
+     *
+     * A hidden day is **blank, not disabled**: it keeps its cell so the week's columns stay aligned,
+     * but nothing is drawn in it and it is not something to tap. Pair with [weeksToRender], which
+     * is what removes the rows that end up entirely blank.
+     */
+    public fun paintsDay(day: HijriDayWidgetData, showAdjacentDays: Boolean): Boolean =
+        showAdjacentDays || day.isCurrentMonth
+}
 
 /**
  * Compact "today" projection used by the options screen of the widget family and by
