@@ -3,6 +3,7 @@ package com.muazdev.hijricalendar.ui
 import androidx.compose.runtime.Immutable
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarNames
+import com.muazdev.hijricalendar.core.HijriEvent
 import com.muazdev.hijricalendar.core.WeekDay
 import kotlinx.datetime.LocalDate
 
@@ -63,6 +64,29 @@ public data class HijriCalendarLabels(
     val hijriYearWithEra: (year: Int) -> String = { year ->
         if (hijriEra.isEmpty()) "$year" else "$year $hijriEra"
     },
+
+    /**
+     * The name of a notable date, in the host's language.
+     *
+     * Takes the [HijriEvent] rather than a `String`, so a locale supplies a translation rather than
+     * re-deriving one from the event's fields — [HijriEvent] carries `nameEn` and `nameUr`, and a
+     * locale that wants something else entirely (a transliteration, a religious title) can use the
+     * event's [HijriEvent.key] instead of its English name.
+     *
+     * The default renders the event's own English name, which is what the built-in labels already do
+     * for month and weekday names. **Not** `null`-returning: a renderer given `null` either crashes or
+     * draws a blank, and a missing translation is far more discoverable as English than as nothing.
+     */
+    val eventName: (HijriEvent) -> String = { it.nameEn },
+
+    /**
+     * A suffix for a date that carries an observance — a "Today is Ashura" line under the header.
+     *
+     * A function rather than a string because the *placement* of it is a locale's business too: Urdu
+     * may want it on its own line under the header and English inline. Returning `""` renders nothing,
+     * which is how a host opts out entirely.
+     */
+    val eventBanner: (HijriEvent, isToday: Boolean) -> String = { event, _ -> eventName(event) },
 
     /** A Gregorian [year] with its era appended, or bare when [gregorianEra] is empty. */
     val gregorianYearWithEra: (year: Int) -> String = { year ->

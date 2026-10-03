@@ -12,7 +12,9 @@ import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.core.todayHijriDate
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
 
@@ -60,6 +62,11 @@ import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as core
  *   `false` by default; see the class KDoc for why that default changed.
  * @param labels All user-visible text. Build it once and hold it — it is used as a `remember` key.
  */
+// Suppressed rather than satisfied: the function's job is to resolve the header's strings from the
+// state and hand them to the header, and every one of those resolutions needs a `remember` keyed on
+// its own inputs — folding them into one helper would need the same key lists threaded through and
+// would make the header's freshness a property of a call the reader has to trust.
+@Suppress("LongMethod")
 @Composable
 public fun HijriCalendar(
     state: HijriCalendarState,
@@ -126,6 +133,37 @@ public fun HijriCalendar(
         labels.gregorianMonthRangeLabel(range.first, range.last)
     }
 
+    // Whether the selection is today itself, which is all `isToday` means for a banner. Compared
+    // against the shared `todayHijriDate` rather than by building the month and reading `isToday` off
+    // a cell: a header must not force 42 cells to be built for a string, and `isToday` on a cell is
+    // defined by exactly this comparison.
+    val selectionIsToday = remember(state.selectedDate, state.adjustmentDays) {
+        val selected = state.selectedDate ?: return@remember false
+        todayHijriDate(state.adjustmentDays) == selected
+    }
+
+    // The observance on the selected day, if any (FD-08).
+    //
+    // Resolved from the *selected* cell rather than from `CalendarDay.event` on the grid, because the
+    // grid builds a month at a time and the selection may live in a month the grid has not built. The
+    // lookup goes through the state's own routing order — Pakistan, then observed, then Umm al-Qura —
+    // so the banner cannot name a different observance than the cell it describes.
+    val selectedEvent = remember(
+        state.selectedDate,
+        state.selectedPakistanDate,
+        state.selectedObservedDate,
+        state.pakistanDates,
+        labels,
+    ) {
+        val month = state.selectedPakistanDate?.month
+            ?: state.selectedObservedDate?.month
+            ?: state.selectedDate?.month?.number
+        val day = state.selectedPakistanDate?.day
+            ?: state.selectedObservedDate?.day
+            ?: state.selectedDate?.day
+        if (month == null || day == null) null else HijriEvents.forDate(month, day)
+    }
+
     // A read whose only job is to subscribe this scope to the state's derived month, which is why it
     // is a `val` and not a bare expression. HijriCalendarGrid builds each page through
     // HijriCalendarState.calendarMonthFor — the one definition of how a month becomes cells — and each
@@ -176,8 +214,12 @@ public fun HijriCalendar(
             labels = labels,
             canGoToPreviousMonth = state.canGoToPreviousMonth,
             canGoToNextMonth = state.canGoToNextMonth,
+            eventText = selectedEvent
+                ?.let { labels.eventBanner(it, selectionIsToday) }
+                ?.takeIf { it.isNotEmpty() },
         )
     }
+
     val grid: @Composable () -> Unit = {
         HijriCalendarGrid(
             state = state,

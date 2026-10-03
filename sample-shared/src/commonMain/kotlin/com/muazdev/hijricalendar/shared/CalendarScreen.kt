@@ -26,6 +26,7 @@ import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState
@@ -68,7 +69,8 @@ fun CalendarScreen(
     showWeekendPatternToggle: Boolean = false,
     onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
 ) {
-    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, labels ?: HijriCalendarLabels())
+    val effectiveLabels = labels ?: HijriCalendarLabels()
+    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, effectiveLabels)
 
     Column(
         modifier = modifier
@@ -81,7 +83,7 @@ fun CalendarScreen(
             onDayClick = state.defaultOnDayClick(),
             dateDisplayMode = dateDisplayMode,
             modifier = Modifier.fillMaxWidth(),
-            labels = labels ?: HijriCalendarLabels(),
+            labels = effectiveLabels,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -184,6 +186,7 @@ fun CalendarScreen(
  * All three spaces agree on the real-world day, so the Gregorian half is computed once. The
  * adjustment is subtracted because `localDate` is already in adjusted space.
  */
+@Suppress("CyclomaticComplexMethod")
 private fun selectedDateSummary(
     state: HijriCalendarState,
     mode: DateDisplayMode,
@@ -208,15 +211,25 @@ private fun selectedDateSummary(
         "${real.day} ${real.month.name} ${labels.gregorianYearWithEra(real.year)}"
     }
 
-    return if (hijri == null || gregorian == null) {
-        null
-    } else {
-        when (mode) {
-            DateDisplayMode.HIJRI_ONLY -> hijri
-            DateDisplayMode.GREGORIAN_ONLY -> gregorian
-            DateDisplayMode.BOTH -> "$hijri\n$gregorian"
-        }
+    if (hijri == null || gregorian == null) return null
+
+    // The observance on the selected day (FD-08), appended to whichever date the mode shows. Resolved
+    // here rather than in the grid because the grid has no business knowing about events, and this
+    // card is the summary of the selection.
+    //
+    // Shown in **every** display mode: an observance is not a Gregorian figure, so hiding it behind
+    // `HIJRI_ONLY` would make it unreachable in the default mode.
+    val event = state.selectedPakistanDate?.let { HijriEvents.forDate(it.month, it.day) }
+        ?: state.selectedObservedDate?.let { HijriEvents.forDate(it.month, it.day) }
+        ?: state.selectedDate?.let { HijriEvents.forDate(it.month.number, it.day) }
+    val eventLine = event?.let { labels.eventName(it) }?.takeIf { it.isNotEmpty() }
+
+    val base = when (mode) {
+        DateDisplayMode.HIJRI_ONLY -> hijri
+        DateDisplayMode.GREGORIAN_ONLY -> gregorian
+        DateDisplayMode.BOTH -> "$hijri\n$gregorian"
     }
+    return if (eventLine == null) base else "$base\n$eventLine"
 }
 
 @Composable

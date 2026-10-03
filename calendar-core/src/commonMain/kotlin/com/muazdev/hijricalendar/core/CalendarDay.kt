@@ -24,6 +24,27 @@ public data class CalendarDay(
     val adjustmentDays: Int = 0,
 ) {
     /**
+     * The notable date this cell carries, or `null` when it carries none.
+     *
+     * Resolved in the **same order [HijriCalendarState.selectDay] routes in** — Pakistan, then
+     * observed, then Umm al-Qura — so tapping a day and looking up its event cannot disagree about
+     * which coordinate was meant. A Pakistan-calendar user on 10 Muharram gets Ashura for the date
+     * they are actually looking at.
+     *
+     * Deliberately **not** falling back to a default coordinate when all three are null. That
+     * substitution is the kind of silent guess that makes a bug untraceable: a cell with no date has no
+     * event, and inventing one would attach Ashura to a placeholder.
+     *
+     * Note the ordering does not match [dayOfMonth]'s, which puts observed first. That asymmetry is
+     * pre-existing and is [dayOfMonth]'s to explain; this follows the router because the router is what
+     * decides which date the user *chose*.
+     */
+    val event: HijriEvent?
+        get() = pakistanDate?.let { HijriEvents.forDate(it.month, it.day) }
+            ?: observedDate?.let { HijriEvents.forDate(it.month, it.day) }
+            ?: hijrahDate?.let { HijriEvents.forDate(it.month.number, it.day) }
+
+    /**
      * The day number of this cell in whatever date space it represents.
      *
      * Returns `0` for disabled placeholder cells where all date fields are null

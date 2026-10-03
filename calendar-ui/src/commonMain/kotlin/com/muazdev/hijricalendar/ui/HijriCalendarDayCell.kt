@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -132,6 +133,23 @@ public fun HijriCalendarDayCell(
             content(day)
         } else {
             CellText(dateDisplayMode, hijriText, gregorianText, style)
+        }
+
+        // A dot on a day that carries an observance (FD-08).
+        //
+        // Drawn **outside** the cell's circle, at the top, and behind the text: it has to be readable
+        // on a 48dp cell without competing with the day figure, and it must not change the cell's
+        // size, or a grid with and without observances would lay out differently. A host that wants a
+        // marker of its own supplies `content` or a `dayContent` slot and this does not apply.
+        if (day.event != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 4.dp)
+                    .size(4.dp)
+                    .clip(CircleShape)
+                    .background(style.contentColor),
+            )
         }
     }
 }

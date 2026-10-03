@@ -1,5 +1,6 @@
 package com.muazdev.hijricalendar.shared
 
+import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.UrduCalendarNames
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import kotlinx.datetime.LocalDate
@@ -37,6 +38,12 @@ val UrduCalendarLabels = HijriCalendarLabels(
     // The Gregorian range line, which the default formatter cannot era-mark: it takes two dates and
     // returns the whole string, so the markers have to be composed here where the era is in scope.
     gregorianMonthRangeLabel = { first, last -> urduGregorianRange(first, last) },
+    // An observance in Urdu, and the line announced for it. "آج" (today) reads naturally with the
+    // default banner, which renders the name alone; a host that wants "Today is Ashura" writes that
+    // here rather than in the composable, because how a date is announced next to its observance is a
+    // locale's decision.
+    eventName = { event -> event.name(HijriEventLanguage.URDU) },
+    eventBanner = { event, _ -> event.name(HijriEventLanguage.URDU) },
 )
 
 /**
