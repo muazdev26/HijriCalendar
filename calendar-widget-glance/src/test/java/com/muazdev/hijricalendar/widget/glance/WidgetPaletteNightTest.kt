@@ -67,8 +67,9 @@ class WidgetPaletteNightTest {
         "widget_day_out_of_month",
         "widget_day_gregorian_sub",
         "widget_day_out_faint",
-        // The cell divider (FD-04).
+        // The cell divider (FD-04) and the selected-day badge (FD-09).
         "widget_cell_border",
+        "widget_selected_day",
         // Not a WidgetColors member — see `arrowDimmed`.
         arrowDimmed,
     )
@@ -176,8 +177,8 @@ class WidgetPaletteNightTest {
     fun everyPaletteMemberIsAColorProvider() {
         val expected = listOf(
             "accent", "background", "cellBorder", "gregorianDay", "onTodayText", "outOfMonthDay",
-            "outOfMonthGregorianDay", "primaryText", "secondaryText", "todayBackground",
-            "weekendText",
+            "outOfMonthGregorianDay", "primaryText", "secondaryText", "selectedDay",
+            "todayBackground", "weekendText",
         )
         // Compose adds $stable and the companion's Companion/DEFAULT are static, not per-instance.
         val actual = WidgetColors::class.java.declaredFields

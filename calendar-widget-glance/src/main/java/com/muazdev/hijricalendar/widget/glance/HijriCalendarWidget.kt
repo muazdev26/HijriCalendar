@@ -18,6 +18,7 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.PreviewSizeMode
@@ -49,6 +50,9 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.muazdev.hijricalendar.core.CalendarMonth
+import com.muazdev.hijricalendar.core.HijriEvent
+import com.muazdev.hijricalendar.core.HijriEventLanguage
+import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.widgetdata.GridTypography
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
@@ -128,6 +132,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             val prefs = currentState<Preferences>()
             val options = HijriWidgetConfig.decodeOptions(prefs) ?: HijriWidgetConfig.DEFAULTS
             val viewedMonth = HijriWidgetConfig.decodeViewed(prefs)
+            val selectedDay = HijriWidgetConfig.decodeSelectedDay(prefs)
             val data = HijriWidgetRenderCache.render(
                 glanceId = id.toString(),
                 options = options,
@@ -142,6 +147,11 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
+                selectedDay = selectedDay,
+                // Resolved here, where the options live: the footer must name an observance in the
+                // *widget's* language and calendar space, and this is the only place that knows both.
+                selectedEventName = selectedDay
+                    ?.let { eventFor(it, options)?.name(eventLanguage(options.language)) },
                 colors = colors,
                 language = options.language,
                 actions = WidgetActions(
@@ -175,6 +185,8 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
+                selectedDay = null,
+                selectedEventName = null,
                 colors = colors,
                 language = options.language,
                 // The picker preview is non-interactive by construction (WG-12's grouping makes
@@ -217,6 +229,12 @@ internal data class HijriWidgetRenderData(
      * are identical whether or not a divider is drawn.
      */
     val showCellBorders: Boolean,
+    /**
+     * The day the user tapped, or `null` (FD-09). Read from the same reactive preferences snapshot as
+     * the viewed month, so a tap and the render it triggers cannot disagree about what is selected —
+     * and so a render that races a tap sees the newest value rather than the one it started with.
+     */
+    val selectedDay: HijriDaySelection?,
 )
 
 /**
@@ -290,6 +308,22 @@ internal fun resolveGridMonth(
 ): HijriYearMonth? = viewedMonth
     ?: options.pinned
     ?: todayHijri?.let { HijriYearMonth(year = it.hijriYear, month = it.hijriMonth) }
+
+/**
+ * Whether the grid is currently showing [year]-[month] (FD-09).
+ *
+ * Read through the same [resolveGridMonth] the render path uses, so "should this tap move the grid" and
+ * "what month does the grid draw" cannot disagree about a half-set pin — which is exactly the WD-03
+ * defect the single resolver exists to prevent.
+ */
+internal fun isShowingMonth(
+    options: WidgetOptions,
+    viewedMonth: HijriYearMonth?,
+    todayHijri: TodayHijriWidgetData?,
+    year: Int,
+    month: Int,
+): Boolean = resolveGridMonth(options, viewedMonth, todayHijri)?.let { it.year == year && it.month == month }
+    ?: false
 
 /**
  * Builds the month projection for an already-resolved grid month. The source, language, digit style
@@ -477,6 +511,7 @@ internal object HijriWidgetRenderCache {
             layoutRtl = layoutRtl,
             showAdjacentDays = options.showAdjacentDays,
             showCellBorders = options.showCellBorders,
+            selectedDay = null,
         )
     }
 
@@ -547,6 +582,14 @@ internal class WidgetColors(
     val onTodayText: ColorProvider,
     /** The hairline between cells, when `showCellBorders` is on (FD-04). */
     val cellBorder: ColorProvider,
+    /**
+     * The ring around a tapped day (FD-09).
+     *
+     * A ring, not the today fill: a day can be **both** today and selected, and filling it would make
+     * the two indistinguishable. A ring reads as "you chose this" where a fill reads as "this is
+     * today", which is a different statement and has to survive their overlap.
+     */
+    val selectedDay: ColorProvider,
 ) {
     companion object {
         val DEFAULT: WidgetColors = WidgetColors(
@@ -561,8 +604,40 @@ internal class WidgetColors(
             todayBackground = ColorProvider(R.color.widget_today_background),
             onTodayText = ColorProvider(R.color.widget_on_today),
             cellBorder = ColorProvider(R.color.widget_cell_border),
+            selectedDay = ColorProvider(R.color.widget_selected_day),
         )
     }
+}
+
+/**
+ * The action for one day cell (FD-09), or `null` when the widget cannot be tapped.
+ *
+ * Null in three cases, all of them deliberate:
+ *
+ * - `actions.isNonInteractive` — every preview renders the same tree with no actions, so a picker
+ *   preview and the settings live preview stay untappable without each remembering to suppress this.
+ * - `paint = false` — a cell the widget is hiding must not become an **invisible tap target**. It
+ *   keeps its slot for alignment and stays empty; making it tappable would put a button where the user
+ *   sees nothing.
+ * - no callback when the widget is on its compact today card, where there are no cells at all; the
+ *   caller never reaches here in that case, and the `null` is belt and braces.
+ */
+private fun selectActionFor(
+    actions: WidgetActions,
+    year: Int,
+    month: Int,
+    day: Int,
+    paint: Boolean,
+): Action? = if (actions.isNonInteractive || !paint) {
+    null
+} else {
+    actionRunCallback<HijriWidgetSelectDayCallback>(
+        actionParametersOf(
+            ACTION_YEAR to year,
+            ACTION_MONTH to month,
+            ACTION_DAY to day,
+        ),
+    )
 }
 
 /**
@@ -581,6 +656,16 @@ internal fun HijriWidgetRoot(
     layoutRtl: Boolean,
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
+    selectedDay: HijriDaySelection?,
+    /**
+     * The observance on [selectedDay], already named in the widget's language — or `null` when the
+     * selected day carries none.
+     *
+     * Resolved by the caller rather than here because this is where the *projection's* language and
+     * calendar space live. A footer re-deriving them would be a second place to get the space wrong,
+     * and the two answers would differ on a Pakistan-calendar widget.
+     */
+    selectedEventName: String?,
     colors: WidgetColors,
     // The widget's own language, for the chrome's accessibility labels (WG-12). Not derivable from
     // `monthData`: a widget that fell back to the today card has no month projection at all, and its
@@ -608,6 +693,8 @@ internal fun HijriWidgetRoot(
                 layoutRtl = layoutRtl,
                 showAdjacentDays = showAdjacentDays,
                 showCellBorders = showCellBorders,
+                selectedDay = selectedDay,
+                selectedEventName = selectedEventName,
                 colors = colors,
                 language = language,
                 actions = actions,
@@ -756,12 +843,20 @@ private fun MonthGrid(
     layoutRtl: Boolean,
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
+    selectedDay: HijriDaySelection?,
+    selectedEventName: String?,
     colors: WidgetColors,
     language: WidgetLanguage,
     actions: WidgetActions,
 ) {
     // One measurement for the whole grid, so every cell resolves the same sizes from the same number
     // rather than each re-deriving from its own slot.
+    // The selection only marks a day in the month actually on screen (FD-09). Without this a stored
+    // day from a month the user has navigated away from would mark whatever cell happens to have the
+    // same day number in the new month — silently moving the mark, which is worse than dropping it.
+    val selectionVisible = selectedDay != null &&
+        selectedDay.isInMonth(month.hijriYear, month.hijriMonth)
+
     val cellSize = LocalSize.current.width / CalendarMonth.DAYS_IN_WEEK
     val hijriSize = GridTypography.hijriSizeSp(cellSize.value).sp
     val gregorianSize = GridTypography.gregorianSizeSp(cellSize.value).sp
@@ -823,6 +918,22 @@ private fun MonthGrid(
                         // row rather than a border per cell, because Glance's cost is per view and a
                         // grid is 42 cells.
                         dividerAfter = showCellBorders && column < week.lastIndex,
+                        // `cell.isCurrentMonth` as well as the day number: without it a selection
+                        // from another month would mark the same-numbered cell here, which is why
+                        // `selectionVisible` is checked above *and* the cell's own month is.
+                        isSelected = selectionVisible && cell.isCurrentMonth &&
+                            cell.hijriDay == selectedDay!!.day,
+                        // FD-09: the cell's own action. Null in every preview, because
+                        // `WidgetActions` is null there — so "this preview cannot be tapped" stays
+                        // one value rather than a fifth thing each preview has to remember.
+                        selectAction = selectActionFor(
+                            actions,
+                            month.hijriYear,
+                            month.hijriMonth,
+                            cell.hijriDay,
+                            // A cell the widget is hiding must not become an invisible target.
+                            paint = month.paintsDay(cell, showAdjacentDays),
+                        ),
                         // Blank rather than removed: the cell has to stay so the 1st keeps its
                         // column under the right weekday heading.
                         paint = month.paintsDay(cell, showAdjacentDays),
@@ -830,7 +941,90 @@ private fun MonthGrid(
                 }
             }
         }
+
+        EventFooter(
+            // Resolved above, where the options are; a footer must not re-derive the calendar space.
+            selectedEventName = selectedEventName,
+            isLaidOut = selectedDay != null,
+            colors = colors,
+        )
     }
+}
+
+/**
+ * One line naming the observance on the tapped day (FD-09).
+ *
+ * ## Why the line is reserved rather than conditional
+ *
+ * The footer is laid out **whenever a day is selected**, whether or not that day carries an
+ * observance, and renders empty in the second case. A grid whose height changes depending on *which
+ * day you tapped* is unusable: the thing you are aiming at moves under your finger. So the height is a
+ * constant of "something is selected" and only the text varies.
+ *
+ * ## Why it is omitted on the compact layout
+ *
+ * `HijriWidgetRoot` picks the today card below 180dp wide, and there are no cells to tap there, so
+ * there is nothing for a footer to describe. Adding a third size tier for it would be more machinery
+ * than the feature is worth.
+ *
+ * ## Why it is empty rather than absent without a selection
+ *
+ * With no day selected the line is not laid out at all. A permanently-reserved blank strip at the
+ * bottom of every widget is a cost every user pays for a feature most taps never use.
+ */
+@Composable
+private fun EventFooter(
+    selectedEventName: String?,
+    isLaidOut: Boolean,
+    colors: WidgetColors,
+) {
+    if (!isLaidOut) return
+
+    Row(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+    ) {
+        Text(
+            // Empty rather than absent when the day carries no observance — see the KDoc.
+            text = selectedEventName.orEmpty(),
+            style = TextStyle(
+                color = colors.accent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * The observance on [selection], resolved in the widget's own calendar space.
+ *
+ * `null` for a month the projection cannot build, which is the same degradation the grid itself makes
+ * rather than a separate failure: a footer that named an observance for a month the grid cannot draw
+ * would be worse than a blank line.
+ */
+internal fun eventFor(selection: HijriDaySelection, options: WidgetOptions): HijriEvent? {
+    val month = buildHijriMonthWidgetData(
+        hijriYear = selection.year,
+        hijriMonth = selection.month,
+        options = options,
+    ) ?: return null
+
+    // Matched by day number **and** in-month, because a month can hold two days with the same number
+    // only if the projection is wrong — and a footer that marked the wrong one would be untraceable.
+    val cell = month.days.firstOrNull { it.isCurrentMonth && it.hijriDay == selection.day }
+    return cell?.let { HijriEvents.forDate(selection.month, it.hijriDay) }
+}
+
+/** Maps a widget's language onto the events table's, which is a `calendar-core` concept (FD-08). */
+internal fun eventLanguage(language: WidgetLanguage): HijriEventLanguage = when (language) {
+    WidgetLanguage.URDU -> HijriEventLanguage.URDU
+    WidgetLanguage.ENGLISH -> HijriEventLanguage.ENGLISH
 }
 
 /**
@@ -928,6 +1122,10 @@ private fun NavigationArrow(
     }
 }
 
+// Suppressed on both counts: a cell's nine inputs are all independent renderer concerns, and grouping
+// them into a bag would only move the list somewhere a reader has to open. The body is two branches
+// (painted or blank) and a colour selection each.
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun RowScope.DayCell(
     cell: HijriDayWidgetData,
@@ -936,6 +1134,8 @@ private fun RowScope.DayCell(
     hijriSize: TextUnit,
     gregorianSize: TextUnit,
     dividerAfter: Boolean,
+    isSelected: Boolean,
+    selectAction: Action?,
     paint: Boolean,
 ) {
     val isToday = paint && cell.gregorianEpochDay == todayEpochDay
@@ -972,12 +1172,35 @@ private fun RowScope.DayCell(
         modifier = GlanceModifier
             .defaultWeight()
             .fillMaxHeight()
+            .clickableWhen(selectAction)
             .padding(start = 1.dp, end = if (dividerAfter) 1.5.dp else 1.dp, top = 1.dp, bottom = 1.dp),
     ) {
         Box(
             modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
             contentAlignment = Alignment.Center,
         ) {
+            // The selection badge, in the cell's top corner (FD-09).
+            //
+            // A **badge, not a ring or a fill**, and the choice is forced by three facts: Glance 1.2
+            // has no border modifier at all; a `ColorProvider` cannot carry an alpha, so a tinted ring
+            // is not expressible either; and today's mark is already a filled circle. A corner badge
+            // composes with that fill instead of competing with it, so a day that is both today and
+            // selected reads as today-with-a-badge rather than as one or the other.
+            if (isSelected) {
+                Row(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.Horizontal.End,
+                    verticalAlignment = Alignment.Vertical.Top,
+                ) {
+                    Box(
+                        modifier = GlanceModifier
+                            .padding(3.dp)
+                            .size(6.dp)
+                            .background(colors.selectedDay)
+                            .cornerRadius(3.dp),
+                    ) {}
+                }
+            }
             if (isToday) {
                 Box(
                     modifier = GlanceModifier

@@ -50,6 +50,7 @@ public object HijriWidgetConfig {
     // Keys inside the per-widget Glance preferences store.
     private const val KEY_OPTIONS = "options"
     private const val KEY_VIEWED = "viewed"
+    private const val KEY_SELECTED_DAY = "selected_day"
 
     private val OPTIONS_KEY = stringPreferencesKey(KEY_OPTIONS)
 
@@ -59,6 +60,13 @@ public object HijriWidgetConfig {
      * in unit tests, so this pair was previously only verifiable on real hardware.
      */
     internal val VIEWED_KEY = stringPreferencesKey(KEY_VIEWED)
+
+    /**
+     * The day the user tapped on the grid (FD-09). `internal` for the same reason as [VIEWED_KEY]:
+     * the encoding is JSON, and `org.json` is a stubbed `android.jar` class in local unit tests, so an
+     * unencodable store is only verifiable off-device.
+     */
+    internal val SELECTED_DAY_KEY = stringPreferencesKey(KEY_SELECTED_DAY)
 
     // Legacy SharedPreferences keys (migration only).
     private const val KEY_ADJUSTMENT_DAYS = "adjustment_days"
@@ -359,6 +367,73 @@ public object HijriWidgetConfig {
         val month = json.intOrNull("month")?.takeIf { it in 1..12 }
         return if (year == null || month == null) null else HijriYearMonth(year = year, month = month)
     }
+
+    /**
+     * The Hijri day the user tapped on the grid, or `null` when nothing is selected.
+     *
+     * **Not** part of [WidgetOptions], and that is the whole design point. Options are the user's
+     * *configuration* — language, numerals, the pin — and they are mirrored to the family and shown in
+     * every settings screen. A tap is the widget's *current position*, the same kind of thing as the
+     * viewed month beside it, and putting it in the schema would put a transient value into a
+     * user's saved configuration and into every settings screen.
+     *
+     * [year] is stored alongside the month and day because a day number alone cannot say which month
+     * it belongs to, and the grid resolves its month as viewed > pinned > today — a stored day from a
+     * month the user has since navigated away from would otherwise attach itself to whatever month
+     * happens to be showing.
+     */
+    public suspend fun loadSelectedDay(
+        context: Context,
+        glanceId: GlanceId,
+    ): HijriDaySelection? {
+        migrateLegacyIfNeeded(context, glanceId)
+        val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+        return decodeSelectedDay(prefs)
+    }
+
+    /** Records the tapped day. Persisted before the render, so the render sees it — see the caller. */
+    public suspend fun setSelectedDay(
+        context: Context,
+        glanceId: GlanceId,
+        year: Int,
+        month: Int,
+        day: Int,
+    ) {
+        updateAppWidgetState(context, glanceId) { mutable ->
+            mutable[SELECTED_DAY_KEY] = encodeSelectedDay(year, month, day)
+        }
+    }
+
+    /** Forgets the selection — the month reset and widget removal both call this. */
+    public suspend fun clearSelectedDay(context: Context, glanceId: GlanceId) {
+        updateAppWidgetState(context, glanceId) { mutable -> mutable.remove(SELECTED_DAY_KEY) }
+    }
+
+    /**
+     * Decodes the selected day from the store, or `null` when absent or unreadable.
+     *
+     * Every field is range-checked rather than trusted. A corrupt value here would otherwise become a
+     * marked day that does not exist, and the mark is drawn from this.
+     */
+    public fun decodeSelectedDay(prefs: Preferences): HijriDaySelection? {
+        val json = prefs[SELECTED_DAY_KEY]?.parseJsonObjectOrNull() ?: return null
+        val year = json.intOrNull("year")
+        val month = json.intOrNull("month")?.takeIf { it in 1..12 }
+        val day = json.intOrNull("day")?.takeIf { it in 1..30 }
+        return if (year == null || month == null || day == null) {
+            null
+        } else {
+            HijriDaySelection(year = year, month = month, day = day)
+        }
+    }
+
+    /** Encodes a selection. `internal` like [encodeViewed], and for the same testability reason. */
+    internal fun encodeSelectedDay(year: Int, month: Int, day: Int): String =
+        buildJsonObject {
+            put("year", year)
+            put("month", month)
+            put("day", day)
+        }.toString()
 
     // ── Runtime markers (global SharedPreferences, not per-widget view state) ─
     //

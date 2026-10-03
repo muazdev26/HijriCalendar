@@ -13,7 +13,16 @@ import androidx.glance.action.Action
  * cannot be tapped" is one value rather than a property four call sites have to agree on.
  */
 internal data class WidgetActions(
-    /** Tapping anywhere on the body opens the app (the deep link in [HIJRI_DEEP_LINK_TODAY]). */
+    /**
+     * Tapping the widget's body **outside a day cell** opens the app (the deep link in
+     * [HIJRI_DEEP_LINK_TODAY]).
+     *
+     * FD-09 gave each day cell its own action, so this is no longer "tapping anywhere" — the cells
+     * shadow it, and the header, the arrows, the weekday row and the padding still reach it. That is
+     * deliberate: a widget that can no longer launch its own app is a regression for anyone using it
+     * as a shortcut, and Glance has no long-press, so the background is where "open the app" has to
+     * live once single-tap means something.
+     */
     val open: Action? = null,
     /** The previous-month arrow. */
     val prev: Action? = null,

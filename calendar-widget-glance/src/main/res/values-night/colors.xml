@@ -21,4 +21,7 @@
     <color name="widget_arrow_dimmed">#55524E</color>
     <!-- The cell divider (FD-04), lightened for a dark surface. -->
     <color name="widget_cell_border">#1FFFFFFF</color>
+    <!-- The ring around a tapped day (FD-09). A ring rather than a fill, so "selected" and "today"
+         stay distinguishable on the rare day that is both. -->
+    <color name="widget_selected_day">#81C784</color>
 </resources>

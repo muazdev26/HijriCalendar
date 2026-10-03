@@ -39,4 +39,7 @@
         on a `previewLayout` the framework cannot draw a per-cell separator without 42 more views.
     -->
     <color name="widget_cell_border">#1F000000</color>
+    <!-- The ring around a tapped day (FD-09). A ring rather than a fill, so "selected" and "today"
+         stay distinguishable on the rare day that is both. -->
+    <color name="widget_selected_day">#2E7D32</color>
 </resources>

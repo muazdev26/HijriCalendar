@@ -32,10 +32,16 @@ current() {
     # kind of thing that goes unnoticed when nothing diffs the surface. The enclosing type is tracked
     # by remembering the last top-level `public` declaration seen, which over-attributes a nested
     # type's members to its outer owner — deliberately, since being stricter is the safe direction.
+    #
+    # The type keyword list includes `data`, `sealed`, `abstract` and `open` because a top-level
+    # `public data class` that this does not match is not registered as an owner at all, and its
+    # members are then silently attributed to whatever class happened to precede it. That is worse
+    # than over-attribution: the file asks for `HijriDaySelection.day` and the gate reports
+    # `SomeEarlierClass.day`, so a reviewer sees a plausible-looking diff that is simply wrong.
     awk '
-        /^public (suspend )?(const )?(class|object|interface) [A-Za-z_][A-Za-z0-9_]*/ {
+        /^public (suspend )?(const )?(data |sealed |abstract |open |value )*(class|object|interface) [A-Za-z_][A-Za-z0-9_]*/ {
             owner = $0
-            sub(/^public (suspend )?(const )?(class|object|interface) /, "", owner)
+            sub(/^public (suspend )?(const )?(data |sealed |abstract |open |value )*(class|object|interface) /, "", owner)
             sub(/[^A-Za-z0-9_].*$/, "", owner)
             print owner
             next

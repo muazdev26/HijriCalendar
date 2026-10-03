@@ -69,6 +69,8 @@ internal class HijriCalendarWidgetPreview(
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
+                selectedDay = null,
+                selectedEventName = null,
                 colors = colors,
                 language = options.language,
                 // Non-interactive by construction: the settings preview shows what the widget will

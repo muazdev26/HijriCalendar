@@ -1,4 +1,4 @@
-# Public surface of `calendar-widget-glance` — 47 declarations.
+# Public surface of `calendar-widget-glance` — 58 declarations.
 #
 # This module is in `apiValidation.ignoredProjects`, so `apiCheck` registers no dump task for it and
 # **no signature change here is visible to any gate**. This file is the substitute: the surface
@@ -65,6 +65,10 @@ PakistanWarmUp.ensureWarm
 HijriWidgetPrevMonthCallback
 HijriWidgetNextMonthCallback
 HijriWidgetTodayResetCallback
+# FD-09: the day cell's own action. It selects the tapped day instead of opening the app, so a
+# consumer rendering their own grid with `GlanceAppWidget.compose` gets the same behaviour the
+# library's does rather than having to reimplement the callback.
+HijriWidgetSelectDayCallback
 
 # ── The widget's tap-through deep link, so a host can register the matching intent-filter without
 # hard-coding the string. README step 4.
@@ -83,10 +87,34 @@ HijriWidgetConfig.hasFamily
 HijriWidgetConfig.loadViewedMonth
 HijriWidgetConfig.setViewedMonth
 HijriWidgetConfig.clearViewedMonth
+# FD-09: the tapped day, which is the widget's *current position* alongside the viewed month and
+# deliberately NOT part of WidgetOptions — a tap is not a user's saved configuration. load/set/clear
+# are the trio a consumer needs to clear it on widget removal, matching the viewed month's.
+HijriWidgetConfig.loadSelectedDay
+HijriWidgetConfig.setSelectedDay
+HijriWidgetConfig.clearSelectedDay
+# `decodeSelectedDay` is the composition's read, exactly as `decodeViewed` is: `provideGlance` reads
+# from `currentState<Preferences>()` so a tap that races a render is seen by the newest composition
+# rather than superseded by a stale snapshot.
+HijriWidgetConfig.decodeSelectedDay
 HijriWidgetConfig.widgetOptionsSaver
 HijriWidgetConfig.decodeOptions
 HijriWidgetConfig.decodeOptionsJson
 HijriWidgetConfig.decodeViewed
+# FD-09: the tapped day, as one value type rather than three integers. A half-set triple is not a
+# date — which is the same reason `WidgetOptions.pinned` is a pair rather than two nullable fields
+# (WD-03) — and the callback that writes it is public, so a consumer's own Glance code can read the
+# day a tap recorded.
+HijriDaySelection
+HijriDaySelection.year
+HijriDaySelection.month
+HijriDaySelection.day
+HijriDaySelection.yearMonth
+HijriDaySelection.isInMonth
+
+# NOT here: `HijriYearMonth`. It is re-exported from `calendar-widget-data`, and the gate counts
+# declarations in *this* module — duplicating a type declared elsewhere would make its removal look
+# like a change here.
 # `migrateLegacyIfNeeded` is public only because the composition calls it before every read, on
 # Glance's own io dispatcher, without the surrounding `load` coroutine. It is idempotent and a no-op
 # after the first write. If that ever stops being true it should become internal.
