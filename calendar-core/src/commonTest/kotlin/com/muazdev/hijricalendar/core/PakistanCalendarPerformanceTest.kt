@@ -36,26 +36,49 @@ class PakistanCalendarPerformanceTest {
      *
      * This is the assertion that would have caught the original bug. The pre-fix `monthStart()`
      * re-summed the month chain from the nearest official fix, so months far from that anchor were
-     * quadratically slower — and *the further from the anchor, the worse*, which is precisely what a
-     * comparison of two batches at opposite ends of the range measures and a single fixed budget
-     * does not.
+     * quadratically slower — and *the further from the anchor, the worse*. The regression was
+     * re-injected into `monthStart` to measure what that looks like from here: **8705x**, against a
+     * correct ~52x.
      *
-     * The allowance is 4x. Under the fix the two batches are equal up to timer noise; the pre-fix
-     * behaviour was orders of magnitude, not a few percent, so 4x has a wide margin against both a
-     * real regression and a noisy simulator.
+     * **Why the anchor year and not the two ends of the range.** This was originally written as
+     * `MIN_YEAR` against `MAX_YEAR` with a 4x allowance, and it was wrong twice over.
+     *
+     * *It had almost no power.* The two range ends are only ~1.3x apart in walk distance — roughly
+     * 490 months from the first official fix to 1400, and ~630 to 1500 — so a fully regressed
+     * O(N^2) implementation would have measured `(630/490)^2`, about **1.65x**, and sailed through a
+     * 4x bound. A test whose passing range contains the bug it exists to catch is decoration.
+     *
+     * *And it was flaky.* A single un-warmed sample of a ~5 ms batch, compared against another
+     * single sample, is a coin flip on a loaded runner. The measured numbers here are ~2.7 ms
+     * (MIN_YEAR) and ~5.4 ms (MAX_YEAR), so the whole denominator is milliseconds wide; one GC pause
+     * or scheduler stall in the second sample exceeds a 4x ratio on its own. That is not
+     * hypothetical — this assertion failed in CI on a two-core runner while passing locally, which
+     * is the failure mode a timing gate must be built not to have.
+     *
+     * The fix is to compare a year next to an official fix against the far end of the range, which
+     * is where the signal actually is. `gregorianToHijri` walks month-by-month from the nearest
+     * preceding fix, so a year beside a fix resolves in single-digit steps while the far end walks
+     * ~630. That makes the *linear* expectation ~52x rather than ~1.3x, so the same 4x-of-headroom
+     * style bound now sits far from the regression it guards: [MAX_ALLOWED_RATIO] is 2.9x above the
+     * measured linear ratio (52.0 and 51.5 on two runs, ±7% across samples) and 58x below the
+     * re-injected quadratic re-sum, which measured 8705x. It also cannot be broken by warm-up:
+     * see [measureBothEnds].
      */
     @Test
-    fun theCostOfAMonthDoesNotGrowAcrossTheRange() {
-        PakistanHijriCalendar.prewarm()
+    fun theCostOfAMonthDoesNotGrowWithDistanceFromTheAnchor() {
+        val anchorYear = requireNotNull(PakistanHijriCalendar.FIXES.keys.minOfOrNull { it.first }) {
+            "FIXES is empty, so there is no anchor year to measure against"
+        }
+        val farYear = PakistanHijriCalendar.MAX_YEAR
 
-        val early = timeMonths(PakistanHijriCalendar.MIN_YEAR)
-        val late = timeMonths(PakistanHijriCalendar.MAX_YEAR)
+        val (near, far) = measureBothEnds(anchorYear, farYear)
 
         assertTrue(
-            late <= early * 4,
-            "A year at the far end of the range took $late but one at the near end took $early. " +
-                "An O(1) month lookup costs the same wherever it sits; growth with distance from " +
-                "the anchor is the O(N²) chain re-sum this test guards against.",
+            far <= near * MAX_ALLOWED_RATIO,
+            "A year at the far end of the range took $far but one beside an official fix took " +
+                "$near, over the ${MAX_ALLOWED_RATIO}x allowance. A walk that costs one step per " +
+                "month from the nearest fix is linear in distance; growth faster than that is the " +
+                "O(N^2) chain re-sum this test guards against.",
         )
     }
 
@@ -148,5 +171,60 @@ class PakistanCalendarPerformanceTest {
                 HijrahYearMonth(year, month).toCalendarMonth(pakistan = true)
             }
         } + warmUp
+    }
+
+    /**
+     * Samples both ends, interleaved, and returns the **minimum** duration seen for each.
+     *
+     * Three decisions here, each of which is a way the previous version of this test failed:
+     *
+     * * **A long warm-up.** The JIT keeps making the cheap end faster for dozens of rounds, so a
+     *   short warm-up does not settle the ratio — it makes it *drift*. Measured here, the
+     *   anchor-to-far ratio was 12.6 after two warm-up rounds, 32 after seven samples, and a
+     *   stable 52.0 / 51.5 across two runs after forty. An un-warmed measurement is not a
+     *   conservative one; it is an arbitrary one.
+     * * **Interleaving.** Sampling the near end fully and then the far end lets any load ramp
+     *   during the build bias the second measurement. Alternating the two means drift hits both.
+     * * **Minimum, not mean or median.** The question is "how fast can this run", and the
+     *   distribution is one-sided: JIT, cache and scheduling only ever make a sample slower. The
+     *   minimum converges on the true cost and is the estimator a stall cannot poison.
+     */
+    private fun measureBothEnds(nearYear: Int, farYear: Int): Pair<Duration, Duration> {
+        PakistanHijriCalendar.prewarm()
+
+        repeat(WARMUP_ROUNDS) {
+            timeMonths(nearYear)
+            timeMonths(farYear)
+        }
+
+        var near = Duration.INFINITE
+        var far = Duration.INFINITE
+        repeat(SAMPLES) {
+            val nearSample = timeMonths(nearYear)
+            if (nearSample < near) near = nearSample
+            val farSample = timeMonths(farYear)
+            if (farSample < far) far = farSample
+        }
+        return near to far
+    }
+
+    private companion object {
+        /**
+         * Rounds of untimed work before sampling. Forty settles the ratio; see
+         * [measureBothEnds] for the measurements that justify the number. Costs ~300ms.
+         */
+        const val WARMUP_ROUNDS = 40
+
+        /** Timed interleaved samples per end. Seven is enough for the minimum to settle. */
+        const val SAMPLES = 7
+
+        /**
+         * How much more the far end may cost than the anchor year.
+         *
+         * Linear-in-distance measures ~52x. The pre-fix O(N^2) chain re-sum was re-injected and
+         * measured 8705x. This bound sits 2.9x above the former and 58x below the latter, so it
+         * absorbs a loaded runner without admitting the regression.
+         */
+        const val MAX_ALLOWED_RATIO = 150
     }
 }
