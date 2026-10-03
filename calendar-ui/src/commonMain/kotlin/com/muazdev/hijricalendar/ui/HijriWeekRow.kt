@@ -76,6 +76,7 @@ internal fun HijriWeekRow(
                     labels = labels,
                     content = dayContent,
                     visible = showAdjacentDays || day.isCurrentMonth,
+                    cellHasDividers = showCellBorders,
                 )
             }
         }

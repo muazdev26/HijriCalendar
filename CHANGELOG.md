@@ -65,7 +65,28 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   `.gregorianYearText` carry the era'd year alongside the bare one, because the era follows the
   *widget's* language rather than the device's resources (WG-12) and a renderer must not format it.
 
+- **`HijriCalendarDayCell` gained a `cellHasDividers` parameter (default `false`).** A host rendering
+  its own cells inside a divided grid needs the same two choices the built-in grid makes: drop the
+  `CircleShape` clip, and fill the cell rectangle instead of inscribing a circle in it. Without them a
+  custom cell in a bordered grid drew a round highlight inside a square rule.
+
+  Source-compatible — the default preserves the previous look — but **binary-incompatible**, because the
+  JVM facade method's signature changes (see `calendar-ui/api/desktop/calendar-ui.api`). Consumers that
+  recompile are unaffected; a prebuilt artifact calling the nine-parameter overload will not resolve.
+
 ### Fixed
+
+- **Turning on grid dividers no longer costs the widget its last week.** The Glance grid drew its
+  horizontal rules as siblings of the week rows inside one `Column`, so six extra 1dp fixed-height
+  children sat in the same weighted pool the rows draw from. Enabling the setting stole height from
+  every row at once, the rows overflowed the widget, and the bottom ones — the last days of the month
+  — were pushed out of view: roughly four rows instead of five or six, and the grid grew to suit. Each
+  row is now a weighted `Column` carrying its own rule, so a divider can no longer squeeze a sibling.
+
+  Not covered by an automated test, and worth saying so plainly: Glance lays out to `RemoteViews`, so
+  there is no JVM or desktop path that measures it, and a Compose test would not help either because
+  Compose's semantics tree reflects the *composition* rather than what is clipped — a squeezed-out row
+  is still in the tree, so such a test would pass while the bug was live. This one needs a device pass.
 
 - **The widget header no longer names a Gregorian month the Hijri month has nothing to do with.** A
   Hijri month is 29 or 30 days and a Gregorian month is 28-31, so roughly half of all Hijri months

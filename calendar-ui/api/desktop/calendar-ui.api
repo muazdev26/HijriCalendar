@@ -48,7 +48,7 @@ public final class com/muazdev/hijricalendar/ui/HijriCalendarColors {
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarDayCellKt {
-	public static final fun HijriCalendarDayCell-Iqn8DoY (Lcom/muazdev/hijricalendar/core/CalendarDay;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Lkotlin/jvm/functions/Function3;ZLandroidx/compose/runtime/Composer;II)V
+	public static final fun HijriCalendarDayCell-77rDEG0 (Lcom/muazdev/hijricalendar/core/CalendarDay;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/muazdev/hijricalendar/ui/HijriCalendarColors;ZLcom/muazdev/hijricalendar/ui/DateDisplayMode;Landroidx/compose/ui/unit/Dp;Lcom/muazdev/hijricalendar/ui/HijriCalendarLabels;Lkotlin/jvm/functions/Function3;ZZLandroidx/compose/runtime/Composer;III)V
 }
 
 public final class com/muazdev/hijricalendar/ui/HijriCalendarDefaults {

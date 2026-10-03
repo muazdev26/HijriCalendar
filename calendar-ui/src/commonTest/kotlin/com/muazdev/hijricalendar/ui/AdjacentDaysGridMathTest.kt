@@ -1,5 +1,11 @@
 package com.muazdev.hijricalendar.ui
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
@@ -7,6 +13,7 @@ import com.muazdev.hijricalendar.core.toCalendarMonth
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -218,4 +225,44 @@ class AdjacentDaysGridMathTest {
 
     private fun months(): List<Pair<Int, Int>> =
         (1440..1450).flatMap { year -> (1..12).map { month -> year to month } }
+}
+
+/**
+ * FD-04: the weekday header's weight.
+ *
+ * The Urdu weekday names (`جمعرات`, `بدھ`) are the ones that read as weak at `labelSmall`: a longer
+ * word at a lighter weight disappears into the row above it. The weight was raised to bold.
+ *
+ * The weight is applied with `copy(fontWeight = …)` rather than by moving to a heavier Material
+ * typography, because a typography change would also change the **size** — which was not asked for,
+ * and would move the grid's row height and every cell beneath it. That reasoning is not visible in
+ * the composable, so the style is a named internal constant and the size is asserted alongside it.
+ */
+@OptIn(ExperimentalTestApi::class)
+class DayOfWeekLabelStyleTest {
+
+    @Test
+    fun theWeekdayHeaderIsBoldAtTheSizeItAlreadyHad() = runComposeUiTest {
+        var observed: TextStyle? = null
+        var expectedLabelSize: TextUnit? = null
+        setContent {
+            MaterialTheme {
+                // Read the same constant the composable reads, rather than a copy of it.
+                observed = dayOfWeekLabelStyle()
+                expectedLabelSize = MaterialTheme.typography.labelSmall.fontSize
+            }
+        }
+        waitForIdle()
+
+        // Captured inside the composition, where a `MaterialTheme` read is legal; asserted outside it,
+        // where it is not.
+        val style = observed ?: error("the style was never composed")
+        assertEquals(FontWeight.Bold, style.fontWeight, "the weekday header must be bold")
+        assertNotNull(expectedLabelSize, "the reference size was never composed")
+        assertEquals(
+            expectedLabelSize,
+            style.fontSize,
+            "only the weight was meant to change; a different size moves every row in the grid",
+        )
+    }
 }

@@ -15,7 +15,15 @@
     numerals, with "today" pinned to 19 Muharram / 1 August 2026, a plain Wednesday, so the filled
     highlight is legible without also sitting on a weekend cell. A static preview cannot track the
     real date; what it can do is get the shape right.
+
+    One caveat this layout cannot express: each day cell is a single TextView holding a two-line
+    string, so both of its lines share one textStyle. The live render draws them as two Text views at
+    *different* weights (the figure Bold, the Gregorian digit Medium), so this preview overstates the
+    Gregorian line. That is the hand-maintained-mirror cost noted above; splitting 41 cells into 82
+    views is not worth it for a preview only Android 12 to 14 shows. The live weights are asserted in
+    GridCellWeightsTest.
 -->
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -79,7 +87,8 @@
             android:maxLines="1"
             android:text="ہفتہ"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -90,7 +99,8 @@
             android:maxLines="1"
             android:text="اتوار"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -101,7 +111,8 @@
             android:maxLines="1"
             android:text="پیر"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -112,7 +123,8 @@
             android:maxLines="1"
             android:text="منگل"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -123,7 +135,8 @@
             android:maxLines="1"
             android:text="بدھ"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -134,7 +147,8 @@
             android:maxLines="1"
             android:text="جمعرات"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="0dp"
@@ -145,7 +159,8 @@
             android:maxLines="1"
             android:text="جمعہ"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="10sp" />
+            android:textSize="10sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Month grid, week 1 of 6. -->

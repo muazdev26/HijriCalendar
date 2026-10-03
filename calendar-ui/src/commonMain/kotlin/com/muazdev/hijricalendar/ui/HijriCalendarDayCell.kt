@@ -75,6 +75,18 @@ public fun HijriCalendarDayCell(
      * unchanged. See [HijriCalendarState.showAdjacentDays] for the grid-level behaviour.
      */
     visible: Boolean = true,
+    /**
+     * Whether the surrounding grid is drawing dividers (FD-04), which changes this cell's own shape.
+     *
+     * A grid cell's background is a circle — the day figure is a round token. With dividers on that
+     * is the wrong shape: a round fill floating between straight rules looks like a badge laid on
+     * top of the grid rather than a cell of it. So a highlighted cell becomes a **block that covers
+     * the whole cell**, flush to the rules on every side.
+     *
+     * `false` by default, which is exactly the existing circular appearance, so every current caller
+     * and every existing consumer is unchanged.
+     */
+    cellHasDividers: Boolean = false,
 ) {
     val cellSize = dayCellSize ?: HijriCalendarDefaults.SingleLineCellSize
 
@@ -117,9 +129,19 @@ public fun HijriCalendarDayCell(
                     disabled()
                 }
             }
-            .clip(CircleShape)
+            .then(
+                // A circular clip for a day token; a plain one when the grid is divided, so a
+                // highlighted cell fills its rectangle instead of inscribing a circle in it.
+                if (cellHasDividers) Modifier else Modifier.clip(CircleShape),
+            )
             .background(style.backgroundColor)
-            .border(style.borderWidth, style.borderColor, CircleShape)
+            .then(
+                if (cellHasDividers) {
+                    Modifier
+                } else {
+                    Modifier.border(style.borderWidth, style.borderColor, CircleShape)
+                },
+            )
             .clickableIfEnabled(
                 enabled = style.enabled,
                 onClickLabel = clickLabel,

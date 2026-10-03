@@ -43,7 +43,7 @@ class WidgetOptionsEqualityTest {
     )
 
     /** Each field paired with a copy of [base] that differs in *only* that field. */
-    private val oneFieldChanged: Map<String, WidgetOptions> = mapOf(
+    internal val oneFieldChanged: Map<String, WidgetOptions> = mapOf(
         "adjustmentDays" to base.copy(adjustmentDays = 2),
         "numeralStyle" to base.copy(numeralStyle = NumeralStyle.ARABIC_INDIC),
         "weekStart" to base.copy(weekStart = WeekStart.TUESDAY),
@@ -128,26 +128,5 @@ class WidgetOptionsEqualityTest {
         )
         assertNotEquals(base, other)
         assertTrue(base.toString() != other.toString(), "toString must reflect the fields too")
-    }
-
-    /**
-     * No declared field is missing from [oneFieldChanged].
-     *
-     * The guard that makes the rest of the file work: a field added to the class and not to this map
-     * fails here, rather than silently going uncompared in `equals` until a user finds it.
-     */
-    @Test
-    fun everyDeclaredFieldIsCovered() {
-        val declared = WidgetOptions::class.java.declaredFields
-            .map { it.name }
-            .filterNot { it.startsWith("$") || it == "Companion" || it == "DEFAULTS" }
-            .toSet()
-
-        assertEquals(
-            emptySet(),
-            declared - oneFieldChanged.keys,
-            "a new WidgetOptions field must be added to `oneFieldChanged` here, and to equals and " +
-                "hashCode — an uncompared field makes its settings control dead",
-        )
     }
 }

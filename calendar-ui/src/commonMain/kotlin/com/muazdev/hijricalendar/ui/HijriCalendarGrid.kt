@@ -20,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -183,6 +185,17 @@ internal fun HijriCalendarGrid(
     }
 }
 
+/**
+ * The weekday header row's text style: `labelSmall`, **bold**.
+ *
+ * A named constant rather than an inline `copy` so the weight is assertable — see
+ * `DayOfWeekLabelStyleTest`, which also pins the size so a future edit cannot quietly turn this into
+ * a typography swap and move every row in the grid.
+ */
+@Composable
+internal fun dayOfWeekLabelStyle(): TextStyle =
+    MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+
 @Composable
 private fun DayOfWeekLabels(
     firstDayOfWeek: WeekDay,
@@ -199,7 +212,13 @@ private fun DayOfWeekLabels(
             val index = (firstDayOfWeek.index + offset) % CalendarMonth.DAYS_IN_WEEK
             Text(
                 text = labels.weekdayShortName(WeekDay.entries[index]),
-                style = MaterialTheme.typography.labelSmall,
+                // **Bold, and unconditionally.** The weight is a rendering choice with no access to
+                // the name's script, so it cannot be "bold for Urdu" — and the Urdu weekday names
+                // (`جمعرات`, `بدھ`) are exactly the ones that read as weak at `labelSmall`, where
+                // a longer word at a lighter weight disappears into the row above it. Weight is
+                // applied on the copy rather than by swapping to a heavier Material style, because a
+                // `typography` change would also alter the size, which is not what was asked for.
+                style = dayOfWeekLabelStyle(),
                 color = colors.dayOfWeekLabelColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),

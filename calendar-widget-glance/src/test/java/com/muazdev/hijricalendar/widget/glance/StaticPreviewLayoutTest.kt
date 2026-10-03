@@ -278,6 +278,30 @@ class StaticPreviewLayoutTest {
             .toSet()
     }
 
+    /**
+     * The weekday header is bold in the static preview, matching the live render.
+     *
+     * The Urdu weekday names (`جمعرات`, `بدھ`) are the ones that read as weak at 10sp Medium — a
+     * longer word at a lighter weight disappears into the row above it — so the weight was raised. The
+     * size is unchanged, so the header does not change height.
+     *
+     * The weight is applied unconditionally rather than per-script: it is a rendering choice with no
+     * access to the name's language, and the preview layout is hand-maintained, so this is the only
+     * thing that stops it drifting from the composition again.
+     */
+    @Test
+    fun theWeekdayHeaderIsBold() {
+        val header = weekdayHeaderRow()
+        header.children().forEach { cell ->
+            assertEquals(
+                "weekday header cell '${cell.attr("android:text")}' must be bold to match the live " +
+                    "render",
+                "bold",
+                cell.attr("android:textStyle"),
+            )
+        }
+    }
+
     @Test
     fun theStaticGridKeepsBothNavigationArrows() {
         // The arrows are the grid's only interactive controls (WG-12), so a preview missing them

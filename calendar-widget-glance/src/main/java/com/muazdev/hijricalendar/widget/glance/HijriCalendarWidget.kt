@@ -894,10 +894,15 @@ private fun MonthGrid(
                 Text(
                     text = name,
                     modifier = GlanceModifier.defaultWeight(),
+                    // **Bold, and unconditionally.** The weight is a rendering choice with no access
+                    // to the name's script, so it cannot be "bold for Urdu" — and the Urdu weekday
+                    // names (`جمعرات`, `بدھ`) are exactly the ones that read as weak at 10sp Medium,
+                    // where a longer word at a lighter weight disappears into the row above it. Same
+                    // size, so the header does not change height.
                     style = TextStyle(
                         color = colors.secondaryText,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                     ),
                 )
@@ -914,43 +919,59 @@ private fun MonthGrid(
         // work undone. One rule per row rather than a border per cell, for the reason on
         // [CellDivider].
         val weeks = month.weeksToRender(showAdjacentDays)
-        weeks.forEachIndexed { rowIndex, week ->
-            if (showCellBorders) RowDivider(colors)
-            Row(
-                modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
-            ) {
-                week.forEachIndexed { column, cell ->
-                    DayCell(
-                        cell = cell,
-                        todayEpochDay = todayEpochDay,
-                        colors = colors,
-                        hijriSize = hijriSize,
-                        gregorianSize = gregorianSize,
-                        // A separator after each column but the last (FD-04): drawn as one rule per
-                        // row rather than a border per cell, because Glance's cost is per view and a
-                        // grid is 42 cells.
-                        dividerAfter = showCellBorders && column < week.lastIndex,
-                        // `cell.isCurrentMonth` as well as the day number: without it a selection
-                        // from another month would mark the same-numbered cell here, which is why
-                        // `selectionVisible` is checked above *and* the cell's own month is.
-                        isSelected = selectionVisible && cell.isCurrentMonth &&
-                            cell.hijriDay == selectedDay!!.day,
-                        // FD-09: the cell's own action. Null in every preview, because
-                        // `WidgetActions` is null there — so "this preview cannot be tapped" stays
-                        // one value rather than a fifth thing each preview has to remember.
-                        selectAction = selectActionFor(
-                            actions,
-                            month.hijriYear,
-                            month.hijriMonth,
-                            cell.hijriDay,
-                            // A cell the widget is hiding must not become an invisible target.
+        weeks.forEach { week ->
+            // Each row is a **Column carrying its own share of the height**, with the rule *inside* it.
+            //
+            // That is not tidiness — it is the whole fix. The rules used to be siblings of the rows in
+            // this grid's Column, so six extra 1dp fixed-height children sat in the same pool the
+            // `defaultWeight()` rows draw from. Turning the setting on therefore stole height from
+            // *every* row at once, the rows overflowed the widget, and the bottom ones — the last days
+            // of the month — were pushed out of view entirely. Making the widget taller did not help,
+            // because the deficit was proportional.
+            //
+            // Nesting the rule means the 1dp comes out of that row's own allocation, so no row can be
+            // squeezed to nothing by a sibling and the grid keeps all five or six rows at any size.
+            Column(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                if (showCellBorders) RowDivider(colors)
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+                    verticalAlignment = Alignment.Vertical.CenterVertically,
+                ) {
+                    week.forEachIndexed { column, cell ->
+                        DayCell(
+                            cell = cell,
+                            todayEpochDay = todayEpochDay,
+                            colors = colors,
+                            hijriSize = hijriSize,
+                            gregorianSize = gregorianSize,
+                            // A rule after each column but the last (FD-04): one per column per row,
+                            // not a border on all 42 cells, because Glance's cost is per view.
+                            dividerAfter = showCellBorders && column < week.lastIndex,
+                            // Whether this cell is inside a divided grid. Not derivable from
+                            // `dividerAfter` alone: the first column has no rule on its *leading*
+                            // edge either, so "has a trailing rule" is not the same question.
+                            cellHasDividers = showCellBorders,
+                            // `cell.isCurrentMonth` as well as the day number: without it a selection
+                            // from another month would mark the same-numbered cell here, which is why
+                            // `selectionVisible` is checked above *and* the cell's own month is.
+                            isSelected = selectionVisible && cell.isCurrentMonth &&
+                                cell.hijriDay == selectedDay!!.day,
+                            // FD-09: the cell's own action. Null in every preview, because
+                            // `WidgetActions` is null there — so "this preview cannot be tapped"
+                            // stays one value rather than a fifth thing each preview must remember.
+                            selectAction = selectActionFor(
+                                actions,
+                                month.hijriYear,
+                                month.hijriMonth,
+                                cell.hijriDay,
+                                // A cell the widget is hiding must not become an invisible target.
+                                paint = month.paintsDay(cell, showAdjacentDays),
+                            ),
+                            // Blank rather than removed: the cell keeps its slot so the 1st stays in
+                            // its column under the right weekday heading.
                             paint = month.paintsDay(cell, showAdjacentDays),
-                        ),
-                        // Blank rather than removed: the cell has to stay so the 1st keeps its
-                        // column under the right weekday heading.
-                        paint = month.paintsDay(cell, showAdjacentDays),
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -1135,6 +1156,32 @@ private fun NavigationArrow(
     }
 }
 
+/**
+ * The two weights a day cell's own text is drawn at.
+ *
+ * Reported as "the days in the grid is not bold as well", right after the weekday header was made
+ * bold. The Hijri figure was *already* `Bold` — which is why the report was confusing — so the real
+ * reason a cell read as unbolded is that the Gregorian digit underneath it had no weight at all. The
+ * eye weighs the pair, not the larger line: one bold number over a plain one reads as plain. Giving
+ * the digit `Medium` is the change that makes the cell read as bold, and it costs no height.
+ *
+ * These are named constants rather than literals inline at the two `Text` calls so that
+ * [GridCellWeightsTest] can assert the values the renderer *actually uses*. A test that re-declares
+ * the weights it is checking would only be testing itself, and a `@Composable` cannot be called from
+ * a JVM unit test — so the seam has to be the constant, not the composition.
+ *
+ * Deliberately not shared with [MonthHeader] or [MonthTitle]: those are separate rows with their own
+ * hierarchy, and folding every weight in this file into one table would make a change to any one of
+ * them look like a change to all of them.
+ */
+internal object GridCellWeights {
+    /** The day figure — the cell's hero. */
+    val HIJRI_DAY: FontWeight = FontWeight.Bold
+
+    /** The Gregorian sub-digit, subordinated to the figure above it. */
+    val GREGORIAN_DAY: FontWeight = FontWeight.Medium
+}
+
 // Suppressed on both counts: a cell's nine inputs are all independent renderer concerns, and grouping
 // them into a bag would only move the list somewhere a reader has to open. The body is two branches
 // (painted or blank) and a colour selection each.
@@ -1147,6 +1194,7 @@ private fun RowScope.DayCell(
     hijriSize: TextUnit,
     gregorianSize: TextUnit,
     dividerAfter: Boolean,
+    cellHasDividers: Boolean,
     isSelected: Boolean,
     selectAction: Action?,
     paint: Boolean,
@@ -1216,11 +1264,21 @@ private fun RowScope.DayCell(
             }
             if (isToday) {
                 Box(
-                    modifier = GlanceModifier
-                        .fillMaxSize()
-                        .padding(1.dp)
-                        .background(colors.todayBackground)
-                        .cornerRadius(14.dp),
+                    // With dividers on, the fill **covers the whole cell** and loses its rounded
+                    // shape. An inset pill floating between a grid of rules looks like a badge laid
+                    // on top of the grid rather than part of it; a block that fills the cell sits
+                    // between the rules, which is what the rules are there to describe. With dividers
+                    // off there is no grid to be part of, so the pill stays — it is the only thing
+                    // marking the day at all.
+                    modifier = if (cellHasDividers) {
+                        GlanceModifier.fillMaxSize().background(colors.todayBackground)
+                    } else {
+                        GlanceModifier
+                            .fillMaxSize()
+                            .padding(1.dp)
+                            .background(colors.todayBackground)
+                            .cornerRadius(14.dp)
+                    },
                 ) {}
             }
             Column(
@@ -1233,7 +1291,7 @@ private fun RowScope.DayCell(
                     style = TextStyle(
                         color = hijriColor,
                         fontSize = hijriSize,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = GridCellWeights.HIJRI_DAY,
                         textAlign = TextAlign.Center,
                     ),
                     maxLines = 1,
@@ -1243,6 +1301,7 @@ private fun RowScope.DayCell(
                     style = TextStyle(
                         color = gregorianColor,
                         fontSize = gregorianSize,
+                        fontWeight = GridCellWeights.GREGORIAN_DAY,
                         textAlign = TextAlign.Center,
                     ),
                     maxLines = 1,
