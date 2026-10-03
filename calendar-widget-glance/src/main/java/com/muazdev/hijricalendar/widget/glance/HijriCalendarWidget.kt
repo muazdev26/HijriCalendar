@@ -6,6 +6,7 @@ import android.net.Uri
 import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -36,8 +37,10 @@ import androidx.glance.layout.RowScope
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
@@ -45,7 +48,9 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.widgetdata.GridTypography
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
@@ -136,6 +141,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
+                showCellBorders = data.showCellBorders,
                 colors = colors,
                 language = options.language,
                 actions = WidgetActions(
@@ -168,6 +174,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
+                showCellBorders = data.showCellBorders,
                 colors = colors,
                 language = options.language,
                 // The picker preview is non-interactive by construction (WG-12's grouping makes
@@ -204,6 +211,12 @@ internal data class HijriWidgetRenderData(
      * a single one of them.
      */
     val showAdjacentDays: Boolean,
+    /**
+     * Carried alongside [showAdjacentDays] for the same reason: the grid must paint exactly what the
+     * options configured, and neither flag belongs in the render cache's keys — the projection's cells
+     * are identical whether or not a divider is drawn.
+     */
+    val showCellBorders: Boolean,
 )
 
 /**
@@ -463,6 +476,7 @@ internal object HijriWidgetRenderCache {
             monthData = monthData,
             layoutRtl = layoutRtl,
             showAdjacentDays = options.showAdjacentDays,
+            showCellBorders = options.showCellBorders,
         )
     }
 
@@ -531,6 +545,8 @@ internal class WidgetColors(
     val weekendText: ColorProvider,
     val todayBackground: ColorProvider,
     val onTodayText: ColorProvider,
+    /** The hairline between cells, when `showCellBorders` is on (FD-04). */
+    val cellBorder: ColorProvider,
 ) {
     companion object {
         val DEFAULT: WidgetColors = WidgetColors(
@@ -544,6 +560,7 @@ internal class WidgetColors(
             weekendText = ColorProvider(R.color.widget_weekend_text),
             todayBackground = ColorProvider(R.color.widget_today_background),
             onTodayText = ColorProvider(R.color.widget_on_today),
+            cellBorder = ColorProvider(R.color.widget_cell_border),
         )
     }
 }
@@ -563,6 +580,7 @@ internal fun HijriWidgetRoot(
     todayEpochDay: Long,
     layoutRtl: Boolean,
     showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
     colors: WidgetColors,
     // The widget's own language, for the chrome's accessibility labels (WG-12). Not derivable from
     // `monthData`: a widget that fell back to the today card has no month projection at all, and its
@@ -589,6 +607,7 @@ internal fun HijriWidgetRoot(
                 todayEpochDay = todayEpochDay,
                 layoutRtl = layoutRtl,
                 showAdjacentDays = showAdjacentDays,
+                showCellBorders = showCellBorders,
                 colors = colors,
                 language = language,
                 actions = actions,
@@ -729,16 +748,24 @@ private fun MonthHeader(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun MonthGrid(
     month: HijriMonthWidgetData,
     todayEpochDay: Long,
     layoutRtl: Boolean,
     showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
     colors: WidgetColors,
     language: WidgetLanguage,
     actions: WidgetActions,
 ) {
+    // One measurement for the whole grid, so every cell resolves the same sizes from the same number
+    // rather than each re-deriving from its own slot.
+    val cellSize = LocalSize.current.width / CalendarMonth.DAYS_IN_WEEK
+    val hijriSize = GridTypography.hijriSizeSp(cellSize.value).sp
+    val gregorianSize = GridTypography.gregorianSizeSp(cellSize.value).sp
+
     Column(modifier = GlanceModifier.fillMaxSize()) {
         MonthHeader(
             month = month,
@@ -766,6 +793,17 @@ private fun MonthGrid(
             }
         }
 
+        // The weekday header sits *on* the divider line rather than below it, so a divider is visible
+        // above every day row and below the header without the header needing one of its own.
+        if (showCellBorders) {
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(colors.cellBorder),
+            ) {}
+        }
+
         // [HijriMonthWidgetData.weeksToRender] and [HijriMonthWidgetData.paintsDay] are the shared
         // definition of the grid's shape, so this composable, calendar-ui's MonthGrid and the Swift
         // grid cannot disagree about the row count or about which column the 1st sits under.
@@ -774,11 +812,17 @@ private fun MonthGrid(
                 modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
                 verticalAlignment = Alignment.Vertical.CenterVertically,
             ) {
-                week.forEach { cell ->
+                week.forEachIndexed { column, cell ->
                     DayCell(
                         cell = cell,
                         todayEpochDay = todayEpochDay,
                         colors = colors,
+                        hijriSize = hijriSize,
+                        gregorianSize = gregorianSize,
+                        // A separator after each column but the last (FD-04): drawn as one rule per
+                        // row rather than a border per cell, because Glance's cost is per view and a
+                        // grid is 42 cells.
+                        dividerAfter = showCellBorders && column < week.lastIndex,
                         // Blank rather than removed: the cell has to stay so the 1st keeps its
                         // column under the right weekday heading.
                         paint = month.paintsDay(cell, showAdjacentDays),
@@ -889,21 +933,23 @@ private fun RowScope.DayCell(
     cell: HijriDayWidgetData,
     todayEpochDay: Long,
     colors: WidgetColors,
+    hijriSize: TextUnit,
+    gregorianSize: TextUnit,
+    dividerAfter: Boolean,
     paint: Boolean,
 ) {
     val isToday = paint && cell.gregorianEpochDay == todayEpochDay
-    val base = GlanceModifier
-        .defaultWeight()
-        .fillMaxHeight()
-        .padding(horizontal = 1.dp, vertical = 1.dp)
 
-    // A cell the widget is configured not to show. It keeps its slot so the rest of the week stays
-    // under the right weekday headings, and it draws nothing at all — not a dimmed digit, not the
-    // today highlight. There is no action on any cell yet (FD-09), so there is nothing to suppress
-    // there; when day taps land, a hidden cell must stay untappable rather than becoming an
-    // invisible target.
+    // A cell the widget is configured not to show keeps its slot so the rest of the week stays under
+    // the right weekday headings, and draws nothing at all — not a dimmed digit, not the today fill.
+    // It still draws its divider, or the row would stop short of the grid's right edge. There is no
+    // action on a cell yet (FD-09); when day taps land, a hidden cell must stay untappable rather than
+    // becoming an invisible target.
     if (!paint) {
-        Box(modifier = base) {}
+        Row(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+            Box(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {}
+            if (dividerAfter) CellDivider(colors)
+        }
         return
     }
 
@@ -922,40 +968,69 @@ private fun RowScope.DayCell(
         else -> colors.gregorianDay
     }
 
-    Box(modifier = base) {
-        if (isToday) {
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .padding(1.dp)
-                    .background(colors.todayBackground)
-                    .cornerRadius(14.dp),
-            ) {}
-        }
-        Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
-            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+    Row(
+        modifier = GlanceModifier
+            .defaultWeight()
+            .fillMaxHeight()
+            .padding(start = 1.dp, end = if (dividerAfter) 1.5.dp else 1.dp, top = 1.dp, bottom = 1.dp),
+    ) {
+        Box(
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = cell.dayText,
-                style = TextStyle(
-                    color = hijriColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-            )
-            Text(
-                text = cell.gregorianDayText,
-                style = TextStyle(
-                    color = gregorianColor,
-                    fontSize = 8.sp,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-            )
+            if (isToday) {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .padding(1.dp)
+                        .background(colors.todayBackground)
+                        .cornerRadius(14.dp),
+                ) {}
+            }
+            Column(
+                modifier = GlanceModifier.fillMaxSize(),
+                verticalAlignment = Alignment.Vertical.CenterVertically,
+                horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+            ) {
+                Text(
+                    text = cell.dayText,
+                    style = TextStyle(
+                        color = hijriColor,
+                        fontSize = hijriSize,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 1,
+                )
+                Text(
+                    text = cell.gregorianDayText,
+                    style = TextStyle(
+                        color = gregorianColor,
+                        fontSize = gregorianSize,
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 1,
+                )
+            }
         }
+        if (dividerAfter) CellDivider(colors)
     }
+}
+
+/**
+ * The hairline between two cells (FD-04).
+ *
+ * One rule per column per row rather than a border on all 42 cells: Glance's cost is per view, and a
+ * `RemoteViews` with 42 extra `Box`es is a heavier thing for the launcher to bind than the month needs
+ * to be. Visually identical, and it is why the option is a render-time flag rather than something the
+ * projection had to carry per cell.
+ */
+@Composable
+private fun RowScope.CellDivider(colors: WidgetColors) {
+    Box(
+        modifier = GlanceModifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(colors.cellBorder),
+    ) {}
 }

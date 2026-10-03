@@ -68,6 +68,7 @@ internal class HijriCalendarWidgetPreview(
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
+                showCellBorders = data.showCellBorders,
                 colors = colors,
                 language = options.language,
                 // Non-interactive by construction: the settings preview shows what the widget will

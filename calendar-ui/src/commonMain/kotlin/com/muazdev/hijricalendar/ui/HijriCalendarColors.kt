@@ -36,6 +36,15 @@ public data class HijriCalendarColors(
 
     /** Content of a day in [HijriCalendarState.weekendDays]. Presentational only. */
     val weekendDayContentColor: Color,
+    /**
+     * The hairline drawn between cells when [HijriCalendarState.showCellBorders] is on (FD-04).
+     *
+     * A field on this type rather than the widget's `widget_cell_border` resource: `calendar-ui` has no
+     * `res/` and no `WidgetColors`, and everything visible here comes from `MaterialTheme` through
+     * [HijriCalendarDefaults.colors]. A host can therefore match its own palette, which a hardcoded
+     * resource would not allow.
+     */
+    val cellBorderColor: Color,
 
     /** Content of an ordinary in-month, enabled day. */
     val dayContentColor: Color,

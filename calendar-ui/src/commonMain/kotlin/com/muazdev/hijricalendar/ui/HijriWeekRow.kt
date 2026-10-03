@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
@@ -21,6 +24,8 @@ internal fun HijriWeekRow(
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
     showAdjacentDays: Boolean = true,
+    showCellBorders: Boolean = false,
+    borderColor: Color = Color.Transparent,
 ) {
     // Not a consumer-reachable crash any more: this composable is internal, so the only caller
     // chunks the grid's 42 cells. The check stays because a silent wrong row would be harder to
@@ -30,9 +35,35 @@ internal fun HijriWeekRow(
     }
 
     Row(modifier = modifier) {
-        days.forEach { day ->
+        days.forEachIndexed { index, day ->
+            val isLastColumn = index == days.lastIndex
             Box(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    // The divider is on the *cell*, not the row: a rule drawn once per row would have
+                    // to know the row's height, and `RowScope.weight` gives width, not height. The
+                    // cell is a fixed-size Box, so a rule on its edge is exact.
+                    .then(
+                        if (showCellBorders && !isLastColumn) {
+                            Modifier.drawWithContent {
+                                drawContent()
+                                drawLine(
+                                    color = borderColor,
+                                    start = androidx.compose.ui.geometry.Offset(
+                                        size.width - 0.5f,
+                                        0f,
+                                    ),
+                                    end = androidx.compose.ui.geometry.Offset(
+                                        size.width - 0.5f,
+                                        size.height,
+                                    ),
+                                    strokeWidth = 1f,
+                                )
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 HijriCalendarDayCell(

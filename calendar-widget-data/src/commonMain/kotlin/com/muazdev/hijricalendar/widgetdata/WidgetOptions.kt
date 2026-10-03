@@ -101,6 +101,22 @@ public data class WidgetOptions(
      * consumers who never see a widget, and the default moves in the schema, not in core.
      */
     val weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
+    /**
+     * Whether the grid draws a hairline between every cell (FD-04).
+     *
+     * `false` by default, so nothing changes for an existing widget. On a wall-clock grid of 42
+     * numbers an undivided month is genuinely hard to scan — you read across, stop, and re-read — and a
+     * divider is the cheapest fix for that which costs the layout nothing.
+     *
+     * Purely presentational, and **not** in the widget render cache's keys: the projection's cells are
+     * identical either way, so folding it into `MonthKey` would invalidate 42 cells of cached
+     * projection over a change that cannot alter one of them.
+     *
+     * Renderers draw the dividers as row and column separators rather than a border per cell — a border
+     * on all 42 cells is 42 extra `RemoteViews` nodes, and Glance's cost is per view. Same visual
+     * result, a fraction of the views.
+     */
+    val showCellBorders: Boolean = false,
 ) {
     /**
      * The first day of week to render with.
@@ -259,6 +275,7 @@ public data class WidgetOptions(
             monthNameLanguage = WidgetLanguage.URDU,
             showAdjacentDays = false,
             weekendPattern = WeekendPattern.FRIDAY_SATURDAY,
+            showCellBorders = false,
         )
     }
 }
@@ -456,6 +473,7 @@ public fun createWidgetOptions(
     overridesCsv: String? = null,
     showAdjacentDays: Boolean = false,
     weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
+    showCellBorders: Boolean = false,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -468,6 +486,7 @@ public fun createWidgetOptions(
     monthLengthOverrides = decodeMonthLengthsCsv(overridesCsv),
     showAdjacentDays = showAdjacentDays,
     weekendPattern = weekendPattern,
+    showCellBorders = showCellBorders,
 )
 
 /**

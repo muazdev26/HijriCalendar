@@ -167,6 +167,7 @@ internal fun HijriCalendarGrid(
             MonthGrid(
                 days = calMonth.days,
                 showAdjacentDays = state.showAdjacentDays,
+                showCellBorders = state.showCellBorders,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,
@@ -249,6 +250,7 @@ internal fun gridWeeks(days: List<CalendarDay>, showAdjacentDays: Boolean): List
 private fun MonthGrid(
     days: List<CalendarDay>,
     showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
     onDayClick: (CalendarDay) -> Unit,
     colors: HijriCalendarColors,
     useArabicIndicNumerals: Boolean,
@@ -266,6 +268,8 @@ private fun MonthGrid(
             HijriWeekRow(
                 days = weekDays,
                 showAdjacentDays = showAdjacentDays,
+                showCellBorders = showCellBorders,
+                borderColor = colors.cellBorderColor,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,

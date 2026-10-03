@@ -108,6 +108,18 @@ public class HijriCalendarState(
      */
     showAdjacentDays: Boolean = false,
     /**
+     * Whether the grid draws a hairline between every cell (FD-04).
+     *
+     * `false` by default, so an existing calendar is unchanged. On a grid of 42 numbers an undivided
+     * month is hard to scan — you read across, stop, re-read — and a hairline is the cheapest fix that
+     * costs the layout nothing.
+     *
+     * Presentational and rendering-only, like [showAdjacentDays]: it does not touch a month's cells,
+     * which is why it is not in the saved state format either — a restore re-reads the host's current
+     * value, the same as every other display preference here.
+     */
+    showCellBorders: Boolean = false,
+    /**
      * Month-length overrides owned by this state holder. Defaults to the process-wide
      * [HijriMonthOverrides.current]; pass your own [HijriMonthLengths] to scope overrides to this
      * calendar so two calendars in one process can disagree about month lengths.
@@ -152,6 +164,18 @@ public class HijriCalendarState(
     /** Turns the neighbouring months' days in the grid on or off. See [showAdjacentDays]. */
     public fun setShowAdjacentDays(show: Boolean) {
         _showAdjacentDays = show
+    }
+
+    private var _showCellBorders by mutableStateOf(showCellBorders)
+
+    /**
+     * Whether the grid draws a hairline between cells. See [showCellBorders].
+     */
+    public val showCellBorders: Boolean get() = _showCellBorders
+
+    /** Turns the cell dividers on or off. See [showCellBorders]. */
+    public fun setShowCellBorders(show: Boolean) {
+        _showCellBorders = show
     }
 
     public val adjustmentDays: Int get() = _adjustmentDays
@@ -494,6 +518,7 @@ public fun rememberHijriCalendarState(
     initialSelectedPakistanDate: PakistanHijriDate? = null,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
     showAdjacentDays: Boolean = false,
+    showCellBorders: Boolean = false,
 ): HijriCalendarState {
     return remember {
         HijriCalendarState(
@@ -507,6 +532,7 @@ public fun rememberHijriCalendarState(
             initialSelectedPakistanDate = initialSelectedPakistanDate,
             weekendDays = weekendDays,
             showAdjacentDays = showAdjacentDays,
+            showCellBorders = showCellBorders,
         )
     }
 }
@@ -531,6 +557,7 @@ public fun rememberSaveableHijriCalendarState(
     initialSelectedPakistanDate: PakistanHijriDate? = null,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
     showAdjacentDays: Boolean = false,
+    showCellBorders: Boolean = false,
 ): HijriCalendarState {
     // `remember` takes a vararg, so the keys are assembled as a list rather than named one per
     // line. Everything the restored state is configured from has to be here: a key this list
@@ -543,6 +570,7 @@ public fun rememberSaveableHijriCalendarState(
         pakistanDates,
         weekendDays,
         showAdjacentDays,
+        showCellBorders,
     )
 
     @Suppress("SpreadOperator")
@@ -581,6 +609,7 @@ internal data class HijriCalendarStateConfig(
     val pakistanDates: Boolean = false,
     val weekendDays: Set<WeekDay>,
     val showAdjacentDays: Boolean = false,
+    val showCellBorders: Boolean = false,
 )
 
 /**
@@ -688,6 +717,7 @@ internal fun hijriCalendarStateSaver(
             initialSelectedObservedDate = initialSelectedObservedDate,
             weekendDays = config.weekendDays,
             showAdjacentDays = config.showAdjacentDays,
+            showCellBorders = config.showCellBorders,
         )
     },
 )

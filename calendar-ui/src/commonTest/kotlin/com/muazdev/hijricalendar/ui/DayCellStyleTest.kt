@@ -31,6 +31,7 @@ class DayCellStyleTest {
         todayBorderWidth = 3.dp,
         disabledDayContentColor = Color.Yellow,
         weekendDayContentColor = Color.Magenta,
+        cellBorderColor = Color(0xFF112233),
         dayContentColor = Color.Black,
         dayBackgroundColor = Color.Gray,
         headerContentColor = Color.White,

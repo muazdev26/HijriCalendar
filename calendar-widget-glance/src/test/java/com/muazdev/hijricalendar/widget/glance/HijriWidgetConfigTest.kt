@@ -81,6 +81,7 @@ class HijriWidgetConfigTest {
             monthLengthOverrides = mapOf(monthLengthKey(1447, 11) to 29),
             showAdjacentDays = true,
             weekendPattern = WeekendPattern.SUNDAY,
+            showCellBorders = true,
         )
         val restored = HijriWidgetConfig.widgetOptionsSaver().roundTrip(options)
 
@@ -113,6 +114,7 @@ class HijriWidgetConfigTest {
             if (options.monthLengthOverrides == restored.monthLengthOverrides) add("monthLengthOverrides")
             if (options.showAdjacentDays == restored.showAdjacentDays) add("showAdjacentDays")
             if (options.weekendPattern == restored.weekendPattern) add("weekendPattern")
+            if (options.showCellBorders == restored.showCellBorders) add("showCellBorders")
         }
         return surviving
     }

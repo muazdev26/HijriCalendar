@@ -45,13 +45,18 @@ struct HijriGridEntryView: View {
                             columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7),
                             spacing: rows == 4 ? 1 : 3
                         ) {
-                            ForEach(Array(renderableDays(month).enumerated()), id: \.offset) { _, day in
-                                DayCell(
-                                    day: day,
-                                    isToday: day.gregorianEpochDay == entry.anchorEpochDay,
-                                    compact: rows == 4,
-                                    visible: day.isCurrentMonth
-                                )
+                            ForEach(Array(renderableDays(month).enumerated()), id: \.offset) { index, day in
+                                HStack(spacing: 0) {
+                                    DayCell(
+                                        day: day,
+                                        isToday: day.gregorianEpochDay == entry.anchorEpochDay,
+                                        compact: rows == 4,
+                                        visible: day.isCurrentMonth
+                                    )
+                                    if entry.options.showCellBorders, index % 7 != 6 {
+                                        cellDivider(height: rows == 4 ? 17 : 22)
+                                    }
+                                }
                             }
                         }
                     }
@@ -79,6 +84,18 @@ struct HijriGridEntryView: View {
     ///
     /// The arithmetic mirrors `HijriMonthWidgetData.weeksToRender` on the Kotlin side, which the
     /// Glance and Compose grids use.
+    /// The cell divider (FD-04), drawn on the trailing edge of every cell but the last.
+    ///
+    /// SwiftUI has no per-cell border, so the rule is the trailing padding of a `Divider`-shaped view:
+    /// a 1pt-wide, full-height rectangle at the cell's right edge, in the same colour the in-app
+    /// calendar uses for its own (`HijriCalendarColors.cellBorderColor`, defaulting to Material's
+    /// `outlineVariant`).
+    private func cellDivider(height: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.12))
+            .frame(width: 1, height: max(0, height))
+    }
+
     private func renderableDays(_ month: HijriMonthWidgetData) -> [HijriDayWidgetData] {
         guard !entry.options.showAdjacentDays else { return month.days }
         let columns = 7

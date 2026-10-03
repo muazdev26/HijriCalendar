@@ -342,6 +342,26 @@ internal fun HijriWidgetSettingsScreen(
             )
         }
 
+        if (kind == WidgetKind.GRID) {
+            SectionTitle("Cell dividers")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !options.showCellBorders,
+                    onClick = { update(options.copy(showCellBorders = false)) },
+                    label = { Text("Hide") },
+                )
+                FilterChip(
+                    selected = options.showCellBorders,
+                    onClick = { update(options.copy(showCellBorders = true)) },
+                    label = { Text("Show") },
+                )
+            }
+            Text(
+                "A hairline between every cell. Off by default; the grid is easier to scan with one.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
         // ── Optional pinned month (grid only) ─────────────────────────────────
         if (kind == WidgetKind.GRID) {
             SectionTitle("Fixed month (optional)")

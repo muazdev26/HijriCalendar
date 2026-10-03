@@ -19,4 +19,6 @@
     <color name="widget_day_gregorian_sub">#959296</color>
     <color name="widget_day_out_faint">#4C4A4E</color>
     <color name="widget_arrow_dimmed">#55524E</color>
+    <!-- The cell divider (FD-04), lightened for a dark surface. -->
+    <color name="widget_cell_border">#1FFFFFFF</color>
 </resources>

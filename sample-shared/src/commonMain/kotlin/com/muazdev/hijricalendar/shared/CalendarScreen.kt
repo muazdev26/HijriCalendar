@@ -68,6 +68,8 @@ fun CalendarScreen(
     onShowAdjacentDaysChange: ((Boolean) -> Unit)? = null,
     showWeekendPatternToggle: Boolean = false,
     onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
+    showCellBordersToggle: Boolean = false,
+    onShowCellBordersChange: ((Boolean) -> Unit)? = null,
 ) {
     val effectiveLabels = labels ?: HijriCalendarLabels()
     val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, effectiveLabels)
@@ -122,6 +124,17 @@ fun CalendarScreen(
                 onSelect = { show ->
                     state.setShowAdjacentDays(show)
                     onShowAdjacentDaysChange?.invoke(show)
+                },
+            )
+        }
+
+        if (showCellBordersToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CellBordersSelector(
+                showCellBorders = state.showCellBorders,
+                onSelect = { show ->
+                    state.setShowCellBorders(show)
+                    onShowCellBordersChange?.invoke(show)
                 },
             )
         }
@@ -510,6 +523,38 @@ private fun rememberSelectedDateText(
     state.adjustmentDays,
 ) {
     selectedDateSummary(state, dateDisplayMode, labels)
+}
+
+/**
+ * Show/hide the hairline between cells.
+ *
+ * Off by default, matching the widget. The in-app cell is already 48dp with a circle and a press state,
+ * so a divider is a scanning aid rather than a necessity here — which is why it is opt-in.
+ */
+@Composable
+private fun CellBordersSelector(
+    showCellBorders: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Cell dividers", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !showCellBorders,
+                onClick = { onSelect(false) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+                Text("Hide")
+            }
+            SegmentedButton(
+                selected = showCellBorders,
+                onClick = { onSelect(true) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+                Text("Show")
+            }
+        }
+    }
 }
 
 /**

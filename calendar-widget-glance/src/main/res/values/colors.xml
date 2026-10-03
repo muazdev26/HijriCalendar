@@ -33,4 +33,10 @@
     <color name="widget_day_gregorian_sub">#757373</color>
     <color name="widget_day_out_faint">#C5C2BF</color>
     <color name="widget_arrow_dimmed">#8F8B85</color>
+    <!--
+        The cell divider (FD-04), off by default. A hairline rather than a full border because the
+        grid is 42 cells: a visible border on each would make the month look like a spreadsheet, and
+        on a `previewLayout` the framework cannot draw a per-cell separator without 42 more views.
+    -->
+    <color name="widget_cell_border">#1F000000</color>
 </resources>

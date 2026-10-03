@@ -266,6 +266,11 @@ public fun rememberHijriCalendarState(
      * Presentational only; see [HijriCalendarState.showAdjacentDays].
      */
     showAdjacentDays: Boolean = false,
+    /**
+     * Whether the grid draws a hairline between cells. `false` — the default — leaves it undivided.
+     * Presentational only; see [HijriCalendarState.showCellBorders].
+     */
+    showCellBorders: Boolean = false,
 ): HijriCalendarState = coreRememberHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
@@ -276,6 +281,7 @@ public fun rememberHijriCalendarState(
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
     showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
 )
 
 @Composable
@@ -294,6 +300,11 @@ public fun rememberSaveableHijriCalendarState(
      * Presentational only; see [HijriCalendarState.showAdjacentDays].
      */
     showAdjacentDays: Boolean = false,
+    /**
+     * Whether the grid draws a hairline between cells. `false` — the default — leaves it undivided.
+     * Presentational only; see [HijriCalendarState.showCellBorders].
+     */
+    showCellBorders: Boolean = false,
 ): HijriCalendarState = coreRememberSaveableHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
@@ -304,4 +315,5 @@ public fun rememberSaveableHijriCalendarState(
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
     showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
 )
