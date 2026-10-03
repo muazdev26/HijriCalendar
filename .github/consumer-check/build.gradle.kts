@@ -25,5 +25,5 @@ dependencies {
     // `hijri-calendar-widget-data` and `hijri-calendar-core` are deliberately NOT listed. They
     // must arrive transitively through the widget-glance POM — which is also what the gate checks,
     // since a missing transitive `compile` entry shows up here as an unresolved import.
-    implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:1.0.0")
+    implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:2.0.0")
 }

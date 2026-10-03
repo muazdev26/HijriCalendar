@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:1.0.0-alpha10")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.0.0")
 }
 ```
 
@@ -54,7 +54,7 @@ dependencies {
 <dependency>
     <groupId>com.github.muazdev26.HijriCalendar</groupId>
     <artifactId>hijri-calendar-compose</artifactId>
-    <version>1.0.0-alpha10</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
@@ -542,7 +542,7 @@ the widgets run on their defaults. Your app wires the receivers + the app-onCrea
 
 ```kotlin
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:calendar-widget-glance:1.0.0-alpha10")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.0.0")
 }
 ```
 

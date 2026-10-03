@@ -7,6 +7,8 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ## Unreleased
 
+## 2.0.0 - 2026-10-03
+
 Remediation of the `calendar-core` architecture review — see
 [`docs/issues/INDEX.md`](docs/issues/INDEX.md) for the seven findings and their tickets.
 
@@ -51,8 +53,6 @@ Remediation of the `calendar-core` architecture review — see
   own declarations.
   ([CORE-03](docs/issues/CORE-03-api-stability.md))
 
-### Breaking
-
 - **`WidgetOptions.firstDayOfWeekIndex` is replaced by a name-backed `weekStart`.** The old field was
   a bare ordinal into `calendar-core`'s `WeekDay` — another module's enum, in a published ABI —
   persisted in the shared wire format that exists precisely to avoid persisting ordinals. Inserting a
@@ -77,8 +77,6 @@ Remediation of the `calendar-core` architecture review — see
   `WidgetOptions.monthLengthOverrides` field; the existing arguments are untouched.
   ([WD-01](docs/widgets/WD-01-no-overrides-threading.md))
 
-### Breaking
-
 - **`HijriYearMonth` replaces `Pair<Int, Int>` for every year-month crossing a widget API, and
   `offsetHijriMonth` returns it instead of the alpha type.** A `Pair<Int, Int>` has no type-level
   distinction between a Hijri year-month and any other pair, so a renderer could swap the components
@@ -90,6 +88,36 @@ Remediation of the `calendar-core` architecture review — see
   This also reaches `HijriWidgetConfig.loadViewedMonth`, which leaked the same pair past the module
   boundary. **Stored formats are unchanged** — no widget migration — and `HijriYearMonth` validates
   `month in 1..12` in its constructor. ([WD-07](docs/widgets/WD-07-alpha-types-in-abi.md))
+
+- **The calendar now honours the system accessibility font scale.** It previously wrapped its whole
+  subtree in `Density(fontScale = 1f)`, so a user at Android's largest text size got a calendar at
+  exactly 100% — a WCAG 1.4.4 failure, invisible, and described in the README as a feature. The day
+  **text** now scales up to a cap (`HijriCalendarDefaults.SingleLineMaxFontScale` 2×, or
+  `BothModeMaxFontScale` 1.5× for the two-line mode), while the **cell geometry stays fixed** — the
+  `dayCellSize` you pass is still the size you get at every display mode and every font scale, which
+  is what makes a month grid a fixed-pitch matrix. The header honours the system setting uncapped.
+  Pass `ignoreFontScale = true` for the previous flat rendering; prefer the default.
+  ([UI-04](docs/issues/UI-04-accessible-text-scaling.md))
+- **`HijriCalendar.ignoreFontScale` is new**, defaulting to `false`.
+- **`HijriCalendarHeader` takes a `title: String` and `labels` instead of `monthName`, `year` and two
+  English content-description defaults.** The header joined the title with a space itself and read
+  `"Previous month"` / `"Next month"` as parameter literals, so a locale could neither reorder the
+  title nor write the year in its own digits, and a direct caller shipped English screen-reader
+  output. `HijriCalendar` itself is unaffected — `HijriCalendarLabels.headerTitle` defaults to the
+  identical `"$monthName $year"`, so nothing visible changes.
+  ([UI-10](docs/issues/UI-10-localization-completion.md))
+- **`HijriCalendarLabels` gains `headerTitle` and `gregorianMonthRangeLabel`.** Both return the whole
+  formatted string so ordering, separator and numeral system are the consumer's. The defaults
+  reproduce the previous English output exactly, so existing label sets are unaffected. The module's
+  own Urdu preview previously showed Arabic-Indic day figures under a Western-numeral year.
+- **17 `@Preview` composables are no longer part of the published ABI.** They lived in `commonMain`
+  of a published module, so they were compiled for iOS, embedded in both K/N frameworks and the
+  Xcode app, and visible from Swift — and because `ui-tooling-preview` was a *non*-`api` dependency,
+  a consumer's code referencing them needed a dependency the library did not declare. They now live
+  in `androidMain`, where Android Studio's preview panel can still see them. Nothing was renamed:
+  the ABI change is a pure deletion of 62 lines (the previews plus the Compose compiler's generated
+  `ComposableSingletons$PreviewsKt`).
+  ([UI-07](docs/issues/UI-07-previews-out-of-abi.md))
 
 ### Removed
 
@@ -383,38 +411,6 @@ K/N tests were ever reached. Neither is a widget change, and both are recorded h
   catalog. Note the check as first written passed when the original defect was re-injected, because
   it asked only whether an entry *had* a version; it now asserts which train the version comes from.
   ([UI-13](docs/issues/UI-13-dependency-hygiene.md))
-
-### Breaking
-
-- **The calendar now honours the system accessibility font scale.** It previously wrapped its whole
-  subtree in `Density(fontScale = 1f)`, so a user at Android's largest text size got a calendar at
-  exactly 100% — a WCAG 1.4.4 failure, invisible, and described in the README as a feature. The day
-  **text** now scales up to a cap (`HijriCalendarDefaults.SingleLineMaxFontScale` 2×, or
-  `BothModeMaxFontScale` 1.5× for the two-line mode), while the **cell geometry stays fixed** — the
-  `dayCellSize` you pass is still the size you get at every display mode and every font scale, which
-  is what makes a month grid a fixed-pitch matrix. The header honours the system setting uncapped.
-  Pass `ignoreFontScale = true` for the previous flat rendering; prefer the default.
-  ([UI-04](docs/issues/UI-04-accessible-text-scaling.md))
-- **`HijriCalendar.ignoreFontScale` is new**, defaulting to `false`.
-- **`HijriCalendarHeader` takes a `title: String` and `labels` instead of `monthName`, `year` and two
-  English content-description defaults.** The header joined the title with a space itself and read
-  `"Previous month"` / `"Next month"` as parameter literals, so a locale could neither reorder the
-  title nor write the year in its own digits, and a direct caller shipped English screen-reader
-  output. `HijriCalendar` itself is unaffected — `HijriCalendarLabels.headerTitle` defaults to the
-  identical `"$monthName $year"`, so nothing visible changes.
-  ([UI-10](docs/issues/UI-10-localization-completion.md))
-- **`HijriCalendarLabels` gains `headerTitle` and `gregorianMonthRangeLabel`.** Both return the whole
-  formatted string so ordering, separator and numeral system are the consumer's. The defaults
-  reproduce the previous English output exactly, so existing label sets are unaffected. The module's
-  own Urdu preview previously showed Arabic-Indic day figures under a Western-numeral year.
-- **17 `@Preview` composables are no longer part of the published ABI.** They lived in `commonMain`
-  of a published module, so they were compiled for iOS, embedded in both K/N frameworks and the
-  Xcode app, and visible from Swift — and because `ui-tooling-preview` was a *non*-`api` dependency,
-  a consumer's code referencing them needed a dependency the library did not declare. They now live
-  in `androidMain`, where Android Studio's preview panel can still see them. Nothing was renamed:
-  the ABI change is a pure deletion of 62 lines (the previews plus the Compose compiler's generated
-  `ComposableSingletons$PreviewsKt`).
-  ([UI-07](docs/issues/UI-07-previews-out-of-abi.md))
 
 ### Fixed
 
