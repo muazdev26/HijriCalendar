@@ -2,11 +2,14 @@ package com.muazdev.hijricalendar.widget.glance
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ExperimentalGlanceApi
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -170,26 +173,80 @@ public class GregorianDateWidget : GlanceAppWidget() {
  */
 internal object DateTileTypography {
     /**
-     * The localized weekday name, on its own line at the top.
+     * The localized weekday name, on its own line at the top, sized to the width the launcher gave.
      *
-     * **Same size as the month name and bold, deliberately.** It was 10sp Medium in
+     * **Same treatment as the month name and bold, deliberately.** It shipped as 10sp Medium in
      * `widget_text_secondary` and read as a caption rather than as part of the date — the weekday is
-     * half the answer to "what day is it?", and it was the weakest line on the tile. It now matches
-     * [monthSize] in size and emphasis so the two names read as a pair bracketing the day figure.
+     * half the answer to "what day is it?", and it was the weakest line on the tile.
+     *
+     * Sized by [weekdaySizeFor] rather than fixed, because the tile's width is the one dimension the
+     * host actually varies: `SizeMode.Single` means there is a single bucket, but launchers disagree
+     * on how wide a 1x1 is by tens of dp, and a name that reads comfortably in one reads as a caption
+     * in another. See [weekdaySizeFor] for the rule and its limits.
      */
-    val weekdaySize = 11.sp
+    fun weekdaySizeFor(availableWidth: Dp): TextUnit = weekdaySizeFor(availableWidth.value)
 
-    /** The day figure — the thing the tile exists to show. */
+    /**
+     * The weekday font size for [availableWidth], clamped to
+     * [[weekdaySizeFloor], [weekdaySizeCeiling]].
+     *
+     * Linear in width about [WEEKDAY_REFERENCE_WIDTH_DP], so a wider tile gets a proportionally larger
+     * name and a narrower one a proportionally smaller one. Three deliberate bounds:
+     *
+     * - **A floor, and it is the important one.** At the 40dp minimum the tile-info declares there
+     *   are only about 28dp of text width, which works out below [WEEKDAY_REFERENCE_WIDTH_DP] and lands
+     *   on the floor. A weekday name is the longest string on the tile — `Thursday` is twice the
+     *   width of `جمعرات`'s glyph run in most fonts — so an unbounded scale would render it as a
+     *   clipped stub on a launcher that grants a tight cell, which is worse than a small one.
+     * - **A ceiling**, because the name still has to leave room for the day figure above it and the
+     *   month below. A tile is not a banner.
+     * - **Monotonicity** is the property the tests pin: never smaller as the tile gets wider.
+     *
+     * Pure and Dp-free so it can be asserted without a `Context` or a composition.
+     */
+    fun weekdaySizeFor(availableWidth: Float): TextUnit {
+        val scaled = weekdaySizeAtReference.value * availableWidth / WEEKDAY_REFERENCE_WIDTH_DP
+        return scaled.coerceIn(weekdaySizeFloor.value, weekdaySizeCeiling.value).sp
+    }
+
+    /**
+     * The width at which [weekdaySizeFor] returns [weekdaySizeAtReference].
+     *
+     * Roughly a 1x1 cell on a current Android launcher. It is a design constant, not a measurement —
+     * there is no way to ask a launcher what it will grant — and the floor exists so being wrong in
+     * either direction is survivable.
+     */
+    const val WEEKDAY_REFERENCE_WIDTH_DP: Float = 72f
+
+    /** The weekday size at [WEEKDAY_REFERENCE_WIDTH_DP]. */
+    val weekdaySizeAtReference = 11.sp
+
+    /** Never smaller than this, however narrow the tile. */
+    val weekdaySizeFloor = 10.sp
+
+    /** Never larger than this, however wide. */
+    val weekdaySizeCeiling = 15.sp
+
+    /** The day figure — the thing the tile exists to show. Fixed: it is not the length-sensitive one. */
     val daySize = 26.sp
 
     /** The month name, on its own line at the bottom. */
     val monthSize = 11.sp
 
+    /** Horizontal padding on each side; the text width is the tile's width less twice this. */
+    const val PADDING_DP = 6
+
     /** Vertical padding, leaving the rest of the height to the three lines. */
-    const val PADDING_DP = 2
+    const val VERTICAL_PADDING_DP = 2
 
     /** The widget-info's declared minimum tile height. Read by the test that records the budget. */
     const val TILE_MIN_HEIGHT_DP = 40
+
+    /**
+     * The widget-info's declared minimum tile width — and therefore the width the weekday name has at
+     * its smallest, which is what puts [weekdaySizeFloor] to work.
+     */
+    const val TILE_MIN_WIDTH_DP = 40
 }
 
 /**
@@ -217,10 +274,14 @@ internal fun DateTileRoot(
     val modifier = GlanceModifier.fillMaxSize().background(colors.background)
     val clickableModifier = if (openAction != null) modifier.clickable(openAction) else modifier
 
+    // The granted width, so the weekday name can be sized to it. `SizeMode.Single` still reports a
+    // real size, and it varies by tens of dp between launchers.
+    val availableWidth = LocalSize.current.width - DateTileTypography.PADDING_DP.dp * 2
+
     Column(
         modifier = clickableModifier.padding(
-            horizontal = 6.dp,
-            vertical = DateTileTypography.PADDING_DP.dp,
+            horizontal = DateTileTypography.PADDING_DP.dp,
+            vertical = DateTileTypography.VERTICAL_PADDING_DP.dp,
         ),
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
@@ -244,7 +305,7 @@ internal fun DateTileRoot(
                 // `primaryText`, not `secondaryText`: the weekday is part of the date, not a caption
                 // under it, and the secondary tone is what made it read as one.
                 color = ColorProvider(colors.primaryText),
-                fontSize = DateTileTypography.weekdaySize,
+                fontSize = DateTileTypography.weekdaySizeFor(availableWidth),
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             ),

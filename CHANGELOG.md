@@ -40,6 +40,12 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   the weekday name is half the answer to "what day is it?" and it was drawn like a footnote. It is
   now 11sp Bold in `widget_text_primary`, matching the month name, so the two names bracket the day
   figure as a pair. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
+- **The weekday line on the tiles now scales with the width the launcher grants.** It was fixed, so a
+  name that reads comfortably on one launcher's 1x1 read as a caption on a wider one. It is linear in
+  the tile's text width between a floor and a ceiling, so a wide tile gets a larger name and a narrow
+  one is floored rather than clipped — the weekday is the longest string on the tile, so an unbounded
+  scale would render it as a stub on a launcher that grants a tight cell.
+  ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
 - **The tiles declare less content than before.** They laid out 34sp + 12sp plus 12dp of padding —
   58dp of text inside a 40dp box — and relied on the launcher handing over more than the
   widget-info's own minimum. Three lines now ask for ~47dp against the 34sp + 12sp layout's ~62dp,

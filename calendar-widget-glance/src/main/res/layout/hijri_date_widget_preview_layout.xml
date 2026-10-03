@@ -2,7 +2,11 @@
 <!-- Static preview shown in the Android 12-14 widget picker for the Hijri
      1x1 date tile: the weekday name on top, a big accent day figure in the middle, the month name
      at the bottom — mirroring the live tile. Every size here is a hand-maintained mirror of
-     DateTileTypography and must move with it; DateTilePreviewLayoutTest asserts they do. -->
+     DateTileTypography and must move with it; DateTilePreviewLayoutTest asserts they do.
+
+     The weekday size here is a snapshot at DateTileTypography's reference width. The live tile
+     scales that line with the width the launcher grants, so this static preview cannot follow it
+     exactly - it shows the mid-range value. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"

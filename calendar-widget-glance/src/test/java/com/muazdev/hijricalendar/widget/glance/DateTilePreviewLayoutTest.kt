@@ -14,23 +14,24 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * FD-01: the 1x1 tiles must name the day they are showing, and the hand-maintained Android 12-14
- * `previewLayout` mirror must keep saying the same thing.
+ * FD-01: the 1x1 tiles must name the day they are showing, the day name must be sized to the width
+ * the launcher granted, and the hand-maintained Android 12-14 `previewLayout` mirror must keep
+ * saying the same thing.
  *
  * `TodayHijriWidgetData.weekdayName` has existed since the projection was written and iOS has always
  * rendered it. All four Android widgets dropped it — a field that was projected, consumed on one
  * platform, and silently ignored on the other. The rendering half is asserted here by asserting the
- * *data* is present and localized, because the composable itself is not unit-testable in this
- * module (Glance composition has no JVM host); the layout half is asserted by parsing the XML.
+ * *data* is present and localized, because the composable itself is not unit-testable in this module
+ * (Glance composition has no JVM host); the layout half is asserted by parsing the XML.
  *
- * The three-line order — weekday, day figure, month — is asserted rather than the sizes alone,
- * because a two-line variant with the weekday merged into a caption beside the month name looks
- * plausible and loses the point of the change: the weekday stops being the answer to "what day is
- * it?" and becomes decoration.
+ * Three-line order — weekday, day figure, month — is asserted rather than the sizes alone, because a
+ * two-line variant with the weekday merged into a caption beside the month name looks plausible and
+ * loses the point of the change.
  *
- * The sizes are asserted against [DateTileTypography] rather than against literals, which is the
- * point: the mirror is hand-maintained, and a constant is the only thing that can stop it drifting
- * from a composition nobody can render in a test.
+ * **Note on argument order.** This file uses JUnit, whose `assertTrue`/`assertEquals` take the
+ * message *first*. Several other tests in this repo use `kotlin.test`, whose order is the opposite.
+ * Mixing them in one file is the single most common compile error in this suite; that is why the
+ * [JUnitMessageOrderTest] convention is worth stating rather than discovering.
  */
 class DateTilePreviewLayoutTest {
 
@@ -72,11 +73,15 @@ class DateTilePreviewLayoutTest {
             size!!.removeSuffix("sp").toInt()
         }
 
+    /** The weekday size at a given text width, in whole sp. Int because JUnit's equals is not for Floats. */
+    private fun weekdaySpAt(width: Float): Int = DateTileTypography.weekdaySizeFor(width).value.toInt()
+
     /**
      * Three lines, in order: the weekday name, the day figure, the month name.
      *
      * The order is the assertion; the sizes follow it. A tile with two lines looked like a bigger
-     * number, and it was still not a date.
+     * number, and it was still not a date. The weekday's size here is the value at the reference
+     * width, because the live tile scales that line and a static XML snapshot cannot follow it.
      */
     @Test
     fun bothTilePreviewsStackWeekdayThenDayThenMonth() {
@@ -91,7 +96,7 @@ class DateTilePreviewLayoutTest {
                 "$name line sizes must match DateTileTypography, so the mirror cannot drift from " +
                     "the live composition",
                 listOf(
-                    DateTileTypography.weekdaySize.value.toInt(),
+                    weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
                     DateTileTypography.daySize.value.toInt(),
                     DateTileTypography.monthSize.value.toInt(),
                 ),
@@ -122,10 +127,7 @@ class DateTilePreviewLayoutTest {
                 "$name's bottom line should be the month alone, with no weekday in it: '$month'",
                 month.isNotBlank() && !month.contains(MIDDOT),
             )
-            assertTrue(
-                "$name's weekday and month lines must not be the same text",
-                weekday != month,
-            )
+            assertTrue("$name's weekday and month lines must not be the same text", weekday != month)
         }
     }
 
@@ -133,25 +135,29 @@ class DateTilePreviewLayoutTest {
      * The weekday line is styled as part of the date, not as a caption under it.
      *
      * It shipped as 10sp Medium in `widget_text_secondary`, which made it the weakest line on a tile
-     * whose whole point is the date — the weekday name is half the answer to "what day is it?" and it
-     * was rendered like a footnote. It now matches the month name's size and emphasis and reads in
-     * the primary text colour, so the two names bracket the day figure as a pair.
+     * whose whole content is a date — the weekday name is half the answer to "what day is it?" and it
+     * was drawn like a footnote. It now matches the month name's size and emphasis and reads in the
+     * primary text colour.
      *
-     * Asserted against the live composition's own constants and then against the mirror, because a
-     * size assertion alone would still pass with the weekday back at 10sp in the muted tone.
+     * The size assertion is about the reference width and the floor, because the line is now scaled
+     * with the tile width rather than fixed.
      */
     @Test
     fun theWeekdayLineIsNotStyledAsACaption() {
         assertEquals(
-            "the weekday name must be the same size as the month name",
-            DateTileTypography.monthSize.value,
-            DateTileTypography.weekdaySize.value,
+            "the weekday name must match the month name at the reference width",
+            DateTileTypography.monthSize.value.toInt(),
+            weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
+        )
+        assertEquals(
+            "the weekday name must never fall below the floor, however narrow the tile",
+            DateTileTypography.weekdaySizeFloor.value.toInt(),
+            weekdaySpAt(1f),
         )
 
         for (name in tilePreviews) {
             val weekday = root(name).children().first { it.tagName == "TextView" }
 
-            // JUnit's three-argument assertEquals is (message, expected, actual).
             assertEquals(
                 "$name's weekday line must be bold",
                 "bold",
@@ -167,24 +173,97 @@ class DateTilePreviewLayoutTest {
     }
 
     /**
+     * The weekday size never shrinks as the tile gets wider.
+     *
+     * The whole point of scaling it. A rule that was not monotonic would render a smaller name on a
+     * bigger tile at some width, which is both wrong and the kind of thing a visual check at one size
+     * never catches — hence a sweep rather than a pair of samples.
+     */
+    @Test
+    fun theWeekdaySizeNeverShrinksAsTheTileGetsWider() {
+        var previous = 0
+        for (width in 1..400) {
+            val size = weekdaySpAt(width.toFloat())
+            assertTrue(
+                "at ${width}dp the weekday dropped to ${size}sp from ${previous}sp",
+                size >= previous,
+            )
+            previous = size
+        }
+    }
+
+    /**
+     * It is clamped at both ends.
+     *
+     * The ceiling is the tile's other two lines: a name cannot grow until it crowds out the day
+     * figure. The floor is the narrow end, and it is the one that matters — see the next test.
+     */
+    @Test
+    fun theWeekdaySizeIsClampedToItsFloorAndCeiling() {
+        val floor = DateTileTypography.weekdaySizeFloor.value.toInt()
+        val ceiling = DateTileTypography.weekdaySizeCeiling.value.toInt()
+        for (width in 1..400) {
+            val size = weekdaySpAt(width.toFloat())
+            assertTrue("at ${width}dp the weekday fell below its floor", size >= floor)
+            assertTrue("at ${width}dp the weekday passed its ceiling", size <= ceiling)
+        }
+    }
+
+    /**
+     * A wide tile gets a visibly bigger name, and the declared minimum lands on the floor.
+     *
+     * The second half is the honest part. The widget-info declares a 40dp minimum, which leaves about
+     * 28dp of text width — below the reference — so a tile granted exactly its minimum shows the floor
+     * rather than a proportional size. That is deliberate: the weekday name is the longest string on
+     * the tile, and a proportional scale there would render it as a clipped stub, which is worse than
+     * a small one. Asserted so nobody "fixes" the floor and reintroduces the stub.
+     */
+    @Test
+    fun aWideTileGetsABiggerNameAndTheDeclaredMinimumLandsOnTheFloor() {
+        val atMinimum = weekdaySpAt(
+            (DateTileTypography.TILE_MIN_WIDTH_DP - DateTileTypography.PADDING_DP * 2).toFloat(),
+        )
+        val atReference = weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP)
+        val wide = weekdaySpAt(400f)
+
+        assertEquals(
+            "the declared 40dp minimum should land on the floor",
+            DateTileTypography.weekdaySizeFloor.value.toInt(),
+            atMinimum,
+        )
+        assertTrue(
+            "a wide tile must render a larger weekday name than a reference one; got $wide against " +
+                "$atReference",
+            wide > atReference,
+        )
+        assertEquals(
+            "a very wide tile must stop at the ceiling, not keep growing",
+            DateTileTypography.weekdaySizeCeiling.value.toInt(),
+            wide,
+        )
+    }
+
+    /**
      * The vertical budget, recorded rather than asserted.
      *
-     * Three lines of type cannot fit the declared 40dp minimum at any size worth reading — 10 + 26 +
-     * 11sp at a TextView's 1.2 line height is ~56dp. The tile is therefore sized for the cell a
-     * launcher actually grants, which for a 1x1 is comfortably more than its own declared minimum.
+     * Three lines of type cannot fit the declared 40dp minimum at any size worth reading. The tile is
+     * therefore sized for the cell a launcher actually grants, which for a 1x1 is comfortably more
+     * than its own declared minimum.
      *
      * This is a number, not a guarantee: it says what the layout asks for, and it fails loudly if a
      * future change grows a line without anyone noticing. It is *not* an assertion that the three
-     * lines fit 40dp, because they do not and pretending otherwise would be the more dishonest
-     * thing. The real check is a device, and [docs/issues/2026-10-03/FD-01] says so.
+     * lines fit 40dp, because they do not and pretending otherwise would be the more dishonest thing.
+     * The real check is a device, and `docs/issues/2026-10-03/FD-01` says so.
+     *
+     * The weekday figure is the widest case, since the weekday is the longest line.
      */
     @Test
     fun theThreeLinesAskForLessHeightThanThePreFD01LayoutDid() {
-        val lineSp = DateTileTypography.weekdaySize.value +
-            DateTileTypography.daySize.value +
-            DateTileTypography.monthSize.value
-        val requestedDp = lineSp * LINE_HEIGHT_RATIO + DateTileTypography.PADDING_DP * 2
-
+        val weekdaySp = DateTileTypography.weekdaySizeCeiling.value.toInt()
+        val lineSp = weekdaySp +
+            DateTileTypography.daySize.value.toInt() +
+            DateTileTypography.monthSize.value.toInt()
+        val requestedDp = lineSp * LINE_HEIGHT_RATIO + DateTileTypography.VERTICAL_PADDING_DP * 2
         val beforeThisChangeDp = (34f + 12f) * LINE_HEIGHT_RATIO + 12 * 2
 
         assertTrue(
@@ -200,10 +279,10 @@ class DateTilePreviewLayoutTest {
      * The weekday name must be the widget's own language, not the device's — the whole reason
      * `WidgetLocalization` exists (WG-12).
      *
-     * A tile that resolved its strings from `res/values` would pass every layout assertion above
-     * and still be wrong on exactly the case the widget is designed for: an Urdu widget on a phone
-     * with no Urdu locale. Asserting the script rather than a table of strings keeps this honest
-     * when the Urdu weekday list changes.
+     * A tile that resolved its strings from `res/values` would pass every layout assertion above and
+     * still be wrong on exactly the case the widget is designed for: an Urdu widget on a phone with no
+     * Urdu locale. Asserting the script rather than a table of strings keeps this honest when the Urdu
+     * weekday list changes.
      */
     @Test
     fun theWeekdayNameFollowsTheWidgetsLanguageNotTheDevices() {
