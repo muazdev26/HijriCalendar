@@ -96,6 +96,16 @@ public data class HijriDayWidgetData(
 @Serializable
 public data class HijriMonthWidgetData(
     val hijriYear: Int,
+    /**
+     * The Hijri year **with its era marker**, in the widget's own language and digit style: `1447 AH`
+     * or `١٤٤٧ ھ` (FD-05).
+     *
+     * Separate from [hijriYear] rather than replacing it because the bare number is what arithmetic
+     * and comparisons want, while this is what a header reads. A renderer must not format the year
+     * itself — the era belongs to the widget's language, which is a `WidgetOptions` field and not a
+     * resource configuration (WG-12).
+     */
+    val hijriYearText: String = hijriYear.toString(),
     val hijriMonth: Int,
     val hijriMonthName: String,
     /**
@@ -183,6 +193,15 @@ public data class TodayHijriWidgetData(
     val hijriDayText: String,
     val hijriMonth: Int,
     val hijriYear: Int,
+    /**
+     * The Hijri year **with its era marker**, in the widget's own language and digit style (FD-05):
+     * `1447 AH` or `١٤٤٧ ھ`.
+     *
+     * Separate from [hijriYear] for the same reason as [gregorianYearText]: the bare number is what
+     * arithmetic wants, this is what a renderer displays, and the era belongs to the widget's language
+     * rather than to the device's resources (WG-12).
+     */
+    val hijriYearText: String = hijriYear.toString(),
     val hijriMonthName: String,
     val gregorianDate: String,
     val weekdayName: String,
@@ -202,4 +221,13 @@ public data class TodayHijriWidgetData(
     val gregorianMonth: Int,
     val gregorianMonthName: String,
     val gregorianYear: Int,
+    /**
+     * The Gregorian year **with its era marker**, in the widget's own language and digit style (FD-05):
+     * `2026 AD` or `٢٠٢٦ ئے`.
+     *
+     * The counterpart to [hijriYearText], for the same reason: the bare [gregorianYear] is what
+     * arithmetic wants, this is what a renderer displays, and the marker belongs to the widget's
+     * language rather than to the device's resources (WG-12).
+     */
+    val gregorianYearText: String = gregorianYear.toString(),
 )

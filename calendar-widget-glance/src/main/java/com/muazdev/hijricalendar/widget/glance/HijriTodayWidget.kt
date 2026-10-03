@@ -147,7 +147,9 @@ internal fun HijriTodayRoot(
         val hijri = @Composable {
             DateSide(
                 dayText = today.hijriDayText,
-                caption = "${today.hijriMonthName} ${today.hijriYear}",
+                // Era-appended by the projection (FD-05); a renderer must not format the era
+                // itself, because the marker follows the widget's language, not the device (WG-12).
+                caption = "${today.hijriMonthName} ${today.hijriYearText}",
                 dayColor = colors.accent,
                 captionColor = colors.primaryText,
             )
@@ -155,7 +157,7 @@ internal fun HijriTodayRoot(
         val gregorian = @Composable {
             DateSide(
                 dayText = today.gregorianDayText,
-                caption = "${today.gregorianMonthName} ${today.gregorianYear}",
+                caption = "${today.gregorianMonthName} ${today.gregorianYearText}",
                 dayColor = colors.primaryText,
                 captionColor = colors.secondaryText,
             )

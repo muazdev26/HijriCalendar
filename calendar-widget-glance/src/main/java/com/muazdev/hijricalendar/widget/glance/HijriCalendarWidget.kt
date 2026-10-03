@@ -789,7 +789,11 @@ private fun RowScope.MonthTitle(
     ) {
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
             Text(
-                text = "${month.hijriMonthName} ${month.hijriYear}",
+                // Era-appended by the projection (FD-05): a Hijri year is four digits that look
+                // exactly like a Gregorian one, and `1447 · September 2026` leaves a reader guessing
+                // which calendar each number belongs to. The Gregorian half of this line carries its
+                // own marker inside `gregorianMonthTitle`.
+                text = "${month.hijriMonthName} ${month.hijriYearText}",
                 style = TextStyle(
                     color = ColorProvider(colors.primaryText),
                     fontSize = 15.sp,

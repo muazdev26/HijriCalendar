@@ -41,7 +41,7 @@
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:maxLines="1"
-            android:text="September 2026"
+            android:text="September 2026 AD"
             android:textColor="@color/widget_text_secondary"
             android:textSize="11sp" />
     </LinearLayout>
@@ -72,7 +72,7 @@
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:maxLines="1"
-            android:text="محرم ۱۴۴۸"
+            android:text="محرم ۱۴۴۸ ھ"
             android:textColor="@color/widget_text_primary"
             android:textSize="11sp" />
     </LinearLayout>

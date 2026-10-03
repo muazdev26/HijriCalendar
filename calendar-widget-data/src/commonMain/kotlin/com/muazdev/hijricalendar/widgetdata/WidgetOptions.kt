@@ -523,6 +523,10 @@ public fun buildHijriMonthWidgetData(
     localizedGregorianMonthNames = options.localizedGregorianMonthNames,
     localizedWeekdayNames = options.localizedWeekdayNames,
     overrides = options.overridesTable(),
+    // Era markers follow `language`, not `effectiveMonthNameLanguage`: a widget that shows Eastern
+    // digits with English month names still writes "1447 AH" in Latin script.
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.language),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.language),
 )
 
 /** [todayHijriWidgetData] driven straight from [options]. See the grid overload for why. */
@@ -538,4 +542,6 @@ public fun todayHijriWidgetData(
     numeralStyle = options.numeralStyle,
     pakistan = options.source.pakistan,
     overrides = options.overridesTable(),
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.language),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.language),
 )

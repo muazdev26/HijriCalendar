@@ -22,6 +22,7 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.compose
 import androidx.glance.appwidget.provideContent
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
+import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import kotlinx.coroutines.CancellationException
 
@@ -207,6 +208,12 @@ internal class HijriDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.hijriDayText,
                 monthText = today?.hijriMonthName,
+                captionText = today?.let { data ->
+                    "${data.hijriMonthName} " +
+                        WidgetLocalization.ChromeLabels.yearWithEra(
+                            data.hijriYear, options.language, gregorian = false,
+                        )
+                },
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
@@ -238,6 +245,12 @@ internal class GregorianDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.gregorianDayText,
                 monthText = today?.gregorianMonthName,
+                captionText = today?.let { data ->
+                    "${data.gregorianMonthName} " +
+                        WidgetLocalization.ChromeLabels.yearWithEra(
+                            data.gregorianYear, options.language, gregorian = true,
+                        )
+                },
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,

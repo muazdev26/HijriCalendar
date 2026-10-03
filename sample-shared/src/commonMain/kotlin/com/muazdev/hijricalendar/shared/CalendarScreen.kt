@@ -68,7 +68,7 @@ fun CalendarScreen(
     showWeekendPatternToggle: Boolean = false,
     onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
 ) {
-    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode)
+    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, labels ?: HijriCalendarLabels())
 
     Column(
         modifier = modifier
@@ -184,18 +184,28 @@ fun CalendarScreen(
  * All three spaces agree on the real-world day, so the Gregorian half is computed once. The
  * adjustment is subtracted because `localDate` is already in adjusted space.
  */
-private fun selectedDateSummary(state: HijriCalendarState, mode: DateDisplayMode): String? {
+private fun selectedDateSummary(
+    state: HijriCalendarState,
+    mode: DateDisplayMode,
+    labels: HijriCalendarLabels,
+): String? {
     val observed = state.selectedObservedDate
     val pakistan = state.selectedPakistanDate
     val plain = state.selectedDate
 
-    val hijri = observed?.let { "${it.day} ${CalendarNames.englishHijriMonths[it.month - 1]} ${it.year}" }
-        ?: pakistan?.let { "${it.day} ${HijrahMonth.entries[it.month - 1].name} ${it.year}" }
-        ?: plain?.let { "${it.day} ${it.month.name} ${it.year}" }
+    // Era-appended (FD-05). This card is the one place both calendars' years appear side by side, so it
+    // is where the ambiguity of `١٤٤٨` next to `2026` is most worth one extra glyph.
+    val hijri = observed?.let {
+        "${it.day} ${CalendarNames.englishHijriMonths[it.month - 1]} ${labels.hijriYearWithEra(it.year)}"
+    }
+        ?: pakistan?.let {
+            "${it.day} ${HijrahMonth.entries[it.month - 1].name} ${labels.hijriYearWithEra(it.year)}"
+        }
+        ?: plain?.let { "${it.day} ${it.month.name} ${labels.hijriYearWithEra(it.year)}" }
     val gregorianDay = observed?.localDate ?: pakistan?.localDate ?: plain?.toLocalDate()
     val gregorian = gregorianDay?.let {
         val real = it.minus(state.adjustmentDays, DateTimeUnit.DAY)
-        "${real.day} ${real.month.name} ${real.year}"
+        "${real.day} ${real.month.name} ${labels.gregorianYearWithEra(real.year)}"
     }
 
     return if (hijri == null || gregorian == null) {
@@ -476,7 +486,9 @@ private fun AdjacentDaysSelector(
 private fun rememberSelectedDateText(
     state: HijriCalendarState,
     dateDisplayMode: DateDisplayMode,
+    labels: HijriCalendarLabels,
 ): String? = remember(
+    labels,
     state.selectedDate,
     state.selectedPakistanDate,
     state.selectedObservedDate,
@@ -484,7 +496,7 @@ private fun rememberSelectedDateText(
     dateDisplayMode,
     state.adjustmentDays,
 ) {
-    selectedDateSummary(state, dateDisplayMode)
+    selectedDateSummary(state, dateDisplayMode, labels)
 }
 
 /**

@@ -61,6 +61,12 @@ public class HijriDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = today?.hijriDayText,
                 monthText = today?.hijriMonthName,
+                captionText = today?.let { data ->
+                    "${data.hijriMonthName} " +
+                        WidgetLocalization.ChromeLabels.yearWithEra(
+                            data.hijriYear, options.language, gregorian = false,
+                        )
+                },
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = openAction,
@@ -85,6 +91,12 @@ public class HijriDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = data.todayHijri?.hijriDayText,
                 monthText = data.todayHijri?.hijriMonthName,
+                captionText = data.todayHijri?.let { today ->
+                    "${today.hijriMonthName} " +
+                        WidgetLocalization.ChromeLabels.yearWithEra(
+                            today.hijriYear, options.language, gregorian = false,
+                        )
+                },
                 weekdayText = data.todayHijri?.weekdayName,
                 colors = colors,
                 openAction = null,
@@ -122,6 +134,12 @@ public class GregorianDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = today?.gregorianDayText,
                 monthText = today?.gregorianMonthName,
+                captionText = today?.let { data ->
+                    "${data.gregorianMonthName} " +
+                        WidgetLocalization.ChromeLabels.yearWithEra(
+                            data.gregorianYear, options.language, gregorian = true,
+                        )
+                },
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = openAction,
@@ -146,6 +164,12 @@ public class GregorianDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = data.todayHijri?.gregorianDayText,
                 monthText = data.todayHijri?.gregorianMonthName,
+                captionText = data.todayHijri?.let { today ->
+                    "${today.gregorianMonthName} " +
+                        WidgetLocalization.ChromeLabels.yearWithEra(
+                            today.gregorianYear, options.language, gregorian = true,
+                        )
+                },
                 weekdayText = data.todayHijri?.weekdayName,
                 colors = colors,
                 openAction = null,
@@ -185,6 +209,32 @@ internal object DateTileTypography {
      * in another. See [weekdaySizeFor] for the rule and its limits.
      */
     fun weekdaySizeFor(availableWidth: Dp): TextUnit = weekdaySizeFor(availableWidth.value)
+
+    /**
+     * The bottom line's size for [availableWidth], which carries a month name **and** an era'd year
+     * (FD-05) and is therefore the longest string on the tile.
+     *
+     * Same shape as [weekdaySizeFor] and the same value at the reference width, so the two caption
+     * lines still match — which is the FD-01 styling. Different bounds, because this line is roughly
+     * twice as long: it reaches a ceiling sooner and a 15sp "محرم ١٤٤٨ ھ" would clip long before a
+     * 15sp "جمعرات" would.
+     */
+    fun monthLineSizeFor(availableWidth: Dp): TextUnit = monthLineSizeFor(availableWidth.value)
+
+    /** The bottom line's font size for [availableWidth], clamped like [weekdaySizeFor]. */
+    fun monthLineSizeFor(availableWidth: Float): TextUnit {
+        val scaled = monthLineSizeAtReference.value * availableWidth / WEEKDAY_REFERENCE_WIDTH_DP
+        return scaled.coerceIn(monthLineSizeFloor.value, monthLineSizeCeiling.value).sp
+    }
+
+    /** The bottom line's size at [WEEKDAY_REFERENCE_WIDTH_DP]. Matches [weekdaySizeAtReference]. */
+    val monthLineSizeAtReference = 11.sp
+
+    /** Never smaller than this, however narrow the tile. */
+    val monthLineSizeFloor = 9.sp
+
+    /** Never larger than this: this line is roughly twice as long as the weekday's. */
+    val monthLineSizeCeiling = 12.sp
 
     /**
      * The weekday font size for [availableWidth], clamped to
@@ -230,9 +280,6 @@ internal object DateTileTypography {
     /** The day figure — the thing the tile exists to show. Fixed: it is not the length-sensitive one. */
     val daySize = 26.sp
 
-    /** The month name, on its own line at the bottom. */
-    val monthSize = 11.sp
-
     /** Horizontal padding on each side; the text width is the tile's width less twice this. */
     const val PADDING_DP = 6
 
@@ -266,6 +313,13 @@ internal object DateTileTypography {
 internal fun DateTileRoot(
     dayText: String?,
     monthText: String?,
+    /**
+     * The bottom line: a month name with its era'd year, e.g. `محرم ١٤٤٨ ھ` (FD-05).
+     *
+     * Assembled by the caller rather than here, so the year and its era come from the widget's own
+     * language (WG-12) instead of the Glance module guessing at them.
+     */
+    captionText: String?,
     weekdayText: String?,
     colors: WidgetColors,
     openAction: Action?,
@@ -293,7 +347,7 @@ internal fun DateTileRoot(
                 text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                 style = TextStyle(
                     color = ColorProvider(colors.secondaryText),
-                    fontSize = DateTileTypography.monthSize,
+                    fontSize = DateTileTypography.monthLineSizeFor(availableWidth),
                     textAlign = TextAlign.Center,
                 ),
             )
@@ -322,11 +376,11 @@ internal fun DateTileRoot(
             maxLines = 1,
         )
         Text(
-            text = monthText.orEmpty(),
+            text = captionText ?: monthText.orEmpty(),
             modifier = GlanceModifier.padding(top = 1.dp),
             style = TextStyle(
                 color = ColorProvider(colors.primaryText),
-                fontSize = DateTileTypography.monthSize,
+                fontSize = DateTileTypography.monthLineSizeFor(availableWidth),
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
             ),

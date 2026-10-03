@@ -96,6 +96,44 @@ public object WidgetLocalization {
             WidgetLanguage.URDU -> "ہجری تاریخ دستیاب نہیں"
             WidgetLanguage.ENGLISH -> "Hijri date unavailable"
         }
+
+        /**
+         * The Hijri era marker, appended to a Hijri year: `1447 AH` / `١٤٤٧ ھ`.
+         *
+         * **Why this is here rather than in `res/values`.** A widget's language is a
+         * [WidgetOptions] field, not a resource-configuration value — Glance renders from the host's
+         * single `Context`, so `getString(R.string.x)` can only ever answer for the *device*. One
+         * Urdu widget is designed to sit beside an English one on a phone with no Urdu locale, and
+         * the era is the clearest tell of which is which.
+         *
+         * `ھ` (U+06BE) rather than `ہ`, which is the Urdu letter Heh-goal and is what Urdu uses when
+         * writing * hijri sani* — the year. `ہ` is the do-chashmi he and belongs to words, not to a
+         * numeral suffix. It is a different codepoint, so this is not a stylistic choice.
+         *
+         * `AD` rather than `CE` for the Gregorian side: the Urdu [gregorianEra] is in the AD lineage
+         * and so is the Indian convention, and mixing `CE` into a Hijri calendar's chrome reads as an
+         * import.
+         */
+        public fun hijriEra(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "\u06BE"
+            WidgetLanguage.ENGLISH -> "AH"
+        }
+
+        /** The Gregorian era marker, appended to a Gregorian year: `2026 AD` / `٢٠٢٦ ئے`. */
+        public fun gregorianEra(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "\u0626\u06D2"
+            WidgetLanguage.ENGLISH -> "AD"
+        }
+
+        /**
+         * A year with its era appended, in whichever direction [language] writes one.
+         *
+         * Both supported languages put the era *after* the year, so there is no prefix case here — and
+         * adding one would be a schema flag for a formatting decision that belongs here. The era
+         * marker is one glyph either way; the ordering is the locale's business.
+         */
+        public fun yearWithEra(year: Int, language: WidgetLanguage, gregorian: Boolean): String =
+            "$year ${if (gregorian) gregorianEra(language) else hijriEra(language)}"
     }
 
     /**
@@ -205,6 +243,7 @@ private fun List<String>?.orDefault(fallback: List<String>): List<String> =
  * driven by the widget's own [WidgetLanguage] rather than the host's `layoutDirection`, so an
  * Urdu widget renders RTL on an LTR device and vice versa.
  */
+@Suppress("ReturnCount")
 public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
@@ -218,6 +257,8 @@ public fun buildHijriMonthWidgetData(
     localizedGregorianMonthNames: List<String>? = null,
     localizedWeekdayNames: List<String>? = null,
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
+    hijriEra: String? = null,
+    gregorianEra: String? = null,
 ): HijriMonthWidgetData? {
     val yearMonth = try {
         if (hijriMonth in 1..12) HijrahYearMonth(hijriYear, hijriMonth) else return null
@@ -269,8 +310,12 @@ public fun buildHijriMonthWidgetData(
     val gregorianFirst = calendarMonth.gregorianFirstDay
     val gregorianLast = calendarMonth.gregorianLastDay
     val gregorianRange = formatGregorianRange(gregorianFirst, gregorianLast, gregorianMonthNames)
-    val gregorianMonthTitle =
-        "${gregorianMonthNames[gregorianFirst.month.ordinal]} ${gregorianFirst.year}"
+    // Era-appended (FD-05). `null` — a caller that passed no marker — leaves the year bare, which is
+    // what the default parameters mean, so nothing changes for a leaf caller that has not opted in.
+    val gregorianMonthTitle = withEra(
+        "${gregorianMonthNames[gregorianFirst.month.ordinal]} ${gregorianFirst.year}",
+        gregorianEra,
+    )
 
     val days = calendarMonth.days.map { day ->
         val local = day.localDate
@@ -295,6 +340,10 @@ public fun buildHijriMonthWidgetData(
 
     return HijriMonthWidgetData(
         hijriYear = hijriYear,
+        hijriYearText = withEra(
+            formatNumber(hijriYear, numeralStyle),
+            hijriEra,
+        ),
         hijriMonth = hijriMonth,
         hijriMonthName = hijriMonthName,
         gregorianMonthTitle = gregorianMonthTitle,
@@ -350,6 +399,7 @@ private fun formatGregorianRange(
  * process-wide [HijriMonthOverrides.current] for the same reason as the grid builder (WD-01), and
  * the `options:`-taking overload threads it from [WidgetOptions.overridesTable].
  */
+@Suppress("ReturnCount")
 public fun todayHijriWidgetData(
     anchorEpochDay: Long,
     adjustmentDays: Int,
@@ -359,6 +409,8 @@ public fun todayHijriWidgetData(
     numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     pakistan: Boolean = false,
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
+    hijriEra: String? = null,
+    gregorianEra: String? = null,
 ): TodayHijriWidgetData? {
     // `fromEpochDays` throws for an epoch day outside the representable range, and `plus` throws
     // when the *shifted* date leaves it — which a large `adjustmentDays` alone can do. Both were
@@ -402,9 +454,11 @@ public fun todayHijriWidgetData(
         hijriDayText = formatNumber(hDay, numeralStyle),
         hijriMonth = hMonth,
         hijriYear = hYear,
+        hijriYearText = withEra(formatNumber(hYear, numeralStyle), hijriEra),
         hijriMonthName = hijriMonthNames.getOrNull(hMonth - 1) ?: "",
         gregorianDate = "${formatNumber(anchor.day, numeralStyle)} " +
-            "${gregorianMonthNames[anchor.month.ordinal]} ${anchor.year}",
+            "${gregorianMonthNames[anchor.month.ordinal]} " +
+            withEra(anchor.year.toString(), gregorianEra),
         weekdayName = weekdayNames.getOrNull(weekday.index) ?: weekday.shortName,
         adjustmentDays = adjustmentDays,
         gregorianDay = anchor.day,
@@ -412,6 +466,7 @@ public fun todayHijriWidgetData(
         gregorianMonth = anchor.month.ordinal + 1,
         gregorianMonthName = gregorianMonthNames[anchor.month.ordinal],
         gregorianYear = anchor.year,
+        gregorianYearText = withEra(formatNumber(anchor.year, numeralStyle), gregorianEra),
     )
 }
 
@@ -436,6 +491,15 @@ public fun offsetHijriMonth(hijriYear: Int, hijriMonth: Int, offset: Int): Hijri
     }
     return result?.let { HijriYearMonth(year = it.year, month = it.month.number) }
 }
+
+/**
+ * Appends a space and [era] to [year] when there is one.
+ *
+ * The one place era marking happens for a year, so the grid header, the today strip and the tiles all
+ * produce the same string. Both supported languages write the era *after* the year, so there is no
+ * prefix case to get wrong here; see [WidgetLocalization.ChromeLabels.yearWithEra].
+ */
+private fun withEra(year: String, era: String?): String = if (era == null) year else "$year $era"
 
 private fun formatNumber(value: Int, numeralStyle: NumeralStyle): String =
     if (numeralStyle == NumeralStyle.ARABIC_INDIC) {

@@ -45,6 +45,26 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   `WeekDay` ordinals, which would have been the WD-05 hazard arriving a second time: inserting a
   `WeekDay` entry would silently re-interpret every stored widget.
 
+### Added
+
+- **Years now carry their era marker.** `AH`/`AD` in English, `ھ`/`ئے` in Urdu, on the widget grid
+  header, the today strip, both 1×1 tiles, and the in-app calendar's header and selected-date card.
+  ([FD-05](docs/issues/2026-10-03/FD-05-era-markers.md))
+
+  A Hijri year and a Gregorian year are both four digits, and this is a bilingual calendar that shows
+  one under the other — `١٤٤٨` above `2026` leaves a reader guessing which is which. `ھ` is U+06BE, the
+  Urdu *hijri sani* letter; `ہ` (U+06C1) is a word letter and is a different codepoint that still
+  renders as a plausible Urdu letter, which is why the test asserts the code point. `AD` rather than
+  `CE`, matching the Urdu and Indian convention.
+
+  The **library's** defaults are unchanged — an empty marker renders a bare year — because
+  `HijriCalendarLabels` is published API and a default that changed output would silently restyle every
+  existing consumer's header. Opting in is a host's decision, and the shipped Urdu bundle does it.
+
+  New projection fields `HijriMonthWidgetData.hijriYearText`, `TodayHijriWidgetData.hijriYearText` and
+  `.gregorianYearText` carry the era'd year alongside the bare one, because the era follows the
+  *widget's* language rather than the device's resources (WG-12) and a renderer must not format it.
+
 ### Fixed
 
 - **The 1×1 date tiles now name the day they are showing.** `HijriDateWidget` and

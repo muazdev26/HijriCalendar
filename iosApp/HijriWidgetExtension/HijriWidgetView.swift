@@ -113,7 +113,7 @@ struct HijriGridEntryView: View {
             } label: {
                 HStack(spacing: 4) {
                     Text(month.hijriMonthName)
-                    Text("\(month.hijriYear)")
+                    Text(month.hijriYearText)
                     Text("·")
                         .foregroundStyle(.tertiary)
                     Text(month.gregorianMonthTitle)
@@ -229,7 +229,7 @@ struct HijriTodayCard: View {
                         .font(.system(size: height * 0.50, weight: .heavy, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.3)
-                    Text("\(today.hijriYear)")
+                    Text(today.hijriYearText)
                         .font(.system(size: height * 0.115, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -287,7 +287,7 @@ struct HijriTodayStripEntryView: View {
                 )
                 let hijri = DateHalf(
                     dayText: today.hijriDayText,
-                    monthAndYear: "\(today.hijriMonthName) \(today.hijriYear)"
+                    monthAndYear: "\(today.hijriMonthName) \(today.hijriYearText)"
                 )
                 HStack(alignment: .center, spacing: 0) {
                     if entry.options.language.isRtl {
@@ -368,7 +368,7 @@ struct HijriDateTileEntryView: View {
 
     private var caption: String? {
         guard let today = entry.today else { return nil }
-        return "\(today.hijriMonthName) \(today.hijriYear)"
+        return "\(today.hijriMonthName) \(today.hijriYearText)"
     }
 }
 

@@ -6,6 +6,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * WD-02: the header and the cells must describe the same Gregorian month.
@@ -42,7 +43,18 @@ class GregorianHeaderAgreementTest {
             "the projection painted no cell of its own month",
         )
         val cellDate = LocalDate.fromEpochDays(firstCell.gregorianEpochDay)
+        // The year carries its era marker (FD-05), so the tail is "<year> <era>" and the year has to
+        // be taken as the token before it. Reading the last token instead would silently compare the
+        // *era* against a year and pass for any title — which is exactly what it did the moment the
+        // marker was added.
         val headerMonthName = data.gregorianMonthTitle.substringBefore(' ')
+        val headerYear = data.gregorianMonthTitle.substringAfterLast(' ').let { lastToken ->
+            if (lastToken.toIntOrNull() != null) {
+                lastToken
+            } else {
+                data.gregorianMonthTitle.substringBeforeLast(' ').substringAfterLast(' ')
+            }
+        }
         // `LocalDate.month.name` and `CalendarNames.englishGregorianMonths` are the same twelve
         // strings, so this needs no index arithmetic (and no `Month.number`, which is deprecated and
         // was the one member of this pair that behaved differently across targets).
@@ -53,8 +65,13 @@ class GregorianHeaderAgreementTest {
         )
         assertEquals(
             "${cellDate.year}",
-            data.gregorianMonthTitle.substringAfterLast(' '),
+            headerYear,
             "the header's year must be the cell's year",
+        )
+        assertTrue(
+            data.gregorianMonthTitle.endsWith(" AD"),
+            "and the header must still carry its era marker; it read " +
+                "'${data.gregorianMonthTitle}'",
         )
     }
 

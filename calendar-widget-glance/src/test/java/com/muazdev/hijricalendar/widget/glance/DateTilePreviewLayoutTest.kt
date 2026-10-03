@@ -76,6 +76,10 @@ class DateTilePreviewLayoutTest {
     /** The weekday size at a given text width, in whole sp. Int because JUnit's equals is not for Floats. */
     private fun weekdaySpAt(width: Float): Int = DateTileTypography.weekdaySizeFor(width).value.toInt()
 
+    /** The bottom line's size, which is a separate rule because that line is twice as long (FD-05). */
+    private fun monthLineSpAt(width: Float): Int =
+        DateTileTypography.monthLineSizeFor(width).value.toInt()
+
     /**
      * Three lines, in order: the weekday name, the day figure, the month name.
      *
@@ -98,7 +102,7 @@ class DateTilePreviewLayoutTest {
                 listOf(
                     weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
                     DateTileTypography.daySize.value.toInt(),
-                    DateTileTypography.monthSize.value.toInt(),
+                    monthLineSpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
                 ),
                 sizes,
             )
@@ -146,7 +150,7 @@ class DateTilePreviewLayoutTest {
     fun theWeekdayLineIsNotStyledAsACaption() {
         assertEquals(
             "the weekday name must match the month name at the reference width",
-            DateTileTypography.monthSize.value.toInt(),
+            monthLineSpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
             weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
         )
         assertEquals(
@@ -262,7 +266,7 @@ class DateTilePreviewLayoutTest {
         val weekdaySp = DateTileTypography.weekdaySizeCeiling.value.toInt()
         val lineSp = weekdaySp +
             DateTileTypography.daySize.value.toInt() +
-            DateTileTypography.monthSize.value.toInt()
+            DateTileTypography.monthLineSizeCeiling.value.toInt()
         val requestedDp = lineSp * LINE_HEIGHT_RATIO + DateTileTypography.VERTICAL_PADDING_DP * 2
         val beforeThisChangeDp = (34f + 12f) * LINE_HEIGHT_RATIO + 12 * 2
 

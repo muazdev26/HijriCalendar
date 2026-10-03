@@ -38,6 +38,38 @@ public data class HijriCalendarLabels(
     val weekdayShortName: (weekDay: WeekDay) -> String = { it.shortName },
 
     /**
+     * The Hijri era marker, appended to a Hijri year: `AH` in English, `ھ` in Urdu.
+     *
+     * Empty by default, which renders a year with **no** era marker — deliberately, and this is the
+     * one field where the default is not the new behaviour. `HijriCalendarLabels` is public API on a
+     * published artifact with a binary-compatibility golden file, so a default that changed the
+     * output would silently restyle every existing consumer's header. A locale opts in by supplying
+     * the marker, and [headerTitle] is where it is composed.
+     *
+     * `ھ` (U+06BE) rather than `ہ`: that is the Urdu *hijri sani* letter, where `ہ` is the
+     * do-chashmi he that belongs to words. Different codepoint, not a stylistic choice.
+     */
+    val hijriEra: String = "",
+
+    /** The Gregorian era marker, appended to a Gregorian year: `AD` in English, `ئے` in Urdu. */
+    val gregorianEra: String = "",
+
+    /**
+     * A Hijri [year] with its era appended, or bare when [hijriEra] is empty.
+     *
+     * Exposed rather than left to [headerTitle] so a host that renders a Hijri year anywhere other
+     * than the header — a selected-date card, say — gets the same treatment without reimplementing it.
+     */
+    val hijriYearWithEra: (year: Int) -> String = { year ->
+        if (hijriEra.isEmpty()) "$year" else "$year $hijriEra"
+    },
+
+    /** A Gregorian [year] with its era appended, or bare when [gregorianEra] is empty. */
+    val gregorianYearWithEra: (year: Int) -> String = { year ->
+        if (gregorianEra.isEmpty()) "$year" else "$year $gregorianEra"
+    },
+
+    /**
      * Formats the header's title line from a month name and a year.
      *
      * Return the **whole** string so ordering and numeral system are the caller's. The built-in
