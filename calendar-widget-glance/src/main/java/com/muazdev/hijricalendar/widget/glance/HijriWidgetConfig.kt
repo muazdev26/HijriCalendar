@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.saveable.Saver
 import androidx.core.content.edit
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.appwidget.state.getAppWidgetState
@@ -51,6 +52,7 @@ public object HijriWidgetConfig {
     private const val KEY_OPTIONS = "options"
     private const val KEY_VIEWED = "viewed"
     private const val KEY_SELECTED_DAY = "selected_day"
+    private const val KEY_LOADING = "loading"
 
     private val OPTIONS_KEY = stringPreferencesKey(KEY_OPTIONS)
 
@@ -67,6 +69,14 @@ public object HijriWidgetConfig {
      * unencodable store is only verifiable off-device.
      */
     internal val SELECTED_DAY_KEY = stringPreferencesKey(KEY_SELECTED_DAY)
+
+    /**
+     * The month-navigation in-flight flag. A **boolean**, not the viewed month it is heading for:
+     * the widget cannot paint a month it has not computed yet, so what it needs to know is only
+     * "something is being computed" — the value it will land on is written to [VIEWED_KEY] by the
+     * same step that clears this, and the two are never both absent from a settled widget.
+     */
+    internal val LOADING_KEY = booleanPreferencesKey(KEY_LOADING)
 
     // Legacy SharedPreferences keys (migration only).
     private const val KEY_ADJUSTMENT_DAYS = "adjustment_days"
@@ -248,6 +258,60 @@ public object HijriWidgetConfig {
             mutable.remove(VIEWED_KEY)
         }
     }
+
+    /**
+     * Moves the viewed month **and drops the tapped day, in one store transaction**.
+     *
+     * One transaction because the two are a single state change, not two: a day tapped inside the
+     * month the user was looking at says nothing about the month they moved to. Writing them
+     * separately is what let the footer keep naming an observance for a day in a month the widget
+     * had already left — the reader gets "آج" for a day that is not today, attached to a grid that
+     * no longer contains it. It is the same disagreement [HijriWidgetTodayResetCallback] resolves by
+     * clearing both, so the arrows now go through one function rather than reproducing that pair of
+     * calls at every navigation site.
+     *
+     * A **day** selection is cleared, but a month *pin* is not: the pin is configuration the user
+     * chose in settings, and it is the fallback this navigation is temporarily overriding.
+     */
+    public suspend fun moveViewedMonth(
+        context: Context,
+        glanceId: GlanceId,
+        year: Int,
+        month: Int,
+    ) {
+        updateAppWidgetState(context, glanceId) { mutable ->
+            mutable[VIEWED_KEY] = encodeViewed(year, month)
+            mutable.remove(SELECTED_DAY_KEY)
+        }
+    }
+
+    /**
+     * Whether the widget is currently rendering the month a navigation tap asked for.
+     *
+     * Runtime state, not [WidgetOptions], for the reason the viewed month and the tapped day are
+     * also runtime state: it describes the widget's *current position*, and a flag in the published
+     * schema would put a transient value into every consumer's saved configuration and settings
+     * screen. It is written by the navigation callback before it starts the expensive part and
+     * cleared in a `finally`, so an interrupted step cannot leave a spinner on the widget forever.
+     */
+    public suspend fun setLoading(context: Context, glanceId: GlanceId, loading: Boolean) {
+        updateAppWidgetState(context, glanceId) { mutable ->
+            if (loading) {
+                mutable[LOADING_KEY] = true
+            } else {
+                mutable.remove(LOADING_KEY)
+            }
+        }
+    }
+
+    /**
+     * Decodes the loading flag, or `false` when absent.
+     *
+     * Absent-means-false is what makes a half-finished step harmless: the flag is removed rather
+     * than written as `false`, so the store's common case — a widget nobody is navigating — carries
+     * no key at all and this is one map lookup that finds nothing.
+     */
+    public fun decodeLoading(prefs: Preferences): Boolean = prefs[LOADING_KEY] == true
 
     internal val PREFS: PreferencesGlanceStateDefinition = PreferencesGlanceStateDefinition
 

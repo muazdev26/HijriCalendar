@@ -59,7 +59,11 @@ val UrduCalendarLabels = HijriCalendarLabels(
  * a year boundary — with `ء` appended to the year that is actually shown.
  */
 private fun urduGregorianRange(first: LocalDate, last: LocalDate): String {
-    fun name(date: LocalDate): String = UrduCalendarNames.gregorianMonths[date.month.ordinal - 1]
+    // `gregorianMonths` is listed January..December, so the index is `Month.ordinal` as-is — the same
+    // contract `defaultGregorianMonthRangeLabel` and the widget's `WidgetDataApi` use. Subtracting 1
+    // shifted every month name back one and threw on January (ordinal 0 -> index -1), which is a
+    // header crash the first time a user navigated to the Hijri month that starts in January.
+    fun name(date: LocalDate): String = UrduCalendarNames.gregorianMonths[date.month.ordinal]
     return when {
         first.month == last.month && first.year == last.year ->
             "${name(first)} ${first.year} $URDU_GREGORIAN_ERA"

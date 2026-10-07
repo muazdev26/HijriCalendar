@@ -22,7 +22,6 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.compose
 import androidx.glance.appwidget.provideContent
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
-import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import kotlinx.coroutines.CancellationException
 
@@ -70,6 +69,10 @@ internal class HijriCalendarWidgetPreview(
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
                 selectedDay = null,
+                // A preview never loads a month: it renders one the caller already resolved. The
+                // loading bar belongs to a real navigation step, and showing one here would imply a
+                // wait that is not happening.
+                isLoading = false,
                 selectedEventName = null,
                 colors = colors,
                 language = options.language,
@@ -211,16 +214,11 @@ internal class HijriDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.hijriDayText,
                 monthText = today?.hijriMonthName,
-                captionText = today?.let { data ->
-                    "${data.hijriMonthName} " +
-                        WidgetLocalization.ChromeLabels.yearWithEra(
-                            data.hijriYear, options.language, gregorian = false,
-                        )
-                },
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
+                gregorian = false,
             )
         }
     }
@@ -248,16 +246,11 @@ internal class GregorianDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.gregorianDayText,
                 monthText = today?.gregorianMonthName,
-                captionText = today?.let { data ->
-                    "${data.gregorianMonthName} " +
-                        WidgetLocalization.ChromeLabels.yearWithEra(
-                            data.gregorianYear, options.language, gregorian = true,
-                        )
-                },
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
+                gregorian = true,
             )
         }
     }

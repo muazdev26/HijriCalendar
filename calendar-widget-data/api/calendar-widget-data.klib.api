@@ -434,6 +434,7 @@ final object com.muazdev.hijricalendar.widgetdata/WidgetLocalization { // com.mu
         final fun monthUnavailable(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.monthUnavailable|monthUnavailable(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun nextMonth(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.nextMonth|nextMonth(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun previousMonth(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.previousMonth|previousMonth(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
+        final fun refreshWidget(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.refreshWidget|refreshWidget(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun yearWithEra(kotlin/Int, com.muazdev.hijricalendar.widgetdata/WidgetLanguage, kotlin/Boolean): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.yearWithEra|yearWithEra(kotlin.Int;com.muazdev.hijricalendar.widgetdata.WidgetLanguage;kotlin.Boolean){}[0]
     }
 }

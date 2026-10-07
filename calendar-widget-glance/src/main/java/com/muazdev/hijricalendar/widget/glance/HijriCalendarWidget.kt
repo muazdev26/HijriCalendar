@@ -21,6 +21,7 @@ import androidx.glance.action.Action
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
@@ -70,6 +71,17 @@ import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 
 public const val HIJRI_DEEP_LINK_TODAY: String = "hijricalendar://today"
+
+/**
+ * Height of the month-step progress bar, in dp.
+ *
+ * A named constant rather than a literal at the one call site because it is a **budget**, not a
+ * style: it is fixed-height, so this many dp come out of the weighted pool the week rows divide
+ * between them. Three is the smallest height that reads as a line rather than a hairline, and it
+ * costs each of five or six rows well under a dp. See [LoadingBar] for why this one being a fixed
+ * sibling is acceptable where [RowDivider] nesting was necessary.
+ */
+private const val LOADING_BAR_HEIGHT_DP = 7
 
 /**
  * The Hijri home-screen widget family.
@@ -134,6 +146,9 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             val options = HijriWidgetConfig.decodeOptions(prefs) ?: HijriWidgetConfig.DEFAULTS
             val viewedMonth = HijriWidgetConfig.decodeViewed(prefs)
             val selectedDay = HijriWidgetConfig.decodeSelectedDay(prefs)
+            // A month step in flight. Read from the same snapshot as everything else, so the bar and
+            // the grid can never be from different moments.
+            val isLoading = HijriWidgetConfig.decodeLoading(prefs)
             val data = HijriWidgetRenderCache.render(
                 glanceId = id.toString(),
                 options = options,
@@ -149,6 +164,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
                 selectedDay = selectedDay,
+                isLoading = isLoading,
                 // Resolved here, where the options live: the footer must name an observance in the
                 // *widget's* language and calendar space, and this is the only place that knows both.
                 selectedEventName = selectedDay
@@ -160,6 +176,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                     prev = prevAction,
                     next = nextAction,
                     reset = actionRunCallback<HijriWidgetTodayResetCallback>(),
+                    refresh = actionRunCallback<HijriWidgetRefreshCallback>(),
                 ),
             )
         }
@@ -187,6 +204,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
                 selectedDay = null,
+                isLoading = false,
                 selectedEventName = null,
                 colors = colors,
                 language = options.language,
@@ -674,6 +692,16 @@ internal fun HijriWidgetRoot(
     showCellBorders: Boolean,
     selectedDay: HijriDaySelection?,
     /**
+     * Whether a month step is in flight.
+     *
+     * Two things follow from it: a progress bar appears directly under the header, and every action
+     * goes away. The second matters more than it looks — the grid *stays on screen* while loading,
+     * so the arrows and the 42 cells are visibly right there; if they stayed live, a second tap
+     * arriving mid-step would be read against a month the first tap is about to replace, and a
+     * double-tap would skip a month.
+     */
+    isLoading: Boolean,
+    /**
      * The observance on [selectedDay], already named in the widget's language — or `null` when the
      * selected day carries none.
      *
@@ -691,12 +719,13 @@ internal fun HijriWidgetRoot(
 ) {
     val size = LocalSize.current
     val useCompact = size.width < 180.dp || size.height < 200.dp
+    val liveActions = if (isLoading) actions.whileLoading() else actions
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(colors.background)
-            .clickableWhen(actions.open)
+            .clickableWhen(liveActions.open)
             .padding(10.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
@@ -710,10 +739,11 @@ internal fun HijriWidgetRoot(
                 showAdjacentDays = showAdjacentDays,
                 showCellBorders = showCellBorders,
                 selectedDay = selectedDay,
+                isLoading = isLoading,
                 selectedEventName = selectedEventName,
                 colors = colors,
                 language = language,
-                actions = actions,
+                actions = liveActions,
             )
         }
     }
@@ -725,6 +755,7 @@ private fun TodayCard(
     colors: WidgetColors,
     language: WidgetLanguage,
 ) {
+    val fonts = HijriWidgetFonts.default
     if (today == null) {
         Text(
             // Not `getString(R.string.hijri_widget_unavailable)`: that resolves against the
@@ -754,6 +785,7 @@ private fun TodayCard(
                 color = colors.accent,
                 fontSize = dayFontSize,
                 fontWeight = FontWeight.Bold,
+                fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
@@ -764,13 +796,19 @@ private fun TodayCard(
                 color = colors.primaryText,
                 fontSize = monthFontSize,
                 fontWeight = FontWeight.Medium,
+                fontFamily = fonts.monthTitle.toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
         )
         Text(
             text = today.gregorianDate,
-            style = TextStyle(color = colors.secondaryText, fontSize = gregorianFontSize, textAlign = TextAlign.Center),
+            style = TextStyle(
+                color = colors.secondaryText,
+                fontSize = gregorianFontSize,
+                fontFamily = fonts.gregorianTitle.toGlanceFontFamily(),
+                textAlign = TextAlign.Center,
+            ),
             maxLines = 1,
         )
     }
@@ -792,10 +830,13 @@ private fun MonthHeader(
     language: WidgetLanguage,
     actions: WidgetActions,
 ) {
-    val prevAvailable = offsetHijriMonth(
+    // Availability is the *action*, not the range: while a step is in flight every action is null
+    // (see `WidgetActions.whileLoading`), so this dims the arrows then too. Reading the range alone
+    // would leave them drawn at full strength and inert, which looks like a bug rather than a wait.
+    val prevAvailable = actions.prev != null && offsetHijriMonth(
         month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_PREVIOUS,
     ) != null
-    val nextAvailable = offsetHijriMonth(
+    val nextAvailable = actions.next != null && offsetHijriMonth(
         month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_NEXT,
     ) != null
 
@@ -848,6 +889,52 @@ private fun MonthHeader(
                 contentDescription = WidgetLocalization.ChromeLabels.nextMonth(language),
             )
         }
+        // After the arrow in reading order, so the row reads "step … step, then jump back, then
+        // refresh" in both directions. Both are also simply the two things a header offers that the
+        // arrows are not; keeping them in one row costs no height, which a second row would.
+        HeaderIcon(
+            resId = R.drawable.ic_today,
+            action = actions.reset,
+            color = colors.primaryText,
+            contentDescription = WidgetLocalization.ChromeLabels.goToCurrentMonth(language),
+        )
+        HeaderIcon(
+            resId = R.drawable.ic_refresh,
+            action = actions.refresh,
+            color = colors.primaryText,
+            contentDescription = WidgetLocalization.ChromeLabels.refreshWidget(language),
+        )
+    }
+}
+
+/**
+ * One small header button: an icon, a tap action, an accessibility label.
+ *
+ * [NavigationArrow]'s shape without the range-edge state, because neither of these has an edge —
+ * "today" and "refresh" are always available. The touch target is the recommended 48dp with a 24dp
+ * icon: these sit four-across in a header that already has two 40dp arrows, so they are sized to add
+ * as little width as a usable target allows.
+ */
+@Composable
+private fun HeaderIcon(
+    resId: Int,
+    action: Action?,
+    color: ColorProvider,
+    contentDescription: String,
+) {
+    Box(
+        modifier = GlanceModifier
+            .semantics { this.contentDescription = contentDescription }
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .clickableWhen(action),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            provider = ImageProvider(resId),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(color),
+            modifier = GlanceModifier.size(24.dp),
+        )
     }
 }
 
@@ -860,6 +947,7 @@ private fun MonthGrid(
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
     selectedDay: HijriDaySelection?,
+    isLoading: Boolean,
     selectedEventName: String?,
     colors: WidgetColors,
     language: WidgetLanguage,
@@ -867,12 +955,6 @@ private fun MonthGrid(
 ) {
     // One measurement for the whole grid, so every cell resolves the same sizes from the same number
     // rather than each re-deriving from its own slot.
-    // The selection only marks a day in the month actually on screen (FD-09). Without this a stored
-    // day from a month the user has navigated away from would mark whatever cell happens to have the
-    // same day number in the new month — silently moving the mark, which is worse than dropping it.
-    val selectionVisible = selectedDay != null &&
-        selectedDay.isInMonth(month.hijriYear, month.hijriMonth)
-
     val cellSize = LocalSize.current.width / CalendarMonth.DAYS_IN_WEEK
     val hijriSize = GridTypography.hijriSizeSp(cellSize.value).sp
     val gregorianSize = GridTypography.gregorianSizeSp(cellSize.value).sp
@@ -886,6 +968,100 @@ private fun MonthGrid(
             actions = actions,
         )
 
+        // A month step is in flight: a bar directly under the header, **and the grid stays.**
+        //
+        // The grid staying is the point. Replacing it with the bar (which is what this did first)
+        // empties the widget for the length of the step, so a tap on a full-looking calendar makes it
+        // briefly blank and then refills — the motion reads as "my tap broke it", which is the
+        // opposite of what the bar is for. Google Calendar does the same thing: the month you are
+        // leaving stays on screen with a thin indeterminate line under the title, so the eye has
+        // something continuous to follow and the bar reads as progress rather than as a state change.
+        //
+        // What must not stay is the grid's **tappability**, and that is handled by the actions being
+        // nulled upstream (`WidgetActions.whileLoading`) rather than here.
+        if (isLoading) {
+            LoadingBar(colors)
+        }
+
+        MonthDays(
+            month = month,
+            todayEpochDay = todayEpochDay,
+            showAdjacentDays = showAdjacentDays,
+            showCellBorders = showCellBorders,
+            selectedDay = selectedDay,
+            hijriSize = hijriSize,
+            gregorianSize = gregorianSize,
+            colors = colors,
+            actions = actions,
+        )
+
+        EventFooter(
+            // Resolved above, where the options are; a footer must not re-derive the calendar space.
+            selectedEventName = selectedEventName,
+            isLaidOut = selectedDay != null,
+            colors = colors,
+        )
+    }
+}
+
+/**
+ * The indeterminate bar shown under the header while a month step runs.
+ *
+ * **A fixed 3dp row, not a weighted one**, and that is a deliberate difference from [RowDivider]
+ * sitting one screen below. A fixed child of this `Column` takes its height out of the weighted
+ * pool the week rows draw from, so this bar costs the grid 3dp once. The divider bug was different
+ * in kind, not just in amount: six 1dp siblings in that same pool meant every row lost height
+ * *proportionally* to the row count, which is why enabling it pushed the last week off the widget.
+ * One constant 3dp is a rounding error on any size this widget is offered at, and it is the price
+ * of the bar being where the eye expects it — directly under the title, above the weekday row,
+ * exactly as a Material linear indicator sits under an app bar.
+ *
+ * No track colour: Glance's indeterminate form draws the moving segment over the host background,
+ * and a second colour here would put a visible grey stripe across the widget for the whole step.
+ */
+@Composable
+private fun LoadingBar(colors: WidgetColors) {
+    LinearProgressIndicator(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(LOADING_BAR_HEIGHT_DP.dp)
+            .padding(bottom = 2.dp),
+        color = colors.accent,
+    )
+}
+
+/**
+ * The month grid itself: the weekday header row and the weighted day rows.
+ *
+ * Its own composable because it is a third of a screen of weighted layout arithmetic, and a reader
+ * checking "how tall is a row?" should not have to read past the header and the loading bar to find
+ * out.
+ *
+ * [selectedDay] is the tapped day as stored — *including* one belonging to another month, which
+ * happens whenever the user navigates and the answer is "draw no mark". Deciding that here rather
+ * than at the call site is deliberate: "is this selection visible?" and "does this cell get the
+ * badge?" must be answered by the same value, or a mark lands on a cell in the wrong month.
+ */
+@Suppress("LongParameterList")
+@Composable
+private fun MonthDays(
+    month: HijriMonthWidgetData,
+    todayEpochDay: Long,
+    showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
+    selectedDay: HijriDaySelection?,
+    hijriSize: TextUnit,
+    gregorianSize: TextUnit,
+    colors: WidgetColors,
+    actions: WidgetActions,
+) {
+    val fonts = HijriWidgetFonts.default
+    val selectionVisible = selectedDay?.isInMonth(month.hijriYear, month.hijriMonth) == true
+
+    // A Column for the same reason the outer grid has one: `defaultWeight` is a `ColumnScope`
+    // extension, so the rows below can only divide its height if they are its children. Flattening
+    // this back out is what would silently give every row its full intrinsic height.
+    Column(modifier = GlanceModifier.fillMaxSize()) {
         Row(
             modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
             verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -903,6 +1079,7 @@ private fun MonthGrid(
                         color = colors.secondaryText,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = fonts.weekday.toGlanceFontFamily(),
                         textAlign = TextAlign.Center,
                     ),
                 )
@@ -975,13 +1152,6 @@ private fun MonthGrid(
                 }
             }
         }
-
-        EventFooter(
-            // Resolved above, where the options are; a footer must not re-derive the calendar space.
-            selectedEventName = selectedEventName,
-            isLaidOut = selectedDay != null,
-            colors = colors,
-        )
     }
 }
 
@@ -1075,6 +1245,7 @@ private fun RowScope.MonthTitle(
     colors: WidgetColors,
     language: WidgetLanguage,
 ) {
+    val fonts = HijriWidgetFonts.default
     Box(
         modifier = GlanceModifier
             .defaultWeight()
@@ -1093,6 +1264,7 @@ private fun RowScope.MonthTitle(
                     color = colors.primaryText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = fonts.monthTitle.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
@@ -1112,6 +1284,7 @@ private fun RowScope.MonthTitle(
                     color = colors.secondaryText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
+                    fontFamily = fonts.gregorianTitle.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
@@ -1199,6 +1372,7 @@ private fun RowScope.DayCell(
     selectAction: Action?,
     paint: Boolean,
 ) {
+    val fonts = HijriWidgetFonts.default
     val isToday = paint && cell.gregorianEpochDay == todayEpochDay
 
     // A cell the widget is configured not to show keeps its slot so the rest of the week stays under
@@ -1292,6 +1466,7 @@ private fun RowScope.DayCell(
                         color = hijriColor,
                         fontSize = hijriSize,
                         fontWeight = GridCellWeights.HIJRI_DAY,
+                        fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                         textAlign = TextAlign.Center,
                     ),
                     maxLines = 1,
@@ -1302,6 +1477,7 @@ private fun RowScope.DayCell(
                         color = gregorianColor,
                         fontSize = gregorianSize,
                         fontWeight = GridCellWeights.GREGORIAN_DAY,
+                        fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                         textAlign = TextAlign.Center,
                     ),
                     maxLines = 1,

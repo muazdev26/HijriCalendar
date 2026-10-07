@@ -12,6 +12,7 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.math.roundToInt
 
 /**
  * FD-01: the 1x1 tiles must name the day they are showing, the day name must be sized to the width
@@ -73,12 +74,8 @@ class DateTilePreviewLayoutTest {
             size!!.removeSuffix("sp").toInt()
         }
 
-    /** The weekday size at a given text width, in whole sp. Int because JUnit's equals is not for Floats. */
+    /** The caption size at a given text width, in whole sp. Int because JUnit's equals is not for Floats. */
     private fun weekdaySpAt(width: Float): Int = DateTileTypography.weekdaySizeFor(width).value.toInt()
-
-    /** The bottom line's size, which is a separate rule because that line is twice as long (FD-05). */
-    private fun monthLineSpAt(width: Float): Int =
-        DateTileTypography.monthLineSizeFor(width).value.toInt()
 
     /**
      * Three lines, in order: the weekday name, the day figure, the month name.
@@ -102,7 +99,7 @@ class DateTilePreviewLayoutTest {
                 listOf(
                     weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
                     DateTileTypography.daySize.value.toInt(),
-                    monthLineSpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
+                    weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
                 ),
                 sizes,
             )
@@ -140,19 +137,36 @@ class DateTilePreviewLayoutTest {
      *
      * It shipped as 10sp Medium in `widget_text_secondary`, which made it the weakest line on a tile
      * whose whole content is a date — the weekday name is half the answer to "what day is it?" and it
-     * was drawn like a footnote. It now matches the month name's size and emphasis and reads in the
-     * primary text colour.
+     * was drawn like a footnote. It now matches the month name's emphasis and reads in the primary
+     * text colour.
      *
-     * The size assertion is about the reference width and the floor, because the line is now scaled
-     * with the tile width rather than fixed.
+     * **The size check is equality at every width — strengthened 2026-10-06.** This file asserted
+     * `>=` at the reference width only, as a proxy for "the weekday is not drawn as a caption"; the
+     * defect it was written for had the weekday at 10sp against the month line's 12sp. That was
+     * weakened twice by events that had nothing to do with styling: the weekday and month lines grew
+     * to different sizes, and then the year came off the month line, which removed the only reason
+     * they differed at all. Both caption lines are now sized by [DateTileTypography.weekdaySizeFor],
+     * so the proxy can be replaced by the property itself.
+     *
+     * Swept across every width rather than sampled, because "equal at the reference width" was exactly
+     * the weaker claim that let the two rules drift apart in the first place.
+     *
+     * The weight and colour assertions below carry the rest of the styling intent, and are exact.
      */
     @Test
     fun theWeekdayLineIsNotStyledAsACaption() {
-        assertEquals(
-            "the weekday name must match the month name at the reference width",
-            monthLineSpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
-            weekdaySpAt(DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP),
-        )
+        // The live composable calls one size function for both caption lines, so what is left to
+        // assert is that the hand-maintained mirror agrees — and that it agrees at *every* line, not
+        // only the two the other test happens to sample.
+        for (name in tilePreviews) {
+            val sizes = root(name).textSizesSp()
+            assertEquals(
+                "$name's top and bottom caption lines must be the same size; both are sized by " +
+                    "DateTileTypography.weekdaySizeFor and a differing pair means the mirror drifted",
+                sizes.first(),
+                sizes.last(),
+            )
+        }
         assertEquals(
             "the weekday name must never fall below the floor, however narrow the tile",
             DateTileTypography.weekdaySizeFloor.value.toInt(),
@@ -248,46 +262,58 @@ class DateTilePreviewLayoutTest {
     }
 
     /**
-     * The vertical budget, recorded rather than asserted.
+     * The vertical budget, held to the figure accepted for this layout.
      *
-     * Three lines of type cannot fit the declared 40dp minimum at any size worth reading. The tile is
-     * therefore sized for the cell a launcher actually grants, which for a 1x1 is comfortably more
-     * than its own declared minimum.
+     * Three lines of type cannot fit the declared 40dp `minHeight` at any size worth reading. The tile
+     * is therefore sized for the cell a launcher actually grants, which for a 1x1 is comfortably more
+     * than its own declared minimum — **and on a launcher that grants less, the bottom line is
+     * clipped.** That is a known, accepted cost of this layout, not an oversight, and this number is
+     * what makes it visible.
      *
-     * This is a number, not a guarantee: it says what the layout asks for, and it fails loudly if a
-     * future change grows a line without anyone noticing. It is *not* an assertion that the three
-     * lines fit 40dp, because they do not and pretending otherwise would be the more dishonest thing.
-     * The real check is a device, and `docs/issues/2026-10-03/FD-01` says so.
+     * **This assertion has been re-basedelined three times, for three different reasons:**
      *
-     * The weekday figure is the widest case, since the weekday is the longest line.
+     * 1. It originally compared against a hardcoded ~79dp, the cost of the two-line 34sp layout FD-01
+     *    replaced. That baseline broke when `daySize` grew 26sp -> 36sp.
+     * 2. It was re-basedelined against a two-line layout recomputed at the live `daySize` — a real
+     *    property, until the caption lines grew to 32sp each.
+     * 3. It was then raised twice for cosmetic changes that added height without adding value: 129dp
+     *    when both caption lines were merged onto one size rule, and 137dp when `VERTICAL_PADDING_DP`
+     *    went 2dp -> 6dp. **The 6dp padding was reverted** — it sliced the month name in half and, on a
+     *    centre-aligned column, could not move the text at all — which brings the figure back to ~129dp,
+     *    with both captions now sharing the one 34sp ceiling.
+     *
+     * A band-based layout (1 : 2 : 1 of the granted height, type sized from each band) was tried as the
+     * way to remove the clipping for good, and reverted: holding the captions to a quarter of the cell
+     * cost ~10sp of their size and made the width scaling inert at any typical cell height. This budget
+     * is what that layout would have made honest, and it is recorded here instead.
+     *
+     * The comparison against the old two-line layout is **not** reinstated: at 124dp it no longer holds,
+     * and asserting it would only assert that the tile is too tall. What is asserted is that the tile has
+     * not grown past what was accepted, so a further increase is visible.
+     *
+     * The real check is a device, across launchers that grant different cells;
+     * `docs/issues/2026-10-03/FD-01` says so.
      */
     @Test
-    fun theThreeLinesAskForLessHeightThanThePreFD01LayoutDid() {
-        val weekdaySp = DateTileTypography.weekdaySizeCeiling.value.toInt()
-        val lineSp = weekdaySp +
+    fun theThreeLinesStayWithinTheAcceptedVerticalBudget() {
+        val captionSp = DateTileTypography.weekdaySizeCeiling.value.toInt()
+        val lineSp = captionSp +
             DateTileTypography.daySize.value.toInt() +
-            DateTileTypography.monthLineSizeCeiling.value.toInt()
-        val requestedDp = lineSp * LINE_HEIGHT_RATIO + DateTileTypography.VERTICAL_PADDING_DP * 2
-        val beforeThisChangeDp = (34f + 12f) * LINE_HEIGHT_RATIO + 12 * 2
+            captionSp
+        // Rounded, because `LINE_HEIGHT_RATIO` is a `Float` and 100 * 1.2f is 120.00001f, not 120f.
+        val requestedDp =
+            (lineSp * LINE_HEIGHT_RATIO + DateTileTypography.VERTICAL_PADDING_DP * 2).roundToInt()
 
-        assertTrue(
-            "the three lines ask for ~${requestedDp.toInt()}dp against a declared " +
-                "${DateTileTypography.TILE_MIN_HEIGHT_DP}dp minimum; that is expected, but it must " +
-                "still be less than the ~${beforeThisChangeDp.toInt()}dp the two-line 34sp layout " +
-                "asked for",
-            requestedDp < beforeThisChangeDp,
+        assertEquals(
+            "the three lines ask for ~${requestedDp}dp, past the ~${ACCEPTED_MAX_REQUESTED_DP}dp " +
+                "accepted for this layout. Raising it is not free: the tile already clips on a cell " +
+                "shorter than this, and the 6dp padding that pushed it to 137dp had to be reverted " +
+                "because it sliced the month name",
+            ACCEPTED_MAX_REQUESTED_DP,
+            requestedDp,
         )
     }
 
-    /**
-     * The weekday name must be the widget's own language, not the device's — the whole reason
-     * `WidgetLocalization` exists (WG-12).
-     *
-     * A tile that resolved its strings from `res/values` would pass every layout assertion above and
-     * still be wrong on exactly the case the widget is designed for: an Urdu widget on a phone with no
-     * Urdu locale. Asserting the script rather than a table of strings keeps this honest when the Urdu
-     * weekday list changes.
-     */
     @Test
     fun theWeekdayNameFollowsTheWidgetsLanguageNotTheDevices() {
         val anchor = HijriWidgetRefreshScheduler.todayEpochDay()
@@ -310,6 +336,38 @@ class DateTilePreviewLayoutTest {
         )
     }
 
+    /**
+     * The 1x1 tiles' bottom line is the month name alone — no year, and no era marker.
+     *
+     * It used to read `محرم ١٤٤٨ ھ` / `August 2026 AD` (FD-05). Both halves are gone: the projection
+     * still carries the year and the marker because the grid widget shows them, but a tile has no
+     * room for either.
+     *
+     * Asserted on the static preview text because that is the only render path a JVM test can reach —
+     * the composable has no host here. It is a mirror, so the assertion only holds while the mirror
+     * holds; the live `monthText` path is guarded by construction instead, since `DateTileRoot` takes
+     * the month name directly and has no parameter a year could arrive through.
+     */
+    @Test
+    fun theBottomLineIsTheMonthNameWithNoYearOrEra() {
+        for (name in tilePreviews) {
+            val month = root(name).children().last { it.tagName == "TextView" }
+                .attr("android:text").orEmpty()
+
+            assertTrue("$name's bottom line is blank", month.isNotBlank())
+            assertTrue(
+                "$name's bottom line still carries a year or era marker: '$month'. The tile is " +
+                    "supposed to show the month name alone",
+                month.none { it.isDigit() } && !month.contains(HIJRI_ERA) && !month.contains("AD"),
+            )
+            assertEquals(
+                "$name's bottom line should be the month name on its own, with no trailing year",
+                month.trim(),
+                month.trim().substringBefore(' '),
+            )
+        }
+    }
+
     private fun urduOptions() = createWidgetOptions(
         language = WidgetLanguage.URDU,
         numeralStyle = NumeralStyle.ARABIC_INDIC,
@@ -329,5 +387,23 @@ class DateTilePreviewLayoutTest {
 
         /** The separator the rejected two-line caption used between the weekday and the month. */
         const val MIDDOT = "·"
+
+        /** The Urdu Hijri era marker, `ھ` — one the tile's bottom line must never contain. */
+        const val HIJRI_ERA = "ھ"
+
+        /**
+         * The most vertical space the three lines are accepted to ask for, in dp.
+         *
+         * ~129dp for the layout that is actually in the tree: two caption lines at the shared 34sp
+         * ceiling plus the 36sp day figure, at 2dp of vertical padding.
+         *
+         * It reached 137dp only while `VERTICAL_PADDING_DP` was 6dp; that padding was reverted, so the
+         * figure came back down. See the budget test's KDoc for the full history, including the two
+         * earlier re-baselines and the band layout that was tried and undone.
+         *
+         * It is a judgement call about how much taller than its declared `minHeight` this tile may be,
+         * **not** a measurement of what a launcher grants.
+         */
+        const val ACCEPTED_MAX_REQUESTED_DP = 129
     }
 }

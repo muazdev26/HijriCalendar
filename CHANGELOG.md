@@ -29,6 +29,82 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ### Added
 
+- **The Today strip names the day, and separates its two dates.** The weekday name now sits centred
+  above the pair of dates, and a hairline divides the Gregorian half from the Hijri half. The row of
+  halves is explicitly `fillMaxWidth()` — `defaultWeight` only splits the width the `Row` is *given*,
+  and a content-sized `Row` in a centred `Column` leaves both dates bunched in the middle instead of
+  spread across the widget's width.
+
+  `TodayHijriWidgetData.weekdayName` has been projected — in the widget's own language, per WG-12 —
+  since the projection was written, and iOS and both 1×1 tiles have always rendered it. The strip was
+  the one place that dropped it, so a widget showing both dates could not say which day they were.
+
+  One line, not one per half: both halves are the same physical day, so a second copy says nothing the
+  first did not. It is drawn bold in the primary text colour at 17sp, with the month + year line as the
+  bottom line of each column. Every text slot here is `FontWeight.Bold`, which is the heaviest weight
+  Glance has (700, nothing above it), so "bolder" could only ever mean larger.
+
+  **The day figures are now derived from the height the launcher granted**, taking whatever the weekday
+  and month lines have not already claimed, so a tall strip renders a bigger number and a short one a
+  smaller number. This is the same move `DateTileTypography.weekdaySizeFor(availableWidth)` already
+  makes on the tiles, on the other axis — the strip is vertically resizable, so height is the one
+  dimension the host genuinely varies, and a fixed figure either wastes a tall placement or overflows a
+  short one. Clamped to 20–40sp, so the strip still reads as a strip.
+
+  It is also the only way to use the space above the figures, which is **not** padding: Glance boxes
+  every `Text` at the font's ascent + descent, `PaddingModifier` is non-negative, and Glance 1.2's
+  `TextStyle` has no `lineHeight`, so the dead leading above a digit cannot be reclaimed by a layout
+  nudge. Growing the figure until its own line box *is* that space is what consumes it.
+
+  **The strip's declared minimum height went from 40dp to 72dp, and the type is sized against that
+  number rather than the other way round.** An already-placed widget keeps the size the launcher
+  granted it; raising `minHeight` in the XML does *not* resize it. Enlarging the figures while the
+  placed strip kept its old height is what pushed the month caption off the bottom — the content outgrew
+  the widget, and the last line was the one that got clipped. The figure's floor sits below what 72dp
+  affords, so even a launcher granting the `minResizeHeight` 4dp less cannot shrink it into a clipped
+  caption.
+
+  The root `Column` is centre-aligned rather than pinned to the top, and that is deliberate: a
+  top-pinned column renders its content first and shows all the slack in one place — under the day
+  figures, as the dead leading inside their line boxes. That leading is not padding and cannot be
+  removed in Glance 1.2 (`PaddingModifier` is non-negative, `TextStyle` has no `lineHeight`), so
+  centring the block is the only way to share the leftover height between the top and the bottom.
+
+  The Android 12-14 `previewLayout` mirror carries all of it, and `TodayStripPreviewLayoutTest`
+  recomputes the three lines' height from `TodayStripTypography` and asserts it against the minimum
+  declared in all three widget-info qualifiers — the check that would have caught the old 40dp
+  declaration, and that fails before a device does.
+
+- **A host can now set the font family each widget field renders with.** `HijriWidgetFonts` carries
+  four independent family names — `monthTitle`, `gregorianTitle`, `weekday`, `dayNumber` — covering
+  every text slot in all four Android widgets: the grid's header title, weekday row and both lines of
+  every day cell; both halves of the Today strip; and the three lines of each 1x1 tile. Set
+  `HijriWidgetFonts.default` once at startup and every widget picks it up:
+
+  ```kotlin
+  HijriWidgetFonts.default = HijriWidgetFonts(
+      weekday = "Noto Nastaliq Urdu",
+      monthTitle = "Noto Nastaliq Urdu",
+  )
+  ```
+
+  Previously the widgets set no font at all, so they always rendered in the system face: a Glance
+  widget never sees the host app's Compose typography, which is why an app with a bundled Urdu font
+  still showed widget text in the device font.
+
+  **It takes a family *name*, and a bundled font will not resolve.** Glance's `FontFamily` has only a
+  `FontFamily(String)` constructor and applies it as a `TypefaceSpan`, which resolves through the
+  *system* font manager. A font in the host's `res/font/` — including one shipped through Compose
+  Multiplatform's `composeResources` — is app-private and invisible to that lookup, so it falls back
+  to the system face **with no error and no log**. Downloadable fonts (Google Fonts provider) and
+  system-installed fonts do resolve. If a widget looks unchanged after setting this, that is the first
+  thing to check.
+
+  It is not a `WidgetOptions` field: that schema is `commonMain` multiplatform and is the serialized
+  wire format shared with the iOS widget, and a font family is neither. The Android 12-14
+  `previewLayout` mirrors are static XML and keep their declared `android:fontFamily`; the live widgets
+  and the Android 15+ picker previews honour it.
+
 - **Which days the widget and the in-app calendar paint as non-working days is now an option.**
   `WidgetOptions.weekendPattern` (a new `WeekendPattern`: Friday+Saturday, Sunday, Friday only, none)
   and `HijriCalendarState.setWeekendDays(...)` replace a hardcoded `WeekDay.WEEKEND_DAYS` literal at
@@ -44,6 +120,39 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   `WeekendPattern` is a name-backed enum owned by `calendar-widget-data` rather than a set of
   `WeekDay` ordinals, which would have been the WD-05 hazard arriving a second time: inserting a
   `WeekDay` entry would silently re-interpret every stored widget.
+
+- **The widget grid now says what it is doing while it does it, and its header has two more
+  buttons.** Three changes, all on the `HijriCalendarWidget` grid:
+
+  - **A month step shows a progress bar and stops accepting taps.** Pressing an arrow can take
+    seconds — resolving "today" builds the Pakistan century table, and a full Glance composition
+    follows — and a widget that neither moves nor responds is indistinguishable from a broken one.
+    A linear indicator appears directly under the header, the way a Material progress bar sits under
+    an app bar — and **the grid stays on screen**, as Google Calendar's does. Replacing the grid with
+    the bar emptied the widget for the length of the step, so a tap on a full-looking calendar made
+    it briefly blank and then refill, which reads as "my tap broke it" rather than as progress. Every
+    action is suppressed for the duration, and that suppression is the substantive half: the arrows
+    and the cells are visibly right there, and a second tap arriving mid-step would resolve against a
+    base month the first tap is about to replace, skipping a month.
+
+    The flag is new widget *state*, not a `WidgetOptions` field (`HijriWidgetConfig.setLoading` /
+    `decodeLoading`) — a transient "something is being computed" has no business in a user's saved
+    configuration or in a settings screen. It is cleared in a `finally`, so a step dropped at a
+    range edge cannot leave a spinner on the widget.
+
+  - **The arrows now also drop the tapped day.** `HijriWidgetConfig.moveViewedMonth` writes the new
+    viewed month *and* clears the selection in one store transaction. Keeping it left the footer
+    naming an observance for a day in a month the widget had already left. This is what
+    `HijriWidgetTodayResetCallback` has always done, and there is now one function for it.
+
+  - **Two header buttons: "back to today" and "refresh".** The month title has always been the tap
+    target for the first; it is now also a visible icon, and the refresh button re-renders the family
+    with both refresh bypasses, because a deliberate tap is exactly the case the foreground gate and
+    the same-day marker do not describe. `WidgetLocalization.ChromeLabels.refreshWidget` localizes the
+    latter's accessibility label in the widget's own language, per WG-12.
+
+  Additive apart from `WidgetActions` gaining a defaulted `refresh` parameter, so existing
+  construction sites are unaffected.
 
 ### Added
 
@@ -75,6 +184,16 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   recompile are unaffected; a prebuilt artifact calling the nine-parameter overload will not resolve.
 
 ### Fixed
+
+- **The in-app calendar no longer crashes on the first next/prev that reaches a January.** The
+  sample's Urdu header label indexed the twelve Gregorian month names with
+  `date.month.ordinal - 1`, and `kotlinx.datetime`'s `Month.ordinal` is already 0-based — so every
+  month name was shifted back one, and January threw `ArrayIndexOutOfBoundsException: index=-1`
+  from composition. Opening the calendar was always safe; the crash needed a navigation step whose
+  Hijri month starts in a January.
+
+  `date.month.ordinal`, matching the contract `defaultGregorianMonthRangeLabel` in `calendar-ui` and
+  `WidgetDataApi`'s widget-side renderer already use. Sample-only, so no published signature moved.
 
 - **Turning on grid dividers no longer costs the widget its last week.** The Glance grid drew its
   horizontal rules as siblings of the week rows inside one `Column`, so six extra 1dp fixed-height

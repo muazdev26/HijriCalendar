@@ -1,4 +1,4 @@
-# Public surface of `calendar-widget-glance` — 58 declarations.
+# Public surface of `calendar-widget-glance` — 62 declarations.
 #
 # This module is in `apiValidation.ignoredProjects`, so `apiCheck` registers no dump task for it and
 # **no signature change here is visible to any gate**. This file is the substitute: the surface
@@ -69,6 +69,12 @@ HijriWidgetTodayResetCallback
 # consumer rendering their own grid with `GlanceAppWidget.compose` gets the same behaviour the
 # library's does rather than having to reimplement the callback.
 HijriWidgetSelectDayCallback
+# The header's refresh button. Public for the same reason as the two arrow callbacks above — Glance
+# instantiates an ActionCallback by name from the class, so it cannot be internal — and because a
+# consumer rendering their own header wants the same "user pressed refresh" entry point
+# (`HijriWidgetRefresher.refreshAllAsync` with both bypasses) rather than re-deriving which flags a
+# deliberate tap needs.
+HijriWidgetRefreshCallback
 
 # ── The widget's tap-through deep link, so a host can register the matching intent-filter without
 # hard-coding the string. README step 4.
@@ -87,6 +93,17 @@ HijriWidgetConfig.hasFamily
 HijriWidgetConfig.loadViewedMonth
 HijriWidgetConfig.setViewedMonth
 HijriWidgetConfig.clearViewedMonth
+# Moves the viewed month AND drops the tapped day in one store transaction. The pair is what the
+# arrows write, and it is one change rather than two: a selection belongs to the month it was tapped
+# in, so leaving it behind names an observance for a day the grid no longer shows. A consumer whose
+# own navigation steps months needs this rather than `setViewedMonth` for exactly that reason.
+HijriWidgetConfig.moveViewedMonth
+# The month-navigation in-flight flag, backing the widget's progress bar. Runtime state, not part of
+# WidgetOptions, and internal-keyed like the viewed month — a consumer driving their own
+# long-running step can set and clear it and get the same affordance.
+HijriWidgetConfig.setLoading
+# The composition's read of that flag, exactly as `decodeViewed` is for the viewed month.
+HijriWidgetConfig.decodeLoading
 # FD-09: the tapped day, which is the widget's *current position* alongside the viewed month and
 # deliberately NOT part of WidgetOptions — a tap is not a user's saved configuration. load/set/clear
 # are the trio a consumer needs to clear it on widget removal, matching the viewed month's.
@@ -125,4 +142,26 @@ HijriWidgetConfig.migrateLegacyIfNeeded
 # Those are the switches that decide whether the widget updates. `markUpdatedNow(today)` called from
 # outside the module suppresses every non-bypassing refresh for the rest of the day, permanently,
 # with a log line reading "already refreshed". Every call site is inside this module, so they are
-# `internal` and there is no consumer that loses anything.
+# `internal` and there is no consumer that loses anything.#
+# ── Fonts. `HijriWidgetFonts` is the whole per-field font option; its `default` is what a host
+# writes at startup to change the face any widget renders with. It is one data class rather than a
+# parameter on each widget because the receivers are declared by THIS module's manifest, so a host
+# places the shipped widgets and cannot hand them per-instance state — a process-wide default is the
+# only seam available without making every host re-declare all four receivers.
+#
+# It is a family NAME and not a font resource, and that is Glance's limit rather than a choice:
+# `androidx.glance.text.FontFamily` has only `FontFamily(String)` and applies it as a `TypefaceSpan`,
+# which resolves through the system font manager. A font bundled in the host's `res/font/` — including
+# one shipped via Compose Multiplatform `composeResources` — is app-private and therefore invisible to
+# that lookup, so it silently falls back to the system face. Only downloadable and system-installed
+# fonts resolve. The KDoc says so at length, because "I set it and nothing changed" is otherwise a
+# silent no-op with no error to grep for.
+#
+# Its four fields, not eight, because they are the slots a host actually wants to differ: the Hijri
+# month/year title, the Gregorian one, weekday names, and day figures. They cover all four widgets —
+# the grid header, weekday row and both lines of every cell; the Today strip's two halves; and the
+# three lines of each 1x1 tile. The Android 12-14 `previewLayout` mirrors are static XML and cannot
+# read a runtime value, so they keep their declared `android:fontFamily`; only the live widgets and the
+# Android 15+ `providePreview` trees honour it.
+HijriWidgetFonts
+HijriWidgetFonts.public

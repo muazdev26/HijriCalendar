@@ -19,6 +19,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriTodayWidget
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
+import com.muazdev.hijricalendar.widget.glance.HijriWidgetFonts
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetPreviewPublisher
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefresher
@@ -72,7 +73,7 @@ private object ConsumerResolutionCheck {
             size = DpSize(width = 260.dp, height = 280.dp),
             modifier = Modifier,
         )
-        HijriTodayWidgetLivePreview(options = options, size = DpSize(144.dp, 40.dp))
+        HijriTodayWidgetLivePreview(options = options, size = DpSize(144.dp, 72.dp))
         HijriDateWidgetLivePreview(options = options, size = DpSize(40.dp, 40.dp))
         GregorianDateWidgetLivePreview(options = options, size = DpSize(40.dp, 40.dp))
     }
@@ -154,5 +155,25 @@ private object ConsumerResolutionCheck {
         HijriWidgetRefreshScheduler.schedule(context)
         HijriWidgetPreviewPublisher.publishIfDueAsync(context)
         PakistanWarmUp.ensureWarm()
+    }
+
+    /**
+     * The per-field font option.
+     *
+     * Names [HijriWidgetFonts] and, through it, nothing from another module directly — the type
+     * itself holds only `String?` family names. It is here because `HijriWidgetFonts.default` is the
+     * seam a host writes to at startup, so a scope mistake that made the type unreachable would
+     * compile here and fail only in a consumer's `Application.onCreate`.
+     */
+    fun setWidgetFonts() {
+        val fonts = HijriWidgetFonts(
+            monthTitle = "Noto Nastaliq Urdu",
+            gregorianTitle = null,
+            weekday = "Noto Nastaliq Urdu",
+            dayNumber = null,
+        )
+        HijriWidgetFonts.default = fonts
+        val readBack: HijriWidgetFonts = HijriWidgetFonts.default
+        check(readBack == fonts)
     }
 }

@@ -86,6 +86,20 @@ public object WidgetLocalization {
         }
 
         /**
+         * The header's refresh icon.
+         *
+         * Says what the control *does* ("refresh"), not what it is ("the refresh icon"), for the same
+         * reason [goToCurrentMonth] does: a screen-reader user is swiping between controls and needs
+         * to know what each one will do before pressing it. It is deliberately **not** "Refresh
+         * date" — the button re-renders, it does not recalculate anything, and a label promising a
+         * recomputation would be wrong in the one case a user checks it.
+         */
+        public fun refreshWidget(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "تازہ کریں"
+            WidgetLanguage.ENGLISH -> "Refresh"
+        }
+
+        /**
          * Shown when a date fails to resolve, which makes it the *entire body* of three of the four
          * widgets — the one case where a user most needs to understand what they are looking at.
          *

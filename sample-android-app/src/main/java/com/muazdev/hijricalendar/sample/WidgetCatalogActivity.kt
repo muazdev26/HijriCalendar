@@ -138,7 +138,7 @@ private val catalogWidgets = listOf(
         provider = HijriTodayWidgetReceiver::class.java,
         settingsActivity = HijriTodayWidgetConfigureActivity::class.java,
         label = "Hijri Today",
-        description = "Today's Hijri and Gregorian dates on one line \u2014 Hijri always on the\n" +
+        description = "Today's weekday over the Hijri and Gregorian dates \u2014 Hijri always on the\n" +
                 "right \u2014 sized from a single cell up to the full row.",
         sizeHint = "Resizable \u00B7 1\u00D72 min",
         requestCode = 2,
@@ -165,7 +165,7 @@ private val catalogWidgets = listOf(
 
 private val catalogPreviewSizes = mapOf(
     WidgetKind.GRID to DpSize(168.dp, 176.dp),
-    WidgetKind.TODAY to DpSize(300.dp, 56.dp),
+    WidgetKind.TODAY to DpSize(300.dp, 72.dp),
     WidgetKind.HIJRI_DATE to DpSize(96.dp, 96.dp),
     WidgetKind.GREGORIAN_DATE to DpSize(96.dp, 96.dp),
 )

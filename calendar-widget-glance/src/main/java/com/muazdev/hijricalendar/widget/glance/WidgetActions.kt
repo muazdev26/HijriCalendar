@@ -30,11 +30,33 @@ internal data class WidgetActions(
     val next: Action? = null,
     /** Tapping the month title returns the grid to the current month. */
     val reset: Action? = null,
+    /**
+     * Tapping the header's refresh icon re-renders the family now.
+     *
+     * A separate field from [reset] rather than a reuse: the two answer different questions ("show
+     * me today" vs "this looks stale"), and collapsing them would mean every call site that wants one
+     * silently gets the other.
+     */
+    val refresh: Action? = null,
 ) {
     /**
      * True when nothing in this widget responds to a tap — the settings live preview and the picker
      * previews, which render the same tree so the user sees exactly what they will get.
+     *
+     * A widget that is **loading** a month answers true as well, and that is deliberate: every
+     * action is suppressed for the duration, so "this widget cannot be tapped right now" is the
+     * honest answer, and it is one value that keeps each of the five call sites from having to
+     * remember a second condition.
      */
     val isNonInteractive: Boolean
-        get() = open == null && prev == null && next == null && reset == null
+        get() = open == null && prev == null && next == null && reset == null && refresh == null
 }
+
+/**
+ * The action set to render **while a month is loading**.
+ *
+ * One function rather than five `if (isLoading) null else …` at the call sites: the whole point is
+ * that *nothing* is tappable mid-step, and a per-field version is one forgotten field away from a
+ * double-step landing on top of the step already running.
+ */
+internal fun WidgetActions.whileLoading(): WidgetActions = WidgetActions()

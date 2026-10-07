@@ -6,10 +6,13 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
+import kotlinx.coroutines.delay
+import kotlin.time.TimeSource
 
 /**
  * On-widget month navigation: the header arrows step the grid one Hijri month at a time in place
- * (no app launch) and tapping the month name returns to "follow today".
+ * (no app launch) and tapping the month name — or the header's today icon — returns it to "follow
+ * today".
  *
  * Each callback runs in the app process via Glance's `actionRunCallback` and persists the viewed
  * month through [HijriWidgetConfig] (keyed per widget) before asking [HijriCalendarWidget] to
@@ -22,6 +25,39 @@ import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 internal object HijriWidgetNavigation {
     const val STEP_PREVIOUS = -1
     const val STEP_NEXT = 1
+
+    /**
+     * How long the loading bar stays up at minimum, measured from the render that showed it.
+     *
+     * Not cosmetic padding. Glance's `update()` is fire-and-forget and its Recomposer coalesces
+     * invalidation bursts into one composition, so a loading render issued a few milliseconds
+     * before the final one is quite likely to be *merged away* — the user would see no bar at all
+     * and the whole feature would look like it did nothing on the taps that are fast. A floor on
+     * the visible duration is what makes the indicator observable at all, and it is short enough
+     * (400ms) to be invisible next to the multi-second step it is covering.
+     */
+    const val MIN_LOADING_VISIBLE_MS = 400L
+}
+
+/**
+ * The header's refresh icon: re-render this widget family now.
+ *
+ * Both bypass flags, because this is a user pressing a button and the whole point is that something
+ * happens: the foreground gate exists to stop *background* work stalling the Glance session worker,
+ * and the same-day marker exists to stop background triggers doing duplicate busywork. Neither
+ * describes a deliberate tap. A refresh does not change the viewed month or the selection — it
+ * redraws what is already there against the current clock, which is what a user watching a stale
+ * widget wants.
+ */
+public class HijriWidgetRefreshCallback : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        HijriWidgetRefresher.refreshAllAsync(
+            context = context,
+            reason = "widget-refresh-button",
+            bypassGate = true,
+            bypassDedupe = true,
+        )
+    }
 }
 
 public class HijriWidgetPrevMonthCallback : ActionCallback {
@@ -33,6 +69,76 @@ public class HijriWidgetPrevMonthCallback : ActionCallback {
 public class HijriWidgetNextMonthCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         stepViewedMonth(context, glanceId, HijriWidgetNavigation.STEP_NEXT)
+    }
+}
+
+/**
+ * Steps the currently displayed month by [step] and re-renders the grid. The current month is
+ * resolved exactly as rendering does it: viewed (navigation) > config-pinned > today. When the
+ * target month falls outside the supported range the step is a no-op.
+ *
+ * Navigation must never be the thread that pays for a cold Pakistan table: this callback can be
+ * the first thing to run after a process restart, a moment before the app's own warm-up coroutine
+ * has been scheduled. [PakistanWarmUp.ensureWarm] suspends onto the app's build instead.
+ *
+ * ## Why this renders twice
+ *
+ * A step is not instant. Resolving "today" can build the Pakistan century table (seconds, cold), and
+ * the render itself is a full Glance composition. Without feedback the arrows look dead for that
+ * whole window — and a user who cannot tell a slow tap from an ignored one presses again, which is
+ * how a double-step gets in. So this is a **two-render step**:
+ *
+ *  1. set the loading flag and render. That composition is cheap by construction: the grid is
+ *     replaced by a progress bar, so no Hijri math and no Pakistan table runs in it.
+ *  2. do the work, write the new month, clear the flag, render again.
+ *
+ * The flag is cleared in a `finally`, so a step that is dropped at a range edge, or that throws,
+ * cannot leave a widget stuck showing a spinner.
+ */
+internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step: Int) {
+    val startedAt = TimeSource.Monotonic.markNow()
+    HijriWidgetConfig.setLoading(context, glanceId, true)
+    HijriWidgetRenderQueue.render(context, glanceId)
+    try {
+        val options = HijriWidgetConfig.load(context, glanceId)
+        HijriWidgetRefreshLog.d("nav:step($step)", "options.language=${options.language}")
+        if (options.source.pakistan) {
+            HijriWidgetRefreshLog.d("nav:step($step)", "sampling Pakistan warm-up before tap math")
+            PakistanWarmUp.ensureWarm()
+        }
+        val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
+        // Only resolve "today" when it is genuinely the last fallback (never navigated, no pin);
+        // a widget that has navigated once resolves straight from `viewed` and never touches
+        // PakistanHijriCalendar on subsequent taps.
+        val todayHijri by lazy {
+            todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
+        }
+        val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
+        // The same resolver the projection and the render cache use, so a tap steps from exactly the
+        // month the widget is showing. Reading `pinnedYear`/`pinnedMonth` here independently is what let
+        // a half-set pin step from a stored year paired with today's month (WD-03).
+        val (baseYear, baseMonth) = resolveGridMonth(options, viewed, todayHijri) ?: run {
+            HijriWidgetRefreshLog.d(
+                "nav:step($step)",
+                "DROPPED tap: no viewed month, no pin and today unresolvable (source=${options.source})",
+            )
+            return
+        }
+        val next = offsetHijriMonth(baseYear, baseMonth, step) ?: run {
+            HijriWidgetRefreshLog.d("nav:step($step)", "no-op: month $baseYear-$baseMonth is at the supported edge")
+            return
+        }
+        HijriWidgetRefreshLog.d("nav:step($step)", "base=$baseYear-$baseMonth -> next=$next")
+        // The month *and* the tapped day, in one write: a selection belongs to the month it was
+        // tapped in, so carrying it across leaves the footer naming an observance for a day the grid
+        // no longer shows. Same reason `HijriWidgetTodayResetCallback` clears both.
+        HijriWidgetConfig.moveViewedMonth(context, glanceId, next.year, next.month)
+    } finally {
+        HijriWidgetConfig.setLoading(context, glanceId, false)
+        // Hold the bar up long enough to be seen — see MIN_LOADING_VISIBLE_MS.
+        val remaining = HijriWidgetNavigation.MIN_LOADING_VISIBLE_MS - startedAt.elapsedNow().inWholeMilliseconds
+        if (remaining > 0) delay(remaining)
+        HijriWidgetRenderQueue.render(context, glanceId)
     }
 }
 
@@ -49,49 +155,6 @@ public class HijriWidgetTodayResetCallback : ActionCallback {
         HijriWidgetConfig.clearSelectedDay(context, glanceId)
         HijriWidgetRenderQueue.render(context, glanceId)
     }
-}
-
-/**
- * Steps the currently displayed month by [step] and re-renders the grid. The current month is
- * resolved exactly as rendering does it: viewed (navigation) > config-pinned > today. When the
- * target month falls outside the supported range the step is a no-op.
- *
- * Navigation must never be the thread that pays for a cold Pakistan table: this callback can be
- * the first thing to run after a process restart, a moment before the app's own warm-up coroutine
- * has been scheduled. [PakistanWarmUp.ensureWarm] suspends onto the app's build instead.
- */
-internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step: Int) {
-    val options = HijriWidgetConfig.load(context, glanceId)
-    HijriWidgetRefreshLog.d("nav:step($step)", "options.language=${options.language}")
-    if (options.source.pakistan) {
-        HijriWidgetRefreshLog.d("nav:step($step)", "sampling Pakistan warm-up before tap math")
-        PakistanWarmUp.ensureWarm()
-    }
-    val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
-    // Only resolve "today" when it is genuinely the last fallback (never navigated, no pin);
-    // a widget that has navigated once resolves straight from `viewed` and never touches
-    // PakistanHijriCalendar on subsequent taps.
-    val todayHijri by lazy {
-        todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
-    }
-    val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
-    // The same resolver the projection and the render cache use, so a tap steps from exactly the
-    // month the widget is showing. Reading `pinnedYear`/`pinnedMonth` here independently is what let
-    // a half-set pin step from a stored year paired with today's month (WD-03).
-    val (baseYear, baseMonth) = resolveGridMonth(options, viewed, todayHijri) ?: run {
-        HijriWidgetRefreshLog.d(
-            "nav:step($step)",
-            "DROPPED tap: no viewed month, no pin and today unresolvable (source=${options.source})",
-        )
-        return
-    }
-    val next = offsetHijriMonth(baseYear, baseMonth, step) ?: run {
-        HijriWidgetRefreshLog.d("nav:step($step)", "no-op: month $baseYear-$baseMonth is at the supported edge")
-        return
-    }
-    HijriWidgetRefreshLog.d("nav:step($step)", "base=$baseYear-$baseMonth -> next=$next")
-    HijriWidgetConfig.setViewedMonth(context, glanceId, next.year, next.month)
-    HijriWidgetRenderQueue.render(context, glanceId)
 }
 
 /**

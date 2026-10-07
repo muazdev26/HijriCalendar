@@ -73,8 +73,8 @@ internal fun WidgetKind.subtitle(): String = when (this) {
     WidgetKind.GRID -> "The month grid with today's highlight, plus a compact today card. " +
             "Every change applies and saves immediately; the widget on your home screen updates " +
             "in real time."
-    WidgetKind.TODAY -> "Today's Hijri and Gregorian dates on one line, resizable from a single " +
-            "cell. It follows the family options below — every change applies immediately."
+    WidgetKind.TODAY -> "Today's weekday over the Hijri and Gregorian dates, resizable from a " +
+            "single cell. It follows the family options below — every change applies immediately."
     WidgetKind.HIJRI_DATE -> "A fixed 1x1 tile with today's Hijri day and month. It follows the " +
             "family options below — every change applies immediately."
     WidgetKind.GREGORIAN_DATE -> "A fixed 1x1 tile with today's Gregorian day and month. It " +
@@ -83,7 +83,7 @@ internal fun WidgetKind.subtitle(): String = when (this) {
 
 private val COMPACT_PREVIEW_SIZE = DpSize(104.dp, 110.dp)
 private val GRID_PREVIEW_SIZE = DpSize(260.dp, 280.dp)
-private val STRIP_PREVIEW_SIZE = DpSize(320.dp, 64.dp)
+private val STRIP_PREVIEW_SIZE = DpSize(320.dp, 72.dp)
 private val TILE_PREVIEW_SIZE = DpSize(120.dp, 120.dp)
 
 /**

@@ -328,10 +328,22 @@ class StaticPreviewLayoutTest {
     }
 
     @Test
-    fun theTodayStripPreviewShowsBothDateHalves() {
-        // Two halves, each a bold day figure over a month and year, matching the live `DateSide`.
-        val texts = root("hijri_today_widget_preview_layout").deepAttr("android:text")
-        assertEquals("the strip shows two figures and two captions", 4, texts.size)
+    fun theTodayStripPreviewShowsTheWeekdayBothHalvesAndTheDivider() {
+        // Three text lines over the whole strip — one centred weekday above two halves of a bold day
+        // figure over a month and year each — plus the hairline between the halves, matching the live
+        // `HijriTodayRoot`. The weekday line was the fifth text this assertion was raised from, and the
+        // divider is checked structurally rather than by text because it is a `View`, not a `TextView`.
+        val root = root("hijri_today_widget_preview_layout")
+        val texts = root.deepAttr("android:text")
+        assertEquals("the strip shows a weekday, two figures and two captions", 5, texts.size)
+
+        val dividers = root.deep().filter { it.tagName == "View" }
+        assertEquals("expected exactly one hairline between the two date halves", 1, dividers.size)
+        assertEquals(
+            "the divider should be the hairline colour the live render reuses from the grid",
+            "@color/widget_cell_border",
+            dividers.single().attr("android:background"),
+        )
     }
 
     @Test

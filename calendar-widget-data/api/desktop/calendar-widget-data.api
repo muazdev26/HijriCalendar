@@ -292,6 +292,7 @@ public final class com/muazdev/hijricalendar/widgetdata/WidgetLocalization$Chrom
 	public final fun monthUnavailable (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun nextMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun previousMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
+	public final fun refreshWidget (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun yearWithEra (ILcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Z)Ljava/lang/String;
 }
 
