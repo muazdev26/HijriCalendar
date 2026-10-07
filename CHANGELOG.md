@@ -27,7 +27,109 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   A widget stored before this field existed decodes into the new behaviour, so upgrading changes
   every already-placed grid. Set `showAdjacentDays = true` to keep the old look.
 
+- **`TodayHijriWidgetData` gained a constructor parameter, so the ABI moves even though the source
+  does not.** FD-10 added `hijriMonthShortName` as an additive field **with a default**, so every
+  caller that constructs or `copy`s the class still compiles — but the primary constructor, `copy`
+  and `componentN` all gain a slot, which is a binary break for anything already compiled against
+  2.0.0. Recompile consumers. `hijriMonthName` is unchanged and still populated; the new field is
+  additional, not a replacement.
+  ([FD-10](docs/issues/2026-10-03/FD-10-dual-date-tile.md))
+
 ### Added
+
+- **A fifth widget: `HijriDualDateWidget`, a strict 1×1 tile showing both dates at once.**
+  ([FD-10](docs/issues/2026-10-03/FD-10-dual-date-tile.md))
+
+  The two existing 1×1 tiles each answered half the question — `HijriDateWidget` the Hijri date,
+  `GregorianDateWidget` the Gregorian one — and the only widget that showed both was the resizable
+  Today strip, which cannot be placed in a single cell. A user who wanted both dates in one cell had
+  no widget for it. The layout is: **the weekday in a filled accent band, the Hijri day as the tile's
+  dominant figure at its centre, the Hijri month name in full beneath it, and the Gregorian date on
+  one compact line at the bottom** — `ستمبر - ۳۰` / `September - 30`.
+
+  The band carries the *weekday* rather than the month name because a weekday is one short word in
+  every language and so fits a full-width band comfortably, which leaves the body wide enough to render
+  the Hijri month **in full**. That in turn means the abbreviated `hijriMonthShortName` FD-10 added is no
+  longer read by Android; it stays on the shared projection for iOS, whose band is still narrow, so the
+  field and its tests remain.
+
+  **The Gregorian date's two halves are adjacent, not spread**, and joined by a **dash**. An earlier
+  revision pushed them to opposite physical ends with a weight, which read as two unrelated labels; a
+  later one aligned the whole phrase to the reading-start end, which slid the date to one side of the
+  tile. Centred and adjacent answers "is this one thing?", and a fixed physical order — month left, day
+  right — answers "which side is the number on?". The order therefore keys on `computeDeviceLayoutRtl`,
+  the **device**, not on `computeLayoutRtl`, which folds `options.language` in and would land the day on
+  the **left** for an Urdu widget while looking correct on an English one.
+
+  **The separator is muted to `widget_text_secondary` and its string is a literal.** Punctuation is not
+  text: unlike the month name, the weekday and the numerals it is not language-specific and so does not
+  belong in the projection (WG-12). The grid header already joins its own two title halves with a
+  literal for the same reason.
+
+  **Strictly 1×1 and not resizable**, with the same 40dp minimum as the other tiles.
+  `minHeight` is deliberately *not* raised to make the content fit: on launchers before Android 12 the
+  cell count is derived from `minWidth`/`minHeight`, so a 72dp minimum here would make this a two-cell
+  widget on exactly those launchers. The Today strip can afford a raised minimum because it is
+  resizable.
+
+  **The Gregorian and Hijri month names now render in the same colour on every widget.** The Gregorian
+  month name was `widget_text_secondary` on the Today strip, the grid header and the dual tile, while the
+  Hijri month beside it was `widget_text_primary` — two weights of the same sentence, which read as though
+  the Gregorian date were a footnote on the Hijri one rather than its counterpart. Both are now
+  `widget_text_primary`.
+
+  The distinction each of those widgets still needs now comes from the **day figures** (the Hijri figure is
+  the accent colour, the Gregorian one primary), from size, and on the grid header from weight — not from
+  muting a month name. The two 1x1 tiles were already consistent: they share one `DateTileRoot`, whose month
+  line has always been `primaryText` for both calendars.
+
+  On the strip this is **structural rather than a changed argument**: `DateSide` took a per-side
+  `captionColor`, which is exactly the seam that let the halves drift apart. It now takes the palette and
+  derives both colours from `gregorian`, so the two captions cannot disagree.
+
+  **The top and bottom margins are equal by construction, and the residue is quoted rather than
+  claimed away.** FD-10 asked for margins equal to within 1dp for every language and numeral style,
+  which **Glance 1.2.0 cannot deliver**: each `Text` is a `TextView` boxed at the font's
+  ascent-plus-descent, `TextStyle` has no `lineHeight`, and `PaddingModifier` is non-negative. So the
+  tile is built like every other widget in the family, with the criterion reduced to what can actually
+  be built: the same inset constant above the band and below the weekday, and a centre-aligned
+  weighted region that splits the leftover height between them. What remains is the per-line leading,
+  which `DualDateTileTypography.RESIDUAL_MARGIN_DP` bounds and `DualDateTilePreviewLayoutTest`
+  asserts. **A green test run means the controllable part is equal and the uncontrollable part is
+  bounded — not that the margins are equal to within 1dp.**
+
+  It follows the family options mirror like the other two tiles, so it has no settings screen of its
+  own, and it is swept on every family refresh, the midnight alarm and every settings save alongside
+  the other four. `HijriDualDateWidgetLivePreview` is public, matching the other four preview
+  composables.
+
+  **Arabic names are not available.** `WidgetLanguage` has only `URDU` and `ENGLISH`, so this tile
+  renders `ربیع ۱` / `ستمبر` / `بدھ` where the reference mock-up shows `ربيع ٢` / `سبتمبر` /
+  `الأربعاء`. Adding Arabic is a schema change with `@JsonNames` aliases, localized name lists and
+  wire-format tests, and is scoped out of FD-10.
+
+- **`TodayHijriWidgetData.hijriMonthShortName`** — the abbreviated Hijri month name, for a narrow
+  header band that cannot hold `ربیع الثانی` or `Jumada al-akhirah`. The four months whose name does
+  not distinguish them from a sibling (Rabi' I/II, Jumada I/II) render the shared base plus an
+  ordinal digit in the widget's numeral style — `ربیع ۱`, `ربیع ۲`, `جمادی ۱`, `جمادی ۲` — and the
+  other eight render their ordinary name unchanged.
+  ([FD-10](docs/issues/2026-10-03/FD-10-dual-date-tile.md))
+
+  Built in the shared projection rather than by the renderer, per WG-12: a month name is text in the
+  **widget's** language, which is a `WidgetOptions` field and not a resource-configuration value, so a
+  renderer cannot answer for it. It follows `effectiveMonthNameLanguage`, not `language` — the same
+  distinction FD-05 settled for era markers, where reading `language` produced "April - May 2026 ء".
+  Being in the projection is also what lets iOS read it with no Swift edit.
+
+  `WidgetLocalization` gained `pairedHijriMonths`, the four month constants,
+  `pairedHijriMonthBase(month, language)` and `hijriMonthShortName(...)`. The base is the *shared*
+  name, not the long one trimmed: suffix-stripping would have to know that Urdu `الثانی` and English
+  `al-thani` both mean "second", which is a linguistic fact `WidgetLocalization` has no business
+  encoding. Four hand-picked strings per language rather than twelve short names for twelve months,
+  with nothing to keep in step for the other eight.
+
+  **iOS does not render it yet** — this is a follow-up ticket, not a prerequisite, precisely because
+  the string reaches Swift through the shared projection.
 
 - **The Today strip names the day, and separates its two dates.** The weekday name now sits centred
   above the pair of dates, and a hairline divides the Gregorian half from the Hijri half. The row of

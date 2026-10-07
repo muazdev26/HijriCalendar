@@ -54,7 +54,7 @@ class HijriWidgetFontsTest {
     /**
      * The default instance sets nothing, so upgrading changes no existing host's widgets.
      *
-     * The option has to be inert until a host opts in: four widgets currently render on Glance's own
+     * The option has to be inert until a host opts in: every widget currently renders on Glance's own
      * default face, and that is what a consumer on the current version must keep getting.
      */
     @Test

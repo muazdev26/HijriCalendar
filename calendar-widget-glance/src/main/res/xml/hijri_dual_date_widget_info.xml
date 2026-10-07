@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FD-10: the strict 1x1 dual-date tile.
+
+     Byte-for-byte the two existing tiles' info except for its own description, preview resources and
+     `minHeight`. That last one is load-bearing and deliberately NOT raised: on launchers before
+     Android 12 the cell count is derived from minWidth/minHeight (`cells = ceil((size + 30) / 70)`), so
+     a 72dp minimum here would make this a *two*-cell widget on those launchers. The Today strip can
+     afford a raised minimum because it is resizable; a strict 1x1 cannot. The content is sized to
+     the cell the launcher grants instead — see DualDateTileTypography.
+
+     No `android:configure`: the library ships no configure activity for any widget, and this tile
+     follows the family options mirror like the other two 1x1 tiles. `DualDateTilePreviewLayoutTest`
+     holds this file to the same numbers the live composition uses. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/hijri_dual_date_widget_description"
+    android:initialLayout="@layout/hijri_widget_loading"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:previewImage="@drawable/hijri_dual_date_widget_preview"
+    android:previewLayout="@layout/hijri_dual_date_widget_preview_layout"
+    android:resizeMode="none"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen"
+    tools:ignore="UnusedAttribute">
+</appwidget-provider>

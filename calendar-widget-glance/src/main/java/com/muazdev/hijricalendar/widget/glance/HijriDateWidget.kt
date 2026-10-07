@@ -297,7 +297,7 @@ internal object DateTileTypography {
  *
  * The weekday name comes from `TodayHijriWidgetData.weekdayName`, which the shared projection has
  * always populated from the widget's own [WidgetLanguage] and which iOS has always rendered — the
- * four Android widgets were the only place it was dropped. So it is localized per widget, not per
+ * Android tiles and the strip were the only places it was dropped. So it is localized per widget, not per
  * device (WG-12), and this ticket adds no field to the options schema.
  *
  * The weekday line is omitted when there is no readable date, in which case the tile says so via

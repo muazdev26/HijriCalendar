@@ -287,9 +287,20 @@ internal fun buildRenderData(
  * language's. On an LTR device this is just `language.isRtl`.
  */
 internal fun computeLayoutRtl(context: Context, language: WidgetLanguage): Boolean = resolveLayoutRtl(
-    deviceRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL,
+    deviceRtl = computeDeviceLayoutRtl(context),
     language = language,
 )
+
+/**
+ * Whether the **device** is laid out right-to-left, with nothing about the widget's language.
+ *
+ * Split out from [computeLayoutRtl] for the rows whose placement is fixed rather than reading-direction
+ * driven — see [emitsDayFirstForLeftMonth], where the only question is whether the platform will mirror a
+ * `Row`, and the widget's language must not enter into it. Reading the `Configuration` is plumbing the
+ * platform owns; the *decision* about what to do with the answer belongs to whichever rule is asking.
+ */
+internal fun computeDeviceLayoutRtl(context: Context): Boolean =
+    context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
 
 /**
  * The XOR on its own, so it can be tested without a `Configuration` (WG-16).
@@ -1280,8 +1291,11 @@ private fun RowScope.MonthTitle(
             )
             Text(
                 text = month.gregorianMonthTitle,
+                // `primaryText`, matching the Hijri half above: the header names *both* months of the
+                // same title, and muting the Gregorian one made it read as an aside rather than as half
+                // the title. Size and weight (15sp bold against 12sp Medium) still order the two halves.
                 style = TextStyle(
-                    color = colors.secondaryText,
+                    color = colors.primaryText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     fontFamily = fonts.gregorianTitle.toGlanceFontFamily(),

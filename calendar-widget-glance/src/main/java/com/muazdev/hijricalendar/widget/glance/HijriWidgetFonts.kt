@@ -3,7 +3,7 @@ package com.muazdev.hijricalendar.widget.glance
 import androidx.glance.text.FontFamily
 
 /**
- * Per-field font families for every text slot the four Android widgets render, as **family names**.
+ * Per-field font families for every text slot the Android widgets render, as **family names**.
  *
  * Set [default] once from the host app — typically in `Application.onCreate`, before any widget can
  * be placed — and every widget picks it up. Each field is independent so a host can, for example,
@@ -53,10 +53,12 @@ import androidx.glance.text.FontFamily
  * `providePreview` trees — which compose for real — honour these settings.
  *
  * @property monthTitle The Hijri month name and year: the grid header's Hijri half, the compact
- *   today's-card month line, and the bottom line of both 1x1 tiles.
+ *   today's-card month line, the bottom line of both 1x1 single-date tiles, and the dual tile's
+ *   header band.
  * @property gregorianTitle The Gregorian month and year: the grid header's Gregorian half, the
- *   compact card's Gregorian line, and the Gregorian tile's bottom line.
- * @property weekday Weekday names: the grid's header row and the top line of both 1x1 tiles.
+ *   compact card's Gregorian line, the Gregorian tile's bottom line, and the dual tile's sub-row.
+ * @property weekday Weekday names: the grid's header row, the top line of both 1x1 single-date
+ *   tiles, and the dual tile's last line.
  * @property dayNumber Day figures: both lines of every grid cell, the 1x1 tiles' big day number, and
  *   the Today strip's figures.
  */
@@ -94,7 +96,7 @@ internal fun String?.toGlanceFontFamily(): FontFamily? = this?.let { familyName 
 /**
  * The family for whichever calendar's month title this slot shows.
  *
- * Both 1x1 tiles and the grid's header render through shared composables, so "which calendar" is a
+ * The 1x1 tiles and the grid's header render through shared composables, so "which calendar" is a
  * call-site fact rather than something the text can say.
  */
 internal fun HijriWidgetFonts.forMonthTitle(gregorian: Boolean): String? =

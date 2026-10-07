@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-03
 **Branch:** `feat/widget-and-calendar-polish`
-**Status:** Ready — 9 tickets, 1 commit each
+**Status:** Ready — 10 tickets, 1 commit each
 **Source:** a consumer review of the four Android widgets and the in-app calendar
 
 > Nine tickets from one user-facing review. They arrived as eight items; three of them turned out to
@@ -24,9 +24,16 @@
 | [FD-07](FD-07-day-night-colour-reresolution.md) | Day/night colours re-resolve | — | `widget-glance` |
 | [FD-08](FD-08-shared-hijri-events.md) | Shared Hijri events dataset | — | `core` |
 | [FD-09](FD-09-widget-day-selection-and-event-footer.md) | Widget day selection + event footer | FD-08, FD-02, FD-01 | `widget-glance` |
+| [FD-10](FD-10-dual-date-tile.md) | Strict 1×1 tile showing both dates | — | `widget-data`, `widget-glance` |
 
-**Frontier:** FD-01, FD-02, FD-03, FD-05, FD-06, FD-07, FD-08 can all start immediately.
+**Frontier:** FD-01, FD-02, FD-03, FD-05, FD-06, FD-07, FD-08, FD-10 can all start immediately.
 FD-04 opens once FD-02 lands. FD-09 is last.
+
+**FD-10 arrives with three open decisions**, and its resolution is the part worth reading: D1
+(rendering route) was resolved *against* the ticket's own headline requirement, because Glance 1.2.0
+provably cannot deliver glyph-tight text — so the criterion was reduced to what can be built and
+stated honestly, rather than quietly approximated. D2 (Arabic) and D3 (the short-form rule) took the
+narrower of the options in each case.
 
 ---
 

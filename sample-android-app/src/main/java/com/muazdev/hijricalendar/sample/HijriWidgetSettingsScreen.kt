@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
@@ -60,6 +61,9 @@ enum class WidgetKind {
     TODAY,
     HIJRI_DATE,
     GREGORIAN_DATE,
+
+    /** FD-10: the fixed 1x1 tile showing both dates together. */
+    DUAL_DATE,
 }
 
 internal fun WidgetKind.title(): String = when (this) {
@@ -67,6 +71,7 @@ internal fun WidgetKind.title(): String = when (this) {
     WidgetKind.TODAY -> "Hijri Today Widget"
     WidgetKind.HIJRI_DATE -> "Hijri Date Tile"
     WidgetKind.GREGORIAN_DATE -> "Gregorian Date Tile"
+    WidgetKind.DUAL_DATE -> "Hijri + Gregorian Date Tile"
 }
 
 internal fun WidgetKind.subtitle(): String = when (this) {
@@ -79,12 +84,23 @@ internal fun WidgetKind.subtitle(): String = when (this) {
             "family options below — every change applies immediately."
     WidgetKind.GREGORIAN_DATE -> "A fixed 1x1 tile with today's Gregorian day and month. It " +
             "follows the family options below — every change applies immediately."
+    WidgetKind.DUAL_DATE -> "A fixed 1x1 tile with both dates at once: the Hijri month across the " +
+            "top, the Gregorian date under it, the Hijri day large in the middle and the weekday at " +
+            "the bottom. It follows the family options below — every change applies immediately."
 }
 
 private val COMPACT_PREVIEW_SIZE = DpSize(104.dp, 110.dp)
 private val GRID_PREVIEW_SIZE = DpSize(260.dp, 280.dp)
 private val STRIP_PREVIEW_SIZE = DpSize(320.dp, 72.dp)
 private val TILE_PREVIEW_SIZE = DpSize(120.dp, 120.dp)
+
+/**
+ * The dual tile is a strict 1x1, so its preview is square. Larger than [TILE_PREVIEW_SIZE] because
+ * this tile stacks four zones rather than three: at the other tiles' size the Hijri day would render
+ * at roughly half the size it gets on the home screen, which is the one figure this tile exists to
+ * show.
+ */
+private val DUAL_TILE_PREVIEW_SIZE = DpSize(150.dp, 150.dp)
 
 /**
  * The shared widget settings form used by every per-widget configure activity. Every control
@@ -200,6 +216,23 @@ internal fun HijriWidgetSettingsScreen(
                         options = options,
                         size = TILE_PREVIEW_SIZE,
                         modifier = previewBorder(TILE_PREVIEW_SIZE, MaterialTheme.colorScheme.outlineVariant),
+                    )
+                }
+            }
+
+            WidgetKind.DUAL_DATE -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    HijriDualDateWidgetLivePreview(
+                        options = options,
+                        // Square, and the same size the catalog uses. The dual tile's type is derived
+                        // from the height it is given, so this is also what decides how large the
+                        // preview's Hijri day renders — a preview at the wrong shape would not be
+                        // showing the proportions the tile actually gets.
+                        size = DUAL_TILE_PREVIEW_SIZE,
+                        modifier = previewBorder(DUAL_TILE_PREVIEW_SIZE, MaterialTheme.colorScheme.outlineVariant),
                     )
                 }
             }

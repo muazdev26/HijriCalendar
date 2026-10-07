@@ -208,6 +208,24 @@ public data class TodayHijriWidgetData(
      */
     val hijriYearText: String = hijriYear.toString(),
     val hijriMonthName: String,
+    /**
+     * [hijriMonthName] in the **short** form a narrow header band can hold (FD-10): the four months
+     * whose name does not distinguish them from a sibling carry their ordinal — `ربيع ١`, `ربيع ٢`,
+     * `جمادى ١`, `جمادى ٢` — and the other eight are [hijriMonthName] unchanged.
+     *
+     * Built in the projection rather than by the renderer (WG-12), because a month name is text in
+     * the widget's own language: the language belongs to a `WidgetOptions` field and not to the
+     * device's resources, so a renderer cannot answer for it. Building it here is also what lets iOS
+     * read the same string with no Swift edit.
+     *
+     * **Additive and defaulted, so it is source-compatible** — a caller constructing
+     * `TodayHijriWidgetData` still compiles — **but it changes the ABI**, which is why the golden
+     * files carry it.
+     *
+     * Empty when the month has no name at all, in which case a renderer shows nothing rather than a
+     * bare ordinal digit: a band reading just `٢` is a number with no month attached.
+     */
+    val hijriMonthShortName: String = "",
     val gregorianDate: String,
     val weekdayName: String,
     val adjustmentDays: Int,

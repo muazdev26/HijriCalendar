@@ -30,7 +30,7 @@
             </intent-filter>
         </activity>
 
-        <!-- The four widget <receiver> elements are declared by calendar-widget-glance and merged
+        <!-- The widget <receiver> elements are declared by calendar-widget-glance and merged
              in from there (WG-10): AppWidgetManager discovers widgets by scanning the merged
              manifest, so a library that omitted them would give a consumer no widget at all.
              What the sample overrides is the provider *info* — its own res/xml copies below add
@@ -73,6 +73,14 @@
         </activity>
         <activity
             android:name=".GregorianDateWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".HijriDualDateWidgetConfigureActivity"
             android:exported="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <intent-filter>

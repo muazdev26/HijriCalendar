@@ -9,4 +9,6 @@
     <string name="hijri_date_widget_description">Today\'s Hijri day and month as a compact tile; follows the Hijri Calendar widget\'s settings.</string>
     <string name="gregorian_date_widget_label">Gregorian Date</string>
     <string name="gregorian_date_widget_description">Today\'s Gregorian day and month as a compact tile; follows the Hijri Calendar widget\'s settings.</string>
+    <string name="hijri_dual_date_widget_label">Hijri + Gregorian Date</string>
+    <string name="hijri_dual_date_widget_description">Today\'s Hijri and Gregorian dates together in one fixed tile; follows the Hijri Calendar widget\'s settings.</string>
 </resources>

@@ -32,7 +32,6 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
@@ -305,8 +304,8 @@ internal fun HijriTodayRoot(
             return@Column
         }
         // The weekday both halves share: `TodayHijriWidgetData.weekdayName`, projected in the widget's
-        // own language (WG-12) since the projection was written, and rendered by iOS and by both 1x1
-        // tiles. This strip was the one place it was dropped.
+        // own language (WG-12) since the projection was written, and rendered by iOS and by every 1x1
+        // tile. This strip was the one place it was dropped.
         Text(
             text = today.weekdayName,
             modifier = GlanceModifier.padding(bottom = TodayStripTypography.lineGap),
@@ -335,8 +334,7 @@ internal fun HijriTodayRoot(
                     // itself, because the marker follows the widget's language, not the device (WG-12).
                     caption = "${today.hijriMonthName} ${today.hijriYearText}",
                     daySize = daySize,
-                    dayColor = colors.accent,
-                    captionColor = colors.primaryText,
+                    colors = colors,
                     gregorian = false,
                 )
             }
@@ -345,8 +343,7 @@ internal fun HijriTodayRoot(
                     dayText = today.gregorianDayText,
                     caption = "${today.gregorianMonthName} ${today.gregorianYearText}",
                     daySize = daySize,
-                    dayColor = colors.primaryText,
-                    captionColor = colors.secondaryText,
+                    colors = colors,
                     gregorian = true,
                 )
             }
@@ -401,15 +398,19 @@ private fun RowScope.DateSide(
     caption: String,
     /** Derived from the granted height by the caller — see [TodayStripTypography.daySizeFor]. */
     daySize: TextUnit,
-    dayColor: ColorProvider,
-    captionColor: ColorProvider,
+    colors: WidgetColors,
     /**
-     * Which calendar this half shows. The strip renders both through this one composable, so the
-     * caption's font slot cannot be inferred from the text — see [HijriWidgetFonts.forMonthTitle].
+     * Which calendar this half shows. The strip renders both through this one composable, so the caption's
+     * font slot cannot be inferred from the text — see [HijriWidgetFonts.forMonthTitle].
+     *
+     * It now decides the **day figure's** colour too, which is where the halves' remaining distinction
+     * lives: the Hijri figure is the accent colour, the Gregorian one primary. Taking the palette rather
+     * than a per-side colour is what makes that a rule instead of two call-site arguments that can drift.
      */
     gregorian: Boolean,
 ) {
     val fonts = HijriWidgetFonts.default
+    val dayColor = if (gregorian) colors.primaryText else colors.accent
     Column(
         modifier = GlanceModifier.defaultWeight(),
         verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -430,7 +431,7 @@ private fun RowScope.DateSide(
             text = caption,
             modifier = GlanceModifier.padding(top = TodayStripTypography.lineGap),
             style = TextStyle(
-                color = captionColor,
+                color = colors.primaryText,
                 fontSize = TodayStripTypography.captionSize,
                 fontWeight = FontWeight.Medium,
                 fontFamily = fonts.forMonthTitle(gregorian).toGlanceFontFamily(),

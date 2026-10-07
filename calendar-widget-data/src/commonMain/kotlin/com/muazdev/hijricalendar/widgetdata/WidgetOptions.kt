@@ -588,4 +588,8 @@ public fun todayHijriWidgetData(
     overrides = options.overridesTable(),
     hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
     gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
+    // The short Hijri month name is *text* too, so it follows the month-name language rather than
+    // `language` and rather than the device (WG-12). Passed alongside the names it abbreviates, so a
+    // caller cannot localize the names one way and pick the short base names another.
+    monthNameLanguage = options.effectiveMonthNameLanguage,
 )

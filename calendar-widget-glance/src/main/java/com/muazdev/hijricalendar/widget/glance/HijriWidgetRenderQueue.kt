@@ -9,9 +9,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Orders every widget render in the family and coalesces bursts of taps into a single render of
  * the final state. Every render pass — instance or sweep — also updates every other widget class
- * ([HijriTodayWidget], [HijriDateWidget], [GregorianDateWidget]): they have no settings screen of
- * their own and render the family options mirror, so any render triggered by a settings apply must
- * re-read it too. (There is no on-widget source toggle: the source is chosen only from the host's
+ * ([HijriTodayWidget], [HijriDateWidget], [GregorianDateWidget], [HijriDualDateWidget]): they have no
+ * settings screen of their own and render the family options mirror, so any render triggered by a
+ * settings apply must re-read it too. (There is no on-widget source toggle: the source is chosen only from the host's
  * settings screen — WD-10c.)
  *
  * Why this exists: Glance's `update()` is fire-and-forget — it only enqueues an `UpdateGlanceState`
@@ -98,7 +98,7 @@ internal object HijriWidgetRenderQueue {
     private val draining = AtomicBoolean(false)
 
     /**
-     * Renders a single grid instance — plus every mirror-following widget (Today strip and the two
+     * Renders a single grid instance — plus every mirror-following widget (the Today strip and the
      * 1x1 date tiles), which share the family options mirror — immediately when idle, or as a
      * coalesced follow-up when a render is already in flight (never blocks the tap on the in-flight
      * render).
@@ -167,7 +167,7 @@ internal object HijriWidgetRenderQueue {
 
     /**
      * One render pass: the grid instance (or all grid instances when [glanceId] is null) followed by
-     * a sweep of every mirror-following widget (Today strip and the two 1x1 date tiles).
+     * a sweep of every mirror-following widget (the Today strip and the 1x1 date tiles).
      *
      * Behind a seam so the coalescing and the drainer hand-off can be exercised without a real
      * `AppWidgetManager`. The default is the production behaviour; only tests replace it, and they
@@ -186,6 +186,11 @@ internal object HijriWidgetRenderQueue {
         HijriTodayWidget().updateAll(context)
         HijriDateWidget().updateAll(context)
         GregorianDateWidget().updateAll(context)
+        // The dual-date tile is swept here for the same reason as the two 1x1 tiles above: it has no
+        // settings screen and renders the family options mirror, so a settings apply must re-read it
+        // too. A tile that is placed but never swept is the one failure mode here with no log line —
+        // it simply shows the language the user picked two settings screens ago.
+        HijriDualDateWidget().updateAll(context)
     }
 
     /** Whether a request is queued but not yet rendered. For tests, which must not guess. */

@@ -20,7 +20,7 @@ import kotlin.math.roundToInt
  * saying the same thing.
  *
  * `TodayHijriWidgetData.weekdayName` has existed since the projection was written and iOS has always
- * rendered it. All four Android widgets dropped it — a field that was projected, consumed on one
+ * rendered it. Every Android widget dropped it — a field that was projected, consumed on one
  * platform, and silently ignored on the other. The rendering half is asserted here by asserting the
  * *data* is present and localized, because the composable itself is not unit-testable in this module
  * (Glance composition has no JVM host); the layout half is asserted by parsing the XML.

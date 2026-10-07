@@ -10,8 +10,8 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application>
-        <!-- Widget providers. Declared HERE so a consumer that adds the dependency gets the four
-             widgets in its picker without copying manifest XML: AppWidgetManager discovers widgets
+        <!-- Widget providers. Declared HERE so a consumer that adds the dependency gets the widgets
+             in its picker without copying manifest XML: AppWidgetManager discovers widgets
              by scanning the merged manifest for APPWIDGET_UPDATE receivers carrying the provider
              meta-data, so a library that omits the <receiver> element contributes nothing and
              requestPinAppWidget silently returns false.
@@ -68,6 +68,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/gregorian_date_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HijriDualDateWidgetReceiver"
+            android:label="@string/hijri_dual_date_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_dual_date_widget_info" />
         </receiver>
 
         <!-- System-broadcast catch-up receiver provided by the library -->
