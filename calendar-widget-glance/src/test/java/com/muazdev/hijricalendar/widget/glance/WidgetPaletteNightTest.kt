@@ -70,6 +70,10 @@ class WidgetPaletteNightTest {
         // The cell divider (FD-04) and the selected-day badge (FD-09).
         "widget_cell_border",
         "widget_selected_day",
+        // The observance fill (FD-08): two resources, because a ColorProvider cannot carry an alpha
+        // and the content colour has to change with its own container.
+        "widget_event_day_background",
+        "widget_on_event_day",
         // Not a WidgetColors member — see `arrowDimmed`.
         arrowDimmed,
     )
@@ -176,9 +180,9 @@ class WidgetPaletteNightTest {
     @Test
     fun everyPaletteMemberIsAColorProvider() {
         val expected = listOf(
-            "accent", "background", "cellBorder", "gregorianDay", "onTodayText", "outOfMonthDay",
-            "outOfMonthGregorianDay", "primaryText", "secondaryText", "selectedDay",
-            "todayBackground", "weekendText",
+            "accent", "background", "cellBorder", "eventDayBackground", "gregorianDay", "onEventDayText",
+            "onTodayText", "outOfMonthDay", "outOfMonthGregorianDay", "primaryText", "secondaryText",
+            "selectedDay", "todayBackground", "weekendText",
         )
         // Compose adds $stable and the companion's Companion/DEFAULT are static, not per-instance.
         val actual = WidgetColors::class.java.declaredFields

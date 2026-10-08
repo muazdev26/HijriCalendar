@@ -108,7 +108,7 @@ final enum class com.muazdev.hijricalendar.widgetdata/WidgetSource : kotlin/Enum
 }
 
 final class com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData { // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData|null[0]
-    constructor <init>(kotlin/Int, kotlin/String, kotlin/Int, kotlin/String, kotlin/Long, kotlin/Boolean, kotlin/Boolean) // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.<init>|<init>(kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Long;kotlin.Boolean;kotlin.Boolean){}[0]
+    constructor <init>(kotlin/Int, kotlin/String, kotlin/Int, kotlin/String, kotlin/Long, kotlin/Boolean, kotlin/Boolean, kotlin/Boolean = ...) // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.<init>|<init>(kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Long;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean){}[0]
 
     final val dayText // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.dayText|{}dayText[0]
         final fun <get-dayText>(): kotlin/String // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.dayText.<get-dayText>|<get-dayText>(){}[0]
@@ -118,6 +118,8 @@ final class com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData { // com.mua
         final fun <get-gregorianDayText>(): kotlin/String // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.gregorianDayText.<get-gregorianDayText>|<get-gregorianDayText>(){}[0]
     final val gregorianEpochDay // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.gregorianEpochDay|{}gregorianEpochDay[0]
         final fun <get-gregorianEpochDay>(): kotlin/Long // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.gregorianEpochDay.<get-gregorianEpochDay>|<get-gregorianEpochDay>(){}[0]
+    final val hasEvent // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.hasEvent|{}hasEvent[0]
+        final fun <get-hasEvent>(): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.hasEvent.<get-hasEvent>|<get-hasEvent>(){}[0]
     final val hijriDay // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.hijriDay|{}hijriDay[0]
         final fun <get-hijriDay>(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.hijriDay.<get-hijriDay>|<get-hijriDay>(){}[0]
     final val isCurrentMonth // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.isCurrentMonth|{}isCurrentMonth[0]
@@ -132,7 +134,8 @@ final class com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData { // com.mua
     final fun component5(): kotlin/Long // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.component5|component5(){}[0]
     final fun component6(): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.component6|component6(){}[0]
     final fun component7(): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.component7|component7(){}[0]
-    final fun copy(kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Long = ..., kotlin/Boolean = ..., kotlin/Boolean = ...): com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.copy|copy(kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Long;kotlin.Boolean;kotlin.Boolean){}[0]
+    final fun component8(): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.component8|component8(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Long = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ...): com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.copy|copy(kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Long;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.muazdev.hijricalendar.widgetdata/HijriDayWidgetData.toString|toString(){}[0]

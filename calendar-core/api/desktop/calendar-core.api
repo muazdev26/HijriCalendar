@@ -243,6 +243,7 @@ public final class com/muazdev/hijricalendar/core/HijriEvents {
 	public final fun forDate (II)Lcom/muazdev/hijricalendar/core/HijriEvent;
 	public final fun forMonth (I)Ljava/util/List;
 	public final fun getAll ()Ljava/util/List;
+	public final fun getCoordinateByKey ()Ljava/util/Map;
 	public final fun hasAnyIn (I)Z
 }
 

@@ -14,6 +14,7 @@ import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.monthLengthKey
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -312,5 +313,45 @@ class HijriWidgetConfigTest {
                 mutablePreferencesOf(HijriWidgetConfig.VIEWED_KEY to """{"year":1448}"""),
             ),
         )
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_readsASetFlagWithinTheThresholdAsLoading() {
+        val now = 1_000_000L
+        val prefs = mutablePreferencesOf(
+            HijriWidgetConfig.LOADING_KEY to true,
+            HijriWidgetConfig.LOADING_STARTED_KEY to now - 1_000L,
+        )
+        assertTrue(HijriWidgetConfig.decodeLoadingIfFresh(prefs, now))
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_agesOutAFlagTheOwningProcessNeverCleared() {
+        // The orphaned-flag case: a process killed mid-step has no `finally` left, and the flag
+        // sits in persistent storage. Reading it as `true` forever is a widget whose every action
+        // is nulled by `WidgetActions.whileLoading` — no tap can reach the code that clears it.
+        val now = 1_000_000L
+        val prefs = mutablePreferencesOf(
+            HijriWidgetConfig.LOADING_KEY to true,
+            HijriWidgetConfig.LOADING_STARTED_KEY to now - HijriWidgetConfig.LOADING_STALE_MS,
+        )
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(prefs, now))
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_treatsAStamplessFlagAsOrphaned() {
+        // Only a build older than the stamp can write this pair, and that build's step is
+        // definitionally over — so absence of a stamp means stale, not "unknown, assume running".
+        val prefs = mutablePreferencesOf(HijriWidgetConfig.LOADING_KEY to true)
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(prefs, nowEpochMillis = 1_000_000L))
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_ignoresAStampWithoutAFlag() {
+        // The clear path removes both keys in one edit, so this is only reachable if a future
+        // writer forgets the flag — and it must not read as loading on the strength of a time.
+        val prefs = mutablePreferencesOf(HijriWidgetConfig.LOADING_STARTED_KEY to 1_000L)
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(prefs, nowEpochMillis = 2_000L))
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(mutablePreferencesOf(), 2_000L))
     }
 }

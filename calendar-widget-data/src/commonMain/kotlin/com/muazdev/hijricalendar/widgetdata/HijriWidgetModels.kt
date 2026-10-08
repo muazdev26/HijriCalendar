@@ -82,6 +82,23 @@ public data class HijriDayWidgetData(
     val gregorianEpochDay: Long,
     val isCurrentMonth: Boolean,
     val isWeekend: Boolean,
+    /**
+     * Whether this day carries a notable observance (FD-08).
+     *
+     * A **flag, not the name**. Two renderers need two different things from the same cell: the grid
+     * needs to know only that it should fill the cell, while the footer's line names the observance for
+     * the *selected* day. Putting the name here would make 42 cells each carry a localized string the
+     * grid never reads, and would make the footer's answer a second derivation of the same lookup.
+     *
+     * Resolved from [com.muazdev.hijricalendar.core.CalendarDay.event], so it follows the projection's
+     * own calendar space — a Pakistan or observed-calendar widget marks the observance on the date
+     * that calendar actually reaches, not on the Umm al-Qura one.
+     *
+     * Default `false` so a caller constructing a cell by hand is unchanged. Note this is an additive
+     * field **with** a default, so the primary constructor, `copy` and `componentN` all gain a slot:
+     * source-compatible, a binary break for anything already compiled. See `CHANGELOG.md`.
+     */
+    val hasEvent: Boolean = false,
 )
 
 /**

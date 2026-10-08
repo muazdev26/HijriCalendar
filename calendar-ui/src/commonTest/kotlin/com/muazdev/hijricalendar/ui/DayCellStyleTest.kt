@@ -40,6 +40,8 @@ class DayCellStyleTest {
         outsideMonthDayContentColor = Color.LightGray,
         gregorianDayContentColor = Color.DarkGray,
         gregorianHeaderColor = Color.Gray,
+        eventDayContainerColor = Color(0xFF445566),
+        eventDayContentColor = Color(0xFF778899),
     )
 
     private fun day(
@@ -48,8 +50,12 @@ class DayCellStyleTest {
         selected: Boolean = false,
         disabled: Boolean = false,
         weekend: Boolean = false,
+        event: Boolean = false,
     ) = CalendarDay(
-        hijrahDate = HijrahDate(1447, 9, 15),
+        // 10 Muharram is Ashura and 9 Shawwal is not, so `event` is expressed through the *coordinate*
+        // rather than passed in — `CalendarDay.event` is derived, and a test that could set it directly
+        // would be testing a shape the class does not have.
+        hijrahDate = if (event) HijrahDate(1447, 1, 10) else HijrahDate(1447, 9, 15),
         isCurrentMonth = currentMonth,
         isToday = today,
         isSelected = selected,
@@ -107,6 +113,82 @@ class DayCellStyleTest {
         assertFalse(style.enabled, "but it must not be interactive")
     }
 
+    // ── observance fill (FD-08) ──
+
+    /**
+     * The fill itself, and the reason it exists.
+     *
+     * This was a 4dp dot above the day figure. A dot says "something is here" without saying it is
+     * legible at all, and the grid is exactly where a user looks to find out which days matter — so
+     * the cell is filled instead.
+     */
+    @Test
+    fun observanceDay_isFilled() {
+        val style = day(event = true).cellStyle(colors)
+        assertEquals(colors.eventDayContainerColor, style.backgroundColor)
+        assertEquals(colors.eventDayContentColor, style.contentColor)
+    }
+
+    @Test
+    fun observance_fillBeatsTheOrdinaryBackgroundAndWeekend() {
+        assertEquals(
+            colors.eventDayContainerColor,
+            day(event = true, weekend = true).cellStyle(colors).backgroundColor,
+        )
+        assertEquals(
+            colors.eventDayContentColor,
+            day(event = true, weekend = true).cellStyle(colors).contentColor,
+        )
+    }
+
+    /**
+     * The distinction the whole change exists to make: an observance is a fact about the **date**, the
+     * selection a fact about the **session**. A day that is both must read as selected, or the user
+     * cannot tell which day they picked.
+     */
+    @Test
+    fun selected_beatsAnObservance() {
+        val style = day(event = true, selected = true).cellStyle(colors)
+        assertEquals(colors.selectedDayContainerColor, style.backgroundColor)
+        assertEquals(colors.selectedDayContentColor, style.contentColor)
+    }
+
+    /**
+     * No fill outside the month, or on a disabled day.
+     *
+     * Both are already dimmed figures, and a filled cell there reads as a second selection — which is
+     * worse than the dot this replaces. The observance is still named in the header once the day is
+     * selected.
+     */
+    @Test
+    fun observance_isNotFilledOutsideTheMonthOrWhenDisabled() {
+        assertEquals(
+            colors.dayBackgroundColor,
+            day(event = true, currentMonth = false).cellStyle(colors).backgroundColor,
+        )
+        assertEquals(
+            colors.outsideMonthDayContentColor,
+            day(event = true, currentMonth = false).cellStyle(colors).contentColor,
+        )
+        assertEquals(
+            colors.dayBackgroundColor,
+            day(event = true, disabled = true).cellStyle(colors).backgroundColor,
+        )
+        assertEquals(
+            colors.disabledDayContentColor,
+            day(event = true, disabled = true).cellStyle(colors).contentColor,
+        )
+    }
+
+    /** The sub-label dims with its figure rather than staying the ordinary grey. */
+    @Test
+    fun observance_gregorianSubLabelIsDimmedToo() {
+        assertEquals(
+            colors.eventDayContentColor.copy(alpha = 0.7f),
+            day(event = true).cellStyle(colors).gregorianColor,
+        )
+    }
+
     // ── today border ──
 
     @Test
@@ -121,6 +203,19 @@ class DayCellStyleTest {
         val style = day(today = true, selected = true).cellStyle(colors)
         assertEquals(colors.selectedDayContainerColor, style.borderColor)
         assertEquals(HijriCalendarDefaults.TodayBorderWidth, style.borderWidth)
+    }
+
+    /**
+     * Today's border is suppressed on an observance day for the same reason it is on a selected one:
+     * the fill would hide it. Asserted because the suppression is now driven by two conditions, and a
+     * change to either could leave today unmarked on an Eid.
+     */
+    @Test
+    fun todayOnAnObservance_keepsNoBorderBecauseTheFillWouldHideIt() {
+        val style = day(today = true, event = true).cellStyle(colors)
+        assertEquals(colors.eventDayContainerColor, style.backgroundColor)
+        assertEquals(Color.Transparent, style.borderColor)
+        assertEquals(0.dp, style.borderWidth)
     }
 
     @Test

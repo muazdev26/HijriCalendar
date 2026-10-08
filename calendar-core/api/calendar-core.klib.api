@@ -407,6 +407,8 @@ final object com.muazdev.hijricalendar.core/CalendarNames { // com.muazdev.hijri
 final object com.muazdev.hijricalendar.core/HijriEvents { // com.muazdev.hijricalendar.core/HijriEvents|null[0]
     final val all // com.muazdev.hijricalendar.core/HijriEvents.all|{}all[0]
         final fun <get-all>(): kotlin.collections/List<com.muazdev.hijricalendar.core/HijriEvent> // com.muazdev.hijricalendar.core/HijriEvents.all.<get-all>|<get-all>(){}[0]
+    final val coordinateByKey // com.muazdev.hijricalendar.core/HijriEvents.coordinateByKey|{}coordinateByKey[0]
+        final fun <get-coordinateByKey>(): kotlin.collections/Map<kotlin/String, kotlin/Int> // com.muazdev.hijricalendar.core/HijriEvents.coordinateByKey.<get-coordinateByKey>|<get-coordinateByKey>(){}[0]
 
     final fun forDate(kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriEvent? // com.muazdev.hijricalendar.core/HijriEvents.forDate|forDate(kotlin.Int;kotlin.Int){}[0]
     final fun forMonth(kotlin/Int): kotlin.collections/List<com.muazdev.hijricalendar.core/HijriEvent> // com.muazdev.hijricalendar.core/HijriEvents.forMonth|forMonth(kotlin.Int){}[0]

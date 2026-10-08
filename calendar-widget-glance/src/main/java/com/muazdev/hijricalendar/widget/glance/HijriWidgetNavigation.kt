@@ -6,7 +6,9 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlin.time.TimeSource
 
 /**
@@ -93,13 +95,18 @@ public class HijriWidgetNextMonthCallback : ActionCallback {
  *  2. do the work, write the new month, clear the flag, render again.
  *
  * The flag is cleared in a `finally`, so a step that is dropped at a range edge, or that throws,
- * cannot leave a widget stuck showing a spinner.
+ * cannot leave a widget stuck showing a spinner. The one outcome that `finally` cannot reach —
+ * the process killed outright mid-step — is covered at read time by
+ * `HijriWidgetConfig.decodeLoadingIfFresh`, which ages an orphaned flag out.
  */
 internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step: Int) {
     val startedAt = TimeSource.Monotonic.markNow()
-    HijriWidgetConfig.setLoading(context, glanceId, true)
-    HijriWidgetRenderQueue.render(context, glanceId)
     try {
+        // Setting the flag and showing it are inside the `try`, not before it: a cancellation or
+        // failure on either suspension point must still reach the `finally`, or the flag stays set
+        // with no process left in this callback to clear it.
+        HijriWidgetConfig.setLoading(context, glanceId, true)
+        HijriWidgetRenderQueue.render(context, glanceId)
         val options = HijriWidgetConfig.load(context, glanceId)
         HijriWidgetRefreshLog.d("nav:step($step)", "options.language=${options.language}")
         if (options.source.pakistan) {
@@ -134,11 +141,18 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
         // no longer shows. Same reason `HijriWidgetTodayResetCallback` clears both.
         HijriWidgetConfig.moveViewedMonth(context, glanceId, next.year, next.month)
     } finally {
-        HijriWidgetConfig.setLoading(context, glanceId, false)
-        // Hold the bar up long enough to be seen — see MIN_LOADING_VISIBLE_MS.
-        val remaining = HijriWidgetNavigation.MIN_LOADING_VISIBLE_MS - startedAt.elapsedNow().inWholeMilliseconds
-        if (remaining > 0) delay(remaining)
-        HijriWidgetRenderQueue.render(context, glanceId)
+        // NonCancellable, because this `finally` suspends three times (the flag write, the
+        // visibility floor, the closing render) and a plain `finally` in an already-cancelled
+        // coroutine throws at the first suspension point — which is exactly how the flag used to
+        // survive its own cleanup and come back as a widget with no tappable region. The delay
+        // here is bounded by MIN_LOADING_VISIBLE_MS, so NonCancellable costs at most that long.
+        withContext(NonCancellable) {
+            HijriWidgetConfig.setLoading(context, glanceId, false)
+            // Hold the bar up long enough to be seen — see MIN_LOADING_VISIBLE_MS.
+            val remaining = HijriWidgetNavigation.MIN_LOADING_VISIBLE_MS - startedAt.elapsedNow().inWholeMilliseconds
+            if (remaining > 0) delay(remaining)
+            HijriWidgetRenderQueue.render(context, glanceId)
+        }
     }
 }
 

@@ -434,6 +434,10 @@ public fun buildHijriMonthWidgetData(
             gregorianEpochDay = local.toEpochDays(),
             isCurrentMonth = day.isCurrentMonth,
             isWeekend = day.isWeekend,
+            // FD-08: the observance flag rides the projection rather than being re-derived by each
+            // renderer, because `CalendarDay.event` has already resolved the calendar space this
+            // projection was built in.
+            hasEvent = day.event != null,
         )
     }.let { cells ->
         // Reverse within each 7-cell week (not the whole list) so the rows still read as weeks

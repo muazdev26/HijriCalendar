@@ -5,6 +5,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.core.content.edit
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.appwidget.state.getAppWidgetState
@@ -77,6 +78,30 @@ public object HijriWidgetConfig {
      * same step that clears this, and the two are never both absent from a settled widget.
      */
     internal val LOADING_KEY = booleanPreferencesKey(KEY_LOADING)
+
+    private const val KEY_LOADING_STARTED = "loading_started"
+
+    /**
+     * Wall-clock time [LOADING_KEY] was set, written in the same edit as the flag itself.
+     *
+     * The flag alone cannot answer "is a step actually running?" — a process killed mid-step never
+     * reaches the `finally` that clears it, and the flag outlives the step in persistent state. The
+     * stamp is what lets the reader below tell an in-flight step from an orphan; see
+     * [decodeLoadingIfFresh]. `internal` rather than private for the same reason as [VIEWED_KEY]:
+     * the pairing is only verifiable off-device unless the keys are visible to the unit tests.
+     */
+    internal val LOADING_STARTED_KEY = longPreferencesKey(KEY_LOADING_STARTED)
+
+    /**
+     * How long a loading flag may be set before it is assumed orphaned.
+     *
+     * A real step is the Pakistan warm-up (seconds, cold) plus two Glance compositions — well
+     * under this. The bound exists for the failure it cannot see directly: a process killed
+     * between [setLoading] and its `finally`, after which nothing in any future process will
+     * clear the flag. Five minutes keeps that window small while leaving an order of magnitude of
+     * headroom over the longest legitimate step.
+     */
+    internal const val LOADING_STALE_MS: Long = 5 * 60_000L
 
     // Legacy SharedPreferences keys (migration only).
     private const val KEY_ADJUSTMENT_DAYS = "adjustment_days"
@@ -298,10 +323,38 @@ public object HijriWidgetConfig {
         updateAppWidgetState(context, glanceId) { mutable ->
             if (loading) {
                 mutable[LOADING_KEY] = true
+                // Stamped in the same edit: the reader must never see one without the other from
+                // a write this function performed, or "fresh" would mean half a step.
+                mutable[LOADING_STARTED_KEY] = System.currentTimeMillis()
             } else {
                 mutable.remove(LOADING_KEY)
+                mutable.remove(LOADING_STARTED_KEY)
             }
         }
+    }
+
+    /**
+     * [decodeLoading] that also refuses an **orphaned** flag: set, but written longer than
+     * [LOADING_STALE_MS] ago, or written before the stamp existed.
+     *
+     * The `finally` in `stepViewedMonth` clears the flag for every in-process outcome — an
+     * exception, a dropped step at a range edge, a cancelled callback (`NonCancellable`). What it
+     * cannot clear is the state left by a process killed outright mid-step, and [LOADING_KEY]
+     * lives in persistent storage, so without this check that one kill renders the widget inert
+     * forever: the flag nulls every action (`WidgetActions.whileLoading`), so no tap can even
+     * reach the code that would clear it. Reading staleness here — at composition, in whatever
+     * process renders next — is the only place that can break that circle; the next render after
+     * the threshold (host sweep, midnight alarm, clock change, app open) shows the widget
+     * interactive again.
+     *
+     * A flag with no stamp can only have been written by a build older than this one, whose step
+     * is definitionally long over, so it answers `false` rather than trusting an unbounded age.
+     */
+    internal fun decodeLoadingIfFresh(prefs: Preferences, nowEpochMillis: Long): Boolean {
+        val started = prefs[LOADING_STARTED_KEY]
+        return prefs[LOADING_KEY] == true &&
+            started != null &&
+            nowEpochMillis - started < LOADING_STALE_MS
     }
 
     /**

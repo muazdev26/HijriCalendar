@@ -24,4 +24,12 @@
     <!-- The ring around a tapped day (FD-09). A ring rather than a fill, so "selected" and "today"
          stay distinguishable on the rare day that is both. -->
     <color name="widget_selected_day">#81C784</color>
+    <!--
+        The observance fill (FD-08), night variant. `widget_accent` (#81C784) at 18% over
+        `widget_background` (#1C1B1F), the same relationship the day variant records — a wash that
+        reads as background information and not as a second accent fill.
+    -->
+    <color name="widget_event_day_background">#2B3A2B</color>
+    <!-- `widget_text_primary` (#E6E1E5) over the fill above. -->
+    <color name="widget_on_event_day">#E6E1E5</color>
 </resources>

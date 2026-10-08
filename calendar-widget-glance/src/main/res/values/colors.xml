@@ -42,4 +42,12 @@
     <!-- The ring around a tapped day (FD-09). A ring rather than a fill, so "selected" and "today"
          stay distinguishable on the rare day that is both. -->
     <color name="widget_selected_day">#2E7D32</color>
+    <!--
+        The observance fill (FD-08). A **container**, not the accent: `widget_today_background` is the
+        accent, and reusing it would make Ashura read as today. This is the accent at 14% over
+        `widget_background` (#FBF7F1) — visible as a wash, still letting the day figure carry it.
+    -->
+    <color name="widget_event_day_background">#E4EEE2</color>
+    <!-- `widget_text_primary` over the fill above: an observance day must not dim its own figure. -->
+    <color name="widget_on_event_day">#1C1B1F</color>
 </resources>

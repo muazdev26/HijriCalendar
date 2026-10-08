@@ -57,6 +57,52 @@ class HijriEventsTest {
         }
     }
 
+    /**
+     * Every entry's month **number** is the month it is named for.
+     *
+     * The regression guard for a bug that shipped: Eid al-Fitr was entered as month **9**, which is
+     * Ramadan, so every Eid in every grid was drawn on 1 Ramadan. Nothing caught it because the table
+     * is looked up by `(month, day)` alone — `everyEventResolvesOnItsOwnDate` and
+     * `theTableHoldsTheObservancesPeopleActuallyObserve` both passed on the wrong number, and so did
+     * every projection test downstream, which read the same table and agreed with itself.
+     *
+     * A month index is only meaningful against a name, so the assertion has to be made against one.
+     * [HijriEvents.coordinateByKey] is the same mapping restated as data, which is the point: a second
+     * listing is what lets the two disagree in review.
+     */
+    @Test
+    fun everyEventSitsInTheMonthItIsNamedFor() {
+        for (event in HijriEvents.all) {
+            val expectedMonth = HijriEvents.coordinateByKey.getValue(event.key)
+            assertEquals(
+                expectedMonth,
+                event.month,
+                "${event.key} is on Hijri month ${event.month}, which is " +
+                    "${CalendarNames.englishHijriMonths[event.month - 1]} — it belongs in month " +
+                    "$expectedMonth",
+            )
+        }
+    }
+
+    /**
+     * The same mapping, as data rather than as prose.
+     *
+     * Exists so the assertion above has something to check against that is not the table itself. It is
+     * 1-based to match `englishHijriMonths`, and asserted to cover every key in the table so an entry
+     * added without a month here fails loudly instead of silently skipping the check.
+     */
+    @Test
+    fun everyEventHasAnExpectedMonth() {
+        assertEquals(
+            HijriEvents.all.map { it.key }.sorted(),
+            HijriEvents.coordinateByKey.keys.sorted(),
+            "a new entry needs its month here, or the name check above skips it",
+        )
+        for ((key, month) in HijriEvents.coordinateByKey) {
+            assertTrue(month in 1..12, "$key maps to month $month, which is not a Hijri month")
+        }
+    }
+
     @Test
     fun everyEventHasAStableKey() {
         val keys = HijriEvents.all.map { it.key }
@@ -74,11 +120,11 @@ class HijriEventsTest {
     }
 
     /**
-     * Both scripts, and the four that carry the caveat.
+     * Both scripts, and the six that carry the caveat.
      *
      * The list is the ticket's, asserted by name so a rename cannot quietly drop a day that people
-     * observe: Islamic New Year, Ashura, the Mawlid, Isra and Mi'raj, Shab-e-Barat, Eid al-Fitr,
-     * Arafah and Eid al-Adha.
+     * observe: Islamic New Year, Ashura and its eve, the Mawlid, Isra and Mi'raj, Shab-e-Barat,
+     * Eid al-Fitr, Arafah and Eid al-Adha.
      */
     @Test
     fun theTableHoldsTheObservancesPeopleActuallyObserve() {
@@ -86,6 +132,7 @@ class HijriEventsTest {
         assertEquals(
             listOf(
                 "islamic_new_year",
+                "ashura_ninth",
                 "ashura",
                 "mawlid",
                 "isra_and_miraj",
@@ -100,7 +147,7 @@ class HijriEventsTest {
     }
 
     /**
-     * The four South Asian Gregorian-fixed observances are marked, and the Hijri-fixed ones are not.
+     * The South Asian Gregorian-fixed observances are marked, and the Hijri-fixed ones are not.
      *
      * This is the assertion that keeps the documented limitation honest. If the flags were all `false`
      * the table would look authoritative and be wrong for its main audience, and nothing else in the
@@ -110,6 +157,7 @@ class HijriEventsTest {
     fun theGregorianFixedOnesAreMarkedAndTheRestAreNot() {
         val expected = mapOf(
             "islamic_new_year" to false,
+            "ashura_ninth" to true,
             "ashura" to true,
             "mawlid" to true,
             "isra_and_miraj" to false,
@@ -162,18 +210,30 @@ class HijriEventsTest {
 
     @Test
     fun forMonthReturnsThatMonthsEntriesInDayOrder() {
-        val shawwal = HijriEvents.forMonth(9)
+        // Shawwal is **10**. This was `forMonth(9)`, which asserted against Ramadan and so passed on
+        // a table that had Eid al-Fitr in the wrong month.
+        val shawwal = HijriEvents.forMonth(10)
         assertEquals(listOf("eid_al_fitr"), shawwal.map { it.key })
 
+        // And the negative that would have caught it: Ramadan carries nothing.
+        assertTrue(
+            HijriEvents.forMonth(9).isEmpty(),
+            "Ramadan (month 9) carries no observance; Eid al-Fitr is 1 Shawwal, month 10",
+        )
+
         val muharram = HijriEvents.forMonth(1)
-        assertEquals(listOf("islamic_new_year", "ashura"), muharram.map { it.key })
         assertEquals(
-            listOf(1, 10),
+            listOf("islamic_new_year", "ashura_ninth", "ashura"),
+            muharram.map { it.key },
+        )
+        assertEquals(
+            listOf(1, 9, 10),
             muharram.map { it.day },
             "forMonth must return day order, not table order",
         )
 
-        assertTrue(HijriEvents.hasAnyIn(1), "Muharram carries two")
+        assertTrue(HijriEvents.hasAnyIn(1), "Muharram carries three")
+        assertTrue(HijriEvents.hasAnyIn(10), "Shawwal carries Eid al-Fitr")
         assertFalse(HijriEvents.hasAnyIn(2), "Safar carries none")
         assertTrue(HijriEvents.forMonth(2).isEmpty())
     }

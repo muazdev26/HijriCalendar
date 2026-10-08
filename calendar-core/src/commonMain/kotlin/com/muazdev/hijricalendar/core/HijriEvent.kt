@@ -5,10 +5,11 @@ import kotlinx.serialization.Serializable
 /**
  * One notable date on the Hijri calendar, with its name in the two languages the library ships.
  *
- * ## ⚠️ Four of these eight are wrong for most South Asian Muslims, and deliberately ship anyway
+ * ## ⚠️ Six of these nine are wrong for most South Asian Muslims, and deliberately ship anyway
  *
- * In Pakistan and India, **Eid al-Fitr, Eid al-Adha and Ashura are fixed to a Gregorian date**, not to
- * a Hijri one. Eid al-Adha in 2026 is the 27th of May whatever 10 Dhu al-Hijjah 1447 calculates to.
+ * In Pakistan and India, **Eid al-Fitr, Eid al-Adha and both days of Ashura are fixed to a Gregorian
+ * date**, not to a Hijri one. Eid al-Adha in 2026 is the 27th of May whatever 10 Dhu al-Hijjah 1447
+ * calculates to.
  * Umm al-Qura puts Eid al-Fitr roughly ten days earlier and Eid al-Adha around twelve days earlier.
  *
  * So a Hijri-calendar Eid date, with no user-configured Gregorian override, is **wrong for its
@@ -16,15 +17,15 @@ import kotlinx.serialization.Serializable
  * is recorded here rather than in a comment nobody reads, so that when the first report arrives ("your
  * Eid date is wrong") the answer is a link to the paragraph that predicted it.
  *
- * [isGregorianFixedInPractice] marks the four affected observances so a renderer can say so, and so the
+ * [isGregorianFixedInPractice] marks the affected observances so a renderer can say so, and so the
  * eventual fix — user-supplied Gregorian overrides — has somewhere to attach.
  *
  * ## What is genuinely Hijri-fixed
  *
- * [Ashura][ashura] is in both lists on purpose. It is fixed to a Hijri date in Shia practice and to a
- * Gregorian one in Sunni practice in the region, which is the sharpest version of the problem: the same
- * user, the same library, two answers. The `isGregorianFixedInPractice` flag is the honest expression of
- * that.
+ * [Ashura][ashura] and its eve, the 9th, are in both lists on purpose. They are fixed to a Hijri date
+ * in Shia practice and to a Gregorian one in Sunni practice in the region, which is the sharpest version
+ * of the problem: the same user, the same library, two answers. The `isGregorianFixedInPractice` flag is
+ * the honest expression of that.
  *
  * Islamic New Year, Isra and Mi'raj and Shab-e-Barat are Hijri-fixed everywhere. They are the reason
  * this table exists at all.
@@ -78,11 +79,11 @@ public enum class HijriEventLanguage {
  * The curated table of notable Hijri dates, and the lookup a renderer needs.
  *
  * **Static and hand-written on purpose.** `calendar-core` is coroutine-free and dependency-light, and
- * this is a fixed table of eight entries — a resource file, a database or a network fetch would each
- * add a dependency and a failure mode to answer a question with eight strings in it. `HijrahDate` is
+ * this is a fixed table of nine entries — a resource file, a database or a network fetch would each
+ * add a dependency and a failure mode to answer a question with nine strings in it. `HijrahDate` is
  * already serialised by `calendar-core` (see [ObservedHijriDate]), so [HijriEvent] follows it.
  *
- * Matching is on the **Hijri coordinate only**, and the four Gregorian-fixed observances are marked
+ * Matching is on the **Hijri coordinate only**, and the Gregorian-fixed observances are marked
  * rather than corrected; see [HijriEvent].
  */
 public object HijriEvents {
@@ -99,7 +100,17 @@ public object HijriEvents {
             day = 1,
             key = "islamic_new_year",
             nameEn = "Islamic New Year",
-            nameUr = "نوروز",
+            nameUr = "اسلامی نیا سال",
+        ),
+        HijriEvent(
+            month = 1,
+            day = 9,
+            key = "ashura_ninth",
+            nameEn = "Ashura (9th Muharram)",
+            nameUr = "عاشورہ (9 محرم)",
+            // Same flag as the 10th: where the 10th is pinned to a Gregorian date, the 9th is
+            // observed with it.
+            isGregorianFixedInPractice = true,
         ),
         HijriEvent(
             month = 1,
@@ -131,10 +142,14 @@ public object HijriEvents {
             day = 15,
             key = "shab_e_barat",
             nameEn = "Shab-e-Barat",
-            nameUr = "شب عترہ",
+            nameUr = "شب برات",
         ),
         HijriEvent(
-            month = 9,
+            // Shawwal is month **10**: 9 is Ramadan. This was wrong in the first version of the table,
+            // which put Eid al-Fitr on the 1st of Ramadan — and the table is looked up by `(month, day)`
+            // alone, so the error was invisible to every test that did not compare against the month
+            // *names*. `HijriEventsTest` now asserts each entry against `englishHijriMonths`.
+            month = 10,
             day = 1,
             key = "eid_al_fitr",
             nameEn = "Eid al-Fitr",
@@ -172,6 +187,29 @@ public object HijriEvents {
      */
     public fun forDate(month: Int, day: Int): HijriEvent? =
         all.firstOrNull { it.month == month && it.day == day }
+
+    /**
+     * The Hijri month each observance belongs in, by key, 1-12.
+     *
+     * **A second listing of the same fact on purpose.** [all] carries a month *index*, and an index
+     * means nothing on its own — which is exactly how Eid al-Fitr shipped on month 9, Ramadan: every
+     * test read the index back out of the table and agreed with it. This map is written against the
+     * observance's **name**, and `HijriEventsTest` asserts the two agree, so a wrong index has to be
+     * written down twice before it can ship.
+     *
+     * Keys are [all]'s; the test asserts the sets match, so a new entry cannot slip in unchecked.
+     */
+    public val coordinateByKey: Map<String, Int> = mapOf(
+        "islamic_new_year" to 1, // Muharram
+        "ashura_ninth" to 1, // Muharram
+        "ashura" to 1, // Muharram
+        "mawlid" to 3, // Rabi' al-awwal
+        "isra_and_miraj" to 7, // Rajab
+        "shab_e_barat" to 8, // Sha'ban
+        "eid_al_fitr" to 10, // Shawwal — **not** 9, which is Ramadan
+        "day_of_arafah" to 12, // Dhu al-Hijjah
+        "eid_al_adha" to 12, // Dhu al-Hijjah
+    )
 
     /**
      * The observances falling inside a Hijri month, in day order.

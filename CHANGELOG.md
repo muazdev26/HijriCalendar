@@ -363,6 +363,38 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   gets clipped. The 40dp minimum still cannot hold three lines of type; the tile is sized for the
   cell a launcher actually grants. ([FD-01](docs/issues/2026-10-03/FD-01-tile-day-name.md))
 
+- **The grid widget's event footer renders at last.** `EventFooter` sits after the month grid in
+  the header / grid / footer `Column`, and the grid claimed its height with `fillMaxSize()`. A
+  `match_parent` middle child of a vertical `LinearLayout` is measured against the space consumed
+  *so far* — `measureVertical` passes `heightUsed` down to each child — so the grid always took
+  everything from the header to the bottom edge, and the footer below it was measured against the
+  remainder: zero. The line was never clipped or hidden behind something; it was composed at a
+  height of zero on every device, which is why tapping a day never made it appear. The grid now
+  carries its height with `defaultWeight()` instead (at its call site, where `ColumnScope` is in
+  scope), so the footer's line is reserved first and the grid draws from what the header — and,
+  mid-step, the loading bar — leave over. This also makes the loading bar's own KDoc true: it has
+  always described its height coming out of a "weighted pool", which only exists once the grid is
+  weighted. Not covered by an automated test: Glance lays out to `RemoteViews` on the host, so
+  like the divider fix above this one needs a device pass.
+
+- **An interrupted month step can no longer leave the grid widget untappable.** The navigation
+  callback clears its loading flag in a `finally`, and that covered what it was written for — a
+  step dropped at a range edge, a throw. Two cases it did not: the callback's job being cancelled
+  before or during the cleanup (a plain `finally` suspends too, and a suspension point in an
+  already-cancelled coroutine throws), and the *process* being killed outright mid-step, which
+  leaves the flag sitting in Glance's persistent store with nothing left to clear it. The second
+  case was permanent rather than transient: the flag nulls every action
+  (`WidgetActions.whileLoading`), so the dead widget could not receive the tap that might have
+  fixed it, and every later render read the same flag back — a widget with dimmed, inert arrows
+  until it was removed and re-added. The flag now carries a timestamp written in the same store
+  transaction, and `HijriWidgetConfig.decodeLoadingIfFresh` reads it as `false` once it is older
+  than five minutes (a real step is seconds, Pakistan century-table build included), so the next
+  render — the host's 30-minute sweep, the midnight alarm, a clock change, or opening the app —
+  shows the widget interactive again. The flag clear and the closing render run under
+  `NonCancellable`, and setting the flag moved inside the `try` so those suspension points have a
+  `finally` to reach. The staleness decoder is pinned by four new cases in `HijriWidgetConfigTest`;
+  the cancellation path is the standard `NonCancellable` pattern and is not unit-tested.
+
 ## 2.0.0 - 2026-10-03
 
 Remediation of the `calendar-core` architecture review — see
