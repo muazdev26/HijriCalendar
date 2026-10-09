@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.abdulrahman_b.hijrahdatetime.HijrahMonth
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
+import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
@@ -232,9 +233,20 @@ private fun selectedDateSummary(
     //
     // Shown in **every** display mode: an observance is not a Gregorian figure, so hiding it behind
     // `HIJRI_ONLY` would make it unreachable in the default mode.
-    val event = state.selectedPakistanDate?.let { HijriEvents.forDate(it.month, it.day) }
-        ?: state.selectedObservedDate?.let { HijriEvents.forDate(it.month, it.day) }
-        ?: state.selectedDate?.let { HijriEvents.forDate(it.month.number, it.day) }
+    //
+    // Gated on the selection belonging to the displayed month, matching the header: the card keeps
+    // naming the selected date as you navigate, but an observance must not attach itself to a month
+    // the selected day is not in.
+    val selectionMonth = observed?.let { HijrahYearMonth(it.year, it.month) }
+        ?: pakistan?.let { HijrahYearMonth(it.year, it.month) }
+        ?: plain?.yearMonth
+    val event = if (selectionMonth == state.currentMonth) {
+        state.selectedPakistanDate?.let { HijriEvents.forDate(it.month, it.day) }
+            ?: state.selectedObservedDate?.let { HijriEvents.forDate(it.month, it.day) }
+            ?: state.selectedDate?.let { HijriEvents.forDate(it.month.number, it.day) }
+    } else {
+        null
+    }
     val eventLine = event?.let { labels.eventName(it) }?.takeIf { it.isNotEmpty() }
 
     val base = when (mode) {
@@ -519,6 +531,7 @@ private fun rememberSelectedDateText(
     state.selectedPakistanDate,
     state.selectedObservedDate,
     state.pakistanDates,
+    state.currentMonth,
     dateDisplayMode,
     state.adjustmentDays,
 ) {

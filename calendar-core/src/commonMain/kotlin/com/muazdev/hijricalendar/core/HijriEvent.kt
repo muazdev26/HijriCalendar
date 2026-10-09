@@ -127,7 +127,7 @@ public object HijriEvents {
             day = 12,
             key = "mawlid",
             nameEn = "Prophet's Birthday",
-            nameUr = "عید النبی",
+            nameUr = "میلاد النبی",
             isGregorianFixedInPractice = true,
         ),
         HijriEvent(

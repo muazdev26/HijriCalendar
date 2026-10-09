@@ -362,6 +362,37 @@ class HijriCalendarInteractionTest {
         assertEquals(7, state.currentMonth.month.number)
     }
 
+    // ── the observance banner follows the displayed month (FD-08) ─────
+
+    /**
+     * A selection made in one month must not keep naming its observance after the user navigates to
+     * a month that does not contain it. The selection itself survives — navigating back names the
+     * observance again — but the header describes the displayed month, so a foreign month's
+     * observance must not appear under it.
+     *
+     * 1447-01-01 is the Islamic New Year, and `1447-02` carries no observance, which is what makes
+     * the disappearance unambiguous.
+     */
+    @Test
+    fun theObservanceBannerHidesWhenTheSelectedDayIsNotInTheDisplayedMonth() = runComposeUiTest {
+        val state = stateFor(year = 1447, month = 1)
+        setContent { host(state)() }
+        waitForIdle()
+
+        runOnIdle { state.selectDate(HijrahDate(1447, 1, 1)) }
+        waitForIdle()
+        onNodeWithText("Islamic New Year").assertExists()
+
+        runOnIdle { state.goToNextMonth() }
+        waitForIdle()
+        onNodeWithText(hijriMonthLabel(1447, 2)).assertExists()
+        onNodeWithText("Islamic New Year").assertDoesNotExist()
+
+        runOnIdle { state.goToPreviousMonth() }
+        waitForIdle()
+        onNodeWithText("Islamic New Year").assertExists()
+    }
+
     // ── tapping a day ─────────────────────────────────────────────────
 
     @Test

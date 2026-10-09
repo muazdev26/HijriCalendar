@@ -9,6 +9,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
+import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
@@ -148,11 +149,19 @@ public fun HijriCalendar(
     // grid builds a month at a time and the selection may live in a month the grid has not built. The
     // lookup goes through the state's own routing order — Pakistan, then observed, then Umm al-Qura —
     // so the banner cannot name a different observance than the cell it describes.
+    //
+    // Gated on the selection belonging to the *displayed* month. Navigating away leaves the selection
+    // intact — navigating back still highlights the day — but the header describes `currentMonth`, so
+    // naming another month's observance here reads as though this month carried it.
+    val selectionMonth = state.selectedPakistanDate?.let { HijrahYearMonth(it.year, it.month) }
+        ?: state.selectedObservedDate?.let { HijrahYearMonth(it.year, it.month) }
+        ?: state.selectedDate?.yearMonth
     val selectedEvent = remember(
         state.selectedDate,
         state.selectedPakistanDate,
         state.selectedObservedDate,
         state.pakistanDates,
+        currentMonth,
         labels,
     ) {
         val month = state.selectedPakistanDate?.month
@@ -161,7 +170,11 @@ public fun HijriCalendar(
         val day = state.selectedPakistanDate?.day
             ?: state.selectedObservedDate?.day
             ?: state.selectedDate?.day
-        if (month == null || day == null) null else HijriEvents.forDate(month, day)
+        if (selectionMonth != currentMonth || month == null || day == null) {
+            null
+        } else {
+            HijriEvents.forDate(month, day)
+        }
     }
 
     // A read whose only job is to subscribe this scope to the state's derived month, which is why it
