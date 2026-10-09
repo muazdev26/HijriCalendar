@@ -7,7 +7,23 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ## Unreleased
 
+## 2.1.0 - 2026-10-09
+
 ### Breaking
+
+- **The shipped widget defaults changed: cell dividers on, Pakistan source, English.** A fresh
+  widget — and the family options mirror a host app reads for an unconfigured instance — now starts
+  with `showCellBorders = true`, `source = WidgetSource.PAKISTAN` and
+  `language = monthNameLanguage = WidgetLanguage.ENGLISH` (numeral style `WESTERN`, which follows
+  the language default). `WidgetOptions.DEFAULTS`, the data-class defaults and `createWidgetOptions`
+  all moved together.
+
+  This is a **behaviour** change, not an ABI one — no signature moved — but it is visible on the
+  next render without any consumer action: an already-placed grid that never stored
+  `showCellBorders` decodes to the new `true`, and a widget whose stored JSON omitted `language` or
+  `source` (or whose stored value was unreadable and was coerced) now falls back to English and
+  Pakistan. A widget that stored those fields explicitly keeps them. Set the old values explicitly
+  to restore the previous look.
 
 - **Adjacent-month days are no longer shown unless you ask for them.** Every grid in the library
   padded each Hijri month to a fixed 42 cells and painted the neighbours' days in a dimmer
@@ -286,6 +302,20 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
   recompile are unaffected; a prebuilt artifact calling the nine-parameter overload will not resolve.
 
 ### Fixed
+
+- **The Urdu name of the Mawlid entry is corrected.** `HijriEvents`' `mawlid` entry (12 Rabi'
+  al-awwal) used `عید النبی` ("Eid of the Prophet"); the observance is the Prophet's birthday, so the
+  shipped `nameUr` is now `میلاد النبی`. A host that prints the table verbatim sees the corrected
+  string with no code change; `nameEn` and `key` are unchanged.
+
+- **The in-app calendar's header stops naming an observance from another month.** The event line
+  under the header title was derived from the selected day alone, so selecting a day carrying an
+  observance and then navigating to a month that does not contain it left the observance named under
+  the new month's title — reading as though the displayed month carried it. The banner is now gated
+  on the selected day belonging to the displayed month; the **selection is kept**, so navigating back
+  highlights the day and names it again. The sample's selected-date card applies the same gate to its
+  event line while still showing the selected date itself. This matches the widget, which solved the
+  same "observance from a month already left" problem by dropping the selection on a month step.
 
 - **The in-app calendar no longer crashes on the first next/prev that reaches a January.** The
   sample's Urdu header label indexed the twelve Gregorian month names with
