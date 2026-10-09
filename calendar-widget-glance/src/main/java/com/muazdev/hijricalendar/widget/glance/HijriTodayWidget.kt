@@ -72,11 +72,13 @@ public class HijriTodayWidget : GlanceAppWidget() {
         if (peeked.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
             val options = HijriWidgetConfig.loadFamily(context)
+            // Resolved from the options read here rather than from the peek above, so a theme change
+            // repaints the strip instead of waiting for something else to invalidate it.
+            val colors = WidgetColors.forTheme(options.theme)
             val data = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
@@ -102,7 +104,7 @@ public class HijriTodayWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             HijriTodayRoot(

@@ -45,11 +45,11 @@ import javax.xml.parsers.DocumentBuilderFactory
 class WidgetPaletteNightTest {
 
     /**
-     * The dimmed nav arrow: painted by the widget, but not a [WidgetColors] member.
+     * The dimmed nav arrow.
      *
-     * It is the disabled state of a control rather than part of the palette, so it is referenced at its
-     * one call site. It is in this list because it has the same requirement as the rest — a night
-     * variant — and because it was added for the same reason a `ColorProvider` cannot carry an alpha.
+     * A palette member like every other colour the widget paints — see the entry in [palette] for why
+     * it stopped being referenced at its call site. It has the same requirement as the rest, and is in
+     * this list for the same reason a `ColorProvider` cannot carry an alpha.
      */
     private val arrowDimmed = "widget_arrow_dimmed"
 
@@ -74,7 +74,9 @@ class WidgetPaletteNightTest {
         // and the content colour has to change with its own container.
         "widget_event_day_background",
         "widget_on_event_day",
-        // Not a WidgetColors member — see `arrowDimmed`.
+        // The disabled nav arrow. Was referenced at its one call site and is now a palette member,
+        // because a colour named at a call site is invisible to `WidgetColors.forTheme` and a forced
+        // theme could not reach it.
         arrowDimmed,
     )
 
@@ -180,9 +182,9 @@ class WidgetPaletteNightTest {
     @Test
     fun everyPaletteMemberIsAColorProvider() {
         val expected = listOf(
-            "accent", "background", "cellBorder", "eventDayBackground", "gregorianDay", "onEventDayText",
-            "onTodayText", "outOfMonthDay", "outOfMonthGregorianDay", "primaryText", "secondaryText",
-            "selectedDay", "todayBackground", "weekendText",
+            "accent", "arrowDimmed", "background", "cellBorder", "eventDayBackground", "gregorianDay",
+            "onEventDayText", "onTodayText", "outOfMonthDay", "outOfMonthGregorianDay", "primaryText",
+            "secondaryText", "selectedDay", "todayBackground", "weekendText",
         )
         // Compose adds $stable and the companion's Companion/DEFAULT are static, not per-instance.
         val actual = WidgetColors::class.java.declaredFields
@@ -196,13 +198,12 @@ class WidgetPaletteNightTest {
             expected,
             actual,
         )
-        // One `palette` entry per member, less the arrow, which is referenced at its call site rather
-        // than held. So this is the check that a new palette colour was added to both files and to
-        // this list.
+        // One `palette` entry per member. So this is the check that a new palette colour was added to
+        // both files and to this list.
         assertEquals(
-            "one WidgetColors member per entry in `palette`, less the arrow; a new colour needs a " +
-                "line in both files and a night variant in colors.xml",
-            palette.size - 1,
+            "one WidgetColors member per entry in `palette`; a new colour needs a line in both files " +
+                "and a night variant in colors.xml",
+            palette.size,
             actual.size,
         )
 

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The two palettes a widget can be *forced* onto by `WidgetOptions.theme`.
+
+    ## Why these are duplicates of `colors.xml`
+
+    A forced theme is the one thing `ColorProvider` cannot express. Every other colour the widget
+    paints is a `@ColorRes` the launcher re-resolves against its own configuration, which is what lets
+    a night-mode switch happen with no re-compose (FD-07). That mechanism is precisely a *follow the
+    system* mechanism, so the only way to pin one appearance is to reference resources that have no
+    night variant to resolve against.
+
+    Hence a parallel set in the **default** `values/` folder, which resolves identically under every
+    configuration: a `WidgetTheme.LIGHT` widget on a phone in dark mode reads `widget_light_*` and
+    gets the light value, because there is no `values-night` entry to override it with.
+
+    ## Why the hex values are duplicated rather than aliased
+
+    Android resources cannot alias one colour onto another across folders, and a `<color>` cannot
+    reference another. So each forced palette restates the value it must hold, which is why the
+    numbers appear four times per colour in this module. `ForcedPaletteTest` exists for exactly that:
+    it asserts every value here equals the system palette it was derived from, so the duplication
+    cannot drift into a third palette.
+
+    Both files are deliberately **unqualified** — a `values-night/colors_widget_theme.xml` would
+    reintroduce exactly the system-following behaviour this feature removes.
+-->
+<resources>
+    <!-- `widget_background` -->
+    <color name="widget_light_background">#FBF7F1</color>
+    <!-- `widget_accent` -->
+    <color name="widget_light_accent">#2E7D32</color>
+    <!-- `widget_text_primary` -->
+    <color name="widget_light_text_primary">#1C1B1F</color>
+    <!-- `widget_text_secondary` -->
+    <color name="widget_light_text_secondary">#6E6A63</color>
+    <!-- `widget_day_out_of_month` -->
+    <color name="widget_light_day_out_of_month">#A6A3A1</color>
+    <!-- `widget_day_gregorian_sub` -->
+    <color name="widget_light_day_gregorian_sub">#757373</color>
+    <!-- `widget_day_out_faint` -->
+    <color name="widget_light_day_out_faint">#C5C2BF</color>
+    <!-- `widget_weekend_text` -->
+    <color name="widget_light_weekend_text">#B3261E</color>
+    <!-- `widget_today_background` -->
+    <color name="widget_light_today_background">#2E7D32</color>
+    <!-- `widget_on_today` -->
+    <color name="widget_light_on_today">#FFFFFF</color>
+    <!-- `widget_event_day_background` -->
+    <color name="widget_light_event_day_background">#E4EEE2</color>
+    <!-- `widget_on_event_day` -->
+    <color name="widget_light_on_event_day">#1C1B1F</color>
+    <!-- `widget_cell_border` -->
+    <color name="widget_light_cell_border">#1F000000</color>
+    <!-- `widget_selected_day` -->
+    <color name="widget_light_selected_day">#2E7D32</color>
+    <!-- `widget_arrow_dimmed` -->
+    <color name="widget_light_arrow_dimmed">#8F8B85</color>
+</resources>

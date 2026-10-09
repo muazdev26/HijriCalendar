@@ -63,7 +63,7 @@ public class HijriDualDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
@@ -97,7 +97,7 @@ public class HijriDualDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             DualDateTileRoot(
