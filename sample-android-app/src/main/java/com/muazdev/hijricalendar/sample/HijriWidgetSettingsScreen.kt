@@ -390,7 +390,7 @@ internal fun HijriWidgetSettingsScreen(
                 )
             }
             Text(
-                "A hairline between every cell. Off by default; the grid is easier to scan with one.",
+                "A hairline between every cell. On by default; the grid is easier to scan with one.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

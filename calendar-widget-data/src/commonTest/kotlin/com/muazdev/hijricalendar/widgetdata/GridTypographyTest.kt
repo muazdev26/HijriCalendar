@@ -2,7 +2,6 @@ package com.muazdev.hijricalendar.widgetdata
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -160,19 +159,20 @@ class GridTypographyTest {
     }
 
     /**
-     * The divider option is off by default, everywhere.
+     * The divider option is on by default, everywhere.
      *
-     * Purely presentational and additive, so unlike FD-02's default flip this must change nothing for
-     * an existing widget — asserted on all three default carriers so one of them cannot drift.
+     * Purely presentational and additive, but the default is a deliberate product choice: the grid is
+     * easier to scan with a hairline between cells. Asserted on all three default carriers so one of
+     * them cannot drift.
      */
     @Test
-    fun theCellBordersDefaultToOffEverywhere() {
-        assertFalse(WidgetOptions().showCellBorders, "the data-class default must be false")
-        assertFalse(
+    fun theCellBordersDefaultToOnEverywhere() {
+        assertTrue(WidgetOptions().showCellBorders, "the data-class default must be true")
+        assertTrue(
             WidgetOptions.DEFAULTS.showCellBorders,
             "DEFAULTS is what a fresh install and the family mirror resolve to",
         )
-        assertFalse(
+        assertTrue(
             createWidgetOptions().showCellBorders,
             "the native factory must agree too",
         )
@@ -191,9 +191,9 @@ class GridTypographyTest {
         }
     }
 
-    /** A widget stored before the field existed decodes with it off. */
+    /** A widget stored before the field existed decodes with it on, the current default. */
     @Test
-    fun aPreFieldBlobDecodesWithBordersOff() {
+    fun aPreFieldBlobDecodesWithBordersOn() {
         val legacy = """
             {"adjustmentDays":0,"numeralStyle":"WESTERN","weekStart":"MONDAY","pinnedYear":null,
              "pinnedMonth":null,"source":"CALCULATION","language":"URDU","monthNameLanguage":"URDU",
@@ -201,7 +201,7 @@ class GridTypographyTest {
         """.trimIndent()
 
         val decoded = assertNotNull(WidgetOptionsJson.decodeOrNull(legacy), "the legacy blob must decode")
-        assertFalse(decoded.showCellBorders)
+        assertTrue(decoded.showCellBorders)
         assertTrue(decoded.showAdjacentDays, "an earlier ticket's field must survive too")
     }
 }

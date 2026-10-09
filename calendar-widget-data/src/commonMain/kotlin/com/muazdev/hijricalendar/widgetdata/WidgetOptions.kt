@@ -41,8 +41,8 @@ public data class WidgetOptions(
     val weekStart: WeekStart = WeekStart.DEFAULT,
     val pinnedYear: Int? = null,
     val pinnedMonth: Int? = null,
-    val source: WidgetSource = WidgetSource.CALCULATION,
-    val language: WidgetLanguage = WidgetLanguage.URDU,
+    val source: WidgetSource = WidgetSource.PAKISTAN,
+    val language: WidgetLanguage = WidgetLanguage.ENGLISH,
     /**
      * Which language the Hijri/Gregorian month names render in, independently of [language]
      * (the latter also drives numerals, RTL and weekday names). Lets a widget show Eastern digits
@@ -104,9 +104,9 @@ public data class WidgetOptions(
     /**
      * Whether the grid draws a hairline between every cell (FD-04).
      *
-     * `false` by default, so nothing changes for an existing widget. On a wall-clock grid of 42
-     * numbers an undivided month is genuinely hard to scan — you read across, stop, and re-read — and a
-     * divider is the cheapest fix for that which costs the layout nothing.
+     * `true` by default: on a wall-clock grid of 42 numbers an undivided month is genuinely hard to
+     * scan — you read across, stop, and re-read — and a divider is the cheapest fix for that which
+     * costs the layout nothing.
      *
      * Purely presentational, and **not** in the widget render cache's keys: the projection's cells are
      * identical either way, so folding it into `MonthKey` would invalidate 42 cells of cached
@@ -116,7 +116,7 @@ public data class WidgetOptions(
      * on all 42 cells is 42 extra `RemoteViews` nodes, and Glance's cost is per view. Same visual
      * result, a fraction of the views.
      */
-    val showCellBorders: Boolean = false,
+    val showCellBorders: Boolean = true,
 ) {
     /**
      * The first day of week to render with.
@@ -280,21 +280,21 @@ public data class WidgetOptions(
 
     public companion object {
         /**
-         * Fresh-widget defaults: Urdu names, Eastern Arabic-Indic digits and the Calculation
-         * source, matching the sample app's Urdu labels.
+         * Fresh-widget defaults: English names, Western digits, the Pakistan source and the cell
+         * dividers on, matching the sample app's default settings.
          */
         public val DEFAULTS: WidgetOptions = WidgetOptions(
             adjustmentDays = 0,
-            numeralStyle = WidgetLocalization.defaultNumeralStyle(WidgetLanguage.URDU),
+            numeralStyle = WidgetLocalization.defaultNumeralStyle(WidgetLanguage.ENGLISH),
             weekStart = WeekStart.DEFAULT,
             pinnedYear = null,
             pinnedMonth = null,
-            source = WidgetSource.CALCULATION,
-            language = WidgetLanguage.URDU,
-            monthNameLanguage = WidgetLanguage.URDU,
+            source = WidgetSource.PAKISTAN,
+            language = WidgetLanguage.ENGLISH,
+            monthNameLanguage = WidgetLanguage.ENGLISH,
             showAdjacentDays = false,
             weekendPattern = WeekendPattern.FRIDAY_SATURDAY,
-            showCellBorders = false,
+            showCellBorders = true,
         )
     }
 }
@@ -454,8 +454,9 @@ public object WidgetOptionsJson {
      * a corrupt or absent value must degrade to a working widget rather than an empty one.
      *
      * Note that these are the class-field defaults, not the fresh-widget [WidgetOptions.DEFAULTS]:
-     * a stored blob that omits a field means "never chosen", which is Western digits rather than
-     * Urdu. That distinction is deliberate and pinned by a test.
+     * a stored blob that omits a field means "never chosen", and the two differ only in
+     * `monthNameLanguage`, which stays `null` here so it follows whatever `language` the blob did
+     * store. That distinction is deliberate and pinned by a test.
      */
     public fun decode(text: String?): WidgetOptions = decodeOrNull(text) ?: WidgetOptions.DEFAULTS
 }
@@ -480,9 +481,9 @@ public object WidgetOptionsJson {
  */
 @Suppress("LongParameterList")
 public fun createWidgetOptions(
-    language: WidgetLanguage = WidgetLanguage.URDU,
+    language: WidgetLanguage = WidgetLanguage.ENGLISH,
     monthNameLanguage: WidgetLanguage? = null,
-    source: WidgetSource = WidgetSource.CALCULATION,
+    source: WidgetSource = WidgetSource.PAKISTAN,
     adjustmentDays: Int = 0,
     numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     weekStart: WeekStart = WeekStart.DEFAULT,
@@ -492,7 +493,7 @@ public fun createWidgetOptions(
     overridesCsv: String? = null,
     showAdjacentDays: Boolean = false,
     weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
-    showCellBorders: Boolean = false,
+    showCellBorders: Boolean = true,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,

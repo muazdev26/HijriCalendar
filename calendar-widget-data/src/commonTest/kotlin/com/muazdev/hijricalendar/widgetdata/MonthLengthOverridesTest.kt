@@ -119,6 +119,7 @@ class MonthLengthOverridesTest {
     @Test
     fun optionsCarryTheirOwnTableAndTheProjectionUsesIt() {
         val options = WidgetOptions(
+            source = WidgetSource.CALCULATION,
             monthLengthOverrides = mapOf(monthLengthKey(1448, 3) to 30),
         )
 

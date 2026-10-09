@@ -145,9 +145,9 @@ class HijriWidgetConfigTest {
 
         // An empty object is *valid* JSON for this schema — every field has a default — so it
         // restores to the field defaults rather than to null. Note those are deliberately not
-        // `WidgetOptions.DEFAULTS`: a stored value that omits a field means "never chosen", which
-        // is Western digits, not the fresh-widget Urdu default. Either answer is survivable here;
-        // a throw is not.
+        // `WidgetOptions.DEFAULTS`: a stored value that omits a field means "never chosen", and the
+        // two differ in `monthNameLanguage`, which stays `null` on the field default. Either answer
+        // is survivable here; a throw is not.
         assertEquals(WidgetOptions(), saver.restore("""{}"""))
     }
 
@@ -206,7 +206,7 @@ class HijriWidgetConfigTest {
         assertEquals(WidgetSource.PAKISTAN, options.source)
         assertEquals(WeekStart.MONDAY, options.effectiveWeekStart)
         // Only the field that is genuinely unreadable falls back — see WD-06.
-        assertEquals(WidgetLanguage.URDU, options.language)
+        assertEquals(WidgetLanguage.ENGLISH, options.language)
     }
 
     @Test
