@@ -23,9 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.abdulrahman_b.hijrahdatetime.HijrahMonth
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
+import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState
@@ -33,9 +35,20 @@ import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
 
+/**
+ * The sample's calendar screen.
+ *
+ * `LongMethod` is suppressed rather than satisfied. The function's whole job is to lay out a list of
+ * independent option controls, each already its own composable and each gated on its own `show…` flag
+ * so a host can offer a subset. Wrapping the list in another composable would hide what the screen
+ * shows rather than shorten it, and the parameter list that wrapper needs is larger than the length it
+ * would avoid.
+ */
+@Suppress("LongMethod")
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
@@ -52,27 +65,15 @@ fun CalendarScreen(
     onPakistanDatesChange: ((Boolean) -> Unit)? = null,
     showMonthLengthSettings: Boolean = false,
     onMonthLengthOverridesChanged: (() -> Unit)? = null,
+    showAdjacentDaysToggle: Boolean = false,
+    onShowAdjacentDaysChange: ((Boolean) -> Unit)? = null,
+    showWeekendPatternToggle: Boolean = false,
+    onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
+    showCellBordersToggle: Boolean = false,
+    onShowCellBordersChange: ((Boolean) -> Unit)? = null,
 ) {
-    // Selection lives in one of three spaces, and which one is not a free choice the caller makes:
-    // `selectDay` routes to observed space whenever a month-length override is in force, because a
-    // day past the calculated length has no Umm al-Qura coordinate. So reading only the first two
-    // made the summary say "No date selected" while the grid right above it highlighted the day —
-    // the same class of bug the UI review fixed in the grid. `pakistanDates` is keyed explicitly
-    // because switching spaces moves the selection between holders.
-    val selectedDate = state.selectedDate
-    val pakistanDate = state.selectedPakistanDate
-    val observedDate = state.selectedObservedDate
-
-    val selectedDateText = remember(
-        selectedDate,
-        pakistanDate,
-        observedDate,
-        state.pakistanDates,
-        dateDisplayMode,
-        state.adjustmentDays,
-    ) {
-        selectedDateSummary(state, dateDisplayMode)
-    }
+    val effectiveLabels = labels ?: HijriCalendarLabels()
+    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, effectiveLabels)
 
     Column(
         modifier = modifier
@@ -85,7 +86,7 @@ fun CalendarScreen(
             onDayClick = state.defaultOnDayClick(),
             dateDisplayMode = dateDisplayMode,
             modifier = Modifier.fillMaxWidth(),
-            labels = labels ?: HijriCalendarLabels(),
+            labels = effectiveLabels,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -113,6 +114,39 @@ fun CalendarScreen(
                 onSelect = { enabled ->
                     state.setPakistanDates(enabled)
                     onPakistanDatesChange?.invoke(enabled)
+                },
+            )
+        }
+
+        if (showAdjacentDaysToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            AdjacentDaysSelector(
+                showAdjacentDays = state.showAdjacentDays,
+                onSelect = { show ->
+                    state.setShowAdjacentDays(show)
+                    onShowAdjacentDaysChange?.invoke(show)
+                },
+            )
+        }
+
+        if (showCellBordersToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            CellBordersSelector(
+                showCellBorders = state.showCellBorders,
+                onSelect = { show ->
+                    state.setShowCellBorders(show)
+                    onShowCellBordersChange?.invoke(show)
+                },
+            )
+        }
+
+        if (showWeekendPatternToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            WeekendPatternSelector(
+                selected = WeekendPattern.of(state.weekendDays),
+                onSelect = { pattern ->
+                    state.setWeekendDays(pattern.toWeekDays())
+                    onWeekendPatternChange?.invoke(pattern)
                 },
             )
         }
@@ -166,29 +200,61 @@ fun CalendarScreen(
  * All three spaces agree on the real-world day, so the Gregorian half is computed once. The
  * adjustment is subtracted because `localDate` is already in adjusted space.
  */
-private fun selectedDateSummary(state: HijriCalendarState, mode: DateDisplayMode): String? {
+@Suppress("CyclomaticComplexMethod")
+private fun selectedDateSummary(
+    state: HijriCalendarState,
+    mode: DateDisplayMode,
+    labels: HijriCalendarLabels,
+): String? {
     val observed = state.selectedObservedDate
     val pakistan = state.selectedPakistanDate
     val plain = state.selectedDate
 
-    val hijri = observed?.let { "${it.day} ${CalendarNames.englishHijriMonths[it.month - 1]} ${it.year}" }
-        ?: pakistan?.let { "${it.day} ${HijrahMonth.entries[it.month - 1].name} ${it.year}" }
-        ?: plain?.let { "${it.day} ${it.month.name} ${it.year}" }
+    // Era-appended (FD-05). This card is the one place both calendars' years appear side by side, so it
+    // is where the ambiguity of `١٤٤٨` next to `2026` is most worth one extra glyph.
+    val hijri = observed?.let {
+        "${it.day} ${CalendarNames.englishHijriMonths[it.month - 1]} ${labels.hijriYearWithEra(it.year)}"
+    }
+        ?: pakistan?.let {
+            "${it.day} ${HijrahMonth.entries[it.month - 1].name} ${labels.hijriYearWithEra(it.year)}"
+        }
+        ?: plain?.let { "${it.day} ${it.month.name} ${labels.hijriYearWithEra(it.year)}" }
     val gregorianDay = observed?.localDate ?: pakistan?.localDate ?: plain?.toLocalDate()
     val gregorian = gregorianDay?.let {
         val real = it.minus(state.adjustmentDays, DateTimeUnit.DAY)
-        "${real.day} ${real.month.name} ${real.year}"
+        "${real.day} ${real.month.name} ${labels.gregorianYearWithEra(real.year)}"
     }
 
-    return if (hijri == null || gregorian == null) {
-        null
+    if (hijri == null || gregorian == null) return null
+
+    // The observance on the selected day (FD-08), appended to whichever date the mode shows. Resolved
+    // here rather than in the grid because the grid has no business knowing about events, and this
+    // card is the summary of the selection.
+    //
+    // Shown in **every** display mode: an observance is not a Gregorian figure, so hiding it behind
+    // `HIJRI_ONLY` would make it unreachable in the default mode.
+    //
+    // Gated on the selection belonging to the displayed month, matching the header: the card keeps
+    // naming the selected date as you navigate, but an observance must not attach itself to a month
+    // the selected day is not in.
+    val selectionMonth = observed?.let { HijrahYearMonth(it.year, it.month) }
+        ?: pakistan?.let { HijrahYearMonth(it.year, it.month) }
+        ?: plain?.yearMonth
+    val event = if (selectionMonth == state.currentMonth) {
+        state.selectedPakistanDate?.let { HijriEvents.forDate(it.month, it.day) }
+            ?: state.selectedObservedDate?.let { HijriEvents.forDate(it.month, it.day) }
+            ?: state.selectedDate?.let { HijriEvents.forDate(it.month.number, it.day) }
     } else {
-        when (mode) {
-            DateDisplayMode.HIJRI_ONLY -> hijri
-            DateDisplayMode.GREGORIAN_ONLY -> gregorian
-            DateDisplayMode.BOTH -> "$hijri\n$gregorian"
-        }
+        null
     }
+    val eventLine = event?.let { labels.eventName(it) }?.takeIf { it.isNotEmpty() }
+
+    val base = when (mode) {
+        DateDisplayMode.HIJRI_ONLY -> hijri
+        DateDisplayMode.GREGORIAN_ONLY -> gregorian
+        DateDisplayMode.BOTH -> "$hijri\n$gregorian"
+    }
+    return if (eventLine == null) base else "$base\n$eventLine"
 }
 
 @Composable
@@ -409,4 +475,136 @@ private fun HijrahYearMonth.minusMonthOrNull(months: Int): HijrahYearMonth? {
     } catch (_: Exception) {
         null
     }
+}
+
+/**
+ * Show/hide the neighbouring months' days in the grid.
+ *
+ * Hidden by default: a Hijri month is 29 or 30 days, so a padded six-row grid spends a quarter of
+ * its cells on days that belong to the month before or after. Hiding them lets the grid take five
+ * rows when the month does not need a sixth.
+ */
+@Composable
+private fun AdjacentDaysSelector(
+    showAdjacentDays: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Neighbouring months", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !showAdjacentDays,
+                onClick = { onSelect(false) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+                Text("Hide")
+            }
+            SegmentedButton(
+                selected = showAdjacentDays,
+                onClick = { onSelect(true) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+                Text("Show")
+            }
+        }
+    }
+}
+
+/**
+ * The selected date, rendered as one line of text.
+ *
+ * Selection lives in one of three spaces, and which one is not a free choice the caller makes:
+ * `selectDay` routes to observed space whenever a month-length override is in force, because a day
+ * past the calculated length has no Umm al-Qura coordinate. So reading only the first two made the
+ * summary say "No date selected" while the grid right above it highlighted the day — the same class
+ * of bug the UI review fixed in the grid. `pakistanDates` is keyed explicitly because switching
+ * spaces moves the selection between holders.
+ */
+@Composable
+private fun rememberSelectedDateText(
+    state: HijriCalendarState,
+    dateDisplayMode: DateDisplayMode,
+    labels: HijriCalendarLabels,
+): String? = remember(
+    labels,
+    state.selectedDate,
+    state.selectedPakistanDate,
+    state.selectedObservedDate,
+    state.pakistanDates,
+    state.currentMonth,
+    dateDisplayMode,
+    state.adjustmentDays,
+) {
+    selectedDateSummary(state, dateDisplayMode, labels)
+}
+
+/**
+ * Show/hide the hairline between cells.
+ *
+ * Off by default, matching the widget. The in-app cell is already 48dp with a circle and a press state,
+ * so a divider is a scanning aid rather than a necessity here — which is why it is opt-in.
+ */
+@Composable
+private fun CellBordersSelector(
+    showCellBorders: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Cell dividers", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !showCellBorders,
+                onClick = { onSelect(false) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+                Text("Hide")
+            }
+            SegmentedButton(
+                selected = showCellBorders,
+                onClick = { onSelect(true) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+                Text("Show")
+            }
+        }
+    }
+}
+
+/**
+ * Which days the grid shades as non-working days.
+ *
+ * The selection is read back out of [HijriCalendarState.weekendDays] through [WeekendPattern.of]
+ * rather than held alongside it, so the selector cannot disagree with what the grid is painting — an
+ * out-of-sync highlight is worse than no highlight. A `null` selection, meaning a set none of the four
+ * patterns describes (a host that resolved its own), shows no chip selected rather than pretending.
+ */
+@Composable
+private fun WeekendPatternSelector(
+    selected: WeekendPattern?,
+    onSelect: (WeekendPattern) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Weekend", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            WeekendPattern.entries.forEachIndexed { index, pattern ->
+                SegmentedButton(
+                    selected = pattern == selected,
+                    onClick = { onSelect(pattern) },
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = WeekendPattern.entries.size,
+                    ),
+                ) {
+                    Text(pattern.displayLabel())
+                }
+            }
+        }
+    }
+}
+
+private fun WeekendPattern.displayLabel(): String = when (this) {
+    WeekendPattern.FRIDAY_SATURDAY -> "Fri+Sat"
+    WeekendPattern.SUNDAY -> "Sunday"
+    WeekendPattern.FRIDAY_ONLY -> "Friday"
+    WeekendPattern.NONE -> "None"
 }

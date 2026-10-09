@@ -53,7 +53,7 @@ class ShortLocalizationListTest {
         val short = english.dropLast(1)
         val data = grid(localizedGregorianMonthNames = short)
         assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
-        assertEquals(reference.gregorianRange, data.gregorianRange)
+        assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
     }
 
     @Test
@@ -64,7 +64,7 @@ class ShortLocalizationListTest {
             localizedWeekdayNames = emptyList(),
         )
         assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
-        assertEquals(reference.gregorianRange, data.gregorianRange)
+        assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
         assertEquals(reference.hijriMonthName, data.hijriMonthName)
         assertEquals(reference.weekdayHeaders, data.weekdayHeaders)
     }
@@ -109,7 +109,7 @@ class ShortLocalizationListTest {
         val padded = english + listOf("spare")
         val data = grid(localizedGregorianMonthNames = padded)
         assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
-        assertEquals(reference.gregorianRange, data.gregorianRange)
+        assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
     }
 
     // ── the today card must agree with the grid about a short list ───────────

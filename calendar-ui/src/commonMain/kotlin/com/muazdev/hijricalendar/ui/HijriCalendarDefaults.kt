@@ -58,7 +58,7 @@ public object HijriCalendarDefaults {
     /**
      * Builds [HijriCalendarColors] from the ambient Material colour scheme.
      *
-     * [HijriCalendarColors] has no public constructor: 14 values restated at each call site is how a
+     * [HijriCalendarColors] has no public constructor: 16 values restated at each call site is how a
      * palette drifts away from the theme it claims to follow. Note the one derived default,
      * , documented on that field.
      */
@@ -70,6 +70,7 @@ public object HijriCalendarDefaults {
         todayBorderWidth: Dp = TodayBorderWidth,
         disabledDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
         weekendDayContentColor: Color = MaterialTheme.colorScheme.error,
+        cellBorderColor: Color = MaterialTheme.colorScheme.outlineVariant,
         dayContentColor: Color = MaterialTheme.colorScheme.onSurface,
         dayBackgroundColor: Color = Color.Transparent,
         headerContentColor: Color = MaterialTheme.colorScheme.onSurface,
@@ -78,6 +79,8 @@ public object HijriCalendarDefaults {
         outsideMonthDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
         gregorianDayContentColor: Color = dayContentColor.copy(alpha = 0.6f),
         gregorianHeaderColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+        eventDayContainerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+        eventDayContentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     ): HijriCalendarColors = HijriCalendarColors(
         selectedDayContainerColor = selectedDayContainerColor,
         selectedDayContentColor = selectedDayContentColor,
@@ -85,6 +88,7 @@ public object HijriCalendarDefaults {
         todayBorderWidth = todayBorderWidth,
         disabledDayContentColor = disabledDayContentColor,
         weekendDayContentColor = weekendDayContentColor,
+        cellBorderColor = cellBorderColor,
         dayContentColor = dayContentColor,
         dayBackgroundColor = dayBackgroundColor,
         headerContentColor = headerContentColor,
@@ -93,6 +97,8 @@ public object HijriCalendarDefaults {
         outsideMonthDayContentColor = outsideMonthDayContentColor,
         gregorianDayContentColor = gregorianDayContentColor,
         gregorianHeaderColor = gregorianHeaderColor,
+        eventDayContainerColor = eventDayContainerColor,
+        eventDayContentColor = eventDayContentColor,
     )
 
     /** Pass-through for symmetry with [colors], so a caller can name the default explicitly. */

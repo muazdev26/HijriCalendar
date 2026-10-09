@@ -41,8 +41,8 @@ public data class WidgetOptions(
     val weekStart: WeekStart = WeekStart.DEFAULT,
     val pinnedYear: Int? = null,
     val pinnedMonth: Int? = null,
-    val source: WidgetSource = WidgetSource.CALCULATION,
-    val language: WidgetLanguage = WidgetLanguage.URDU,
+    val source: WidgetSource = WidgetSource.PAKISTAN,
+    val language: WidgetLanguage = WidgetLanguage.ENGLISH,
     /**
      * Which language the Hijri/Gregorian month names render in, independently of [language]
      * (the latter also drives numerals, RTL and weekday names). Lets a widget show Eastern digits
@@ -64,6 +64,59 @@ public data class WidgetOptions(
      * `Pair<Int, Int>`, which stays out of the published ABI — WD-07).
      */
     val monthLengthOverrides: Map<String, Int> = emptyMap(),
+    /**
+     * Whether the grid also paints the days belonging to the neighbouring Hijri months.
+     *
+     * `false` by default, which is a **change** from every release before this one — adjacent days
+     * were not optional, there was no flag to turn them off. With the flag off a widget's grid
+     * takes five or six rows instead of always six, because the padded month's leading and
+     * trailing cells are filtered before the grid chunks them into weeks; see
+     * [HijriMonthWidgetData.visibleDays], which is the single place that filtering is defined.
+     *
+     * Presentational, like `weekendDays` is on the in-app side: it does not change which days
+     * exist, what any of them resolve to, or the month the grid is showing. A hidden day is not a
+     * disabled day — it is simply not in the list, so there is nothing to tap and nothing to
+     * select.
+     *
+     * A widget stored before this field existed decodes into `false`, because the codec fills a
+     * missing key with the data-class default. That is the intended upgrade: the field's default is
+     * the behaviour the field was added to change, so "not configured" and "configured off" agree,
+     * and no widget is left rendering a grid nobody asked for.
+     */
+    val showAdjacentDays: Boolean = false,
+    /**
+     * Which days the grid paints as non-working days.
+     *
+     * `FRIDAY_SATURDAY` by default, which is what every release before this field rendered — the set
+     * was a hardcoded literal at the one call site that built a month projection, so a widget had no
+     * way to change it and a user whose weekend is not Friday and Saturday had no way to either.
+     * A widget stored before this field existed decodes into `FRIDAY_SATURDAY`, so upgrading changes
+     * no already-placed widget's colours.
+     *
+     * A name-backed enum in this module rather than a set of [com.muazdev.hijricalendar.core.WeekDay]
+     * for the reason WD-05 removed `firstDayOfWeekIndex` from the schema: a set of another module's
+     * ordinals reinterprets itself the day someone inserts a `WeekDay` entry. See [WeekendPattern].
+     *
+     * [WeekDay.WEEKEND_DAYS] in `calendar-core` is **not** changed by this. It is a default for
+     * consumers who never see a widget, and the default moves in the schema, not in core.
+     */
+    val weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
+    /**
+     * Whether the grid draws a hairline between every cell (FD-04).
+     *
+     * `true` by default: on a wall-clock grid of 42 numbers an undivided month is genuinely hard to
+     * scan — you read across, stop, and re-read — and a divider is the cheapest fix for that which
+     * costs the layout nothing.
+     *
+     * Purely presentational, and **not** in the widget render cache's keys: the projection's cells are
+     * identical either way, so folding it into `MonthKey` would invalidate 42 cells of cached
+     * projection over a change that cannot alter one of them.
+     *
+     * Renderers draw the dividers as row and column separators rather than a border per cell — a border
+     * on all 42 cells is 42 extra `RemoteViews` nodes, and Glance's cost is per view. Same visual
+     * result, a fraction of the views.
+     */
+    val showCellBorders: Boolean = true,
 ) {
     /**
      * The first day of week to render with.
@@ -156,6 +209,19 @@ public data class WidgetOptions(
      * raw, un-normalised pair — so two options that mean the same thing (`pinnedYear = 1447` and no
      * pin at all) would compare unequal. Overridden so the value type describes the state a
      * renderer actually sees, which is the whole point of normalising.
+     *
+     * ## ⚠️ Every field must be listed, and `WidgetOptionsEqualityTest` enforces it
+     *
+     * A hand-written `equals` does not fall behind its class the way a generated one does — it just
+     * quietly stops comparing the fields added after it. And the failure is **silent and total**:
+     * `copy(showCellBorders = true) == copy(showCellBorders = false)`, so the settings screen's
+     * `if (newOptions == options) return` discards every change to that field and the toggle appears
+     * dead. Three options shipped that way before the test existed.
+     *
+     * So the field list is asserted by reflection — the same shape as
+     * `HijriWidgetConfigTest.widgetOptionsSaver_roundTripsEveryOptionItDeclares`, which exists for
+     * the identical reason on the saver. Adding a field without updating either fails the build
+     * rather than a user's widget.
      */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -167,7 +233,10 @@ public data class WidgetOptions(
             source == other.source &&
             language == other.language &&
             monthNameLanguage == other.monthNameLanguage &&
-            monthLengthOverrides == other.monthLengthOverrides
+            monthLengthOverrides == other.monthLengthOverrides &&
+            showAdjacentDays == other.showAdjacentDays &&
+            weekendPattern == other.weekendPattern &&
+            showCellBorders == other.showCellBorders
     }
 
     override fun hashCode(): Int {
@@ -179,6 +248,9 @@ public data class WidgetOptions(
         result = 31 * result + language.hashCode()
         result = 31 * result + (monthNameLanguage?.hashCode() ?: 0)
         result = 31 * result + monthLengthOverrides.hashCode()
+        result = 31 * result + showAdjacentDays.hashCode()
+        result = 31 * result + weekendPattern.hashCode()
+        result = 31 * result + showCellBorders.hashCode()
         return result
     }
 
@@ -208,18 +280,21 @@ public data class WidgetOptions(
 
     public companion object {
         /**
-         * Fresh-widget defaults: Urdu names, Eastern Arabic-Indic digits and the Calculation
-         * source, matching the sample app's Urdu labels.
+         * Fresh-widget defaults: English names, Western digits, the Pakistan source and the cell
+         * dividers on, matching the sample app's default settings.
          */
         public val DEFAULTS: WidgetOptions = WidgetOptions(
             adjustmentDays = 0,
-            numeralStyle = WidgetLocalization.defaultNumeralStyle(WidgetLanguage.URDU),
+            numeralStyle = WidgetLocalization.defaultNumeralStyle(WidgetLanguage.ENGLISH),
             weekStart = WeekStart.DEFAULT,
             pinnedYear = null,
             pinnedMonth = null,
-            source = WidgetSource.CALCULATION,
-            language = WidgetLanguage.URDU,
-            monthNameLanguage = WidgetLanguage.URDU,
+            source = WidgetSource.PAKISTAN,
+            language = WidgetLanguage.ENGLISH,
+            monthNameLanguage = WidgetLanguage.ENGLISH,
+            showAdjacentDays = false,
+            weekendPattern = WeekendPattern.FRIDAY_SATURDAY,
+            showCellBorders = true,
         )
     }
 }
@@ -379,8 +454,9 @@ public object WidgetOptionsJson {
      * a corrupt or absent value must degrade to a working widget rather than an empty one.
      *
      * Note that these are the class-field defaults, not the fresh-widget [WidgetOptions.DEFAULTS]:
-     * a stored blob that omits a field means "never chosen", which is Western digits rather than
-     * Urdu. That distinction is deliberate and pinned by a test.
+     * a stored blob that omits a field means "never chosen", and the two differ only in
+     * `monthNameLanguage`, which stays `null` here so it follows whatever `language` the blob did
+     * store. That distinction is deliberate and pinned by a test.
      */
     public fun decode(text: String?): WidgetOptions = decodeOrNull(text) ?: WidgetOptions.DEFAULTS
 }
@@ -405,9 +481,9 @@ public object WidgetOptionsJson {
  */
 @Suppress("LongParameterList")
 public fun createWidgetOptions(
-    language: WidgetLanguage = WidgetLanguage.URDU,
+    language: WidgetLanguage = WidgetLanguage.ENGLISH,
     monthNameLanguage: WidgetLanguage? = null,
-    source: WidgetSource = WidgetSource.CALCULATION,
+    source: WidgetSource = WidgetSource.PAKISTAN,
     adjustmentDays: Int = 0,
     numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     weekStart: WeekStart = WeekStart.DEFAULT,
@@ -415,6 +491,9 @@ public fun createWidgetOptions(
     pinnedYear: Int = 0,
     pinnedMonth: Int = 1,
     overridesCsv: String? = null,
+    showAdjacentDays: Boolean = false,
+    weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
+    showCellBorders: Boolean = true,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -425,6 +504,9 @@ public fun createWidgetOptions(
     language = language,
     monthNameLanguage = monthNameLanguage ?: language,
     monthLengthOverrides = decodeMonthLengthsCsv(overridesCsv),
+    showAdjacentDays = showAdjacentDays,
+    weekendPattern = weekendPattern,
+    showCellBorders = showCellBorders,
 )
 
 /**
@@ -444,7 +526,7 @@ public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
     options: WidgetOptions,
-    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    weekendDays: Set<WeekDay> = options.weekendPattern.toWeekDays(),
 ): HijriMonthWidgetData? = buildHijriMonthWidgetData(
     hijriYear = hijriYear,
     hijriMonth = hijriMonth,
@@ -453,7 +535,14 @@ public fun buildHijriMonthWidgetData(
     rightToLeft = options.language.isRtl,
 )
 
-/** As above, with an explicit reading direction for platforms that mirror rows themselves. */
+/**
+ * As above, with an explicit reading direction for platforms that mirror rows themselves, and an
+ * explicit weekend set.
+ *
+ * [weekendDays] is a parameter here only so a caller that has already resolved a set — a host
+ * rendering its own calendar, say — need not round-trip through an enum. A widget renderer should use
+ * the [options] overload above, which reads [WidgetOptions.weekendPattern] and cannot forget it.
+ */
 public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
@@ -473,6 +562,16 @@ public fun buildHijriMonthWidgetData(
     localizedGregorianMonthNames = options.localizedGregorianMonthNames,
     localizedWeekdayNames = options.localizedWeekdayNames,
     overrides = options.overridesTable(),
+    // Era markers follow `effectiveMonthNameLanguage`, not `language`: an era marker is *text* that
+    // sits beside the month names, so it belongs to the same locale as the names it is read with.
+    // Using `language` here produced "April - May 2026 ء" — a Latin month range with an Urdu suffix —
+    // for exactly the widget that had asked for English month names.
+    //
+    // Numerals stay independent, because `numeralStyle` is an explicit user choice rather than a
+    // locale: a widget may show Arabic-Indic digits with English month names, and that mix is what it
+    // asked for.
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
 )
 
 /** [todayHijriWidgetData] driven straight from [options]. See the grid overload for why. */
@@ -488,4 +587,10 @@ public fun todayHijriWidgetData(
     numeralStyle = options.numeralStyle,
     pakistan = options.source.pakistan,
     overrides = options.overridesTable(),
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
+    // The short Hijri month name is *text* too, so it follows the month-name language rather than
+    // `language` and rather than the device (WG-12). Passed alongside the names it abbreviates, so a
+    // caller cannot localize the names one way and pick the short base names another.
+    monthNameLanguage = options.effectiveMonthNameLanguage,
 )

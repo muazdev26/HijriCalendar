@@ -9,10 +9,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
+import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.core.todayHijriDate
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
 
@@ -60,6 +63,11 @@ import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as core
  *   `false` by default; see the class KDoc for why that default changed.
  * @param labels All user-visible text. Build it once and hold it — it is used as a `remember` key.
  */
+// Suppressed rather than satisfied: the function's job is to resolve the header's strings from the
+// state and hand them to the header, and every one of those resolutions needs a `remember` keyed on
+// its own inputs — folding them into one helper would need the same key lists threaded through and
+// would make the header's freshness a property of a call the reader has to trust.
+@Suppress("LongMethod")
 @Composable
 public fun HijriCalendar(
     state: HijriCalendarState,
@@ -126,6 +134,49 @@ public fun HijriCalendar(
         labels.gregorianMonthRangeLabel(range.first, range.last)
     }
 
+    // Whether the selection is today itself, which is all `isToday` means for a banner. Compared
+    // against the shared `todayHijriDate` rather than by building the month and reading `isToday` off
+    // a cell: a header must not force 42 cells to be built for a string, and `isToday` on a cell is
+    // defined by exactly this comparison.
+    val selectionIsToday = remember(state.selectedDate, state.adjustmentDays) {
+        val selected = state.selectedDate ?: return@remember false
+        todayHijriDate(state.adjustmentDays) == selected
+    }
+
+    // The observance on the selected day, if any (FD-08).
+    //
+    // Resolved from the *selected* cell rather than from `CalendarDay.event` on the grid, because the
+    // grid builds a month at a time and the selection may live in a month the grid has not built. The
+    // lookup goes through the state's own routing order — Pakistan, then observed, then Umm al-Qura —
+    // so the banner cannot name a different observance than the cell it describes.
+    //
+    // Gated on the selection belonging to the *displayed* month. Navigating away leaves the selection
+    // intact — navigating back still highlights the day — but the header describes `currentMonth`, so
+    // naming another month's observance here reads as though this month carried it.
+    val selectionMonth = state.selectedPakistanDate?.let { HijrahYearMonth(it.year, it.month) }
+        ?: state.selectedObservedDate?.let { HijrahYearMonth(it.year, it.month) }
+        ?: state.selectedDate?.yearMonth
+    val selectedEvent = remember(
+        state.selectedDate,
+        state.selectedPakistanDate,
+        state.selectedObservedDate,
+        state.pakistanDates,
+        currentMonth,
+        labels,
+    ) {
+        val month = state.selectedPakistanDate?.month
+            ?: state.selectedObservedDate?.month
+            ?: state.selectedDate?.month?.number
+        val day = state.selectedPakistanDate?.day
+            ?: state.selectedObservedDate?.day
+            ?: state.selectedDate?.day
+        if (selectionMonth != currentMonth || month == null || day == null) {
+            null
+        } else {
+            HijriEvents.forDate(month, day)
+        }
+    }
+
     // A read whose only job is to subscribe this scope to the state's derived month, which is why it
     // is a `val` and not a bare expression. HijriCalendarGrid builds each page through
     // HijriCalendarState.calendarMonthFor — the one definition of how a month becomes cells — and each
@@ -176,8 +227,12 @@ public fun HijriCalendar(
             labels = labels,
             canGoToPreviousMonth = state.canGoToPreviousMonth,
             canGoToNextMonth = state.canGoToNextMonth,
+            eventText = selectedEvent
+                ?.let { labels.eventBanner(it, selectionIsToday) }
+                ?.takeIf { it.isNotEmpty() },
         )
     }
+
     val grid: @Composable () -> Unit = {
         HijriCalendarGrid(
             state = state,
@@ -218,6 +273,17 @@ public fun rememberHijriCalendarState(
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /**
+     * Whether the grid also renders the neighbouring months' days. `false` — the default — shows
+     * only this month's own days, and the grid then takes five or six rows instead of always six.
+     * Presentational only; see [HijriCalendarState.showAdjacentDays].
+     */
+    showAdjacentDays: Boolean = false,
+    /**
+     * Whether the grid draws a hairline between cells. `false` — the default — leaves it undivided.
+     * Presentational only; see [HijriCalendarState.showCellBorders].
+     */
+    showCellBorders: Boolean = false,
 ): HijriCalendarState = coreRememberHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
@@ -227,6 +293,8 @@ public fun rememberHijriCalendarState(
     adjustmentDays = adjustmentDays,
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
+    showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
 )
 
 @Composable
@@ -239,6 +307,17 @@ public fun rememberSaveableHijriCalendarState(
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /**
+     * Whether the grid also renders the neighbouring months' days. `false` — the default — shows
+     * only this month's own days, and the grid then takes five or six rows instead of always six.
+     * Presentational only; see [HijriCalendarState.showAdjacentDays].
+     */
+    showAdjacentDays: Boolean = false,
+    /**
+     * Whether the grid draws a hairline between cells. `false` — the default — leaves it undivided.
+     * Presentational only; see [HijriCalendarState.showCellBorders].
+     */
+    showCellBorders: Boolean = false,
 ): HijriCalendarState = coreRememberSaveableHijriCalendarState(
     initialMonth = initialMonth,
     initialSelectedDate = initialSelectedDate,
@@ -248,4 +327,6 @@ public fun rememberSaveableHijriCalendarState(
     adjustmentDays = adjustmentDays,
     pakistanDates = pakistanDates,
     weekendDays = weekendDays,
+    showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
 )

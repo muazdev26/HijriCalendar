@@ -63,7 +63,16 @@ enum HijriWidgetProjection {
             hijriYear: year,
             hijriMonth: month,
             options: options,
-            weekendDays: Calendar_coreWeekDay.companion.WEEKEND_DAYS
+            // From the widget's own options (FD-03), like Android. This is still the default pattern's
+            // set until a host sets one, but the two platforms now resolve it the same way instead of
+            // each hardcoding `WEEKEND_DAYS` and agreeing only by coincidence.
+            //
+            // Note that `DayCell` does not yet *paint* weekends — it colours a cell by today and
+            // current-month only — so the setting is inert on iOS for now. Wiring the projection is
+            // the half that has to be right before the rendering half is written; no picker control is
+            // offered in `WidgetCatalogView` for that reason, since exposing a setting that changes
+            // nothing visible is worse than not offering it.
+            weekendDays: options.weekendPattern.toWeekDays()
         )
     }
 

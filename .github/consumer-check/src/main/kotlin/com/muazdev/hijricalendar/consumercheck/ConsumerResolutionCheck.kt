@@ -15,10 +15,14 @@ import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidget
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidget
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidget
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
+import com.muazdev.hijricalendar.widget.glance.HijriWidgetFonts
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetPreviewPublisher
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefresher
@@ -28,6 +32,7 @@ import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
+import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetOptionsJson
 import com.muazdev.hijricalendar.widgetdata.WeekStart
@@ -72,9 +77,12 @@ private object ConsumerResolutionCheck {
             size = DpSize(width = 260.dp, height = 280.dp),
             modifier = Modifier,
         )
-        HijriTodayWidgetLivePreview(options = options, size = DpSize(144.dp, 40.dp))
+        HijriTodayWidgetLivePreview(options = options, size = DpSize(144.dp, 72.dp))
         HijriDateWidgetLivePreview(options = options, size = DpSize(40.dp, 40.dp))
         GregorianDateWidgetLivePreview(options = options, size = DpSize(40.dp, 40.dp))
+        // FD-10: the dual-date tile's preview. Same `DpSize`/`Modifier` shape as the four above, so a
+        // scope mistake on this one fails here rather than in a consumer's settings screen.
+        HijriDualDateWidgetLivePreview(options = options, size = DpSize(120.dp, 120.dp))
     }
 
     /** A compose-typed default argument, the shape a real settings screen uses. */
@@ -83,16 +91,19 @@ private object ConsumerResolutionCheck {
         HijriWidgetLivePreview(options = options, viewedMonth = null, size = DpSize(260.dp, 280.dp))
     }
 
-    /** The four widget classes and their receivers, plus `SizeMode` from `glance-appwidget`. */
+    /** The widget classes and their receivers, plus `SizeMode` from `glance-appwidget`. */
     fun widgetTypesAndSizes(): List<Any> = listOf(
         HijriCalendarWidget(),
         HijriTodayWidget(),
         HijriDateWidget(),
         GregorianDateWidget(),
+        // FD-10: the strict 1x1 dual-date tile. Its `SizeMode.Single` is what the picker sizes it at.
+        HijriDualDateWidget(),
         HijriCalendarWidgetReceiver(),
         HijriTodayWidgetReceiver(),
         HijriDateWidgetReceiver(),
         GregorianDateWidgetReceiver(),
+        HijriDualDateWidgetReceiver(),
         HijriCalendarWidget().sizeMode,
         SizeMode.Single,
         HIJRI_DEEP_LINK_TODAY,
@@ -145,6 +156,23 @@ private object ConsumerResolutionCheck {
             anchorEpochDay = 20_000L,
             options = built,
         )
+
+        // FD-10: the dual tile's header band reads `hijriMonthShortName` — the short Hijri month
+        // name, since a band cannot hold the long form. Named here so the field cannot be dropped
+        // from the published ABI unnoticed, and because it is on the record that a renderer reads it
+        // from the *shared* projection rather than formatting one itself (WG-12): a consumer adding
+        // this dependency must be able to reach it through the re-exported `calendar-widget-data`.
+        val shortMonth: String = today?.hijriMonthShortName.orEmpty()
+
+        // And the rule that builds it, for a consumer rendering their own tile in the same way.
+        val paired: Set<Int> = WidgetLocalization.pairedHijriMonths
+        val shortBase: String? = WidgetLocalization.pairedHijriMonthBase(4, WidgetLanguage.ENGLISH)
+        val shortName: String = WidgetLocalization.hijriMonthShortName(
+            month = 4,
+            monthName = "Rabi' al-thani",
+            ordinal = "2",
+            language = WidgetLanguage.ENGLISH,
+        )
     }
 
     /** The refresh/scheduling surface a host app drives from its own settings screen. */
@@ -154,5 +182,25 @@ private object ConsumerResolutionCheck {
         HijriWidgetRefreshScheduler.schedule(context)
         HijriWidgetPreviewPublisher.publishIfDueAsync(context)
         PakistanWarmUp.ensureWarm()
+    }
+
+    /**
+     * The per-field font option.
+     *
+     * Names [HijriWidgetFonts] and, through it, nothing from another module directly — the type
+     * itself holds only `String?` family names. It is here because `HijriWidgetFonts.default` is the
+     * seam a host writes to at startup, so a scope mistake that made the type unreachable would
+     * compile here and fail only in a consumer's `Application.onCreate`.
+     */
+    fun setWidgetFonts() {
+        val fonts = HijriWidgetFonts(
+            monthTitle = "Noto Nastaliq Urdu",
+            gregorianTitle = null,
+            weekday = "Noto Nastaliq Urdu",
+            dayNumber = null,
+        )
+        HijriWidgetFonts.default = fonts
+        val readBack: HijriWidgetFonts = HijriWidgetFonts.default
+        check(readBack == fonts)
     }
 }

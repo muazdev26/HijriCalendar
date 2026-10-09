@@ -36,12 +36,14 @@ import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshScheduler
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WeekStart
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -59,6 +61,9 @@ enum class WidgetKind {
     TODAY,
     HIJRI_DATE,
     GREGORIAN_DATE,
+
+    /** FD-10: the fixed 1x1 tile showing both dates together. */
+    DUAL_DATE,
 }
 
 internal fun WidgetKind.title(): String = when (this) {
@@ -66,24 +71,36 @@ internal fun WidgetKind.title(): String = when (this) {
     WidgetKind.TODAY -> "Hijri Today Widget"
     WidgetKind.HIJRI_DATE -> "Hijri Date Tile"
     WidgetKind.GREGORIAN_DATE -> "Gregorian Date Tile"
+    WidgetKind.DUAL_DATE -> "Hijri + Gregorian Date Tile"
 }
 
 internal fun WidgetKind.subtitle(): String = when (this) {
     WidgetKind.GRID -> "The month grid with today's highlight, plus a compact today card. " +
             "Every change applies and saves immediately; the widget on your home screen updates " +
             "in real time."
-    WidgetKind.TODAY -> "Today's Hijri and Gregorian dates on one line, resizable from a single " +
-            "cell. It follows the family options below — every change applies immediately."
+    WidgetKind.TODAY -> "Today's weekday over the Hijri and Gregorian dates, resizable from a " +
+            "single cell. It follows the family options below — every change applies immediately."
     WidgetKind.HIJRI_DATE -> "A fixed 1x1 tile with today's Hijri day and month. It follows the " +
             "family options below — every change applies immediately."
     WidgetKind.GREGORIAN_DATE -> "A fixed 1x1 tile with today's Gregorian day and month. It " +
             "follows the family options below — every change applies immediately."
+    WidgetKind.DUAL_DATE -> "A fixed 1x1 tile with both dates at once: the Hijri month across the " +
+            "top, the Gregorian date under it, the Hijri day large in the middle and the weekday at " +
+            "the bottom. It follows the family options below — every change applies immediately."
 }
 
 private val COMPACT_PREVIEW_SIZE = DpSize(104.dp, 110.dp)
 private val GRID_PREVIEW_SIZE = DpSize(260.dp, 280.dp)
-private val STRIP_PREVIEW_SIZE = DpSize(320.dp, 64.dp)
+private val STRIP_PREVIEW_SIZE = DpSize(320.dp, 72.dp)
 private val TILE_PREVIEW_SIZE = DpSize(120.dp, 120.dp)
+
+/**
+ * The dual tile is a strict 1x1, so its preview is square. Larger than [TILE_PREVIEW_SIZE] because
+ * this tile stacks four zones rather than three: at the other tiles' size the Hijri day would render
+ * at roughly half the size it gets on the home screen, which is the one figure this tile exists to
+ * show.
+ */
+private val DUAL_TILE_PREVIEW_SIZE = DpSize(150.dp, 150.dp)
 
 /**
  * The shared widget settings form used by every per-widget configure activity. Every control
@@ -202,6 +219,23 @@ internal fun HijriWidgetSettingsScreen(
                     )
                 }
             }
+
+            WidgetKind.DUAL_DATE -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    HijriDualDateWidgetLivePreview(
+                        options = options,
+                        // Square, and the same size the catalog uses. The dual tile's type is derived
+                        // from the height it is given, so this is also what decides how large the
+                        // preview's Hijri day renders — a preview at the wrong shape would not be
+                        // showing the proportions the tile actually gets.
+                        size = DUAL_TILE_PREVIEW_SIZE,
+                        modifier = previewBorder(DUAL_TILE_PREVIEW_SIZE, MaterialTheme.colorScheme.outlineVariant),
+                    )
+                }
+            }
         }
         Text(
             text = "Preview of the actual widget. Dark/light follows the device.",
@@ -304,6 +338,63 @@ internal fun HijriWidgetSettingsScreen(
             }
         }
 
+        SectionTitle("Weekend days")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WeekendPattern.entries.forEach { pattern ->
+                FilterChip(
+                    selected = options.weekendPattern == pattern,
+                    onClick = { update(options.copy(weekendPattern = pattern)) },
+                    label = { Text(pattern.settingsLabel()) },
+                )
+            }
+        }
+        Text(
+            "Which days the grid paints as non-working days. Friday+Saturday suits the Pakistan " +
+                "calendar, Sunday suits most of the Christian world.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        // ── Adjacent-month days (grid only) ──────────────────────────────────────
+        if (kind == WidgetKind.GRID) {
+            SectionTitle("Neighbouring months")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !options.showAdjacentDays,
+                    onClick = { update(options.copy(showAdjacentDays = false)) },
+                    label = { Text("Hide") },
+                )
+                FilterChip(
+                    selected = options.showAdjacentDays,
+                    onClick = { update(options.copy(showAdjacentDays = true)) },
+                    label = { Text("Show") },
+                )
+            }
+            Text(
+                "Hidden by default. The grid then takes five or six rows instead of always six.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        if (kind == WidgetKind.GRID) {
+            SectionTitle("Cell dividers")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !options.showCellBorders,
+                    onClick = { update(options.copy(showCellBorders = false)) },
+                    label = { Text("Hide") },
+                )
+                FilterChip(
+                    selected = options.showCellBorders,
+                    onClick = { update(options.copy(showCellBorders = true)) },
+                    label = { Text("Show") },
+                )
+            }
+            Text(
+                "A hairline between every cell. On by default; the grid is easier to scan with one.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
         // ── Optional pinned month (grid only) ─────────────────────────────────
         if (kind == WidgetKind.GRID) {
             SectionTitle("Fixed month (optional)")
@@ -382,6 +473,19 @@ private fun previewBorder(size: DpSize, borderColor: androidx.compose.ui.graphic
 @Composable
 private fun SectionTitle(text: String) {
     Text(text = text, style = MaterialTheme.typography.titleSmall)
+}
+
+/**
+ * The settings screen's label for a pattern.
+ *
+ * Abbreviated: four chips at readable width do not fit one row on a phone, and the full names are in
+ * the help text underneath.
+ */
+private fun WeekendPattern.settingsLabel(): String = when (this) {
+    WeekendPattern.FRIDAY_SATURDAY -> "Fri+Sat"
+    WeekendPattern.SUNDAY -> "Sun"
+    WeekendPattern.FRIDAY_ONLY -> "Fri"
+    WeekendPattern.NONE -> "None"
 }
 
 /** Switching language follows the new language's default digits unless a custom style was chosen. */

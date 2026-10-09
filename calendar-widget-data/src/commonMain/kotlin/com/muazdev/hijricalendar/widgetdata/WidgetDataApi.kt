@@ -86,6 +86,20 @@ public object WidgetLocalization {
         }
 
         /**
+         * The header's refresh icon.
+         *
+         * Says what the control *does* ("refresh"), not what it is ("the refresh icon"), for the same
+         * reason [goToCurrentMonth] does: a screen-reader user is swiping between controls and needs
+         * to know what each one will do before pressing it. It is deliberately **not** "Refresh
+         * date" — the button re-renders, it does not recalculate anything, and a label promising a
+         * recomputation would be wrong in the one case a user checks it.
+         */
+        public fun refreshWidget(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "تازہ کریں"
+            WidgetLanguage.ENGLISH -> "Refresh"
+        }
+
+        /**
          * Shown when a date fails to resolve, which makes it the *entire body* of three of the four
          * widgets — the one case where a user most needs to understand what they are looking at.
          *
@@ -96,6 +110,54 @@ public object WidgetLocalization {
             WidgetLanguage.URDU -> "ہجری تاریخ دستیاب نہیں"
             WidgetLanguage.ENGLISH -> "Hijri date unavailable"
         }
+
+        /**
+         * The Hijri era marker, appended to a Hijri year: `1447 AH` / `١٤٤٧ ھ`.
+         *
+         * **Why this is here rather than in `res/values`.** A widget's language is a
+         * [WidgetOptions] field, not a resource-configuration value — Glance renders from the host's
+         * single `Context`, so `getString(R.string.x)` can only ever answer for the *device*. One
+         * Urdu widget is designed to sit beside an English one on a phone with no Urdu locale, and
+         * the era is the clearest tell of which is which.
+         *
+         * `ھ` (U+06BE) rather than `ہ`, which is the Urdu letter Heh-goal and is what Urdu uses when
+         * writing * hijri sani* — the year. `ہ` is the do-chashmi he and belongs to words, not to a
+         * numeral suffix. It is a different codepoint, so this is not a stylistic choice.
+         *
+         * See [gregorianEra] for the Gregorian side's marker.
+         */
+        public fun hijriEra(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "\u06BE"
+            WidgetLanguage.ENGLISH -> "AH"
+        }
+
+        /**
+         * The Gregorian era marker, appended to a Gregorian year: `2026 AD` / `٢٠٢٦ ء`.
+         *
+         * **`ء` (U+0621), the standalone hamza**, in Urdu — chosen deliberately over the two-character
+         * `ئے` that a literal transliteration of "era" would suggest. A single hamza is the marker
+         * Urdu typography uses for the Gregorian era, and it balances the one-character `ھ` opposite
+         * it: both years then carry a single glyph, which is what makes the pair readable at the small
+         * type a widget renders.
+         *
+         * Asserted on its codepoint in `EraMarkersTest`, because the neighbouring Urdu letters are
+         * visually close and a wrong one still renders as plausible Urdu — this is the same reason
+         * [hijriEra] is asserted rather than eyeballed.
+         */
+        public fun gregorianEra(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "\u0621"
+            WidgetLanguage.ENGLISH -> "AD"
+        }
+
+        /**
+         * A year with its era appended, in whichever direction [language] writes one.
+         *
+         * Both supported languages put the era *after* the year, so there is no prefix case here — and
+         * adding one would be a schema flag for a formatting decision that belongs here. The era
+         * marker is one glyph either way; the ordering is the locale's business.
+         */
+        public fun yearWithEra(year: Int, language: WidgetLanguage, gregorian: Boolean): String =
+            "$year ${if (gregorian) gregorianEra(language) else hijriEra(language)}"
     }
 
     /**
@@ -141,6 +203,86 @@ public object WidgetLocalization {
         WidgetLanguage.URDU -> if (source.pakistan) "پاکستان" else "حساب"
         WidgetLanguage.ENGLISH -> if (source.pakistan) "Pakistan" else "Calculation"
     }
+
+    /**
+     * The Hijri months whose name does not distinguish them from a sibling, so a short form has to
+     * carry the ordinal: `ربيع ١` against `ربيع ٢`, `جمادى ١` against `جمادى ٢`.
+     *
+     * **Only four months.** Every other Hijri month has an ordinary name that already stands alone
+     * (`Muharram`, `Rajab`, `رمضان`), so its short form *is* its name — inventing a second string for
+     * those would mean a caller could render a different month name depending on which widget asked,
+     * and there is no width problem to solve for a name that already fits.
+     *
+     * This is a **list of the months that need it**, not a map of short names for all twelve, and
+     * that asymmetry is the whole cost argument: four hand-picked base names per language rather than
+     * twelve, with nothing to keep in step as the other eight are simply the names already shipped.
+     */
+    public val pairedHijriMonths: Set<Int> = setOf(RABI_AL_AWWAL, RABI_AL_THANI, JUMADA_AL_ULA, JUMADA_AL_AKHIRAH)
+
+    /** Rabi' I — the first of the two months named [pairedHijriMonths] shares a base name with. */
+    public const val RABI_AL_AWWAL: Int = 3
+
+    /** Rabi' II. */
+    public const val RABI_AL_THANI: Int = 4
+
+    /** Jumada I. */
+    public const val JUMADA_AL_ULA: Int = 5
+
+    /** Jumada II. */
+    public const val JUMADA_AL_AKHIRAH: Int = 6
+
+    /**
+     * The name [month] (1-12) **shares with its sibling**, for a month in [pairedHijriMonths];
+     * `null` for every other month.
+     *
+     * The shared base rather than the month name: `ربیع الثانی ٢` is not a short form of anything, and
+     * `ربیع الثانی` is precisely the string the header band is too narrow for. So the four paired
+     * months get their base name (`ربيع`, `جمادى`, `Rabi'`, `Jumada`) and the ordinal is appended by
+     * the caller — see [WidgetLocalization.hijriMonthShortName].
+     *
+     * **Not derived by trimming the full name.** Suffix-stripping would have to know that Urdu
+     * `الثانی` and English `al-thani` both mean "second", which is a linguistic fact this file has no
+     * business encoding, and it would break on the next language. The four strings are the honest
+     * cost.
+     */
+    public fun pairedHijriMonthBase(month: Int, language: WidgetLanguage): String? = when (month) {
+        RABI_AL_AWWAL, RABI_AL_THANI -> when (language) {
+            // `ربیع` bare. The full name is `ربیع الاول` / `ربیع الثانی`; the shared part is the
+            // prefix, and the ordinal below replaces the whole `الاول`/`الثانی` rather than adding to
+            // it — which is what keeps the band narrow enough to hold.
+            WidgetLanguage.URDU -> "ربیع"
+            WidgetLanguage.ENGLISH -> "Rabi'"
+        }
+
+        JUMADA_AL_ULA, JUMADA_AL_AKHIRAH -> when (language) {
+            WidgetLanguage.URDU -> "جمادی"
+            WidgetLanguage.ENGLISH -> "Jumada"
+        }
+
+        else -> null
+    }
+
+    /**
+     * [month]'s name in the form a narrow header band can hold: the shared base plus an ordinal digit
+     * for the four [pairedHijriMonths], and the ordinary name for the other eight.
+     *
+     * [ordinal] is the digit the caller renders in **its own** numeral style rather than one this
+     * function produces — see [WidgetDataApi.todayHijriWidgetData], which formats it through the
+     * projection's [NumeralStyle] so a Western-digit widget never sees an Arabic-Indic `٢` and vice
+     * versa. [monthName] is what a caller passes for a month with no short form, so a language with no
+     * entry for a month still renders rather than rendering nothing.
+     *
+     * **A renderer must not implement this** (WG-12), for the same reason it must not call [hijriEra]:
+     * a month name is text in the widget's own language, which is a [WidgetOptions] field and not a
+     * resource-configuration value. Building it in the projection is also what lets iOS pick it up
+     * without a Swift edit.
+     */
+    public fun hijriMonthShortName(
+        month: Int,
+        monthName: String,
+        ordinal: String,
+        language: WidgetLanguage,
+    ): String = pairedHijriMonthBase(month, language)?.let { base -> "$base $ordinal" } ?: monthName
 }
 
 /**
@@ -205,6 +347,7 @@ private fun List<String>?.orDefault(fallback: List<String>): List<String> =
  * driven by the widget's own [WidgetLanguage] rather than the host's `layoutDirection`, so an
  * Urdu widget renders RTL on an LTR device and vice versa.
  */
+@Suppress("ReturnCount")
 public fun buildHijriMonthWidgetData(
     hijriYear: Int,
     hijriMonth: Int,
@@ -218,6 +361,8 @@ public fun buildHijriMonthWidgetData(
     localizedGregorianMonthNames: List<String>? = null,
     localizedWeekdayNames: List<String>? = null,
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
+    hijriEra: String? = null,
+    gregorianEra: String? = null,
 ): HijriMonthWidgetData? {
     val yearMonth = try {
         if (hijriMonth in 1..12) HijrahYearMonth(hijriYear, hijriMonth) else return null
@@ -268,9 +413,16 @@ public fun buildHijriMonthWidgetData(
     // ignoring the caller's table no matter how correctly the grid honoured it.
     val gregorianFirst = calendarMonth.gregorianFirstDay
     val gregorianLast = calendarMonth.gregorianLastDay
-    val gregorianRange = formatGregorianRange(gregorianFirst, gregorianLast, gregorianMonthNames)
+    // A **range**, not the first in-month Gregorian month (FD-06). A Hijri month is 29 or 30 days
+    // and a Gregorian month is 28-31, so roughly half of all Hijri months start in one Gregorian
+    // month and end in another — Safar 1448 began on 30 July 2026, and the header used to say
+    // "July 2026" for a month with not one day in it.
+    //
+    // This is the same string `formatGregorianRange` has always produced for `gregorianRange`, which
+    // was iOS-only. Two fields holding the same range, one of them truncated, is how the app and the
+    // widget came to disagree; the truncated one is now the only one.
     val gregorianMonthTitle =
-        "${gregorianMonthNames[gregorianFirst.month.ordinal]} ${gregorianFirst.year}"
+        formatGregorianRange(gregorianFirst, gregorianLast, gregorianMonthNames, gregorianEra)
 
     val days = calendarMonth.days.map { day ->
         val local = day.localDate
@@ -282,6 +434,10 @@ public fun buildHijriMonthWidgetData(
             gregorianEpochDay = local.toEpochDays(),
             isCurrentMonth = day.isCurrentMonth,
             isWeekend = day.isWeekend,
+            // FD-08: the observance flag rides the projection rather than being re-derived by each
+            // renderer, because `CalendarDay.event` has already resolved the calendar space this
+            // projection was built in.
+            hasEvent = day.event != null,
         )
     }.let { cells ->
         // Reverse within each 7-cell week (not the whole list) so the rows still read as weeks
@@ -295,10 +451,13 @@ public fun buildHijriMonthWidgetData(
 
     return HijriMonthWidgetData(
         hijriYear = hijriYear,
+        hijriYearText = withEra(
+            formatNumber(hijriYear, numeralStyle),
+            hijriEra,
+        ),
         hijriMonth = hijriMonth,
         hijriMonthName = hijriMonthName,
         gregorianMonthTitle = gregorianMonthTitle,
-        gregorianRange = gregorianRange,
         weekdayHeaders = weekdayHeaders,
         days = days,
         adjustmentDays = adjustmentDays,
@@ -314,15 +473,22 @@ private fun formatGregorianRange(
     first: LocalDate,
     last: LocalDate,
     names: List<String>,
-): String = when {
-    first.month == last.month && first.year == last.year ->
-        "${names[first.month.ordinal]} ${first.year}"
-    first.year == last.year ->
-        "${names[first.month.ordinal]} - " +
-            "${names[last.month.ordinal]} ${first.year}"
-    else ->
-        "${names[first.month.ordinal]} ${first.year} - " +
-            "${names[last.month.ordinal]} ${last.year}"
+    era: String? = null,
+): String {
+    fun monthName(date: LocalDate): String = names[date.month.ordinal]
+
+    // `null` — a caller that passed no marker — leaves the years bare, which is what the default
+    // parameter means, so nothing changes for a leaf caller that has not opted in (FD-05).
+    fun year(y: Int): String = withEra(y.toString(), era)
+
+    return when {
+        first.month == last.month && first.year == last.year ->
+            "${monthName(first)} ${year(first.year)}"
+        first.year == last.year ->
+            "${monthName(first)} - ${monthName(last)} ${year(first.year)}"
+        else ->
+            "${monthName(first)} ${year(first.year)} - ${monthName(last)} ${year(last.year)}"
+    }
 }
 
 /**
@@ -349,7 +515,18 @@ private fun formatGregorianRange(
  * [overrides] is the month-length table the Pakistan branch resolves against; it defaults to the
  * process-wide [HijriMonthOverrides.current] for the same reason as the grid builder (WD-01), and
  * the `options:`-taking overload threads it from [WidgetOptions.overridesTable].
+ *
+ * [monthNameLanguage] is the language [localizedHijriMonthNames] was localized **to**, and it is a
+ * parameter rather than something derived from the lists because
+ * [TodayHijriWidgetData.hijriMonthShortName] needs it to pick a short month's shared base name
+ * (FD-10) — the strings themselves cannot say which language they are. `null` means "assume English",
+ * which is what a `null` [localizedHijriMonthNames] resolves to anyway
+ * ([DefaultHijriMonthNames]); passing an Urdu list *without* the language would put an English `Rabi'`
+ * beside Urdu names, so the `options:` overload always supplies both together. Read
+ * [WidgetOptions.effectiveMonthNameLanguage] for the value to pass, never [WidgetOptions.language] —
+ * the names follow their own option.
  */
+@Suppress("ReturnCount")
 public fun todayHijriWidgetData(
     anchorEpochDay: Long,
     adjustmentDays: Int,
@@ -359,6 +536,9 @@ public fun todayHijriWidgetData(
     numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     pakistan: Boolean = false,
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
+    hijriEra: String? = null,
+    gregorianEra: String? = null,
+    monthNameLanguage: WidgetLanguage? = null,
 ): TodayHijriWidgetData? {
     // `fromEpochDays` throws for an epoch day outside the representable range, and `plus` throws
     // when the *shifted* date leaves it — which a large `adjustmentDays` alone can do. Both were
@@ -397,14 +577,23 @@ public fun todayHijriWidgetData(
     val hijriMonthNames = localizedHijriMonthNames.orDefault(DefaultHijriMonthNames)
     val gregorianMonthNames = localizedGregorianMonthNames.orDefault(DefaultGregorianMonthNames)
     val weekdayNames = localizedWeekdayNames.orDefault(DefaultWeekdayNames)
+    val hijriMonthName = hijriMonthNames.getOrNull(hMonth - 1) ?: ""
     return TodayHijriWidgetData(
         hijriDay = hDay,
         hijriDayText = formatNumber(hDay, numeralStyle),
         hijriMonth = hMonth,
         hijriYear = hYear,
-        hijriMonthName = hijriMonthNames.getOrNull(hMonth - 1) ?: "",
+        hijriYearText = withEra(formatNumber(hYear, numeralStyle), hijriEra),
+        hijriMonthName = hijriMonthName,
+        hijriMonthShortName = shortHijriMonthName(
+            month = hMonth,
+            monthName = hijriMonthName,
+            numeralStyle = numeralStyle,
+            language = monthNameLanguage,
+        ),
         gregorianDate = "${formatNumber(anchor.day, numeralStyle)} " +
-            "${gregorianMonthNames[anchor.month.ordinal]} ${anchor.year}",
+            "${gregorianMonthNames[anchor.month.ordinal]} " +
+            withEra(anchor.year.toString(), gregorianEra),
         weekdayName = weekdayNames.getOrNull(weekday.index) ?: weekday.shortName,
         adjustmentDays = adjustmentDays,
         gregorianDay = anchor.day,
@@ -412,7 +601,50 @@ public fun todayHijriWidgetData(
         gregorianMonth = anchor.month.ordinal + 1,
         gregorianMonthName = gregorianMonthNames[anchor.month.ordinal],
         gregorianYear = anchor.year,
+        gregorianYearText = withEra(formatNumber(anchor.year, numeralStyle), gregorianEra),
     )
+}
+
+/**
+ * [TodayHijriWidgetData.hijriMonthShortName] for the month the projection resolved (FD-10).
+ *
+ * The ordinal is produced here rather than inside [WidgetLocalization.hijriMonthShortName] because it
+ * is a **number**, and a number in a widget is the projection's business for the same reason the day
+ * figures are: it has to be in [numeralStyle], which belongs to the widget and not to the device.
+ *
+ * Empty in, empty out — a month with no name yields no short form, because a header band reading
+ * just `٢` is a number with nothing saying which month it is.
+ */
+private fun shortHijriMonthName(
+    month: Int,
+    monthName: String,
+    numeralStyle: NumeralStyle,
+    language: WidgetLanguage?,
+): String {
+    if (monthName.isEmpty()) return ""
+    // `ENGLISH` rather than anything derived: `null` means the caller passed no localized list, which
+    // `orDefault` has already turned into the built-in English names. Guessing from the *strings*
+    // would mean inspecting codepoints to infer a language, which is exactly the kind of guess that
+    // puts a Latin base name in an Urdu band.
+    return WidgetLocalization.hijriMonthShortName(
+        month = month,
+        monthName = monthName,
+        ordinal = formatNumber(pairedMonthOrdinal(month), numeralStyle),
+        language = language ?: WidgetLanguage.ENGLISH,
+    )
+}
+
+/**
+ * Which member of its pair [month] (1-12) is: `1` for Rabi' I and Jumada I, `2` for the seconds.
+ *
+ * `1` for every month with no pair, so a caller cannot accidentally read a short form off a month
+ * that has none — [WidgetLocalization.pairedHijriMonthBase] is what decides whether the ordinal is
+ * used at all, and it answers `null` for those eight months.
+ */
+private fun pairedMonthOrdinal(month: Int): Int = when (month) {
+    WidgetLocalization.RABI_AL_AWWAL, WidgetLocalization.JUMADA_AL_ULA -> 1
+    WidgetLocalization.RABI_AL_THANI, WidgetLocalization.JUMADA_AL_AKHIRAH -> 2
+    else -> 1
 }
 
 /**
@@ -436,6 +668,15 @@ public fun offsetHijriMonth(hijriYear: Int, hijriMonth: Int, offset: Int): Hijri
     }
     return result?.let { HijriYearMonth(year = it.year, month = it.month.number) }
 }
+
+/**
+ * Appends a space and [era] to [year] when there is one.
+ *
+ * The one place era marking happens for a year, so the grid header, the today strip and the tiles all
+ * produce the same string. Both supported languages write the era *after* the year, so there is no
+ * prefix case to get wrong here; see [WidgetLocalization.ChromeLabels.yearWithEra].
+ */
+private fun withEra(year: String, era: String?): String = if (era == null) year else "$year $era"
 
 private fun formatNumber(value: Int, numeralStyle: NumeralStyle): String =
     if (numeralStyle == NumeralStyle.ARABIC_INDIC) {

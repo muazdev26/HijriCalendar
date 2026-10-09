@@ -4,10 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.view.View
-import androidx.annotation.ColorRes
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -19,8 +18,10 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
@@ -38,8 +39,10 @@ import androidx.glance.layout.RowScope
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
@@ -47,14 +50,19 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.muazdev.hijricalendar.core.CalendarMonth
+import com.muazdev.hijricalendar.core.HijriEvent
+import com.muazdev.hijricalendar.core.HijriEventLanguage
+import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
-import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.widgetdata.GridTypography
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WeekStart
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -63,6 +71,17 @@ import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 
 public const val HIJRI_DEEP_LINK_TODAY: String = "hijricalendar://today"
+
+/**
+ * Height of the month-step progress bar, in dp.
+ *
+ * A named constant rather than a literal at the one call site because it is a **budget**, not a
+ * style: it is fixed-height, so this many dp come out of the weighted pool the week rows divide
+ * between them. Three is the smallest height that reads as a line rather than a hairline, and it
+ * costs each of five or six rows well under a dp. See [LoadingBar] for why this one being a fixed
+ * sibling is acceptable where [RowDivider] nesting was necessary.
+ */
+private const val LOADING_BAR_HEIGHT_DP = 7
 
 /**
  * The Hijri home-screen widget family.
@@ -114,7 +133,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             // join it instead of building the century table inline on this composition.
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
         val prevAction = actionRunCallback<HijriWidgetPrevMonthCallback>()
         val nextAction = actionRunCallback<HijriWidgetNextMonthCallback>()
@@ -126,6 +145,12 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             val prefs = currentState<Preferences>()
             val options = HijriWidgetConfig.decodeOptions(prefs) ?: HijriWidgetConfig.DEFAULTS
             val viewedMonth = HijriWidgetConfig.decodeViewed(prefs)
+            val selectedDay = HijriWidgetConfig.decodeSelectedDay(prefs)
+            // A month step in flight. Read from the same snapshot as everything else, so the bar and
+            // the grid can never be from different moments. Staleness-checked rather than raw: a
+            // flag whose owning process was killed mid-step has no `finally` left to clear it, and
+            // un-checked that one kill is a widget with no tappable region until it is re-added.
+            val isLoading = HijriWidgetConfig.decodeLoadingIfFresh(prefs, System.currentTimeMillis())
             val data = HijriWidgetRenderCache.render(
                 glanceId = id.toString(),
                 options = options,
@@ -138,6 +163,14 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayHijri = data.todayHijri,
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
+                showAdjacentDays = data.showAdjacentDays,
+                showCellBorders = data.showCellBorders,
+                selectedDay = selectedDay,
+                isLoading = isLoading,
+                // Resolved here, where the options live: the footer must name an observance in the
+                // *widget's* language and calendar space, and this is the only place that knows both.
+                selectedEventName = selectedDay
+                    ?.let { eventFor(it, options)?.name(eventLanguage(options.language)) },
                 colors = colors,
                 language = options.language,
                 actions = WidgetActions(
@@ -145,6 +178,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                     prev = prevAction,
                     next = nextAction,
                     reset = actionRunCallback<HijriWidgetTodayResetCallback>(),
+                    refresh = actionRunCallback<HijriWidgetRefreshCallback>(),
                 ),
             )
         }
@@ -161,7 +195,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             HijriWidgetRoot(
@@ -169,6 +203,11 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 todayHijri = data.todayHijri,
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
+                showAdjacentDays = data.showAdjacentDays,
+                showCellBorders = data.showCellBorders,
+                selectedDay = null,
+                isLoading = false,
+                selectedEventName = null,
                 colors = colors,
                 language = options.language,
                 // The picker preview is non-interactive by construction (WG-12's grouping makes
@@ -193,6 +232,30 @@ internal data class HijriWidgetRenderData(
     val todayEpochDay: Long,
     val monthData: HijriMonthWidgetData?,
     val layoutRtl: Boolean,
+    /**
+     * Carried through the render data rather than read from [options] inside the composable,
+     * alongside [layoutRtl] for the same reason: the grid must paint exactly what the projection
+     * that produced [monthData] was configured for, and the two cannot drift because neither is
+     * re-read from the options at compose time.
+     *
+     * It is deliberately **not** in [HijriWidgetRenderCache]'s keys. The projection's output does
+     * not depend on it — [HijriMonthWidgetData.days] is the padded month either way — so folding it
+     * into `MonthKey` would invalidate 42 cells of cached projection on a change that cannot alter
+     * a single one of them.
+     */
+    val showAdjacentDays: Boolean,
+    /**
+     * Carried alongside [showAdjacentDays] for the same reason: the grid must paint exactly what the
+     * options configured, and neither flag belongs in the render cache's keys — the projection's cells
+     * are identical whether or not a divider is drawn.
+     */
+    val showCellBorders: Boolean,
+    /**
+     * The day the user tapped, or `null` (FD-09). Read from the same reactive preferences snapshot as
+     * the viewed month, so a tap and the render it triggers cannot disagree about what is selected —
+     * and so a render that races a tap sees the newest value rather than the one it started with.
+     */
+    val selectedDay: HijriDaySelection?,
 )
 
 /**
@@ -226,9 +289,20 @@ internal fun buildRenderData(
  * language's. On an LTR device this is just `language.isRtl`.
  */
 internal fun computeLayoutRtl(context: Context, language: WidgetLanguage): Boolean = resolveLayoutRtl(
-    deviceRtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL,
+    deviceRtl = computeDeviceLayoutRtl(context),
     language = language,
 )
+
+/**
+ * Whether the **device** is laid out right-to-left, with nothing about the widget's language.
+ *
+ * Split out from [computeLayoutRtl] for the rows whose placement is fixed rather than reading-direction
+ * driven — see [emitsDayFirstForLeftMonth], where the only question is whether the platform will mirror a
+ * `Row`, and the widget's language must not enter into it. Reading the `Configuration` is plumbing the
+ * platform owns; the *decision* about what to do with the answer belongs to whichever rule is asking.
+ */
+internal fun computeDeviceLayoutRtl(context: Context): Boolean =
+    context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
 
 /**
  * The XOR on its own, so it can be tested without a `Configuration` (WG-16).
@@ -268,6 +342,22 @@ internal fun resolveGridMonth(
     ?: todayHijri?.let { HijriYearMonth(year = it.hijriYear, month = it.hijriMonth) }
 
 /**
+ * Whether the grid is currently showing [year]-[month] (FD-09).
+ *
+ * Read through the same [resolveGridMonth] the render path uses, so "should this tap move the grid" and
+ * "what month does the grid draw" cannot disagree about a half-set pin — which is exactly the WD-03
+ * defect the single resolver exists to prevent.
+ */
+internal fun isShowingMonth(
+    options: WidgetOptions,
+    viewedMonth: HijriYearMonth?,
+    todayHijri: TodayHijriWidgetData?,
+    year: Int,
+    month: Int,
+): Boolean = resolveGridMonth(options, viewedMonth, todayHijri)?.let { it.year == year && it.month == month }
+    ?: false
+
+/**
  * Builds the month projection for an already-resolved grid month. The source, language, digit style
  * and reading direction all come from [options], so every re-render path produces the same grid.
  */
@@ -282,7 +372,11 @@ internal fun buildMonthData(
         hijriYear = year,
         hijriMonth = month,
         options = options,
-        weekendDays = WeekDay.WEEKEND_DAYS,
+        // From the widget's own options (FD-03). This used to be the literal
+        // `WeekDay.WEEKEND_DAYS`, so every widget shaded Friday and Saturday and nobody could change
+        // it — which is right for the Pakistan calendar the library also supports, and wrong for a
+        // user whose weekend is not Friday and Saturday.
+        weekendDays = options.weekendPattern.toWeekDays(),
         // The projection is pre-reversed for the device's mirroring, so the net visual order is
         // the option language's — which is what `layoutRtl` already encodes.
         rightToLeft = layoutRtl,
@@ -395,6 +489,20 @@ internal object HijriWidgetRenderCache {
         val pakistan: Boolean,
         val rightToLeft: Boolean,
         val overrides: OverrideKey,
+        /**
+         * FD-03. **This key omitted the weekend set for one commit**, and the symptom was that the
+         * weekend setting appeared to do nothing: a render after the change served a month built with
+         * the previous set, so the shaded columns stayed exactly where they were while the UI reported
+         * a new choice.
+         *
+         * This is precisely the trap the class KDoc warns about — "keys cover everything that affects
+         * the output" — and the reason this field is written out by name rather than folded into
+         * something coarser. The three options that do **not** appear here are the ones that cannot
+         * alter a single cell: [WidgetOptions.showAdjacentDays] and [WidgetOptions.showCellBorders] are
+         * applied by the renderer to an unchanged projection, and a selection is widget state, not an
+         * option.
+         */
+        val weekendPattern: WeekendPattern,
     )
 
     private val todayCache = LruCache<TodayKey, TodayHijriWidgetData>(MAX_CACHE_ENTRIES)
@@ -427,6 +535,7 @@ internal object HijriWidgetRenderCache {
                 options.source.pakistan,
                 layoutRtl,
                 overrideKey,
+                options.weekendPattern,
             )
         }
         val monthData = if (monthKey == null) {
@@ -442,7 +551,15 @@ internal object HijriWidgetRenderCache {
                 ?: buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
                     ?.also { monthCache.put(monthKey, it) }
         }
-        return HijriWidgetRenderData(todayHijri, todayEpochDay, monthData, layoutRtl)
+        return HijriWidgetRenderData(
+            todayHijri = todayHijri,
+            todayEpochDay = todayEpochDay,
+            monthData = monthData,
+            layoutRtl = layoutRtl,
+            showAdjacentDays = options.showAdjacentDays,
+            showCellBorders = options.showCellBorders,
+            selectedDay = null,
+        )
     }
 
     /**
@@ -475,32 +592,113 @@ internal object HijriWidgetRenderCache {
 }
 
 /**
- * Day/night aware widget colors, resolved from resources once per render so Glance views are
- * correct whether the widget is drawn in light or dark mode.
+ * The widget's palette, as **resource ids** rather than resolved colours (FD-07).
+ *
+ * Each member is a `ColorProvider` built from an `@ColorRes`, so what Glance serialises into the
+ * `RemoteViews` is the resource reference and the launcher resolves it against **its own**
+ * configuration at bind time. A night-mode switch then re-resolves ten colours inside the existing
+ * view: no re-compose, no invalidation, no placeholder, no restart.
+ *
+ * The previous shape resolved everything eagerly — `context.getColor(R.color.x)` — and handed Glance
+ * a literal int. A number carries no idea of where it came from, so the launcher could not re-resolve
+ * it, and a night-mode switch had to invalidate the whole view to change anything. That is the restart
+ * the report describes, and no amount of `updatePeriodMillis` removes it: re-rendering is the restart.
+ * A `uiMode` broadcast receiver would only make the rebuild *faster*.
+ *
+ * Because a `ColorProvider` cannot carry an alpha (Glance 1.2 has only the `Color` and `Int` factories),
+ * the three dimmed day figures are real colour resources with their own night variants rather than
+ * `primaryText.copy(alpha = …)`. See `values/colors.xml`.
+ *
+ * This takes no `Context` at all now — that is the point, and it is why the members are `val`s on a
+ * class rather than something computed per render.
  */
+@Suppress("LongParameterList")
 internal class WidgetColors(
-    val background: Color,
-    val accent: Color,
-    val primaryText: Color,
-    val secondaryText: Color,
-    val weekendText: Color,
-    val todayBackground: Color,
-    val onTodayText: Color,
+    val background: ColorProvider,
+    val accent: ColorProvider,
+    val primaryText: ColorProvider,
+    val secondaryText: ColorProvider,
+    /** A day of a neighbouring Hijri month, when `showAdjacentDays` paints them (FD-02). */
+    val outOfMonthDay: ColorProvider,
+    /** The Gregorian day under an in-month Hijri figure. */
+    val gregorianDay: ColorProvider,
+    /** The Gregorian day under a neighbouring month's figure. */
+    val outOfMonthGregorianDay: ColorProvider,
+    val weekendText: ColorProvider,
+    val todayBackground: ColorProvider,
+    val onTodayText: ColorProvider,
+    /**
+     * The fill on a day carrying an observance (FD-08).
+     *
+     * Deliberately **not** [todayBackground]: that is the accent, and reusing it would make an Eid
+     * indistinguishable from today. This is the container tone — quiet enough to read as information
+     * about the date rather than as a second selection, which is exactly the `secondaryContainer` the
+     * in-app calendar uses for the same cell.
+     */
+    val eventDayBackground: ColorProvider,
+    /** Content on [eventDayBackground]. Its own resource because a `ColorProvider` cannot tint. */
+    val onEventDayText: ColorProvider,
+    /** The hairline between cells, when `showCellBorders` is on (FD-04). */
+    val cellBorder: ColorProvider,
+    /**
+     * The ring around a tapped day (FD-09).
+     *
+     * A ring, not the today fill: a day can be **both** today and selected, and filling it would make
+     * the two indistinguishable. A ring reads as "you chose this" where a fill reads as "this is
+     * today", which is a different statement and has to survive their overlap.
+     */
+    val selectedDay: ColorProvider,
 ) {
     companion object {
-        fun from(context: Context) = WidgetColors(
-            background = context.widgetColor(R.color.widget_background),
-            accent = context.widgetColor(R.color.widget_accent),
-            primaryText = context.widgetColor(R.color.widget_text_primary),
-            secondaryText = context.widgetColor(R.color.widget_text_secondary),
-            weekendText = context.widgetColor(R.color.widget_weekend_text),
-            todayBackground = context.widgetColor(R.color.widget_today_background),
-            onTodayText = context.widgetColor(R.color.widget_on_today),
+        val DEFAULT: WidgetColors = WidgetColors(
+            background = ColorProvider(R.color.widget_background),
+            accent = ColorProvider(R.color.widget_accent),
+            primaryText = ColorProvider(R.color.widget_text_primary),
+            secondaryText = ColorProvider(R.color.widget_text_secondary),
+            outOfMonthDay = ColorProvider(R.color.widget_day_out_of_month),
+            gregorianDay = ColorProvider(R.color.widget_day_gregorian_sub),
+            outOfMonthGregorianDay = ColorProvider(R.color.widget_day_out_faint),
+            weekendText = ColorProvider(R.color.widget_weekend_text),
+            todayBackground = ColorProvider(R.color.widget_today_background),
+            onTodayText = ColorProvider(R.color.widget_on_today),
+            eventDayBackground = ColorProvider(R.color.widget_event_day_background),
+            onEventDayText = ColorProvider(R.color.widget_on_event_day),
+            cellBorder = ColorProvider(R.color.widget_cell_border),
+            selectedDay = ColorProvider(R.color.widget_selected_day),
         )
     }
 }
 
-private fun Context.widgetColor(@ColorRes resId: Int): Color = Color(getColor(resId))
+/**
+ * The action for one day cell (FD-09), or `null` when the widget cannot be tapped.
+ *
+ * Null in three cases, all of them deliberate:
+ *
+ * - `actions.isNonInteractive` — every preview renders the same tree with no actions, so a picker
+ *   preview and the settings live preview stay untappable without each remembering to suppress this.
+ * - `paint = false` — a cell the widget is hiding must not become an **invisible tap target**. It
+ *   keeps its slot for alignment and stays empty; making it tappable would put a button where the user
+ *   sees nothing.
+ * - no callback when the widget is on its compact today card, where there are no cells at all; the
+ *   caller never reaches here in that case, and the `null` is belt and braces.
+ */
+private fun selectActionFor(
+    actions: WidgetActions,
+    year: Int,
+    month: Int,
+    day: Int,
+    paint: Boolean,
+): Action? = if (actions.isNonInteractive || !paint) {
+    null
+} else {
+    actionRunCallback<HijriWidgetSelectDayCallback>(
+        actionParametersOf(
+            ACTION_YEAR to year,
+            ACTION_MONTH to month,
+            ACTION_DAY to day,
+        ),
+    )
+}
 
 /**
  * Applies [clickable] only when an action is present. The settings preview renders the same tree
@@ -510,11 +708,34 @@ private fun GlanceModifier.clickableWhen(action: Action?): GlanceModifier =
     if (action != null) this.clickable(action) else this
 
 @Composable
+@Suppress("LongParameterList")
 internal fun HijriWidgetRoot(
     monthData: HijriMonthWidgetData?,
     todayHijri: TodayHijriWidgetData?,
     todayEpochDay: Long,
     layoutRtl: Boolean,
+    showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
+    selectedDay: HijriDaySelection?,
+    /**
+     * Whether a month step is in flight.
+     *
+     * Two things follow from it: a progress bar appears directly under the header, and every action
+     * goes away. The second matters more than it looks — the grid *stays on screen* while loading,
+     * so the arrows and the 42 cells are visibly right there; if they stayed live, a second tap
+     * arriving mid-step would be read against a month the first tap is about to replace, and a
+     * double-tap would skip a month.
+     */
+    isLoading: Boolean,
+    /**
+     * The observance on [selectedDay], already named in the widget's language — or `null` when the
+     * selected day carries none.
+     *
+     * Resolved by the caller rather than here because this is where the *projection's* language and
+     * calendar space live. A footer re-deriving them would be a second place to get the space wrong,
+     * and the two answers would differ on a Pakistan-calendar widget.
+     */
+    selectedEventName: String?,
     colors: WidgetColors,
     // The widget's own language, for the chrome's accessibility labels (WG-12). Not derivable from
     // `monthData`: a widget that fell back to the today card has no month projection at all, and its
@@ -524,12 +745,13 @@ internal fun HijriWidgetRoot(
 ) {
     val size = LocalSize.current
     val useCompact = size.width < 180.dp || size.height < 200.dp
+    val liveActions = if (isLoading) actions.whileLoading() else actions
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(colors.background)
-            .clickableWhen(actions.open)
+            .clickableWhen(liveActions.open)
             .padding(10.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
@@ -540,9 +762,14 @@ internal fun HijriWidgetRoot(
                 month = monthData,
                 todayEpochDay = todayEpochDay,
                 layoutRtl = layoutRtl,
+                showAdjacentDays = showAdjacentDays,
+                showCellBorders = showCellBorders,
+                selectedDay = selectedDay,
+                isLoading = isLoading,
+                selectedEventName = selectedEventName,
                 colors = colors,
                 language = language,
-                actions = actions,
+                actions = liveActions,
             )
         }
     }
@@ -554,6 +781,7 @@ private fun TodayCard(
     colors: WidgetColors,
     language: WidgetLanguage,
 ) {
+    val fonts = HijriWidgetFonts.default
     if (today == null) {
         Text(
             // Not `getString(R.string.hijri_widget_unavailable)`: that resolves against the
@@ -561,7 +789,7 @@ private fun TodayCard(
             // Every other string this widget renders is resolved from `options.language`, and this
             // was the one that was not.
             text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
-            style = TextStyle(color = ColorProvider(colors.secondaryText), fontSize = 12.sp),
+            style = TextStyle(color = colors.secondaryText, fontSize = 12.sp),
         )
         return
     }
@@ -580,9 +808,10 @@ private fun TodayCard(
         Text(
             text = today.hijriDayText,
             style = TextStyle(
-                color = ColorProvider(colors.accent),
+                color = colors.accent,
                 fontSize = dayFontSize,
                 fontWeight = FontWeight.Bold,
+                fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
@@ -590,16 +819,22 @@ private fun TodayCard(
         Text(
             text = "${today.hijriMonthName} ${today.hijriYear}",
             style = TextStyle(
-                color = ColorProvider(colors.primaryText),
+                color = colors.primaryText,
                 fontSize = monthFontSize,
                 fontWeight = FontWeight.Medium,
+                fontFamily = fonts.monthTitle.toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
         )
         Text(
             text = today.gregorianDate,
-            style = TextStyle(color = ColorProvider(colors.secondaryText), fontSize = gregorianFontSize, textAlign = TextAlign.Center),
+            style = TextStyle(
+                color = colors.secondaryText,
+                fontSize = gregorianFontSize,
+                fontFamily = fonts.gregorianTitle.toGlanceFontFamily(),
+                textAlign = TextAlign.Center,
+            ),
             maxLines = 1,
         )
     }
@@ -621,10 +856,13 @@ private fun MonthHeader(
     language: WidgetLanguage,
     actions: WidgetActions,
 ) {
-    val prevAvailable = offsetHijriMonth(
+    // Availability is the *action*, not the range: while a step is in flight every action is null
+    // (see `WidgetActions.whileLoading`), so this dims the arrows then too. Reading the range alone
+    // would leave them drawn at full strength and inert, which looks like a bug rather than a wait.
+    val prevAvailable = actions.prev != null && offsetHijriMonth(
         month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_PREVIOUS,
     ) != null
-    val nextAvailable = offsetHijriMonth(
+    val nextAvailable = actions.next != null && offsetHijriMonth(
         month.hijriYear, month.hijriMonth, HijriWidgetNavigation.STEP_NEXT,
     ) != null
 
@@ -677,18 +915,76 @@ private fun MonthHeader(
                 contentDescription = WidgetLocalization.ChromeLabels.nextMonth(language),
             )
         }
+        // After the arrow in reading order, so the row reads "step … step, then jump back, then
+        // refresh" in both directions. Both are also simply the two things a header offers that the
+        // arrows are not; keeping them in one row costs no height, which a second row would.
+        HeaderIcon(
+            resId = R.drawable.ic_today,
+            action = actions.reset,
+            color = colors.primaryText,
+            contentDescription = WidgetLocalization.ChromeLabels.goToCurrentMonth(language),
+        )
+        HeaderIcon(
+            resId = R.drawable.ic_refresh,
+            action = actions.refresh,
+            color = colors.primaryText,
+            contentDescription = WidgetLocalization.ChromeLabels.refreshWidget(language),
+        )
     }
 }
 
+/**
+ * One small header button: an icon, a tap action, an accessibility label.
+ *
+ * [NavigationArrow]'s shape without the range-edge state, because neither of these has an edge —
+ * "today" and "refresh" are always available. The touch target is the recommended 48dp with a 24dp
+ * icon: these sit four-across in a header that already has two 40dp arrows, so they are sized to add
+ * as little width as a usable target allows.
+ */
+@Composable
+private fun HeaderIcon(
+    resId: Int,
+    action: Action?,
+    color: ColorProvider,
+    contentDescription: String,
+) {
+    Box(
+        modifier = GlanceModifier
+            .semantics { this.contentDescription = contentDescription }
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .clickableWhen(action),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            provider = ImageProvider(resId),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(color),
+            modifier = GlanceModifier.size(24.dp),
+        )
+    }
+}
+
+@Suppress("LongParameterList")
 @Composable
 private fun MonthGrid(
     month: HijriMonthWidgetData,
     todayEpochDay: Long,
     layoutRtl: Boolean,
-    colors: WidgetColors,
+    showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
+    selectedDay: HijriDaySelection?,
+    isLoading: Boolean,
+    selectedEventName: String?,
     language: WidgetLanguage,
+    colors: WidgetColors,
     actions: WidgetActions,
 ) {
+    // One measurement for the whole grid, so every cell resolves the same sizes from the same number
+    // rather than each re-deriving from its own slot.
+    val cellSize = LocalSize.current.width / CalendarMonth.DAYS_IN_WEEK
+    val hijriSize = GridTypography.hijriSizeSp(cellSize.value).sp
+    val gregorianSize = GridTypography.gregorianSizeSp(cellSize.value).sp
+
     Column(modifier = GlanceModifier.fillMaxSize()) {
         MonthHeader(
             month = month,
@@ -698,6 +994,113 @@ private fun MonthGrid(
             actions = actions,
         )
 
+        // A month step is in flight: a bar directly under the header, **and the grid stays.**
+        //
+        // The grid staying is the point. Replacing it with the bar (which is what this did first)
+        // empties the widget for the length of the step, so a tap on a full-looking calendar makes it
+        // briefly blank and then refills — the motion reads as "my tap broke it", which is the
+        // opposite of what the bar is for. Google Calendar does the same thing: the month you are
+        // leaving stays on screen with a thin indeterminate line under the title, so the eye has
+        // something continuous to follow and the bar reads as progress rather than as a state change.
+        //
+        // What must not stay is the grid's **tappability**, and that is handled by the actions being
+        // nulled upstream (`WidgetActions.whileLoading`) rather than here.
+        if (isLoading) {
+            LoadingBar(colors)
+        }
+
+        MonthDays(
+            // Weighted, not `fillMaxSize()`, and applied at the call site because `defaultWeight`
+            // is a `ColumnScope` member — the MonthDays body is not in this scope. A `match_parent`
+            // middle child of this Column is measured against the space consumed so far
+            // (`LinearLayout.measureVertical` subtracts `heightUsed`), so the grid took the whole
+            // height and the trailing EventFooter below it was measured against zero: the footer
+            // has literally never had a non-zero height on a device. Weighting the grid makes it
+            // draw from what header (and loading bar) leave over, with the footer's line reserved
+            // first — which is also what the LoadingBar's KDoc below has always claimed.
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+            month = month,
+            todayEpochDay = todayEpochDay,
+            showAdjacentDays = showAdjacentDays,
+            showCellBorders = showCellBorders,
+            selectedDay = selectedDay,
+            hijriSize = hijriSize,
+            gregorianSize = gregorianSize,
+            colors = colors,
+            actions = actions,
+        )
+
+        EventFooter(
+            // The tapped day's observance when there is one, else the month-next one — so the line
+            // says something before the first tap, not only after it. Resolved here rather than in
+            // `EventFooter` because the fallback needs the month projection, which only this frame has.
+            eventName = selectedEventName
+                ?: nextEventName(month, todayEpochDay, language),
+            colors = colors,
+        )
+    }
+}
+
+/**
+ * The indeterminate bar shown under the header while a month step runs.
+ *
+ * **A fixed 3dp row, not a weighted one**, and that is a deliberate difference from [RowDivider]
+ * sitting one screen below. A fixed child of this `Column` takes its height out of the weighted
+ * pool the week rows draw from, so this bar costs the grid 3dp once. The divider bug was different
+ * in kind, not just in amount: six 1dp siblings in that same pool meant every row lost height
+ * *proportionally* to the row count, which is why enabling it pushed the last week off the widget.
+ * One constant 3dp is a rounding error on any size this widget is offered at, and it is the price
+ * of the bar being where the eye expects it — directly under the title, above the weekday row,
+ * exactly as a Material linear indicator sits under an app bar.
+ *
+ * No track colour: Glance's indeterminate form draws the moving segment over the host background,
+ * and a second colour here would put a visible grey stripe across the widget for the whole step.
+ */
+@Composable
+private fun LoadingBar(colors: WidgetColors) {
+    LinearProgressIndicator(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(LOADING_BAR_HEIGHT_DP.dp)
+            .padding(bottom = 2.dp),
+        color = colors.accent,
+    )
+}
+
+/**
+ * The month grid itself: the weekday header row and the weighted day rows.
+ *
+ * Its own composable because it is a third of a screen of weighted layout arithmetic, and a reader
+ * checking "how tall is a row?" should not have to read past the header and the loading bar to find
+ * out.
+ *
+ * [selectedDay] is the tapped day as stored — *including* one belonging to another month, which
+ * happens whenever the user navigates and the answer is "draw no mark". Deciding that here rather
+ * than at the call site is deliberate: "is this selection visible?" and "does this cell get the
+ * badge?" must be answered by the same value, or a mark lands on a cell in the wrong month.
+ */
+@Suppress("LongParameterList")
+@Composable
+private fun MonthDays(
+    modifier: GlanceModifier,
+    month: HijriMonthWidgetData,
+    todayEpochDay: Long,
+    showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
+    selectedDay: HijriDaySelection?,
+    hijriSize: TextUnit,
+    gregorianSize: TextUnit,
+    colors: WidgetColors,
+    actions: WidgetActions,
+) {
+    val fonts = HijriWidgetFonts.default
+    val selectionVisible = selectedDay?.isInMonth(month.hijriYear, month.hijriMonth) == true
+
+    // A Column for the same reason the outer grid has one: `defaultWeight` is a `ColumnScope`
+    // extension, so the rows below can only divide its height if they are its children. Flattening
+    // this back out is what would silently give every row its full intrinsic height. The root
+    // modifier comes from the call site — weighted there, so the footer below keeps its line.
+    Column(modifier = modifier) {
         Row(
             modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp),
             verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -706,27 +1109,195 @@ private fun MonthGrid(
                 Text(
                     text = name,
                     modifier = GlanceModifier.defaultWeight(),
+                    // **Bold, and unconditionally.** The weight is a rendering choice with no access
+                    // to the name's script, so it cannot be "bold for Urdu" — and the Urdu weekday
+                    // names (`جمعرات`, `بدھ`) are exactly the ones that read as weak at 10sp Medium,
+                    // where a longer word at a lighter weight disappears into the row above it. Same
+                    // size, so the header does not change height.
                     style = TextStyle(
-                        color = ColorProvider(colors.secondaryText),
+                        color = colors.secondaryText,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = fonts.weekday.toGlanceFontFamily(),
                         textAlign = TextAlign.Center,
                     ),
                 )
             }
         }
 
-        month.days.chunked(7).forEach { week ->
-            Row(
-                modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
-            ) {
-                week.forEach { cell ->
-                    DayCell(cell = cell, todayEpochDay = todayEpochDay, colors = colors)
+        // [HijriMonthWidgetData.weeksToRender] and [HijriMonthWidgetData.paintsDay] are the shared
+        // definition of the grid's shape, so this composable, calendar-ui's MonthGrid and the Swift
+        // grid cannot disagree about the row count or about which column the 1st sits under.
+        //
+        // A horizontal rule above the first row and between every row after it, plus the vertical
+        // rules each cell draws on its trailing edge. Both directions were asked for: a grid with only
+        // verticals divides the columns but leaves the rows to be counted by eye, which is most of the
+        // work undone. One rule per row rather than a border per cell, for the reason on
+        // [CellDivider].
+        val weeks = month.weeksToRender(showAdjacentDays)
+        weeks.forEach { week ->
+            // Each row is a **Column carrying its own share of the height**, with the rule *inside* it.
+            //
+            // That is not tidiness — it is the whole fix. The rules used to be siblings of the rows in
+            // this grid's Column, so six extra 1dp fixed-height children sat in the same pool the
+            // `defaultWeight()` rows draw from. Turning the setting on therefore stole height from
+            // *every* row at once, the rows overflowed the widget, and the bottom ones — the last days
+            // of the month — were pushed out of view entirely. Making the widget taller did not help,
+            // because the deficit was proportional.
+            //
+            // Nesting the rule means the 1dp comes out of that row's own allocation, so no row can be
+            // squeezed to nothing by a sibling and the grid keeps all five or six rows at any size.
+            Column(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                if (showCellBorders) RowDivider(colors)
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+                    verticalAlignment = Alignment.Vertical.CenterVertically,
+                ) {
+                    week.forEachIndexed { column, cell ->
+                        DayCell(
+                            cell = cell,
+                            todayEpochDay = todayEpochDay,
+                            colors = colors,
+                            hijriSize = hijriSize,
+                            gregorianSize = gregorianSize,
+                            // A rule after each column but the last (FD-04): one per column per row,
+                            // not a border on all 42 cells, because Glance's cost is per view.
+                            dividerAfter = showCellBorders && column < week.lastIndex,
+                            // Whether this cell is inside a divided grid. Not derivable from
+                            // `dividerAfter` alone: the first column has no rule on its *leading*
+                            // edge either, so "has a trailing rule" is not the same question.
+                            cellHasDividers = showCellBorders,
+                            // `cell.isCurrentMonth` as well as the day number: without it a selection
+                            // from another month would mark the same-numbered cell here, which is why
+                            // `selectionVisible` is checked above *and* the cell's own month is.
+                            isSelected = selectionVisible && cell.isCurrentMonth &&
+                                cell.hijriDay == selectedDay!!.day,
+                            // FD-09: the cell's own action. Null in every preview, because
+                            // `WidgetActions` is null there — so "this preview cannot be tapped"
+                            // stays one value rather than a fifth thing each preview must remember.
+                            selectAction = selectActionFor(
+                                actions,
+                                month.hijriYear,
+                                month.hijriMonth,
+                                cell.hijriDay,
+                                // A cell the widget is hiding must not become an invisible target.
+                                paint = month.paintsDay(cell, showAdjacentDays),
+                            ),
+                            // Blank rather than removed: the cell keeps its slot so the 1st stays in
+                            // its column under the right weekday heading.
+                            paint = month.paintsDay(cell, showAdjacentDays),
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * One line naming an observance: the tapped day's, or the month-next one when nothing is tapped.
+ *
+ * ## Why the line is always laid out
+ *
+ * The footer is laid out for **every** month grid, whether or not a day is selected, and renders empty
+ * when there is nothing to name. A grid whose height changes depending on *which day you tapped* is
+ * unusable — the thing you are aiming at moves under your finger — and the same argument applies to the
+ * untapped state: a widget that grows a strip the moment it is touched is one whose layout the user
+ * cannot predict. So the height is a constant of "this is a month grid" and only the text varies.
+ *
+ * It used to be laid out only on a selection, on the reasoning that a permanently-reserved blank strip
+ * is a cost every user pays for a feature most taps never use. That was the wrong trade once the grid
+ * itself began marking observance days (FD-08): the filled cells say *which* days matter, and a line
+ * that names the nearest one is what turns a mark into information — but only if it is there before the
+ * first tap.
+ *
+ * ## Why it is omitted on the compact layout
+ *
+ * `HijriWidgetRoot` picks the today card below 180dp wide, and there are no cells to tap there, so
+ * there is nothing for a footer to describe. Adding a third size tier for it would be more machinery
+ * than the feature is worth.
+ */
+@Composable
+private fun EventFooter(
+    eventName: String?,
+    colors: WidgetColors,
+) {
+    Row(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+    ) {
+        Text(
+            // Empty rather than absent when there is nothing to name — see the KDoc.
+            text = eventName.orEmpty(),
+            style = TextStyle(
+                color = colors.accent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * The observance on [selection], resolved in the widget's own calendar space.
+ *
+ * `null` for a month the projection cannot build, which is the same degradation the grid itself makes
+ * rather than a separate failure: a footer that named an observance for a month the grid cannot draw
+ * would be worse than a blank line.
+ */
+internal fun eventFor(selection: HijriDaySelection, options: WidgetOptions): HijriEvent? {
+    val month = buildHijriMonthWidgetData(
+        hijriYear = selection.year,
+        hijriMonth = selection.month,
+        options = options,
+    ) ?: return null
+
+    // Matched by day number **and** in-month, because a month can hold two days with the same number
+    // only if the projection is wrong — and a footer that marked the wrong one would be untraceable.
+    val cell = month.days.firstOrNull { it.isCurrentMonth && it.hijriDay == selection.day }
+    return cell?.let { HijriEvents.forDate(selection.month, it.hijriDay) }
+}
+
+/**
+ * The name of the observance the footer shows when **no day is tapped** (FD-08).
+ *
+ * The nearest one from today onwards within [month], or — when the month has none left this year — the
+ * last one in it. Both fallbacks are deliberate:
+ *
+ * - "nearest from today" rather than "first in the month", because on the 20th a widget naming an Eid
+ *   that has already passed is answering a question the user did not ask.
+ * - "the last one in it" rather than nothing, because the alternative is an empty line on a month that
+ *   visibly contains a filled cell, which reads as a bug rather than as an absence.
+ *
+ * `null` only when the month holds no observance at all, which for the current table is most months.
+ *
+ * Resolved from the projection's own [HijriDayWidgetData.hasEvent] rather than from a second lookup
+ * keyed on day numbers, so the line and the filled cells cannot disagree — the same reason
+ * [eventFor] goes through the projection.
+ */
+internal fun nextEventName(
+    month: HijriMonthWidgetData,
+    todayEpochDay: Long,
+    language: WidgetLanguage,
+): String? {
+    val observances = month.days.filter { it.isCurrentMonth && it.hasEvent }
+    if (observances.isEmpty()) return null
+
+    val eventLanguage = eventLanguage(language)
+    val upcoming = observances.firstOrNull { it.gregorianEpochDay >= todayEpochDay }
+        ?: observances.last()
+    return HijriEvents.forDate(month.hijriMonth, upcoming.hijriDay)?.name(eventLanguage)
+}
+
+/** Maps a widget's language onto the events table's, which is a `calendar-core` concept (FD-08). */
+internal fun eventLanguage(language: WidgetLanguage): HijriEventLanguage = when (language) {
+    WidgetLanguage.URDU -> HijriEventLanguage.URDU
+    WidgetLanguage.ENGLISH -> HijriEventLanguage.ENGLISH
 }
 
 /**
@@ -743,6 +1314,7 @@ private fun RowScope.MonthTitle(
     colors: WidgetColors,
     language: WidgetLanguage,
 ) {
+    val fonts = HijriWidgetFonts.default
     Box(
         modifier = GlanceModifier
             .defaultWeight()
@@ -752,11 +1324,16 @@ private fun RowScope.MonthTitle(
     ) {
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
             Text(
-                text = "${month.hijriMonthName} ${month.hijriYear}",
+                // Era-appended by the projection (FD-05): a Hijri year is four digits that look
+                // exactly like a Gregorian one, and `1447 · September 2026` leaves a reader guessing
+                // which calendar each number belongs to. The Gregorian half of this line carries its
+                // own marker inside `gregorianMonthTitle`.
+                text = "${month.hijriMonthName} ${month.hijriYearText}",
                 style = TextStyle(
-                    color = ColorProvider(colors.primaryText),
+                    color = colors.primaryText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = fonts.monthTitle.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
@@ -764,7 +1341,7 @@ private fun RowScope.MonthTitle(
             Text(
                 text = " · ",
                 style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
+                    color = colors.secondaryText,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
                 ),
@@ -772,10 +1349,14 @@ private fun RowScope.MonthTitle(
             )
             Text(
                 text = month.gregorianMonthTitle,
+                // `primaryText`, matching the Hijri half above: the header names *both* months of the
+                // same title, and muting the Gregorian one made it read as an aside rather than as half
+                // the title. Size and weight (15sp bold against 12sp Medium) still order the two halves.
                 style = TextStyle(
-                    color = ColorProvider(colors.secondaryText),
+                    color = colors.primaryText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
+                    fontFamily = fonts.gregorianTitle.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
@@ -795,7 +1376,7 @@ private fun NavigationArrow(
     resId: Int,
     enabled: Boolean,
     action: Action?,
-    color: Color,
+    color: ColorProvider,
     contentDescription: String,
 ) {
     val modifier = GlanceModifier
@@ -809,74 +1390,317 @@ private fun NavigationArrow(
             provider = ImageProvider(resId),
             contentDescription = null,
             colorFilter = ColorFilter.tint(
-                ColorProvider(if (enabled) color else color.copy(alpha = 0.35f))
+                // A disabled arrow is dimmed. That used to be `color.copy(alpha = 0.35f)` on a
+                // resolved colour; a `ColorProvider` cannot carry an alpha, and re-resolving one per
+                // render is exactly what FD-07 removed — so the dimmed state is its own resource
+                // (`widget_arrow_dimmed`) and therefore follows night mode for free.
+                if (enabled) color else ColorProvider(R.color.widget_arrow_dimmed)
             ),
             modifier = GlanceModifier.size(40.dp)
         )
     }
 }
 
+/**
+ * The two weights a day cell's own text is drawn at.
+ *
+ * Reported as "the days in the grid is not bold as well", right after the weekday header was made
+ * bold. The Hijri figure was *already* `Bold` — which is why the report was confusing — so the real
+ * reason a cell read as unbolded is that the Gregorian digit underneath it had no weight at all. The
+ * eye weighs the pair, not the larger line: one bold number over a plain one reads as plain. Giving
+ * the digit `Medium` is the change that makes the cell read as bold, and it costs no height.
+ *
+ * These are named constants rather than literals inline at the two `Text` calls so that
+ * [GridCellWeightsTest] can assert the values the renderer *actually uses*. A test that re-declares
+ * the weights it is checking would only be testing itself, and a `@Composable` cannot be called from
+ * a JVM unit test — so the seam has to be the constant, not the composition.
+ *
+ * Deliberately not shared with [MonthHeader] or [MonthTitle]: those are separate rows with their own
+ * hierarchy, and folding every weight in this file into one table would make a change to any one of
+ * them look like a change to all of them.
+ */
+internal object GridCellWeights {
+    /** The day figure — the cell's hero. */
+    val HIJRI_DAY: FontWeight = FontWeight.Bold
+
+    /** The Gregorian sub-digit, subordinated to the figure above it. */
+    val GREGORIAN_DAY: FontWeight = FontWeight.Medium
+}
+
+/**
+ * The colour of a cell's Hijri figure.
+ *
+ * Today is a filled highlight like the in-app selected day: the accent container with its "on-today"
+ * content colour. Everything else matches the app's precedence: observance (FD-08) > out-of-month >
+ * weekend > regular.
+ *
+ * A filled cell takes the content colour belonging to **its own** fill — [onFill] — rather than the
+ * ordinary primary, because pairing an accent background with the everyday grey is what made the today
+ * fill look like a highlight rather than a selection.
+ *
+ * A function rather than an inline `when` so the precedence is readable on its own, and so
+ * `DayCell` — which by this point also holds the paint guard, the fill choice and three sub-composables
+ * — stays under detekt's complexity threshold.
+ */
+private fun dayFigureColor(
+    cell: HijriDayWidgetData,
+    colors: WidgetColors,
+    onFill: ColorProvider,
+    filled: Boolean,
+): ColorProvider = when {
+    filled -> onFill
+    !cell.isCurrentMonth -> colors.outOfMonthDay
+    cell.isWeekend -> colors.weekendText
+    else -> colors.primaryText
+}
+
+/**
+ * A cell the widget is configured not to show: its slot, its divider, and nothing else.
+ *
+ * Blank rather than removed, and *kept* as its own composable rather than an inline `if (!paint)`
+ * block: the rule it encodes is about what the cell must **not** be — not a figure, not a fill, not a
+ * tap target — and a reader checking "what happens when neighbours are hidden?" should not have to
+ * read past the whole painted branch to find the answer.
+ */
+@Composable
+private fun RowScope.BlankCell(dividerAfter: Boolean, colors: WidgetColors) {
+    Row(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+        Box(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {}
+        if (dividerAfter) CellDivider(colors)
+    }
+}
+
+/**
+ * The two figures inside a day cell: the Hijri day, and the Gregorian day under it.
+ *
+ * Extracted from `DayCell` for the same reason as [CellFill] — the composable was over detekt's
+ * complexity threshold once the observance fill added branches — and because the two `Text` calls are
+ * the only place in the widget where [GridCellWeights] is read, so keeping them together keeps that
+ * relationship visible.
+ */
+@Composable
+private fun DayFigures(
+    cell: HijriDayWidgetData,
+    hijriColor: ColorProvider,
+    gregorianColor: ColorProvider,
+    hijriSize: TextUnit,
+    gregorianSize: TextUnit,
+) {
+    val fonts = HijriWidgetFonts.default
+    Column(
+        modifier = GlanceModifier.fillMaxSize(),
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+    ) {
+        Text(
+            text = cell.dayText,
+            style = TextStyle(
+                color = hijriColor,
+                fontSize = hijriSize,
+                fontWeight = GridCellWeights.HIJRI_DAY,
+                fontFamily = fonts.dayNumber.toGlanceFontFamily(),
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+        )
+        Text(
+            text = cell.gregorianDayText,
+            style = TextStyle(
+                color = gregorianColor,
+                fontSize = gregorianSize,
+                fontWeight = GridCellWeights.GREGORIAN_DAY,
+                fontFamily = fonts.dayNumber.toGlanceFontFamily(),
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * The corner badge on a tapped day (FD-09).
+ *
+ * A **badge, not a ring or a fill**, and the choice is forced by three facts: Glance 1.2 has no border
+ * modifier at all; a `ColorProvider` cannot carry an alpha, so a tinted ring is not expressible either;
+ * and today's mark is already a filled circle. A corner badge composes with that fill instead of
+ * competing with it, so a day that is both today and selected reads as today-with-a-badge rather than
+ * as one or the other.
+ *
+ * Its own composable only because folding it back into `DayCell` put that function over detekt's
+ * complexity threshold; the shape is unchanged.
+ */
+@Composable
+private fun SelectionBadge(color: ColorProvider) {
+    Row(
+        modifier = GlanceModifier.fillMaxSize(),
+        horizontalAlignment = Alignment.Horizontal.End,
+        verticalAlignment = Alignment.Vertical.Top,
+    ) {
+        Box(
+            modifier = GlanceModifier
+                .padding(3.dp)
+                .size(6.dp)
+                .background(color)
+                .cornerRadius(3.dp),
+        ) {}
+    }
+}
+
+/**
+ * The filled background of a day cell — today's accent, or an observance's container wash (FD-08).
+ *
+ * Its own composable because the two differ only in colour and share a shape, and folding the shape
+ * into a conditional at the call site left `DayCell` over detekt's complexity threshold for no gain:
+ * the question "pill or block?" is the same one either way.
+ *
+ * With dividers on, the fill **covers the whole cell** and loses its rounded shape. An inset pill
+ * floating between a grid of rules looks like a badge laid on top of the grid rather than part of it; a
+ * block that fills the cell sits between the rules, which is what the rules are there to describe. With
+ * dividers off there is no grid to be part of, so the pill stays — it is the only thing marking the day
+ * at all.
+ */
+@Composable
+private fun CellFill(color: ColorProvider, cellHasDividers: Boolean) {
+    Box(
+        modifier = if (cellHasDividers) {
+            GlanceModifier.fillMaxSize().background(color)
+        } else {
+            GlanceModifier
+                .fillMaxSize()
+                .padding(1.dp)
+                .background(color)
+                .cornerRadius(14.dp)
+        },
+    ) {}
+}
+
+/**
+ * Whether [cell] should be filled as an observance rather than as today (FD-08).
+ *
+ * Three exclusions, and each one is a design decision rather than a guard:
+ *
+ * - **Not today.** The accent fill is the stronger statement — "this is today" is what the grid is
+ *   for, and an Eid that lands on today must not read as a plain day. The observance is still named in
+ *   the footer once that day is tapped, so the information is not lost, only deferred to a tap.
+ * - **Not outside the month.** A neighbouring month's day is already dimmed, and a fill on it reads as
+ *   a second selection. Same rule as the in-app cell, so the two renderers cannot disagree.
+ * - **Not unpainted.** `paint` is applied by the caller, because it also gates the today comparison and
+ *   a hidden cell must draw nothing at all.
+ *
+ * Extracted rather than inlined so the widget's rules are assertable from a JVM unit test: `DayCell` is
+ * a `@Composable` and cannot be called from one, and a test that re-declared the condition would only be
+ * testing itself.
+ */
+internal fun isEventCell(cell: HijriDayWidgetData, isToday: Boolean): Boolean =
+    cell.hasEvent && cell.isCurrentMonth && !isToday
+
+// Suppressed on both counts: a cell's nine inputs are all independent renderer concerns, and grouping
+// them into a bag would only move the list somewhere a reader has to open. The body is two branches
+// (painted or blank) and a colour selection each.
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun RowScope.DayCell(
     cell: HijriDayWidgetData,
     todayEpochDay: Long,
     colors: WidgetColors,
+    hijriSize: TextUnit,
+    gregorianSize: TextUnit,
+    dividerAfter: Boolean,
+    cellHasDividers: Boolean,
+    isSelected: Boolean,
+    selectAction: Action?,
+    paint: Boolean,
 ) {
-    val isToday = cell.gregorianEpochDay == todayEpochDay
-    val base = GlanceModifier
-        .defaultWeight()
-        .fillMaxHeight()
-        .padding(horizontal = 1.dp, vertical = 1.dp)
+    val isToday = paint && cell.gregorianEpochDay == todayEpochDay
+    val isEvent = paint && isEventCell(cell, isToday)
 
-    // Today is a filled highlight like the in-app selected day: the accent container with its
-    // "on-today" content colour. Everything else matches the app's precedence: out-of-month >
-    // weekend > regular.
-    val hijriColor = when {
-        isToday -> colors.onTodayText
-        !cell.isCurrentMonth -> colors.primaryText.copy(alpha = 0.38f)
-        cell.isWeekend -> colors.weekendText
-        else -> colors.primaryText
-    }
-    val gregorianColor = when {
-        isToday -> colors.onTodayText.copy(alpha = 0.8f)
-        !cell.isCurrentMonth -> colors.primaryText.copy(alpha = 0.24f)
-        else -> colors.primaryText.copy(alpha = 0.6f)
+    // A cell the widget is configured not to show keeps its slot so the rest of the week stays under
+    // the right weekday headings, and draws nothing at all — not a dimmed digit, not the today fill.
+    // It still draws its divider, or the row would stop short of the grid's right edge. There is no
+    // action on a cell yet (FD-09); when day taps land, a hidden cell must stay untappable rather than
+    // becoming an invisible target.
+    if (!paint) {
+        BlankCell(dividerAfter, colors)
+        return
     }
 
-    Box(modifier = base) {
-        if (isToday) {
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .padding(1.dp)
-                    .background(colors.todayBackground)
-                    .cornerRadius(14.dp),
-            ) {}
-        }
-        Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
-            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+    val onFill = if (isToday) colors.onTodayText else colors.onEventDayText
+    val hijriColor = dayFigureColor(cell, colors, onFill, filled = isToday || isEvent)
+    val gregorianColor = if (isToday || isEvent) {
+        onFill
+    } else if (!cell.isCurrentMonth) {
+        colors.outOfMonthGregorianDay
+    } else {
+        colors.gregorianDay
+    }
+
+    Row(
+        modifier = GlanceModifier
+            .defaultWeight()
+            .fillMaxHeight()
+            .clickableWhen(selectAction)
+            .padding(start = 1.dp, end = if (dividerAfter) 1.5.dp else 1.dp, top = 1.dp, bottom = 1.dp),
+    ) {
+        Box(
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = cell.dayText,
-                style = TextStyle(
-                    color = ColorProvider(hijriColor),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-            )
-            Text(
-                text = cell.gregorianDayText,
-                style = TextStyle(
-                    color = ColorProvider(gregorianColor),
-                    fontSize = 8.sp,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-            )
+            // The selection badge, in the cell's top corner (FD-09).
+            //
+            // A **badge, not a ring or a fill**, and the choice is forced by three facts: Glance 1.2
+            // has no border modifier at all; a `ColorProvider` cannot carry an alpha, so a tinted ring
+            // is not expressible either; and today's mark is already a filled circle. A corner badge
+            // composes with that fill instead of competing with it, so a day that is both today and
+            // selected reads as today-with-a-badge rather than as one or the other.
+            if (isSelected) SelectionBadge(colors.selectedDay)
+            // Today and an observance share one fill shape, for the reason on the block below: with
+            // dividers on it covers the whole cell, otherwise it is an inset pill. They differ only in
+            // the colour, and [isEventCell] already excludes a day that is today, so exactly one draws.
+            if (isToday || isEvent) {
+                CellFill(
+                    color = if (isToday) colors.todayBackground else colors.eventDayBackground,
+                    cellHasDividers = cellHasDividers,
+                )
+            }
+            DayFigures(cell, hijriColor, gregorianColor, hijriSize, gregorianSize)
         }
+        if (dividerAfter) CellDivider(colors)
     }
+}
+
+/**
+ * A full-width horizontal rule, above the first row of days and between each pair of rows (FD-04).
+ *
+ * The counterpart to [CellDivider]. Together they make the grid a *grid*: verticals alone divide the
+ * columns but leave the reader counting rows by eye, which is most of the work the divider was meant
+ * to do.
+ *
+ * One rule per row — at most six — rather than a top and bottom edge on all 42 cells.
+ */
+@Composable
+private fun RowDivider(colors: WidgetColors) {
+    Box(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(colors.cellBorder),
+    ) {}
+}
+
+/**
+ * The hairline between two cells (FD-04).
+ *
+ * One rule per column per row rather than a border on all 42 cells: Glance's cost is per view, and a
+ * `RemoteViews` with 42 extra `Box`es is a heavier thing for the launcher to bind than the month needs
+ * to be. Visually identical, and it is why the option is a render-time flag rather than something the
+ * projection had to carry per cell.
+ */
+@Composable
+private fun RowScope.CellDivider(colors: WidgetColors) {
+    Box(
+        modifier = GlanceModifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(colors.cellBorder),
+    ) {}
 }

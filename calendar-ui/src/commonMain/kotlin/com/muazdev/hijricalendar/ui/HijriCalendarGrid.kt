@@ -1,9 +1,12 @@
 package com.muazdev.hijricalendar.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -17,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -166,6 +171,8 @@ internal fun HijriCalendarGrid(
             val calMonth by remember(month) { derivedStateOf { state.calendarMonthFor(month) } }
             MonthGrid(
                 days = calMonth.days,
+                showAdjacentDays = state.showAdjacentDays,
+                showCellBorders = state.showCellBorders,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,
@@ -177,6 +184,17 @@ internal fun HijriCalendarGrid(
         }
     }
 }
+
+/**
+ * The weekday header row's text style: `labelSmall`, **bold**.
+ *
+ * A named constant rather than an inline `copy` so the weight is assertable — see
+ * `DayOfWeekLabelStyleTest`, which also pins the size so a future edit cannot quietly turn this into
+ * a typography swap and move every row in the grid.
+ */
+@Composable
+internal fun dayOfWeekLabelStyle(): TextStyle =
+    MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
 
 @Composable
 private fun DayOfWeekLabels(
@@ -194,7 +212,13 @@ private fun DayOfWeekLabels(
             val index = (firstDayOfWeek.index + offset) % CalendarMonth.DAYS_IN_WEEK
             Text(
                 text = labels.weekdayShortName(WeekDay.entries[index]),
-                style = MaterialTheme.typography.labelSmall,
+                // **Bold, and unconditionally.** The weight is a rendering choice with no access to
+                // the name's script, so it cannot be "bold for Urdu" — and the Urdu weekday names
+                // (`جمعرات`, `بدھ`) are exactly the ones that read as weak at `labelSmall`, where
+                // a longer word at a lighter weight disappears into the row above it. Weight is
+                // applied on the copy rather than by swapping to a heavier Material style, because a
+                // `typography` change would also alter the size, which is not what was asked for.
+                style = dayOfWeekLabelStyle(),
                 color = colors.dayOfWeekLabelColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
@@ -203,9 +227,52 @@ private fun DayOfWeekLabels(
     }
 }
 
+/**
+ * The week rows for one month.
+ *
+ * [days] is always the padded month ([CalendarMonth.days] is 42 entries) — the padding is what
+ * makes every month occupy the same number of cells, and it is load-bearing for the render cache and
+ * the pager's page arithmetic. [showAdjacentDays] decides how much of that padding is *visible*,
+ * and it is deliberately not a filter over the cell list:
+ *
+ * - **Cells are blanked, not removed.** A Hijri month can begin on any weekday, so the first padded
+ *   week holds some of the previous month's days before the 1st. Removing those cells would slide
+ *   the 1st into column zero and put every day of the month under the wrong weekday heading. So the
+ *   padded list is kept and [HijriCalendarDayCell] is told to paint nothing.
+ * - **Trailing weeks are dropped.** That is what turns six rows into five: a 29-day month spans
+ *   `ceil((leading + length) / 7)` weeks, not a constant six.
+ *
+ * The arithmetic mirrors `HijriMonthWidgetData.weeksToRender` in `calendar-widget-data`, which the
+ * widget renderers use. Both are spelled out rather than shared because `calendar-ui` cannot depend
+ * on the widget module — but they must keep agreeing, and a test in each asserts the row count.
+ */
+/**
+ * The week rows a grid lays out for [days], a padded 42-cell month.
+ *
+ * The whole of the adjacent-day behaviour, as one pure function so it can be asserted without
+ * composing a UI. Mirrors `HijriMonthWidgetData.weeksToRender` in `calendar-widget-data`, which the
+ * Glance and Swift grids use — spelled out twice rather than shared because `calendar-ui` cannot
+ * depend on the widget module. `AdjacentDaysGridMathTest` in `calendar-ui` and `AdjacentDaysTest` in
+ * `calendar-widget-data` assert the same row counts from the same months, which is what keeps the
+ * two copies honest.
+ *
+ * Trims by emptiness rather than from a named end, and blanking is left to [HijriCalendarDayCell]:
+ * see [MonthGrid]'s KDoc for why neither of those can be a filter.
+ */
+internal fun gridWeeks(days: List<CalendarDay>, showAdjacentDays: Boolean): List<List<CalendarDay>> {
+    val padded = days.chunked(CalendarMonth.DAYS_IN_WEEK)
+    val first = padded.indexOfFirst { week -> week.any { it.isCurrentMonth } }
+    val last = padded.indexOfLast { week -> week.any { it.isCurrentMonth } }
+
+    return if (showAdjacentDays || first < 0) padded else padded.subList(first, last + 1)
+}
+
+@Suppress("LongParameterList")
 @Composable
 private fun MonthGrid(
     days: List<CalendarDay>,
+    showAdjacentDays: Boolean,
+    showCellBorders: Boolean,
     onDayClick: (CalendarDay) -> Unit,
     colors: HijriCalendarColors,
     useArabicIndicNumerals: Boolean,
@@ -214,14 +281,28 @@ private fun MonthGrid(
     labels: HijriCalendarLabels,
     dayContent: (@Composable (CalendarDay) -> Unit)?,
 ) {
-    val weeks = remember(days) { days.chunked(CalendarMonth.DAYS_IN_WEEK) }
+    val weeks = remember(days, showAdjacentDays) { gridWeeks(days, showAdjacentDays) }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         weeks.forEach { weekDays ->
+            // A full-width rule above the first row and between each pair of rows, matching the widget's
+            // [RowDivider]. Both directions were asked for: verticals alone divide the columns but
+            // leave the reader counting rows by eye, which is most of the work the divider does.
+            if (showCellBorders) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(colors.cellBorderColor),
+                )
+            }
             HijriWeekRow(
                 days = weekDays,
+                showAdjacentDays = showAdjacentDays,
+                showCellBorders = showCellBorders,
+                borderColor = colors.cellBorderColor,
                 onDayClick = onDayClick,
                 colors = colors,
                 useArabicIndicNumerals = useArabicIndicNumerals,

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.compose.runtime.saveable.Saver
 import androidx.core.content.edit
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.appwidget.state.getAppWidgetState
@@ -50,6 +52,8 @@ public object HijriWidgetConfig {
     // Keys inside the per-widget Glance preferences store.
     private const val KEY_OPTIONS = "options"
     private const val KEY_VIEWED = "viewed"
+    private const val KEY_SELECTED_DAY = "selected_day"
+    private const val KEY_LOADING = "loading"
 
     private val OPTIONS_KEY = stringPreferencesKey(KEY_OPTIONS)
 
@@ -59,6 +63,45 @@ public object HijriWidgetConfig {
      * in unit tests, so this pair was previously only verifiable on real hardware.
      */
     internal val VIEWED_KEY = stringPreferencesKey(KEY_VIEWED)
+
+    /**
+     * The day the user tapped on the grid (FD-09). `internal` for the same reason as [VIEWED_KEY]:
+     * the encoding is JSON, and `org.json` is a stubbed `android.jar` class in local unit tests, so an
+     * unencodable store is only verifiable off-device.
+     */
+    internal val SELECTED_DAY_KEY = stringPreferencesKey(KEY_SELECTED_DAY)
+
+    /**
+     * The month-navigation in-flight flag. A **boolean**, not the viewed month it is heading for:
+     * the widget cannot paint a month it has not computed yet, so what it needs to know is only
+     * "something is being computed" — the value it will land on is written to [VIEWED_KEY] by the
+     * same step that clears this, and the two are never both absent from a settled widget.
+     */
+    internal val LOADING_KEY = booleanPreferencesKey(KEY_LOADING)
+
+    private const val KEY_LOADING_STARTED = "loading_started"
+
+    /**
+     * Wall-clock time [LOADING_KEY] was set, written in the same edit as the flag itself.
+     *
+     * The flag alone cannot answer "is a step actually running?" — a process killed mid-step never
+     * reaches the `finally` that clears it, and the flag outlives the step in persistent state. The
+     * stamp is what lets the reader below tell an in-flight step from an orphan; see
+     * [decodeLoadingIfFresh]. `internal` rather than private for the same reason as [VIEWED_KEY]:
+     * the pairing is only verifiable off-device unless the keys are visible to the unit tests.
+     */
+    internal val LOADING_STARTED_KEY = longPreferencesKey(KEY_LOADING_STARTED)
+
+    /**
+     * How long a loading flag may be set before it is assumed orphaned.
+     *
+     * A real step is the Pakistan warm-up (seconds, cold) plus two Glance compositions — well
+     * under this. The bound exists for the failure it cannot see directly: a process killed
+     * between [setLoading] and its `finally`, after which nothing in any future process will
+     * clear the flag. Five minutes keeps that window small while leaving an order of magnitude of
+     * headroom over the longest legitimate step.
+     */
+    internal const val LOADING_STALE_MS: Long = 5 * 60_000L
 
     // Legacy SharedPreferences keys (migration only).
     private const val KEY_ADJUSTMENT_DAYS = "adjustment_days"
@@ -93,6 +136,16 @@ public object HijriWidgetConfig {
     /**
      * Fields the pre-shared format wrote as integer ordinals. At least one of these being an integer
      * is what identifies a blob as legacy — see [decodeOptionsJson].
+     *
+     * **A field added since that format is deliberately absent**, and `weekendPattern` is the first
+     * one. The discriminator's contract is "the pre-shared format wrote enum fields as integers", and
+     * that format is frozen: it wrote exactly four enum fields, all of them above. Listing a fifth
+     * would widen the gate to blobs whose *other* enum fields are already named — and
+     * [decodeLegacyOrdinalJson] reads those as ordinals, so `intOrNull` answers `null` for `"URDU"`
+     * and the blob would silently lose its language, numerals, source and month-name language. A new
+     * field's *wrong* value is already handled where it belongs: `coerceInputValues` in
+     * [WidgetOptionsJson] folds an unreadable enum to its default, which for [weekendPattern] is the
+     * behaviour every widget rendered before the field existed.
      */
     private val LEGACY_ENUM_KEYS = listOf("language", "numeralStyle", "source", "monthNameLanguage")
 
@@ -231,6 +284,88 @@ public object HijriWidgetConfig {
         }
     }
 
+    /**
+     * Moves the viewed month **and drops the tapped day, in one store transaction**.
+     *
+     * One transaction because the two are a single state change, not two: a day tapped inside the
+     * month the user was looking at says nothing about the month they moved to. Writing them
+     * separately is what let the footer keep naming an observance for a day in a month the widget
+     * had already left — the reader gets "آج" for a day that is not today, attached to a grid that
+     * no longer contains it. It is the same disagreement [HijriWidgetTodayResetCallback] resolves by
+     * clearing both, so the arrows now go through one function rather than reproducing that pair of
+     * calls at every navigation site.
+     *
+     * A **day** selection is cleared, but a month *pin* is not: the pin is configuration the user
+     * chose in settings, and it is the fallback this navigation is temporarily overriding.
+     */
+    public suspend fun moveViewedMonth(
+        context: Context,
+        glanceId: GlanceId,
+        year: Int,
+        month: Int,
+    ) {
+        updateAppWidgetState(context, glanceId) { mutable ->
+            mutable[VIEWED_KEY] = encodeViewed(year, month)
+            mutable.remove(SELECTED_DAY_KEY)
+        }
+    }
+
+    /**
+     * Whether the widget is currently rendering the month a navigation tap asked for.
+     *
+     * Runtime state, not [WidgetOptions], for the reason the viewed month and the tapped day are
+     * also runtime state: it describes the widget's *current position*, and a flag in the published
+     * schema would put a transient value into every consumer's saved configuration and settings
+     * screen. It is written by the navigation callback before it starts the expensive part and
+     * cleared in a `finally`, so an interrupted step cannot leave a spinner on the widget forever.
+     */
+    public suspend fun setLoading(context: Context, glanceId: GlanceId, loading: Boolean) {
+        updateAppWidgetState(context, glanceId) { mutable ->
+            if (loading) {
+                mutable[LOADING_KEY] = true
+                // Stamped in the same edit: the reader must never see one without the other from
+                // a write this function performed, or "fresh" would mean half a step.
+                mutable[LOADING_STARTED_KEY] = System.currentTimeMillis()
+            } else {
+                mutable.remove(LOADING_KEY)
+                mutable.remove(LOADING_STARTED_KEY)
+            }
+        }
+    }
+
+    /**
+     * [decodeLoading] that also refuses an **orphaned** flag: set, but written longer than
+     * [LOADING_STALE_MS] ago, or written before the stamp existed.
+     *
+     * The `finally` in `stepViewedMonth` clears the flag for every in-process outcome — an
+     * exception, a dropped step at a range edge, a cancelled callback (`NonCancellable`). What it
+     * cannot clear is the state left by a process killed outright mid-step, and [LOADING_KEY]
+     * lives in persistent storage, so without this check that one kill renders the widget inert
+     * forever: the flag nulls every action (`WidgetActions.whileLoading`), so no tap can even
+     * reach the code that would clear it. Reading staleness here — at composition, in whatever
+     * process renders next — is the only place that can break that circle; the next render after
+     * the threshold (host sweep, midnight alarm, clock change, app open) shows the widget
+     * interactive again.
+     *
+     * A flag with no stamp can only have been written by a build older than this one, whose step
+     * is definitionally long over, so it answers `false` rather than trusting an unbounded age.
+     */
+    internal fun decodeLoadingIfFresh(prefs: Preferences, nowEpochMillis: Long): Boolean {
+        val started = prefs[LOADING_STARTED_KEY]
+        return prefs[LOADING_KEY] == true &&
+            started != null &&
+            nowEpochMillis - started < LOADING_STALE_MS
+    }
+
+    /**
+     * Decodes the loading flag, or `false` when absent.
+     *
+     * Absent-means-false is what makes a half-finished step harmless: the flag is removed rather
+     * than written as `false`, so the store's common case — a widget nobody is navigating — carries
+     * no key at all and this is one map lookup that finds nothing.
+     */
+    public fun decodeLoading(prefs: Preferences): Boolean = prefs[LOADING_KEY] == true
+
     internal val PREFS: PreferencesGlanceStateDefinition = PreferencesGlanceStateDefinition
 
     // ── Pure decode helpers, shared with the composable read ─────────────────
@@ -349,6 +484,73 @@ public object HijriWidgetConfig {
         val month = json.intOrNull("month")?.takeIf { it in 1..12 }
         return if (year == null || month == null) null else HijriYearMonth(year = year, month = month)
     }
+
+    /**
+     * The Hijri day the user tapped on the grid, or `null` when nothing is selected.
+     *
+     * **Not** part of [WidgetOptions], and that is the whole design point. Options are the user's
+     * *configuration* — language, numerals, the pin — and they are mirrored to the family and shown in
+     * every settings screen. A tap is the widget's *current position*, the same kind of thing as the
+     * viewed month beside it, and putting it in the schema would put a transient value into a
+     * user's saved configuration and into every settings screen.
+     *
+     * [year] is stored alongside the month and day because a day number alone cannot say which month
+     * it belongs to, and the grid resolves its month as viewed > pinned > today — a stored day from a
+     * month the user has since navigated away from would otherwise attach itself to whatever month
+     * happens to be showing.
+     */
+    public suspend fun loadSelectedDay(
+        context: Context,
+        glanceId: GlanceId,
+    ): HijriDaySelection? {
+        migrateLegacyIfNeeded(context, glanceId)
+        val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+        return decodeSelectedDay(prefs)
+    }
+
+    /** Records the tapped day. Persisted before the render, so the render sees it — see the caller. */
+    public suspend fun setSelectedDay(
+        context: Context,
+        glanceId: GlanceId,
+        year: Int,
+        month: Int,
+        day: Int,
+    ) {
+        updateAppWidgetState(context, glanceId) { mutable ->
+            mutable[SELECTED_DAY_KEY] = encodeSelectedDay(year, month, day)
+        }
+    }
+
+    /** Forgets the selection — the month reset and widget removal both call this. */
+    public suspend fun clearSelectedDay(context: Context, glanceId: GlanceId) {
+        updateAppWidgetState(context, glanceId) { mutable -> mutable.remove(SELECTED_DAY_KEY) }
+    }
+
+    /**
+     * Decodes the selected day from the store, or `null` when absent or unreadable.
+     *
+     * Every field is range-checked rather than trusted. A corrupt value here would otherwise become a
+     * marked day that does not exist, and the mark is drawn from this.
+     */
+    public fun decodeSelectedDay(prefs: Preferences): HijriDaySelection? {
+        val json = prefs[SELECTED_DAY_KEY]?.parseJsonObjectOrNull() ?: return null
+        val year = json.intOrNull("year")
+        val month = json.intOrNull("month")?.takeIf { it in 1..12 }
+        val day = json.intOrNull("day")?.takeIf { it in 1..30 }
+        return if (year == null || month == null || day == null) {
+            null
+        } else {
+            HijriDaySelection(year = year, month = month, day = day)
+        }
+    }
+
+    /** Encodes a selection. `internal` like [encodeViewed], and for the same testability reason. */
+    internal fun encodeSelectedDay(year: Int, month: Int, day: Int): String =
+        buildJsonObject {
+            put("year", year)
+            put("month", month)
+            put("day", day)
+        }.toString()
 
     // ── Runtime markers (global SharedPreferences, not per-widget view state) ─
     //

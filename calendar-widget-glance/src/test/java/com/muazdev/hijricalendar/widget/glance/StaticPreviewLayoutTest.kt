@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.widget.glance
 
 import com.muazdev.hijricalendar.core.CalendarMonth
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -166,7 +167,7 @@ class StaticPreviewLayoutTest {
         val referenced = root.deepAttr("android:textColor") + root.deepAttr("android:background")
         listOf(
             "widget_text_primary" to "in-month days",
-            "widget_text_muted" to "out-of-month days",
+            "widget_day_out_of_month" to "out-of-month days",
             "widget_weekend_text" to "weekend days",
             "widget_today_background" to "today's fill",
             "widget_on_today" to "today's content",
@@ -178,22 +179,127 @@ class StaticPreviewLayoutTest {
         }
     }
 
+    /**
+     * The preview's weekday header row.
+     *
+     * Selected on `layout_height`, not on child tags: four of the six grid rows are also horizontal,
+     * seven-wide and all-`TextView` (every row but the one holding the today cell), so a selector that
+     * ignored height would match five rows instead of one.
+     */
+    private fun weekdayHeaderRow(): Element = gridPreview().children().single { row ->
+        row.attr("android:orientation") == "horizontal" &&
+            row.attr("android:layout_height") == "wrap_content" &&
+            row.children().size == CalendarMonth.DAYS_IN_WEEK &&
+            row.children().all { it.tagName == "TextView" }
+    }
+
     @Test
     fun theStaticGridHasOneWeekdayHeaderPerDay() {
-        // Selected on `layout_height`, not on child tags: four of the six grid rows are also
-        // horizontal, seven-wide and all-`TextView` (every row but the one holding the today cell),
-        // so a selector that ignored height would match five rows instead of one.
-        val header = gridPreview().children().single { row ->
-            row.attr("android:orientation") == "horizontal" &&
-                row.attr("android:layout_height") == "wrap_content" &&
-                row.children().size == CalendarMonth.DAYS_IN_WEEK &&
-                row.children().all { it.tagName == "TextView" }
-        }
         assertEquals(
             "weekday header count",
             CalendarMonth.DAYS_IN_WEEK,
-            header.children().size,
+            weekdayHeaderRow().children().size,
         )
+    }
+
+    /**
+     * The shaded columns are exactly the default weekend pattern's columns.
+     *
+     * A `previewLayout` is a fixed snapshot, so it can only show one configuration — the default. That
+     * is only defensible while the default is what it draws, which is what this asserts: the red cells
+     * are read back out of the layout by *column*, compared against the column positions
+     * [WeekendPattern.FRIDAY_SATURDAY] maps to given the preview's own weekday header row. Change the
+     * schema default and this fails, so the snapshot is updated with it rather than quietly continuing
+     * to advertise a pattern the widget will not render.
+     *
+     * Reading by column rather than counting cells is deliberate: a count would pass for a layout that
+     * shaded the right *number* of days in the wrong *columns*, which is the failure nobody sees in a
+     * picker preview.
+     */
+    @Test
+    fun theStaticGridShadesExactlyTheDefaultWeekendColumns() {
+        val header = weekdayHeaderRow()
+        val headerTexts = header.children().map { it.attr("android:text").orEmpty() }
+
+        val expectedColumns = urduWeekdayColumnsIn(WeekendPattern.FRIDAY_SATURDAY)
+        assertTrue(
+            "the default pattern's columns must be findable in the preview's own weekday headers, " +
+                "but $headerTexts does not contain them",
+            expectedColumns.isNotEmpty(),
+        )
+
+        // Rows of seven weighted cells below the header. The preview's rows are `0dp`-weighted
+        // inside the vertical container, not `match_parent`, which is the only thing telling a grid
+        // row apart from a header row once the tag is the same.
+        val gridRows = gridPreview().children().filter { row ->
+            row.attr("android:orientation") == "horizontal" &&
+                row.attr("android:layout_height") == "0dp" &&
+                row.children().size == CalendarMonth.DAYS_IN_WEEK
+        }
+        assertTrue("the static preview should have some grid rows", gridRows.isNotEmpty())
+
+        val shadedColumns = mutableSetOf<Int>()
+        gridRows.forEach { row ->
+            row.children().forEachIndexed { column, cell ->
+                if (cell.attr("android:textColor") == "@color/widget_weekend_text") {
+                    shadedColumns += column
+                }
+            }
+        }
+
+        assertEquals(
+            "the static preview shades $shadedColumns but the default pattern's columns are " +
+                "$expectedColumns",
+            expectedColumns,
+            shadedColumns,
+        )
+    }
+
+    /**
+     * The column positions [pattern] occupies, given the preview's Urdu weekday header row.
+     *
+     * The header runs Saturday-first (`ہفتہ`, `اتوار`, `پیر`, …), so "Friday and Saturday" is columns 6
+     * and 0 — which is why this reads the header rather than hardcoding indices: the same pattern in a
+     * Sunday-first layout would be different columns, and the point is that the *days* match.
+     */
+    private fun urduWeekdayColumnsIn(pattern: WeekendPattern): Set<Int> {
+        val urduNames = mapOf(
+            com.muazdev.hijricalendar.core.WeekDay.SATURDAY to "ہفتہ",
+            com.muazdev.hijricalendar.core.WeekDay.SUNDAY to "اتوار",
+            com.muazdev.hijricalendar.core.WeekDay.MONDAY to "پیر",
+            com.muazdev.hijricalendar.core.WeekDay.TUESDAY to "منگل",
+            com.muazdev.hijricalendar.core.WeekDay.WEDNESDAY to "بدھ",
+            com.muazdev.hijricalendar.core.WeekDay.THURSDAY to "جمعرات",
+            com.muazdev.hijricalendar.core.WeekDay.FRIDAY to "جمعہ",
+        )
+        val wanted = pattern.toWeekDays().map { urduNames.getValue(it) }
+        return weekdayHeaderRow().children()
+            .mapIndexedNotNull { index, child -> if (child.attr("android:text") in wanted) index else null }
+            .toSet()
+    }
+
+    /**
+     * The weekday header is bold in the static preview, matching the live render.
+     *
+     * The Urdu weekday names (`جمعرات`, `بدھ`) are the ones that read as weak at 10sp Medium — a
+     * longer word at a lighter weight disappears into the row above it — so the weight was raised. The
+     * size is unchanged, so the header does not change height.
+     *
+     * The weight is applied unconditionally rather than per-script: it is a rendering choice with no
+     * access to the name's language, and the preview layout is hand-maintained, so this is the only
+     * thing that stops it drifting from the composition again.
+     */
+    @Test
+    fun theWeekdayHeaderIsBold() {
+        val header = weekdayHeaderRow()
+        header.children().forEach { cell ->
+            assertEquals(
+                "weekday header cell '${cell.attr("android:text")}' must be bold to match the live " +
+                    "render",
+                "bold",
+                cell.attr("android:textStyle"),
+            )
+        }
     }
 
     @Test
@@ -222,20 +328,39 @@ class StaticPreviewLayoutTest {
     }
 
     @Test
-    fun theTodayStripPreviewShowsBothDateHalves() {
-        // Two halves, each a bold day figure over a month and year, matching the live `DateSide`.
-        val texts = root("hijri_today_widget_preview_layout").deepAttr("android:text")
-        assertEquals("the strip shows two figures and two captions", 4, texts.size)
+    fun theTodayStripPreviewShowsTheWeekdayBothHalvesAndTheDivider() {
+        // Three text lines over the whole strip — one centred weekday above two halves of a bold day
+        // figure over a month and year each — plus the hairline between the halves, matching the live
+        // `HijriTodayRoot`. The weekday line was the fifth text this assertion was raised from, and the
+        // divider is checked structurally rather than by text because it is a `View`, not a `TextView`.
+        val root = root("hijri_today_widget_preview_layout")
+        val texts = root.deepAttr("android:text")
+        assertEquals("the strip shows a weekday, two figures and two captions", 5, texts.size)
+
+        val dividers = root.deep().filter { it.tagName == "View" }
+        assertEquals("expected exactly one hairline between the two date halves", 1, dividers.size)
+        assertEquals(
+            "the divider should be the hairline colour the live render reuses from the grid",
+            "@color/widget_cell_border",
+            dividers.single().attr("android:background"),
+        )
     }
 
     @Test
-    fun theTilePreviewsShowADayOverAMonthAndNoYear() {
-        // Matches the live `DateTileRoot`: a day figure and a month. The year is deliberately
-        // absent — the tile is too small for one — so the count is the assertion.
+    fun theTilePreviewsShowAWeekdayADayAndAMonthAndNoYear() {
+        // Matches the live `DateTileRoot`: a weekday name, a day figure and a month, on three lines.
+        // The year is still deliberately absent — the tile has no room for one — so the count is the
+        // assertion. Raised from two lines to three by FD-01, which added the weekday name; the
+        // order and the sizes are asserted by `DateTilePreviewLayoutTest`, which is where that
+        // concern lives now.
         listOf("hijri_date_widget_preview_layout", "gregorian_date_widget_preview_layout")
             .forEach { name ->
                 val texts = root(name).deepAttr("android:text")
-                assertEquals("$name should show exactly a day and a month", 2, texts.size)
+                assertEquals(
+                    "$name should show exactly a weekday, a day and a month",
+                    3,
+                    texts.size,
+                )
             }
     }
 }

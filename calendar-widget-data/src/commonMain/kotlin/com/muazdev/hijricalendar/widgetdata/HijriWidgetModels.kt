@@ -1,5 +1,6 @@
 package com.muazdev.hijricalendar.widgetdata
 
+import com.muazdev.hijricalendar.core.CalendarMonth
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
@@ -81,33 +82,122 @@ public data class HijriDayWidgetData(
     val gregorianEpochDay: Long,
     val isCurrentMonth: Boolean,
     val isWeekend: Boolean,
+    /**
+     * Whether this day carries a notable observance (FD-08).
+     *
+     * A **flag, not the name**. Two renderers need two different things from the same cell: the grid
+     * needs to know only that it should fill the cell, while the footer's line names the observance for
+     * the *selected* day. Putting the name here would make 42 cells each carry a localized string the
+     * grid never reads, and would make the footer's answer a second derivation of the same lookup.
+     *
+     * Resolved from [com.muazdev.hijricalendar.core.CalendarDay.event], so it follows the projection's
+     * own calendar space — a Pakistan or observed-calendar widget marks the observance on the date
+     * that calendar actually reaches, not on the Umm al-Qura one.
+     *
+     * Default `false` so a caller constructing a cell by hand is unchanged. Note this is an additive
+     * field **with** a default, so the primary constructor, `copy` and `componentN` all gain a slot:
+     * source-compatible, a binary break for anything already compiled. See `CHANGELOG.md`.
+     */
+    val hasEvent: Boolean = false,
 )
 
 /**
  * One rendered Hijri month in widget form: a 6x7 grid plus the header data the native
  * renderers need (Hijri + Gregorian month titles on one line, weekday headers).
  *
- * [gregorianRange] is the one field with no single-month invariant: it can read
- * "December 2026 - January 2027" when a Hijri month straddles two Gregorian ones. **Only iOS renders
- * it** — the Android grid widget's header shows [gregorianMonthTitle] alone on one centred line
- * (WD-10c).
+ * [gregorianMonthTitle] is the one field with no single-month invariant: it can read
+ * "December 2026 - January 2027" when a Hijri month straddles two Gregorian ones, because a Hijri
+ * month is 29 or 30 days and a Gregorian month is 28-31, so they do not divide evenly.
  */
 @Serializable
 public data class HijriMonthWidgetData(
     val hijriYear: Int,
+    /**
+     * The Hijri year **with its era marker**, in the widget's own language and digit style: `1447 AH`
+     * or `١٤٤٧ ھ` (FD-05).
+     *
+     * Separate from [hijriYear] rather than replacing it because the bare number is what arithmetic
+     * and comparisons want, while this is what a header reads. A renderer must not format the year
+     * itself — the era belongs to the widget's language, which is a `WidgetOptions` field and not a
+     * resource configuration (WG-12).
+     */
+    val hijriYearText: String = hijriYear.toString(),
     val hijriMonth: Int,
     val hijriMonthName: String,
     /**
-     * The Gregorian month name + year of the Hijri month's first day (e.g. "September 2026"),
-     * so a header can show both calendars on one line — `hijriMonthName hijriYear ·  title`.
+     * The month's Gregorian extent, era-marked, for the header's other half —
+     * `hijriMonthName hijriYearText · gregorianMonthTitle`, e.g. `محرم ۱۴۴۸ ھ · August - September 2026 AD`.
+     *
+     * A **range**, not the first in-month Gregorian month (FD-06). Roughly half of all Hijri months
+     * straddle two Gregorian ones, and the header used to name only the first — so for those months it
+     * described a Gregorian month the Hijri month had almost nothing to do with.
+     *
+     * This was `gregorianRange` (iOS-only, correct) alongside a truncated `gregorianMonthTitle` (both
+     * platforms, wrong), which is how the app and the widget came to disagree for half the calendar.
+     * The truncated field is gone.
      */
     val gregorianMonthTitle: String,
-    /** The month's full Gregorian extent, e.g. `"September - October 2026"`. iOS only; see the class. */
-    val gregorianRange: String,
     val weekdayHeaders: List<String>,
+    /**
+     * The month's **padded** day cells — always [com.muazdev.hijricalendar.core.CalendarMonth.TOTAL_DAYS]
+     * of them, the same list `calendar-ui` builds. Renderers must not filter this themselves;
+     * [visibleDays] is the one place that knows how a grid turns a padded month into rows.
+     */
     val days: List<HijriDayWidgetData>,
     val adjustmentDays: Int,
-)
+) {
+    /**
+     * The weeks a grid should lay out, for a widget configured with [showAdjacentDays].
+     *
+     * **The cells stay padded even when the neighbours are hidden.** That is the whole design, and
+     * it is the opposite of filtering: a Hijri month can begin on any weekday, so the first row of
+     * a padded month holds some of the *previous* month's days before the 1st. Dropping those cells
+     * outright would slide the 1st into column zero and put every day of the month under the wrong
+     * weekday heading — a grid that looks plausible and is systematically off by [leading] columns.
+     * So the cell list is left alone and [paintsDay] decides what is inked; the 1st stays under its
+     * own weekday.
+     *
+     * What *is* removed is whole weeks that contain no day of this month at all: padding often adds
+     * one, and dropping it is what turns six rows into five. A month therefore occupies
+     * `ceil((leading + length) / 7)` rows rather than a constant `CalendarMonth.WEEKS_IN_MONTH` —
+     * for a 29-day month that is always five.
+     *
+     * The trim is by emptiness rather than by "the last row", because [days] is pre-reversed for an
+     * RTL widget and the padding then sits at the other end.
+     *
+     * Callers must not chunk this themselves, and must not reimplement the trailing-week trim: both
+     * the row count and the column alignment depend on it, and three renderers (Glance, Compose,
+     * Swift) would each get one subtly wrong.
+     */
+    public fun weeksToRender(showAdjacentDays: Boolean): List<List<HijriDayWidgetData>> {
+        val padded = days.chunked(CalendarMonth.DAYS_IN_WEEK)
+
+        // Trim by *emptiness*, not from a named end. `days` is reversed per row for an RTL widget, so
+        // a month that begins at the top of the list in English begins at the bottom of it in Urdu —
+        // and "drop the last N rows" would then trim the wrong ones, silently deleting the first week
+        // of the month on exactly the devices whose language the projection went to the trouble of
+        // reversing for. A week with no current-month day in it can only ever sit at one end, so
+        // searching for the first and last such week is correct in both directions.
+        val firstWeek = padded.indexOfFirst { it.any { day -> day.isCurrentMonth } }
+        val lastWeek = padded.indexOfLast { it.any { day -> day.isCurrentMonth } }
+
+        return if (showAdjacentDays || firstWeek < 0) {
+            padded
+        } else {
+            padded.subList(firstWeek, lastWeek + 1)
+        }
+    }
+
+    /**
+     * Whether [day] should be inked at all, given [showAdjacentDays].
+     *
+     * A hidden day is **blank, not disabled**: it keeps its cell so the week's columns stay aligned,
+     * but nothing is drawn in it and it is not something to tap. Pair with [weeksToRender], which
+     * is what removes the rows that end up entirely blank.
+     */
+    public fun paintsDay(day: HijriDayWidgetData, showAdjacentDays: Boolean): Boolean =
+        showAdjacentDays || day.isCurrentMonth
+}
 
 /**
  * Compact "today" projection used by the options screen of the widget family and by
@@ -125,7 +215,34 @@ public data class TodayHijriWidgetData(
     val hijriDayText: String,
     val hijriMonth: Int,
     val hijriYear: Int,
+    /**
+     * The Hijri year **with its era marker**, in the widget's own language and digit style (FD-05):
+     * `1447 AH` or `١٤٤٧ ھ`.
+     *
+     * Separate from [hijriYear] for the same reason as [gregorianYearText]: the bare number is what
+     * arithmetic wants, this is what a renderer displays, and the era belongs to the widget's language
+     * rather than to the device's resources (WG-12).
+     */
+    val hijriYearText: String = hijriYear.toString(),
     val hijriMonthName: String,
+    /**
+     * [hijriMonthName] in the **short** form a narrow header band can hold (FD-10): the four months
+     * whose name does not distinguish them from a sibling carry their ordinal — `ربيع ١`, `ربيع ٢`,
+     * `جمادى ١`, `جمادى ٢` — and the other eight are [hijriMonthName] unchanged.
+     *
+     * Built in the projection rather than by the renderer (WG-12), because a month name is text in
+     * the widget's own language: the language belongs to a `WidgetOptions` field and not to the
+     * device's resources, so a renderer cannot answer for it. Building it here is also what lets iOS
+     * read the same string with no Swift edit.
+     *
+     * **Additive and defaulted, so it is source-compatible** — a caller constructing
+     * `TodayHijriWidgetData` still compiles — **but it changes the ABI**, which is why the golden
+     * files carry it.
+     *
+     * Empty when the month has no name at all, in which case a renderer shows nothing rather than a
+     * bare ordinal digit: a band reading just `٢` is a number with no month attached.
+     */
+    val hijriMonthShortName: String = "",
     val gregorianDate: String,
     val weekdayName: String,
     val adjustmentDays: Int,
@@ -144,4 +261,13 @@ public data class TodayHijriWidgetData(
     val gregorianMonth: Int,
     val gregorianMonthName: String,
     val gregorianYear: Int,
+    /**
+     * The Gregorian year **with its era marker**, in the widget's own language and digit style (FD-05):
+     * `2026 AD` or `٢٠٢٦ ء`.
+     *
+     * The counterpart to [hijriYearText], for the same reason: the bare [gregorianYear] is what
+     * arithmetic wants, this is what a renderer displays, and the marker belongs to the widget's
+     * language rather than to the device's resources (WG-12).
+     */
+    val gregorianYearText: String = gregorianYear.toString(),
 )

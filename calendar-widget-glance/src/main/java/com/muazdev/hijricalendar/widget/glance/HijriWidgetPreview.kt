@@ -59,13 +59,21 @@ internal class HijriCalendarWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val data = buildRenderData(context, options, viewedMonth)
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         provideContent {
             HijriWidgetRoot(
                 monthData = data.monthData,
                 todayHijri = data.todayHijri,
                 todayEpochDay = data.todayEpochDay,
                 layoutRtl = data.layoutRtl,
+                showAdjacentDays = data.showAdjacentDays,
+                showCellBorders = data.showCellBorders,
+                selectedDay = null,
+                // A preview never loads a month: it renders one the caller already resolved. The
+                // loading bar belongs to a real navigation step, and showing one here would imply a
+                // wait that is not happening.
+                isLoading = false,
+                selectedEventName = null,
                 colors = colors,
                 language = options.language,
                 // Non-interactive by construction: the settings preview shows what the widget will
@@ -130,7 +138,7 @@ internal class HijriTodayWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         // The stable preview id, never `id.toString()` (WG-04b): `compose()` mints a fresh random
         // fake app-widget id per call, so keying on it inserted an entry no future read could ever
         // hit — the settings screen grew the cache without bound and got nothing for the cost.
@@ -195,7 +203,7 @@ internal class HijriDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
@@ -206,9 +214,11 @@ internal class HijriDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.hijriDayText,
                 monthText = today?.hijriMonthName,
+                weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
+                gregorian = false,
             )
         }
     }
@@ -225,7 +235,7 @@ internal class GregorianDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.from(context)
+        val colors = WidgetColors.DEFAULT
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
@@ -236,9 +246,11 @@ internal class GregorianDateWidgetPreview(
             DateTileRoot(
                 dayText = today?.gregorianDayText,
                 monthText = today?.gregorianMonthName,
+                weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
+                gregorian = true,
             )
         }
     }
@@ -266,6 +278,79 @@ public fun HijriDateWidgetLivePreview(
             throw cancellation
         } catch (error: Exception) {
             HijriWidgetRefreshLog.d("preview-hijri-date", "compose failed: ${error.message}")
+        }
+    }
+
+    val rendered = remoteViews
+    if (rendered == null) {
+        Box(modifier = modifier.background(Color.Transparent))
+    } else {
+        key(rendered) {
+            AndroidView(
+                modifier = modifier,
+                factory = { ctx -> rendered.apply(ctx, null) },
+            )
+        }
+    }
+}
+
+/**
+ * Non-interactive clone of [HijriDualDateWidget] for the dual-date tile's settings preview.
+ *
+ * `SizeMode.Single`, matching the real widget: this tile is a strict 1x1 with no resize, so a preview
+ * composed at a different size would be showing a cell the picker cannot grant.
+ */
+internal class HijriDualDateWidgetPreview(
+    private val options: WidgetOptions
+) : GlanceAppWidget() {
+
+    override val sizeMode: SizeMode = SizeMode.Single
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        if (options.source.pakistan) {
+            PakistanWarmUp.ensureWarm()
+        }
+        val colors = WidgetColors.DEFAULT
+        // The stable preview id — see the note in `HijriTodayWidgetPreview`.
+        val today = HijriWidgetRenderCache.today(
+            glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
+            options = options,
+            todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
+        )
+        provideContent {
+            DualDateTileRoot(
+                today = today,
+                colors = colors,
+                openAction = null,
+                deviceRtl = computeDeviceLayoutRtl(context),
+                language = options.language,
+            )
+        }
+    }
+}
+
+/**
+ * Live preview of the 1x1 dual-date tile: composes the real [DualDateTileRoot] layout and hosts the
+ * resulting [RemoteViews] in an [AndroidView]. Public so a host app's settings screen can show the
+ * tile live from the same [WidgetOptions] its controls edit, matching the other three tile previews.
+ */
+@Composable
+public fun HijriDualDateWidgetLivePreview(
+    options: WidgetOptions,
+    size: DpSize,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    var remoteViews by remember(options, size) { mutableStateOf<RemoteViews?>(null) }
+
+    LaunchedEffect(options, size) {
+        try {
+            remoteViews = HijriDualDateWidgetPreview(options)
+                .compose(context.glanceComposeContext(), size = size)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            HijriWidgetRefreshLog.d("preview-dual-date", "compose failed: ${error.message}")
         }
     }
 

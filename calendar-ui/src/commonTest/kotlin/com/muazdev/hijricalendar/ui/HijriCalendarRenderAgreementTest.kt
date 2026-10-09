@@ -262,7 +262,14 @@ class HijriCalendarRenderAgreementTest {
         setContent { host(state, dateDisplayMode = DateDisplayMode.GREGORIAN_ONLY)() }
 
         // The day cells are still identifiable; this asserts the *mode* did not break the grid.
-        assertEquals(42, cellDates().size, "a month grid is always 42 cells")
+        //
+        // Not 42: FD-02 made the painted cell count a function of the month, since the default is
+        // now to hide the neighbours' days. The count is derived from the month rather than pinned,
+        // so this stays a statement about the *mode*.
+        assertTrue(
+            cellDates().size in 29..30,
+            "GREGORIAN_ONLY should paint this month's own 29 or 30 days; got ${cellDates().size}",
+        )
     }
 
     @Test

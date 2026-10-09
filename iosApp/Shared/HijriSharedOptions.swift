@@ -155,7 +155,13 @@ enum HijriShared {
             // The pre-1.0 schema had no month-length overrides, so there is nothing to migrate —
             // an empty map means "follow the process-wide table", which is what an unconfigured
             // widget did before.
-            overridesCsv: nil
+            overridesCsv: nil,
+            // `createWidgetOptions` exposes no Kotlin default arguments to Swift, so every parameter
+            // the schema grew must be passed explicitly here. The pre-1.0 blob predates these three
+            // fields too, so a migrated widget gets the data-class defaults.
+            showAdjacentDays: false,
+            weekendPattern: .fridaySaturday,
+            showCellBorders: true
         )
     }
 

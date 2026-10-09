@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static preview shown in the Android 12-14 widget picker for the dual-date tile (FD-10).
+     Mirrors DualDateTileRoot, top to bottom:
+
+       1. the accent band — the WEEKDAY name ("Wed", "today");
+       2. the Hijri DAY, centred, the tile's one dominant figure;
+       3. the Hijri MONTH name in FULL (ربیع الثانی, Jumada al-akhirah) — not the abbreviated
+          `ربیع ٢` form, which only existed because the band was once too narrow for the long name;
+       4. the Gregorian date as ONE compact CENTRED phrase (ستمبر ۳۰), day on the right and the month name
+        on its left, not spread to opposite ends.
+
+     Structure reproduces the live layout's *mechanics*, not just its content, because two of them are
+     load-bearing and a preview that flattens them would advertise a tile the widget does not draw:
+
+       * the band is one line box with NO padding of its own — the leading inside a box is asymmetric, so
+         symmetric padding around it lands off-centre by the font's descent and shows as a stripe of
+         accent above the text;
+       * the region under the band is gravity="center_vertical", because the live weighted Box is
+         centre-aligned and that centring is what splits the leftover height between the two margins
+         (see DualDateTileRoot).
+
+     Every size is read from DualDateTileTypography, which in turn reads them from DateTileTypography —
+     the SAME object HijriDateWidget and GregorianDateWidget size themselves with. The day is 30sp (the
+     sibling tiles' 36sp less a sixth), the band's weekday and the Hijri month name are that tile's own rule
+     at CAPTION_RATIO, and the Gregorian line is this tile's 16sp. A static XML cannot follow the granted
+     *width*, so this is a snapshot at DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP, exactly as the
+     sibling tiles' mirrors are snapshots at theirs. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/widget_background"
+    android:orientation="vertical"
+    tools:ignore="UnusedAttribute">
+
+    <!-- The accent band: the weekday name. No vertical padding — see the note above. -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/widget_accent"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:paddingLeft="6dp"
+        android:paddingTop="0dp"
+        android:paddingRight="6dp"
+        android:paddingBottom="6dp"
+        android:text="بدھ"
+        android:textColor="@color/widget_on_today"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Centred, matching the live weighted Box: this is what splits the leftover height between the
+         space above the day and the space below the Gregorian line. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
+
+        <!-- The Hijri day: the figure this tile exists to show, and the largest text on it. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="۲۴"
+            android:textColor="@color/widget_accent"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- The Hijri month name in FULL. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="ربیع الثانی"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- The Gregorian date: one compact CENTRED phrase, adjacent rather than spread, with the day on
+             the right and the month name on its left. The container centres it; the two halves keep a
+             fixed physical order, which the live row achieves by emitting day-first only when the
+             platform will mirror the row (computeDeviceLayoutRtl) — never from options.language. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:gravity="center_horizontal|center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="ستمبر"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text=" - "
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="۳۰"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -1,79 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Static preview shown in the Android 12-14 widget picker for the "today" strip widget.
-     Mirrors the live strip: Gregorian date (bold day over month+year) on the left and the
-     Hijri date (bold accent day over month+year) on the right, whatever the reading direction. -->
+     Mirrors the live strip: the weekday name centred across the top, then the Gregorian date
+     (bold day over month+year) on the left and the Hijri date (bold accent day over month+year)
+     on the right, separated by a hairline, whatever the reading direction. The root is
+     gravity="center_vertical" because the live root Column is centre-aligned, not pinned to the
+     top — see TodayStripTypography.VERTICAL_PADDING_DP for why that matters. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/widget_background"
     android:gravity="center_vertical"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:paddingLeft="12dp"
-    android:paddingTop="4dp"
+    android:paddingTop="2dp"
     android:paddingRight="12dp"
-    android:paddingBottom="4dp"
+    android:paddingBottom="2dp"
     tools:ignore="UnusedAttribute">
 
-    <!-- Gregorian half -->
-    <LinearLayout
-        android:layout_width="0dp"
+    <!-- The weekday both halves share: centred over the whole strip, not repeated per side. -->
+    <TextView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_marginBottom="1dp"
+        android:fontFamily="sans-serif-medium"
         android:gravity="center"
-        android:orientation="vertical">
+        android:maxLines="1"
+        android:text="بدھ"
+        android:textColor="@color/widget_text_primary"
+        android:textSize="17sp"
+        android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="18"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="September 2026"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="11sp" />
-    </LinearLayout>
-
-    <!-- Hijri half (always the right-hand side) -->
+    <!-- The two date halves, with the divider between them. -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Gregorian half -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
+            android:layout_weight="1"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="۲۱"
-            android:textColor="@color/widget_accent"
-            android:textSize="26sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="18"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="September 2026 AD"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- The hairline between the two halves -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:background="@color/widget_cell_border" />
+
+        <!-- Hijri half (always the right-hand side) -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:fontFamily="sans-serif-medium"
+            android:layout_weight="1"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="محرم ۱۴۴۸"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="11sp" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="۲۱"
+                android:textColor="@color/widget_accent"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="محرم ۱۴۴۸ ھ"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="11sp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

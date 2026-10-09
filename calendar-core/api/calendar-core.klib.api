@@ -19,6 +19,17 @@ final enum class com.muazdev.hijricalendar.core/CalendarLogLevel : kotlin/Enum<c
     final fun values(): kotlin/Array<com.muazdev.hijricalendar.core/CalendarLogLevel> // com.muazdev.hijricalendar.core/CalendarLogLevel.values|values#static(){}[0]
 }
 
+final enum class com.muazdev.hijricalendar.core/HijriEventLanguage : kotlin/Enum<com.muazdev.hijricalendar.core/HijriEventLanguage> { // com.muazdev.hijricalendar.core/HijriEventLanguage|null[0]
+    enum entry ENGLISH // com.muazdev.hijricalendar.core/HijriEventLanguage.ENGLISH|null[0]
+    enum entry URDU // com.muazdev.hijricalendar.core/HijriEventLanguage.URDU|null[0]
+
+    final val entries // com.muazdev.hijricalendar.core/HijriEventLanguage.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.muazdev.hijricalendar.core/HijriEventLanguage> // com.muazdev.hijricalendar.core/HijriEventLanguage.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.muazdev.hijricalendar.core/HijriEventLanguage // com.muazdev.hijricalendar.core/HijriEventLanguage.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.muazdev.hijricalendar.core/HijriEventLanguage> // com.muazdev.hijricalendar.core/HijriEventLanguage.values|values#static(){}[0]
+}
+
 final enum class com.muazdev.hijricalendar.core/WeekDay : kotlin/Enum<com.muazdev.hijricalendar.core/WeekDay> { // com.muazdev.hijricalendar.core/WeekDay|null[0]
     enum entry FRIDAY // com.muazdev.hijricalendar.core/WeekDay.FRIDAY|null[0]
     enum entry MONDAY // com.muazdev.hijricalendar.core/WeekDay.MONDAY|null[0]
@@ -64,6 +75,8 @@ final class com.muazdev.hijricalendar.core/CalendarDay { // com.muazdev.hijrical
         final fun <get-dayOfMonth>(): kotlin/Int // com.muazdev.hijricalendar.core/CalendarDay.dayOfMonth.<get-dayOfMonth>|<get-dayOfMonth>(){}[0]
     final val dayOfWeek // com.muazdev.hijricalendar.core/CalendarDay.dayOfWeek|{}dayOfWeek[0]
         final fun <get-dayOfWeek>(): com.muazdev.hijricalendar.core/WeekDay // com.muazdev.hijricalendar.core/CalendarDay.dayOfWeek.<get-dayOfWeek>|<get-dayOfWeek>(){}[0]
+    final val event // com.muazdev.hijricalendar.core/CalendarDay.event|{}event[0]
+        final fun <get-event>(): com.muazdev.hijricalendar.core/HijriEvent? // com.muazdev.hijricalendar.core/CalendarDay.event.<get-event>|<get-event>(){}[0]
     final val hijrahDate // com.muazdev.hijricalendar.core/CalendarDay.hijrahDate|{}hijrahDate[0]
         final fun <get-hijrahDate>(): com.abdulrahman_b.hijrahdatetime/HijrahDate? // com.muazdev.hijricalendar.core/CalendarDay.hijrahDate.<get-hijrahDate>|<get-hijrahDate>(){}[0]
     final val isCurrentMonth // com.muazdev.hijricalendar.core/CalendarDay.isCurrentMonth|{}isCurrentMonth[0]
@@ -180,7 +193,7 @@ final class com.muazdev.hijricalendar.core/GregorianMonthRange { // com.muazdev.
 }
 
 final class com.muazdev.hijricalendar.core/HijriCalendarState { // com.muazdev.hijricalendar.core/HijriCalendarState|null[0]
-    constructor <init>(com.abdulrahman_b.hijrahdatetime.yearmonth/HijrahYearMonth, com.abdulrahman_b.hijrahdatetime/HijrahDate? = ..., com.muazdev.hijricalendar.core/WeekDay = ..., com.abdulrahman_b.hijrahdatetime/HijrahDate? = ..., com.abdulrahman_b.hijrahdatetime/HijrahDate? = ..., kotlin/Int = ..., kotlin/Boolean = ..., com.muazdev.hijricalendar.core/PakistanHijriDate? = ..., com.muazdev.hijricalendar.core/ObservedHijriDate? = ..., kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay> = ..., com.muazdev.hijricalendar.core/HijriMonthLengths = ...) // com.muazdev.hijricalendar.core/HijriCalendarState.<init>|<init>(com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.muazdev.hijricalendar.core.WeekDay;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;kotlin.Int;kotlin.Boolean;com.muazdev.hijricalendar.core.PakistanHijriDate?;com.muazdev.hijricalendar.core.ObservedHijriDate?;kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>;com.muazdev.hijricalendar.core.HijriMonthLengths){}[0]
+    constructor <init>(com.abdulrahman_b.hijrahdatetime.yearmonth/HijrahYearMonth, com.abdulrahman_b.hijrahdatetime/HijrahDate? = ..., com.muazdev.hijricalendar.core/WeekDay = ..., com.abdulrahman_b.hijrahdatetime/HijrahDate? = ..., com.abdulrahman_b.hijrahdatetime/HijrahDate? = ..., kotlin/Int = ..., kotlin/Boolean = ..., com.muazdev.hijricalendar.core/PakistanHijriDate? = ..., com.muazdev.hijricalendar.core/ObservedHijriDate? = ..., kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., com.muazdev.hijricalendar.core/HijriMonthLengths = ...) // com.muazdev.hijricalendar.core/HijriCalendarState.<init>|<init>(com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.muazdev.hijricalendar.core.WeekDay;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;kotlin.Int;kotlin.Boolean;com.muazdev.hijricalendar.core.PakistanHijriDate?;com.muazdev.hijricalendar.core.ObservedHijriDate?;kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>;kotlin.Boolean;kotlin.Boolean;com.muazdev.hijricalendar.core.HijriMonthLengths){}[0]
 
     final val adjustmentDays // com.muazdev.hijricalendar.core/HijriCalendarState.adjustmentDays|{}adjustmentDays[0]
         final fun <get-adjustmentDays>(): kotlin/Int // com.muazdev.hijricalendar.core/HijriCalendarState.adjustmentDays.<get-adjustmentDays>|<get-adjustmentDays>(){}[0]
@@ -210,6 +223,10 @@ final class com.muazdev.hijricalendar.core/HijriCalendarState { // com.muazdev.h
         final fun <get-selectedObservedDate>(): com.muazdev.hijricalendar.core/ObservedHijriDate? // com.muazdev.hijricalendar.core/HijriCalendarState.selectedObservedDate.<get-selectedObservedDate>|<get-selectedObservedDate>(){}[0]
     final val selectedPakistanDate // com.muazdev.hijricalendar.core/HijriCalendarState.selectedPakistanDate|{}selectedPakistanDate[0]
         final fun <get-selectedPakistanDate>(): com.muazdev.hijricalendar.core/PakistanHijriDate? // com.muazdev.hijricalendar.core/HijriCalendarState.selectedPakistanDate.<get-selectedPakistanDate>|<get-selectedPakistanDate>(){}[0]
+    final val showAdjacentDays // com.muazdev.hijricalendar.core/HijriCalendarState.showAdjacentDays|{}showAdjacentDays[0]
+        final fun <get-showAdjacentDays>(): kotlin/Boolean // com.muazdev.hijricalendar.core/HijriCalendarState.showAdjacentDays.<get-showAdjacentDays>|<get-showAdjacentDays>(){}[0]
+    final val showCellBorders // com.muazdev.hijricalendar.core/HijriCalendarState.showCellBorders|{}showCellBorders[0]
+        final fun <get-showCellBorders>(): kotlin/Boolean // com.muazdev.hijricalendar.core/HijriCalendarState.showCellBorders.<get-showCellBorders>|<get-showCellBorders>(){}[0]
     final val weekendDays // com.muazdev.hijricalendar.core/HijriCalendarState.weekendDays|{}weekendDays[0]
         final fun <get-weekendDays>(): kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay> // com.muazdev.hijricalendar.core/HijriCalendarState.weekendDays.<get-weekendDays>|<get-weekendDays>(){}[0]
 
@@ -229,6 +246,51 @@ final class com.muazdev.hijricalendar.core/HijriCalendarState { // com.muazdev.h
     final fun setAdjustmentDays(kotlin/Int) // com.muazdev.hijricalendar.core/HijriCalendarState.setAdjustmentDays|setAdjustmentDays(kotlin.Int){}[0]
     final fun setMonthLength(kotlin/Int, kotlin/Int, kotlin/Int) // com.muazdev.hijricalendar.core/HijriCalendarState.setMonthLength|setMonthLength(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
     final fun setPakistanDates(kotlin/Boolean) // com.muazdev.hijricalendar.core/HijriCalendarState.setPakistanDates|setPakistanDates(kotlin.Boolean){}[0]
+    final fun setShowAdjacentDays(kotlin/Boolean) // com.muazdev.hijricalendar.core/HijriCalendarState.setShowAdjacentDays|setShowAdjacentDays(kotlin.Boolean){}[0]
+    final fun setShowCellBorders(kotlin/Boolean) // com.muazdev.hijricalendar.core/HijriCalendarState.setShowCellBorders|setShowCellBorders(kotlin.Boolean){}[0]
+    final fun setWeekendDays(kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay>) // com.muazdev.hijricalendar.core/HijriCalendarState.setWeekendDays|setWeekendDays(kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>){}[0]
+}
+
+final class com.muazdev.hijricalendar.core/HijriEvent { // com.muazdev.hijricalendar.core/HijriEvent|null[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/String, kotlin/String, kotlin/String, kotlin/Boolean = ...) // com.muazdev.hijricalendar.core/HijriEvent.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.Boolean){}[0]
+
+    final val day // com.muazdev.hijricalendar.core/HijriEvent.day|{}day[0]
+        final fun <get-day>(): kotlin/Int // com.muazdev.hijricalendar.core/HijriEvent.day.<get-day>|<get-day>(){}[0]
+    final val isGregorianFixedInPractice // com.muazdev.hijricalendar.core/HijriEvent.isGregorianFixedInPractice|{}isGregorianFixedInPractice[0]
+        final fun <get-isGregorianFixedInPractice>(): kotlin/Boolean // com.muazdev.hijricalendar.core/HijriEvent.isGregorianFixedInPractice.<get-isGregorianFixedInPractice>|<get-isGregorianFixedInPractice>(){}[0]
+    final val key // com.muazdev.hijricalendar.core/HijriEvent.key|{}key[0]
+        final fun <get-key>(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.key.<get-key>|<get-key>(){}[0]
+    final val month // com.muazdev.hijricalendar.core/HijriEvent.month|{}month[0]
+        final fun <get-month>(): kotlin/Int // com.muazdev.hijricalendar.core/HijriEvent.month.<get-month>|<get-month>(){}[0]
+    final val nameEn // com.muazdev.hijricalendar.core/HijriEvent.nameEn|{}nameEn[0]
+        final fun <get-nameEn>(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.nameEn.<get-nameEn>|<get-nameEn>(){}[0]
+    final val nameUr // com.muazdev.hijricalendar.core/HijriEvent.nameUr|{}nameUr[0]
+        final fun <get-nameUr>(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.nameUr.<get-nameUr>|<get-nameUr>(){}[0]
+
+    final fun component1(): kotlin/Int // com.muazdev.hijricalendar.core/HijriEvent.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.muazdev.hijricalendar.core/HijriEvent.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.component3|component3(){}[0]
+    final fun component4(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.component4|component4(){}[0]
+    final fun component5(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.component5|component5(){}[0]
+    final fun component6(): kotlin/Boolean // com.muazdev.hijricalendar.core/HijriEvent.component6|component6(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/Boolean = ...): com.muazdev.hijricalendar.core/HijriEvent // com.muazdev.hijricalendar.core/HijriEvent.copy|copy(kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.core/HijriEvent.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.core/HijriEvent.hashCode|hashCode(){}[0]
+    final fun name(com.muazdev.hijricalendar.core/HijriEventLanguage): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.name|name(com.muazdev.hijricalendar.core.HijriEventLanguage){}[0]
+    final fun toString(): kotlin/String // com.muazdev.hijricalendar.core/HijriEvent.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.muazdev.hijricalendar.core/HijriEvent> { // com.muazdev.hijricalendar.core/HijriEvent.$serializer|null[0]
+        final val descriptor // com.muazdev.hijricalendar.core/HijriEvent.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.muazdev.hijricalendar.core/HijriEvent.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.muazdev.hijricalendar.core/HijriEvent.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.muazdev.hijricalendar.core/HijriEvent // com.muazdev.hijricalendar.core/HijriEvent.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.muazdev.hijricalendar.core/HijriEvent) // com.muazdev.hijricalendar.core/HijriEvent.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.muazdev.hijricalendar.core.HijriEvent){}[0]
+    }
+
+    final object Companion { // com.muazdev.hijricalendar.core/HijriEvent.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.muazdev.hijricalendar.core/HijriEvent> // com.muazdev.hijricalendar.core/HijriEvent.Companion.serializer|serializer(){}[0]
+    }
 }
 
 final class com.muazdev.hijricalendar.core/HijriMonthLengths { // com.muazdev.hijricalendar.core/HijriMonthLengths|null[0]
@@ -342,6 +404,17 @@ final object com.muazdev.hijricalendar.core/CalendarNames { // com.muazdev.hijri
         final fun <get-englishWeekdays>(): kotlin.collections/Map<com.muazdev.hijricalendar.core/WeekDay, kotlin/String> // com.muazdev.hijricalendar.core/CalendarNames.englishWeekdays.<get-englishWeekdays>|<get-englishWeekdays>(){}[0]
 }
 
+final object com.muazdev.hijricalendar.core/HijriEvents { // com.muazdev.hijricalendar.core/HijriEvents|null[0]
+    final val all // com.muazdev.hijricalendar.core/HijriEvents.all|{}all[0]
+        final fun <get-all>(): kotlin.collections/List<com.muazdev.hijricalendar.core/HijriEvent> // com.muazdev.hijricalendar.core/HijriEvents.all.<get-all>|<get-all>(){}[0]
+    final val coordinateByKey // com.muazdev.hijricalendar.core/HijriEvents.coordinateByKey|{}coordinateByKey[0]
+        final fun <get-coordinateByKey>(): kotlin.collections/Map<kotlin/String, kotlin/Int> // com.muazdev.hijricalendar.core/HijriEvents.coordinateByKey.<get-coordinateByKey>|<get-coordinateByKey>(){}[0]
+
+    final fun forDate(kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriEvent? // com.muazdev.hijricalendar.core/HijriEvents.forDate|forDate(kotlin.Int;kotlin.Int){}[0]
+    final fun forMonth(kotlin/Int): kotlin.collections/List<com.muazdev.hijricalendar.core/HijriEvent> // com.muazdev.hijricalendar.core/HijriEvents.forMonth|forMonth(kotlin.Int){}[0]
+    final fun hasAnyIn(kotlin/Int): kotlin/Boolean // com.muazdev.hijricalendar.core/HijriEvents.hasAnyIn|hasAnyIn(kotlin.Int){}[0]
+}
+
 final object com.muazdev.hijricalendar.core/HijriMonthOverrides { // com.muazdev.hijricalendar.core/HijriMonthOverrides|null[0]
     final val current // com.muazdev.hijricalendar.core/HijriMonthOverrides.current|{}current[0]
         final fun <get-current>(): com.muazdev.hijricalendar.core/HijriMonthLengths // com.muazdev.hijricalendar.core/HijriMonthOverrides.current.<get-current>|<get-current>(){}[0]
@@ -419,6 +492,9 @@ final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_Calendar
 final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_CalendarNames$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_CalendarNames$stableprop|#static{}com_muazdev_hijricalendar_core_CalendarNames$stableprop[0]
 final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_GregorianMonthRange$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_GregorianMonthRange$stableprop|#static{}com_muazdev_hijricalendar_core_GregorianMonthRange$stableprop[0]
 final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriCalendarState$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriCalendarState$stableprop|#static{}com_muazdev_hijricalendar_core_HijriCalendarState$stableprop[0]
+final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent$stableprop|#static{}com_muazdev_hijricalendar_core_HijriEvent$stableprop[0]
+final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent_$serializer$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent_$serializer$stableprop|#static{}com_muazdev_hijricalendar_core_HijriEvent_$serializer$stableprop[0]
+final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvents$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvents$stableprop|#static{}com_muazdev_hijricalendar_core_HijriEvents$stableprop[0]
 final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthLengths$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthLengths$stableprop|#static{}com_muazdev_hijricalendar_core_HijriMonthLengths$stableprop[0]
 final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthOverrides$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthOverrides$stableprop|#static{}com_muazdev_hijricalendar_core_HijriMonthOverrides$stableprop[0]
 final val com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_ObservedHijriCalendar$stableprop // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_ObservedHijriCalendar$stableprop|#static{}com_muazdev_hijricalendar_core_ObservedHijriCalendar$stableprop[0]
@@ -443,6 +519,9 @@ final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_Calendar
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_CalendarNames$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_CalendarNames$stableprop_getter|com_muazdev_hijricalendar_core_CalendarNames$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_GregorianMonthRange$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_GregorianMonthRange$stableprop_getter|com_muazdev_hijricalendar_core_GregorianMonthRange$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriCalendarState$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriCalendarState$stableprop_getter|com_muazdev_hijricalendar_core_HijriCalendarState$stableprop_getter(){}[0]
+final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent$stableprop_getter|com_muazdev_hijricalendar_core_HijriEvent$stableprop_getter(){}[0]
+final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent_$serializer$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvent_$serializer$stableprop_getter|com_muazdev_hijricalendar_core_HijriEvent_$serializer$stableprop_getter(){}[0]
+final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvents$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriEvents$stableprop_getter|com_muazdev_hijricalendar_core_HijriEvents$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthLengths$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthLengths$stableprop_getter|com_muazdev_hijricalendar_core_HijriMonthLengths$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthOverrides$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_HijriMonthOverrides$stableprop_getter|com_muazdev_hijricalendar_core_HijriMonthOverrides$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_ObservedHijriCalendar$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_ObservedHijriCalendar$stableprop_getter|com_muazdev_hijricalendar_core_ObservedHijriCalendar$stableprop_getter(){}[0]
@@ -453,8 +532,8 @@ final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_Pakistan
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_PakistanHijriDate$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_PakistanHijriDate$stableprop_getter|com_muazdev_hijricalendar_core_PakistanHijriDate$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_PakistanHijriDate_$serializer$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_PakistanHijriDate_$serializer$stableprop_getter|com_muazdev_hijricalendar_core_PakistanHijriDate_$serializer$stableprop_getter(){}[0]
 final fun com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_UrduCalendarNames$stableprop_getter(): kotlin/Int // com.muazdev.hijricalendar.core/com_muazdev_hijricalendar_core_UrduCalendarNames$stableprop_getter|com_muazdev_hijricalendar_core_UrduCalendarNames$stableprop_getter(){}[0]
-final fun com.muazdev.hijricalendar.core/rememberHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth/HijrahYearMonth, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.muazdev.hijricalendar.core/WeekDay?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, kotlin/Int, kotlin/Boolean, com.muazdev.hijricalendar.core/PakistanHijriDate?, kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay>?, androidx.compose.runtime/Composer?, kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriCalendarState // com.muazdev.hijricalendar.core/rememberHijriCalendarState|rememberHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.muazdev.hijricalendar.core.WeekDay?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;kotlin.Int;kotlin.Boolean;com.muazdev.hijricalendar.core.PakistanHijriDate?;kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>?;androidx.compose.runtime.Composer?;kotlin.Int;kotlin.Int){}[0]
-final fun com.muazdev.hijricalendar.core/rememberSaveableHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth/HijrahYearMonth, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.muazdev.hijricalendar.core/WeekDay?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, kotlin/Int, kotlin/Boolean, com.muazdev.hijricalendar.core/PakistanHijriDate?, kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay>?, androidx.compose.runtime/Composer?, kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriCalendarState // com.muazdev.hijricalendar.core/rememberSaveableHijriCalendarState|rememberSaveableHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.muazdev.hijricalendar.core.WeekDay?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;kotlin.Int;kotlin.Boolean;com.muazdev.hijricalendar.core.PakistanHijriDate?;kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>?;androidx.compose.runtime.Composer?;kotlin.Int;kotlin.Int){}[0]
+final fun com.muazdev.hijricalendar.core/rememberHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth/HijrahYearMonth, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.muazdev.hijricalendar.core/WeekDay?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, kotlin/Int, kotlin/Boolean, com.muazdev.hijricalendar.core/PakistanHijriDate?, kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay>?, kotlin/Boolean, kotlin/Boolean, androidx.compose.runtime/Composer?, kotlin/Int, kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriCalendarState // com.muazdev.hijricalendar.core/rememberHijriCalendarState|rememberHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.muazdev.hijricalendar.core.WeekDay?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;kotlin.Int;kotlin.Boolean;com.muazdev.hijricalendar.core.PakistanHijriDate?;kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>?;kotlin.Boolean;kotlin.Boolean;androidx.compose.runtime.Composer?;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+final fun com.muazdev.hijricalendar.core/rememberSaveableHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth/HijrahYearMonth, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.muazdev.hijricalendar.core/WeekDay?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, com.abdulrahman_b.hijrahdatetime/HijrahDate?, kotlin/Int, kotlin/Boolean, com.muazdev.hijricalendar.core/PakistanHijriDate?, kotlin.collections/Set<com.muazdev.hijricalendar.core/WeekDay>?, kotlin/Boolean, kotlin/Boolean, androidx.compose.runtime/Composer?, kotlin/Int, kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriCalendarState // com.muazdev.hijricalendar.core/rememberSaveableHijriCalendarState|rememberSaveableHijriCalendarState(com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.muazdev.hijricalendar.core.WeekDay?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;com.abdulrahman_b.hijrahdatetime.HijrahDate?;kotlin.Int;kotlin.Boolean;com.muazdev.hijricalendar.core.PakistanHijriDate?;kotlin.collections.Set<com.muazdev.hijricalendar.core.WeekDay>?;kotlin.Boolean;kotlin.Boolean;androidx.compose.runtime.Composer?;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
 final fun com.muazdev.hijricalendar.core/resolveGregorianMonthRange(kotlin/Int, kotlin/Int, kotlin/Boolean = ..., kotlin/Int = ..., com.muazdev.hijricalendar.core/HijriMonthLengths = ...): com.muazdev.hijricalendar.core/GregorianMonthRange // com.muazdev.hijricalendar.core/resolveGregorianMonthRange|resolveGregorianMonthRange(kotlin.Int;kotlin.Int;kotlin.Boolean;kotlin.Int;com.muazdev.hijricalendar.core.HijriMonthLengths){}[0]
 final fun com.muazdev.hijricalendar.core/todayHijriDate(kotlin/Int): com.abdulrahman_b.hijrahdatetime/HijrahDate? // com.muazdev.hijricalendar.core/todayHijriDate|todayHijriDate(kotlin.Int){}[0]
 final fun hijricalendar.calendar_core.generated.resources/hijricalendar_calendar_core_generated_resources_Res_array$stableprop_getter(): kotlin/Int // hijricalendar.calendar_core.generated.resources/hijricalendar_calendar_core_generated_resources_Res_array$stableprop_getter|hijricalendar_calendar_core_generated_resources_Res_array$stableprop_getter(){}[0]

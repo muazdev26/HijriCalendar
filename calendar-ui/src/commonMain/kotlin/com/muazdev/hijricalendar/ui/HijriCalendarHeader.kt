@@ -36,6 +36,10 @@ import androidx.compose.ui.unit.dp
  *   only when [dateDisplayMode] is not [DateDisplayMode.HIJRI_ONLY].
  * @param contentDescription Merges the header into one node for screen readers. Pass the month and
  *   year; pass null and the header's children are announced separately.
+ * @param eventText A line naming the observance on the selected day, e.g. "Ashura" (FD-08). Shown
+ *   under the Gregorian extent, and **regardless of [dateDisplayMode]** — an observance is not a
+ *   Gregorian figure, so hiding it behind `HIJRI_ONLY` would make it unreachable in the default mode,
+ *   which is where most people see it. Null or empty renders nothing.
  */
 @Composable
 public fun HijriCalendarHeader(
@@ -50,6 +54,7 @@ public fun HijriCalendarHeader(
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     canGoToPreviousMonth: Boolean = true,
     canGoToNextMonth: Boolean = true,
+    eventText: String? = null,
 ) {
     val showGregorian = dateDisplayMode != DateDisplayMode.HIJRI_ONLY && gregorianMonthText != null
 
@@ -100,6 +105,17 @@ public fun HijriCalendarHeader(
                     text = gregorianMonthText,
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.gregorianHeaderColor,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (!eventText.isNullOrEmpty()) {
+                Text(
+                    text = eventText,
+                    style = MaterialTheme.typography.labelMedium,
+                    // The accent, not the muted header colour: this is the one line on the header that
+                    // changes, and it should read as an answer rather than as more chrome. `error`
+                    // would be wrong — an observance is not a warning.
+                    color = colors.dayContentColor,
                     textAlign = TextAlign.Center,
                 )
             }

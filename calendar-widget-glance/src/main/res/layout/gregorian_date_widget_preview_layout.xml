@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Static preview shown in the Android 12-14 widget picker for the Gregorian 1x1 date tile: a
-     big accent day figure with the month name underneath, mirroring the live tile. -->
+<!-- Static preview shown in the Android 12-14 widget picker for the Gregorian
+     1x1 date tile: the weekday name on top, a big accent day figure in the middle, the month name
+     at the bottom — mirroring the live tile. Every size here is a hand-maintained mirror of
+     DateTileTypography and must move with it; DateTilePreviewLayoutTest asserts they do.
+
+     The weekday size here is a snapshot at DateTileTypography's reference width. The live tile
+     scales that line with the width the launcher grants, so this static preview cannot follow it
+     exactly - it shows the mid-range value.
+
+     includeFontPadding="false" on all three lines is what removes the strip of empty space above
+     and below each glyph: a TextView reserves room for the font's full ascent and descent, and on
+     these small sizes that reserved space is most of the visible line. It is the XML-only lever for
+     the gap - see the note in DateTileTypography.WEEKDAY sizing. NOTE this makes the picker preview
+     TIGHTER than the live tile, because Glance has no equivalent and the live composition still
+     shows the font-metrics padding. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -8,7 +21,7 @@
     android:background="@color/widget_background"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="6dp"
+    android:padding="2dp"
     tools:ignore="UnusedAttribute">
 
     <TextView
@@ -16,20 +29,34 @@
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:maxLines="1"
-        android:text="18"
-        android:textColor="@color/widget_accent"
-        android:textSize="34sp"
+        android:text="Thursday"
+        android:textColor="@color/widget_text_primary"
+        android:textSize="32sp"
         android:textStyle="bold" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:maxLines="1"
-        android:text="September"
+        android:text="21"
+        android:textColor="@color/widget_accent"
+        android:textSize="36sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="August"
         android:textColor="@color/widget_text_primary"
-        android:textSize="12sp" />
+        android:textSize="32sp"
+        android:textStyle="bold" />
 </LinearLayout>

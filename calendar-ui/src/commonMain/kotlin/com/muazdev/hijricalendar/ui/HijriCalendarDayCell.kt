@@ -35,7 +35,9 @@ import com.muazdev.hijricalendar.ui.util.clickableIfEnabled
  * consumer building their own calendar layout has this and [HijriCalendarColors] and nothing else.
  *
  * @param day The cell to render. Its three nullable date slots are resolved by core; see
- *   [CalendarDay] for which slot is populated in which calendar space.
+ *   [CalendarDay] for which slot is populated in which calendar space. A day carrying an observance is
+ *   **filled** with [HijriCalendarColors.eventDayContainerColor] — not dotted — unless it is also
+ *   selected, outside the month, or disabled.
  * @param onClick Invoked on tap. Ignored when [CalendarDay.isDisabled] — the cell renders with the
  *   disabled colours, exposes no `Role.Button`, registers no click action, and sets
  *   `SemanticsProperties.Disabled`.
@@ -60,8 +62,40 @@ public fun HijriCalendarDayCell(
     dayCellSize: Dp? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     content: (@Composable (CalendarDay) -> Unit)? = null,
+    /**
+     * Paints nothing at all: no day figure, no Gregorian gloss, no background, no border, no
+     * content description and no click target.
+     *
+     * This exists so a grid can blank a neighbouring month's day **without removing its cell** — a
+     * Hijri month can start mid-week, so the first padded week holds some of the previous month's
+     * days before the 1st. Removing the cells would slide the 1st into column zero and put every day
+     * of the month under the wrong weekday heading. The cell keeps its width; only its ink and its
+     * semantics go.
+     *
+     * Default `true`, so every existing caller — including a host rendering its own cells — is
+     * unchanged. See [HijriCalendarState.showAdjacentDays] for the grid-level behaviour.
+     */
+    visible: Boolean = true,
+    /**
+     * Whether the surrounding grid is drawing dividers (FD-04), which changes this cell's own shape.
+     *
+     * A grid cell's background is a circle — the day figure is a round token. With dividers on that
+     * is the wrong shape: a round fill floating between straight rules looks like a badge laid on
+     * top of the grid rather than a cell of it. So a highlighted cell becomes a **block that covers
+     * the whole cell**, flush to the rules on every side.
+     *
+     * `false` by default, which is exactly the existing circular appearance, so every current caller
+     * and every existing consumer is unchanged.
+     */
+    cellHasDividers: Boolean = false,
 ) {
     val cellSize = dayCellSize ?: HijriCalendarDefaults.SingleLineCellSize
+
+    if (!visible) {
+        // Sized, so the week's columns still line up under the weekday headings, and nothing else.
+        Box(modifier = modifier.size(cellSize))
+        return
+    }
 
     val style = day.cellStyle(colors)
     val clickLabel = remember(day, labels) { labels.dayContentDescription(day) }
@@ -96,9 +130,19 @@ public fun HijriCalendarDayCell(
                     disabled()
                 }
             }
-            .clip(CircleShape)
+            .then(
+                // A circular clip for a day token; a plain one when the grid is divided, so a
+                // highlighted cell fills its rectangle instead of inscribing a circle in it.
+                if (cellHasDividers) Modifier else Modifier.clip(CircleShape),
+            )
             .background(style.backgroundColor)
-            .border(style.borderWidth, style.borderColor, CircleShape)
+            .then(
+                if (cellHasDividers) {
+                    Modifier
+                } else {
+                    Modifier.border(style.borderWidth, style.borderColor, CircleShape)
+                },
+            )
             .clickableIfEnabled(
                 enabled = style.enabled,
                 onClickLabel = clickLabel,
@@ -160,10 +204,13 @@ internal data class DayCellStyle(
  * The branch order **is** the precedence, and it is asserted by `DayCellStyleTest`:
  *
  * 1. **selected** wins over everything. A selected cell is drawn as selected even when it is also
- *    disabled or outside the month, so the user's selection never changes appearance under them.
- * 2. **disabled**, then **outside the month**, then **weekend** — in that order, for content colour.
- * 3. **today** draws a border unless the cell is already selected, because a selected cell's filled
- *    container would hide it.
+ *    disabled, outside the month, or an observance, so the user's selection never changes appearance
+ *    under them.
+ * 2. **disabled**, then **outside the month**, then **observance** (FD-08), then **weekend** — in that
+ *    order, for content colour.
+ * 3. **observance** also fills the cell, below the selection container and above [dayBackgroundColor].
+ * 4. **today** draws a border unless the cell is already selected **or an observance**, because
+ *    either one's filled container would hide it.
  *
  * Named `cellStyle` rather than `dayCellStyle` so it reads as `day.cellStyle(colors)` at the call
  * site.
@@ -174,24 +221,29 @@ internal data class DayCellStyle(
  * relying on its appearance.
  */
 internal fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
-    val showTodayBorder = isToday && !isSelected
+    // An observance **fills** the cell (FD-08). It used to be a 4dp dot above the day figure, which
+    // was too small to survive on a busy grid and carried no information beyond "something is here":
+    // the header and the summary card already name the observance, so a glance needed the day's
+    // *status*, not a second copy of its name.
+    //
+    // The fill is [eventDayContainerColor] rather than the selection container because it answers a
+    // different question — a fact about the date versus a fact about the session — and a day that is
+    // both selected and an observance must read as selected.
+    //
+    // An out-of-month or disabled observance day is **not** filled. Both states are already
+    // communicated by a dimmed figure, and a fill on a day the month does not contain reads as a
+    // second selection — worse than the dot it replaces. The observance is still named in the header
+    // once such a day is selected.
+    val observance = event != null && isCurrentMonth && !isDisabled
+    val filled = observance && !isSelected
+    val showTodayBorder = isToday && !isSelected && !observance
     return DayCellStyle(
-        contentColor = when {
-            isSelected -> colors.selectedDayContentColor
-            isDisabled -> colors.disabledDayContentColor
-            !isCurrentMonth -> colors.outsideMonthDayContentColor
-            isWeekend -> colors.weekendDayContentColor
-            else -> colors.dayContentColor
-        },
-        gregorianColor = when {
-            isSelected -> colors.selectedDayContentColor.copy(alpha = 0.7f)
-            !isCurrentMonth -> colors.outsideMonthDayContentColor.copy(alpha = 0.7f)
-            else -> colors.gregorianDayContentColor
-        },
-        backgroundColor = if (isSelected) {
-            colors.selectedDayContainerColor
-        } else {
-            colors.dayBackgroundColor
+        contentColor = contentColor(colors, observance),
+        gregorianColor = gregorianColor(colors, observance),
+        backgroundColor = when {
+            isSelected -> colors.selectedDayContainerColor
+            filled -> colors.eventDayContainerColor
+            else -> colors.dayBackgroundColor
         },
         borderColor = when {
             isSelected -> colors.selectedDayContainerColor
@@ -206,6 +258,33 @@ internal fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
         enabled = !isDisabled,
     )
 }
+
+/**
+ * The day's figure colour, given whether it carries a filled observance.
+ *
+ * Split out of [cellStyle] for complexity, not for taste: six branches plus the two container branches
+ * and the border pair exceeded detekt's threshold in one function. The **order** is the precedence and
+ * is what `DayCellStyleTest` asserts — selected, disabled, outside the month, observance, weekend,
+ * ordinary.
+ */
+private fun CalendarDay.contentColor(colors: HijriCalendarColors, observance: Boolean): Color =
+    when {
+        isSelected -> colors.selectedDayContentColor
+        isDisabled -> colors.disabledDayContentColor
+        !isCurrentMonth -> colors.outsideMonthDayContentColor
+        observance -> colors.eventDayContentColor
+        isWeekend -> colors.weekendDayContentColor
+        else -> colors.dayContentColor
+    }
+
+/** The Gregorian sub-label: the figure's colour, dimmed, for the states that dim the figure too. */
+private fun CalendarDay.gregorianColor(colors: HijriCalendarColors, observance: Boolean): Color =
+    when {
+        isSelected -> colors.selectedDayContentColor.copy(alpha = 0.7f)
+        !isCurrentMonth -> colors.outsideMonthDayContentColor.copy(alpha = 0.7f)
+        observance -> colors.eventDayContentColor.copy(alpha = 0.7f)
+        else -> colors.gregorianDayContentColor
+    }
 
 /** Renders [value] with Arabic-Indic digits when [useArabicIndicNumerals], else Western. */
 private fun Int.toArabicIndicNumeralsOrWestern(useArabicIndicNumerals: Boolean): String =

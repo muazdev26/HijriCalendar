@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.sample
 
 import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -34,16 +35,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import android.appwidget.AppWidgetManager
-import androidx.compose.ui.draw.clip
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
@@ -138,7 +140,7 @@ private val catalogWidgets = listOf(
         provider = HijriTodayWidgetReceiver::class.java,
         settingsActivity = HijriTodayWidgetConfigureActivity::class.java,
         label = "Hijri Today",
-        description = "Today's Hijri and Gregorian dates on one line \u2014 Hijri always on the\n" +
+        description = "Today's weekday over the Hijri and Gregorian dates \u2014 Hijri always on the\n" +
                 "right \u2014 sized from a single cell up to the full row.",
         sizeHint = "Resizable \u00B7 1\u00D72 min",
         requestCode = 2,
@@ -157,17 +159,31 @@ private val catalogWidgets = listOf(
         provider = GregorianDateWidgetReceiver::class.java,
         settingsActivity = GregorianDateWidgetConfigureActivity::class.java,
         label = "Gregorian Date",
-        description = "A fixed 1\u00D71 tile with today's Gregorian day and month.",
-        sizeHint = "Fixed \u00B7 1\u00D71",
+        description = "A fixed 1×1 tile with today's Gregorian day and month.",
+        sizeHint = "Fixed · 1×1",
         requestCode = 4,
+    ),
+    CatalogWidget(
+        kind = WidgetKind.DUAL_DATE,
+        provider = HijriDualDateWidgetReceiver::class.java,
+        settingsActivity = HijriDualDateWidgetConfigureActivity::class.java,
+        label = "Hijri + Gregorian Date",
+        description = "Both dates in one fixed cell: the Hijri month across the top, the Gregorian\n" +
+                "date under it, the Hijri day large in the middle and the weekday at the bottom.",
+        sizeHint = "Fixed · 1×1",
+        requestCode = 5,
     ),
 )
 
 private val catalogPreviewSizes = mapOf(
     WidgetKind.GRID to DpSize(168.dp, 176.dp),
-    WidgetKind.TODAY to DpSize(300.dp, 56.dp),
+    WidgetKind.TODAY to DpSize(300.dp, 72.dp),
     WidgetKind.HIJRI_DATE to DpSize(96.dp, 96.dp),
     WidgetKind.GREGORIAN_DATE to DpSize(96.dp, 96.dp),
+    // Square and larger than the other two tiles: the dual tile stacks four zones, and its type is
+    // derived from the height it is given, so a smaller preview would understate the Hijri day — the
+    // one figure this tile exists to show.
+    WidgetKind.DUAL_DATE to DpSize(150.dp, 150.dp),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -263,5 +279,6 @@ private fun WidgetCatalogPreview(
         WidgetKind.TODAY -> HijriTodayWidgetLivePreview(options, size, modifier)
         WidgetKind.HIJRI_DATE -> HijriDateWidgetLivePreview(options, size, modifier)
         WidgetKind.GREGORIAN_DATE -> GregorianDateWidgetLivePreview(options, size, modifier)
+        WidgetKind.DUAL_DATE -> HijriDualDateWidgetLivePreview(options, size, modifier)
     }
 }

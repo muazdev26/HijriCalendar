@@ -31,7 +31,7 @@ public object HijriWidgetPreviewPublisher {
     }
 
     /**
-     * Generates and publishes real picker previews for all four widget classes, once per local
+     * Generates and publishes real picker previews for every widget class, once per local
      * calendar day. Never throws: preview publishing is best-effort and must not take down a
      * refresh or app-start path.
      *
@@ -49,6 +49,7 @@ public object HijriWidgetPreviewPublisher {
             anySuccess = publish(manager, HijriTodayWidgetReceiver::class) || anySuccess
             anySuccess = publish(manager, HijriDateWidgetReceiver::class) || anySuccess
             anySuccess = publish(manager, GregorianDateWidgetReceiver::class) || anySuccess
+            anySuccess = publish(manager, HijriDualDateWidgetReceiver::class) || anySuccess
         }.onFailure {
             HijriWidgetRefreshLog.e("preview", "publish failed", it)
         }

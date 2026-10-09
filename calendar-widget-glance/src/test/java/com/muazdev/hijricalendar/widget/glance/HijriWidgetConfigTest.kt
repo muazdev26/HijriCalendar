@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WeekStart
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetOptionsJson
@@ -13,6 +14,7 @@ import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.monthLengthKey
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -78,6 +80,9 @@ class HijriWidgetConfigTest {
             language = WidgetLanguage.ENGLISH,
             monthNameLanguage = WidgetLanguage.URDU,
             monthLengthOverrides = mapOf(monthLengthKey(1447, 11) to 29),
+            showAdjacentDays = true,
+            weekendPattern = WeekendPattern.SUNDAY,
+            showCellBorders = true,
         )
         val restored = HijriWidgetConfig.widgetOptionsSaver().roundTrip(options)
 
@@ -108,6 +113,9 @@ class HijriWidgetConfigTest {
             if (options.language == restored.language) add("language")
             if (options.monthNameLanguage == restored.monthNameLanguage) add("monthNameLanguage")
             if (options.monthLengthOverrides == restored.monthLengthOverrides) add("monthLengthOverrides")
+            if (options.showAdjacentDays == restored.showAdjacentDays) add("showAdjacentDays")
+            if (options.weekendPattern == restored.weekendPattern) add("weekendPattern")
+            if (options.showCellBorders == restored.showCellBorders) add("showCellBorders")
         }
         return surviving
     }
@@ -137,9 +145,9 @@ class HijriWidgetConfigTest {
 
         // An empty object is *valid* JSON for this schema — every field has a default — so it
         // restores to the field defaults rather than to null. Note those are deliberately not
-        // `WidgetOptions.DEFAULTS`: a stored value that omits a field means "never chosen", which
-        // is Western digits, not the fresh-widget Urdu default. Either answer is survivable here;
-        // a throw is not.
+        // `WidgetOptions.DEFAULTS`: a stored value that omits a field means "never chosen", and the
+        // two differ in `monthNameLanguage`, which stays `null` on the field default. Either answer
+        // is survivable here; a throw is not.
         assertEquals(WidgetOptions(), saver.restore("""{}"""))
     }
 
@@ -198,7 +206,7 @@ class HijriWidgetConfigTest {
         assertEquals(WidgetSource.PAKISTAN, options.source)
         assertEquals(WeekStart.MONDAY, options.effectiveWeekStart)
         // Only the field that is genuinely unreadable falls back — see WD-06.
-        assertEquals(WidgetLanguage.URDU, options.language)
+        assertEquals(WidgetLanguage.ENGLISH, options.language)
     }
 
     @Test
@@ -305,5 +313,45 @@ class HijriWidgetConfigTest {
                 mutablePreferencesOf(HijriWidgetConfig.VIEWED_KEY to """{"year":1448}"""),
             ),
         )
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_readsASetFlagWithinTheThresholdAsLoading() {
+        val now = 1_000_000L
+        val prefs = mutablePreferencesOf(
+            HijriWidgetConfig.LOADING_KEY to true,
+            HijriWidgetConfig.LOADING_STARTED_KEY to now - 1_000L,
+        )
+        assertTrue(HijriWidgetConfig.decodeLoadingIfFresh(prefs, now))
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_agesOutAFlagTheOwningProcessNeverCleared() {
+        // The orphaned-flag case: a process killed mid-step has no `finally` left, and the flag
+        // sits in persistent storage. Reading it as `true` forever is a widget whose every action
+        // is nulled by `WidgetActions.whileLoading` — no tap can reach the code that clears it.
+        val now = 1_000_000L
+        val prefs = mutablePreferencesOf(
+            HijriWidgetConfig.LOADING_KEY to true,
+            HijriWidgetConfig.LOADING_STARTED_KEY to now - HijriWidgetConfig.LOADING_STALE_MS,
+        )
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(prefs, now))
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_treatsAStamplessFlagAsOrphaned() {
+        // Only a build older than the stamp can write this pair, and that build's step is
+        // definitionally over — so absence of a stamp means stale, not "unknown, assume running".
+        val prefs = mutablePreferencesOf(HijriWidgetConfig.LOADING_KEY to true)
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(prefs, nowEpochMillis = 1_000_000L))
+    }
+
+    @Test
+    fun decodeLoadingIfFresh_ignoresAStampWithoutAFlag() {
+        // The clear path removes both keys in one edit, so this is only reachable if a future
+        // writer forgets the flag — and it must not read as loading on the strength of a time.
+        val prefs = mutablePreferencesOf(HijriWidgetConfig.LOADING_STARTED_KEY to 1_000L)
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(prefs, nowEpochMillis = 2_000L))
+        assertFalse(HijriWidgetConfig.decodeLoadingIfFresh(mutablePreferencesOf(), 2_000L))
     }
 }

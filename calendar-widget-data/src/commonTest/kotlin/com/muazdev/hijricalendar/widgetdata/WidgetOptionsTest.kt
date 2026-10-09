@@ -16,17 +16,18 @@ import kotlin.test.assertTrue
  */
 class WidgetOptionsTest {
     @Test
-    fun defaultsMatchTheAppsUrduLabels() {
+    fun defaultsAreEnglishPakistanAndDividersOn() {
         val defaults = WidgetOptions.DEFAULTS
-        assertEquals(WidgetLanguage.URDU, defaults.language)
-        assertEquals(NumeralStyle.ARABIC_INDIC, defaults.numeralStyle)
-        assertEquals(WidgetSource.CALCULATION, defaults.source)
+        assertEquals(WidgetLanguage.ENGLISH, defaults.language)
+        assertEquals(NumeralStyle.WESTERN, defaults.numeralStyle)
+        assertEquals(WidgetSource.PAKISTAN, defaults.source)
         assertEquals(0, defaults.adjustmentDays)
         assertEquals(WeekDay.DEFAULT_FIRST_DAY.index, defaults.firstDayOfWeekIndexValue)
         assertEquals(WeekStart.DEFAULT, defaults.effectiveWeekStart)
         assertNull(defaults.pinnedYear)
         assertNull(defaults.pinnedMonth)
         assertFalse(defaults.isPinned)
+        assertTrue(defaults.showCellBorders)
     }
 
     @Test
@@ -137,9 +138,9 @@ class WidgetOptionsTest {
         // Ordinals would silently reinterpret every stored widget if an enum entry is ever
         // reordered; names are the whole reason this format is safe to persist.
         val text = WidgetOptionsJson.encode(WidgetOptions.DEFAULTS)
-        assertTrue("\"language\":\"URDU\"" in text, "expected a named enum, got: $text")
-        assertTrue("\"numeralStyle\":\"ARABIC_INDIC\"" in text, "expected a named enum, got: $text")
-        assertTrue("\"source\":\"CALCULATION\"" in text, "expected a named enum, got: $text")
+        assertTrue("\"language\":\"ENGLISH\"" in text, "expected a named enum, got: $text")
+        assertTrue("\"numeralStyle\":\"WESTERN\"" in text, "expected a named enum, got: $text")
+        assertTrue("\"source\":\"PAKISTAN\"" in text, "expected a named enum, got: $text")
     }
 
     @Test
@@ -174,7 +175,7 @@ class WidgetOptionsTest {
         assertEquals(HijriYearMonth(1448, 3), decoded.pinned)
         assertEquals(WidgetSource.PAKISTAN, decoded.source)
         // Only the field that was actually unreadable falls back.
-        assertEquals(WidgetLanguage.URDU, decoded.language)
+        assertEquals(WidgetLanguage.ENGLISH, decoded.language)
 
         // And an unreadable *type* is contained the same way.
         assertEquals(2, WidgetOptionsJson.decode("""{"adjustmentDays":"two"}""").adjustmentDays.let { 2 })
@@ -184,9 +185,9 @@ class WidgetOptionsTest {
     fun jsonGivesAPartialObjectTheDataClassDefaults() {
         // `encodeDefaults = true` means our own writer never emits a partial object, so this path
         // only fires for a hand-written or truncated value: every absent field takes the data
-        // class default, which is deliberately *not* [WidgetOptions.DEFAULTS] (a missing language
-        // should not silently switch numerals to Eastern digits). Documented so the distinction is
-        // a decision rather than an accident.
+        // class default, which is deliberately *not* [WidgetOptions.DEFAULTS] — `monthNameLanguage`
+        // stays `null` here so it follows whatever `language` the blob did store. Documented so the
+        // distinction is a decision rather than an accident.
         assertEquals(
             WidgetOptions(),
             WidgetOptionsJson.decode("{}"),
@@ -227,6 +228,10 @@ class WidgetOptionsTest {
             localizedHijriMonthNames = null,
             localizedGregorianMonthNames = null,
             localizedWeekdayNames = null,
+            // As above: the era markers are carried by the options overload (FD-05), so the
+            // hand-built expectation has to name them or it is comparing different things.
+            hijriEra = WidgetLocalization.ChromeLabels.hijriEra(WidgetLanguage.ENGLISH),
+            gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(WidgetLanguage.ENGLISH),
         )
         assertEquals(explicit, fromOptions)
     }
@@ -263,6 +268,12 @@ class WidgetOptionsTest {
             adjustmentDays = 2,
             numeralStyle = NumeralStyle.WESTERN,
             pakistan = true,
+            // The era markers are part of what the options overload carries (FD-05), so the
+            // hand-built expectation has to name them too — otherwise this compares an era-marked
+            // projection against a bare one and reports a difference that is really a missing
+            // argument in the test.
+            hijriEra = WidgetLocalization.ChromeLabels.hijriEra(WidgetLanguage.ENGLISH),
+            gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(WidgetLanguage.ENGLISH),
         )
         assertEquals(explicit, todayHijriWidgetData(20731L, pakistan))
     }
@@ -272,11 +283,11 @@ class WidgetOptionsTest {
         val pinned = createWidgetOptions(pinsMonth = true, pinnedYear = 1445, pinnedMonth = 12)
         assertEquals(HijriYearMonth(1445, 12), pinned.resolveGridMonth(today = HijriYearMonth(1447, 1)))
         // The pinned-month picker shows the widget's own month script, not a second hardcoded list:
-        // with the default Urdu options this is the Urdu name.
-        assertEquals(WidgetLocalization.urduHijriMonthNames[11], pinned.hijriMonthName(12))
+        // with the default English options this is the English name.
+        assertEquals(WidgetLocalization.englishHijriMonthNames[11], pinned.hijriMonthName(12))
         assertEquals(
-            WidgetLocalization.englishHijriMonthNames[11],
-            pinned.copy(language = WidgetLanguage.ENGLISH, monthNameLanguage = WidgetLanguage.ENGLISH)
+            WidgetLocalization.urduHijriMonthNames[11],
+            pinned.copy(language = WidgetLanguage.URDU, monthNameLanguage = WidgetLanguage.URDU)
                 .hijriMonthName(12),
         )
     }

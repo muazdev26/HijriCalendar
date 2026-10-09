@@ -16,6 +16,10 @@ import androidx.compose.ui.unit.Dp
  * `dayContentColor` also moves the Gregorian sub-label, and overriding both means the derivation no
  * longer holds. That is deliberate — the sub-label should track its parent — and it is the one
  * coupling a consumer is most likely to be surprised by.
+ *
+ * The observance pair, [eventDayContainerColor] / [eventDayContentColor], is a second such pair for
+ * the same reason: the content colour is only legible against its own container, so a host overriding
+ * one of them generally wants to override both.
  */
 @Immutable
 public data class HijriCalendarColors(
@@ -36,6 +40,15 @@ public data class HijriCalendarColors(
 
     /** Content of a day in [HijriCalendarState.weekendDays]. Presentational only. */
     val weekendDayContentColor: Color,
+    /**
+     * The hairline drawn between cells when [HijriCalendarState.showCellBorders] is on (FD-04).
+     *
+     * A field on this type rather than the widget's `widget_cell_border` resource: `calendar-ui` has no
+     * `res/` and no `WidgetColors`, and everything visible here comes from `MaterialTheme` through
+     * [HijriCalendarDefaults.colors]. A host can therefore match its own palette, which a hardcoded
+     * resource would not allow.
+     */
+    val cellBorderColor: Color,
 
     /** Content of an ordinary in-month, enabled day. */
     val dayContentColor: Color,
@@ -65,4 +78,18 @@ public data class HijriCalendarColors(
 
     /** Content of the header's Gregorian range line. */
     val gregorianHeaderColor: Color,
+
+    /**
+     * Filled background of a day carrying an observance (FD-08).
+     *
+     * A **container, not the selection container**. The two answers are different — "this day is
+     * Ashura" is a fact about the calendar, "this is the day you picked" is a fact about the session —
+     * so they get different colours. `secondaryContainer` by default, which is the one Material pair
+     * that is neither the primary accent nor an error, and therefore reads as background information
+     * rather than as a second selection.
+     */
+    val eventDayContainerColor: Color,
+
+    /** Content of a day carrying an observance, on top of [eventDayContainerColor]. */
+    val eventDayContentColor: Color,
 )
