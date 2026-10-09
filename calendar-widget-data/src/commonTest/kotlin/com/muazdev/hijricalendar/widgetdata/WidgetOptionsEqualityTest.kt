@@ -40,6 +40,8 @@ class WidgetOptionsEqualityTest {
         showAdjacentDays = true,
         weekendPattern = WeekendPattern.SUNDAY,
         showCellBorders = true,
+        theme = WidgetTheme.DARK,
+        dateDisplayMode = WidgetDateDisplayMode.GREGORIAN_ONLY,
     )
 
     /** Each field paired with a copy of [base] that differs in *only* that field. */
@@ -56,6 +58,8 @@ class WidgetOptionsEqualityTest {
         "showAdjacentDays" to base.copy(showAdjacentDays = false),
         "weekendPattern" to base.copy(weekendPattern = WeekendPattern.NONE),
         "showCellBorders" to base.copy(showCellBorders = false),
+        "theme" to base.copy(theme = WidgetTheme.LIGHT),
+        "dateDisplayMode" to base.copy(dateDisplayMode = WidgetDateDisplayMode.HIJRI_ONLY),
     )
 
     /**

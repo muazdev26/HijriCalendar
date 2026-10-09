@@ -116,6 +116,8 @@ class HijriWidgetConfigTest {
             if (options.showAdjacentDays == restored.showAdjacentDays) add("showAdjacentDays")
             if (options.weekendPattern == restored.weekendPattern) add("weekendPattern")
             if (options.showCellBorders == restored.showCellBorders) add("showCellBorders")
+            if (options.theme == restored.theme) add("theme")
+            if (options.dateDisplayMode == restored.dateDisplayMode) add("dateDisplayMode")
         }
         return surviving
     }

@@ -337,13 +337,50 @@ class StaticPreviewLayoutTest {
         val texts = root.deepAttr("android:text")
         assertEquals("the strip shows a weekday, two figures and two captions", 5, texts.size)
 
-        val dividers = root.deep().filter { it.tagName == "View" }
+        // A `FrameLayout`, not a bare `View`: RemoteViews only inflates `@RemoteView`-annotated
+        // classes, and `android.view.View` is the one that is not — see the guard below.
+        val dividers = root.deep().filter { it.tagName == "FrameLayout" }
         assertEquals("expected exactly one hairline between the two date halves", 1, dividers.size)
         assertEquals(
             "the divider should be the hairline colour the live render reuses from the grid",
             "@color/widget_cell_border",
             dividers.single().attr("android:background"),
         )
+    }
+
+    /**
+     * Every static preview inflates on a real launcher, so it may only use classes RemoteViews can
+     * instantiate.
+     *
+     * This is the regression guard for the Today strip's picker preview, which rendered as a broken
+     * cell on device: its hairline was a bare `<View>`, and `AppWidgetHostView` throws
+     * `Class not allowed to be inflated android.view.View` because RemoteViews only inflates classes
+     * annotated `@RemoteView` (the ViewGroup/View subclasses such as `LinearLayout`, `FrameLayout`,
+     * `TextView` and `ImageView` are; `android.view.View` itself is not). A unit test cannot inflate
+     * the layout — it is inflated by the framework, not by Glance — so the class list is checked off
+     * disk, the same way the rest of this file's structure is.
+     */
+    @Test
+    fun everyStaticPreviewUsesOnlyClassesRemoteViewsCanInflate() {
+        val allowed = setOf(
+            "LinearLayout", "FrameLayout", "RelativeLayout", "GridLayout",
+            "TextView", "ImageView", "Button", "ImageButton", "ProgressBar",
+        )
+        listOf(
+            "hijri_widget_preview_layout",
+            "hijri_today_widget_preview_layout",
+            "hijri_date_widget_preview_layout",
+            "gregorian_date_widget_preview_layout",
+            "hijri_dual_date_widget_preview_layout",
+        ).forEach { name ->
+            root(name).deep().forEach { element ->
+                assertTrue(
+                    "$name uses <${element.tagName}>, which RemoteViews cannot inflate; use a " +
+                        "@RemoteView-annotated class instead (a bare <View> is the usual mistake)",
+                    element.tagName in allowed,
+                )
+            }
+        }
     }
 
     @Test

@@ -7,6 +7,72 @@ Versions follow the `publishing.version` Gradle property; distribution is curren
 
 ## Unreleased
 
+## 2.1.1 - 2026-10-09
+
+### ⚠️ Read this first: this is a **patch** number on a **feature** release
+
+The version was chosen as `2.1.1` deliberately. Two options were added to a **published, public**
+data class, which is additive at the source level but **moves the ABI**, and a minor bump
+(`2.2.0`) would be the semantically correct number for a consumer that pins a version range.
+
+If your build resolves this library by **exact version**, a `2.1.1` is indistinguishable from a
+patch release and the recompile below can be missed entirely — the failure mode is a
+`NoSuchMethodError` at runtime on a consumer that "did not change anything". Bumping to `2.2.0`
+instead would make that impossible to miss at dependency-resolution time. The correct call is to
+publish as a **minor** version; if `2.1.1` is kept, treat this section as a breaking change and
+audit every consumer for a recompile.
+
+### Added
+
+- **`WidgetOptions.theme` — a widget can now pin its light/dark appearance instead of following the
+  system.** `WidgetTheme` is `SYSTEM` (default, and the behaviour of every release before this
+  option existed), `LIGHT` or `DARK`. The default follows the system because the palette is built
+  from configuration-qualified `@ColorRes` `ColorProvider`s the launcher re-resolves at bind time
+  (FD-07) — and that mechanism *is* a follow-the-system mechanism, so an app with its own
+  System/Light/Dark setting had no way to make its widgets agree with it. `LIGHT`/`DARK` reference a
+  parallel resource set that has no night variant, which is the only way a `ColorProvider` can be
+  pinned.
+
+  A widget stored without the field decodes into `SYSTEM`, so no already-placed widget changes
+  appearance on upgrade. Mirroring an app's own `isDarkMode(): Flow<Boolean?>` is
+  `null → SYSTEM`, `true → DARK`, `false → LIGHT`.
+  ([WG-17](docs/widgets/glance/WG-17-forced-theme-and-grid-date-mode.md))
+
+  `WidgetColors.arrowDimmed` is now a palette member rather than a resource named at
+  `NavigationArrow`'s one call site — a colour referenced at a call site is invisible to the palette
+  selector, so a forced theme could not have reached the disabled nav arrow.
+
+- **`WidgetOptions.dateDisplayMode` — the grid widget's day cells are configurable.** Mirrors the
+  in-app `calendar-ui` `DateDisplayMode` (`HIJRI_ONLY` / `GREGORIAN_ONLY` / `BOTH`, default `BOTH`,
+  which is what every release before this option rendered). `GREGORIAN_ONLY` promotes the Gregorian
+  day to the cell's main figure rather than shrinking the Hijri one away.
+
+  Grid-only, like the in-app switch: the strip and the 1x1 tiles each exist to show one particular
+  calendar. A separate enum rather than the UI one because `calendar-widget-data` does not depend on
+  `calendar-ui`; a host mirrors with `WidgetDateDisplayMode.valueOf(mode.name)`.
+
+### Fixed
+
+- **The Today strip's widget-picker preview no longer fails to inflate.** Its hairline was a bare
+  `<View>`, and a `previewLayout` is inflated by the framework through `RemoteViews`, which only
+  instantiates `@RemoteView`-annotated classes — `android.view.View` is not one, so
+  `AppWidgetHostView` threw `Class not allowed to be inflated android.view.View` and the picker
+  showed a broken cell. Now a `FrameLayout`, and
+  `StaticPreviewLayoutTest.everyStaticPreviewUsesOnlyClassesRemoteViewsCanInflate` holds all five
+  preview layouts to classes RemoteViews can inflate.
+
+### Breaking
+
+- **`WidgetOptions` gained two fields, so the ABI moves even though the source does not.** Both are
+  additive **with defaults**, so every caller that constructs or `copy`s the class still compiles —
+  but the primary constructor, `copy` and `componentN` all gain a slot, which is a binary break for
+  anything already compiled against 2.1.0. Recompile consumers. Both defaults are the previous
+  behaviour, so this is a recompile-and-see-no-change upgrade.
+
+  `createWidgetOptions` gained the same two parameters **at the end**, which is an ABI change to the
+  flat factory. Kotlin callers are unaffected; the two Swift call sites pass them explicitly, because
+  `createWidgetOptions` exposes no Kotlin default arguments to Swift.
+
 ## 2.1.0 - 2026-10-09
 
 ### Breaking

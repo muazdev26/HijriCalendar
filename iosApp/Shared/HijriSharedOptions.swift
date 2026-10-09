@@ -157,11 +157,13 @@ enum HijriShared {
             // widget did before.
             overridesCsv: nil,
             // `createWidgetOptions` exposes no Kotlin default arguments to Swift, so every parameter
-            // the schema grew must be passed explicitly here. The pre-1.0 blob predates these three
-            // fields too, so a migrated widget gets the data-class defaults.
+            // the schema grew must be passed explicitly here. The pre-1.0 blob predates these fields
+            // too, so a migrated widget gets the data-class defaults.
             showAdjacentDays: false,
             weekendPattern: .fridaySaturday,
-            showCellBorders: true
+            showCellBorders: true,
+            theme: .system,
+            dateDisplayMode: .both
         )
     }
 

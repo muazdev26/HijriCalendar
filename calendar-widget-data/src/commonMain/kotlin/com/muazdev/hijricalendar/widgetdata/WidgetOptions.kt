@@ -117,6 +117,40 @@ public data class WidgetOptions(
      * result, a fraction of the views.
      */
     val showCellBorders: Boolean = true,
+    /**
+     * Which light/dark palette the widget renders with.
+     *
+     * [WidgetTheme.SYSTEM] by default, which is the behaviour of every release before this field
+     * existed: the palette is built from configuration-qualified `@ColorRes` resources, so the
+     * launcher re-resolves it against its own configuration and a night-mode switch costs no
+     * re-compose (FD-07). A widget stored without this field therefore keeps following the system,
+     * which is what makes the option safe to add at all.
+     *
+     * The other two values force a palette by pointing the renderer at a **set of resources that has
+     * no night variant**, so the launcher has nothing to re-resolve against. That is the only way a
+     * `ColorProvider` can be pinned to one appearance, and it is why this is a host-app setting
+     * rather than something the widget infers: only the app knows its own theme.
+     *
+     * Not in the render cache's keys, for the same reason as [showCellBorders]: the projection's
+     * cells are identical whichever palette paints them.
+     */
+    val theme: WidgetTheme = WidgetTheme.SYSTEM,
+    /**
+     * How much of a date the **grid** paints in each day cell.
+     *
+     * [WidgetDateDisplayMode.BOTH] by default, which is what every release before this field
+     * rendered: a Hijri figure with a Gregorian digit under it in every one of the 42 cells.
+     *
+     * Grid-only, exactly as the in-app switch it mirrors is. The strip and the 1x1 tiles each exist
+     * to show one particular calendar and have no cell to configure, so a renderer reading this must
+     * consult it on the grid path only.
+     *
+     * Presentational and **not** in the render cache's keys: the projection carries both figures on
+     * every cell regardless ([HijriDayWidgetData.dayText] and
+     * [com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData.gregorianDayText]), and this decides
+     * which of them the renderer draws.
+     */
+    val dateDisplayMode: WidgetDateDisplayMode = WidgetDateDisplayMode.BOTH,
 ) {
     /**
      * The first day of week to render with.
@@ -236,7 +270,9 @@ public data class WidgetOptions(
             monthLengthOverrides == other.monthLengthOverrides &&
             showAdjacentDays == other.showAdjacentDays &&
             weekendPattern == other.weekendPattern &&
-            showCellBorders == other.showCellBorders
+            showCellBorders == other.showCellBorders &&
+            theme == other.theme &&
+            dateDisplayMode == other.dateDisplayMode
     }
 
     override fun hashCode(): Int {
@@ -251,6 +287,8 @@ public data class WidgetOptions(
         result = 31 * result + showAdjacentDays.hashCode()
         result = 31 * result + weekendPattern.hashCode()
         result = 31 * result + showCellBorders.hashCode()
+        result = 31 * result + theme.hashCode()
+        result = 31 * result + dateDisplayMode.hashCode()
         return result
     }
 
@@ -258,7 +296,8 @@ public data class WidgetOptions(
         "adjustmentDays=$adjustmentDays, numeralStyle=$numeralStyle, " +
         "weekStart=$weekStart, pinned=$pinned, source=$source, " +
         "language=$language, monthNameLanguage=$monthNameLanguage, " +
-        "monthLengthOverrides=$monthLengthOverrides)"
+        "monthLengthOverrides=$monthLengthOverrides, theme=$theme, " +
+        "dateDisplayMode=$dateDisplayMode)"
 
     val localizedHijriMonthNames: List<String>?
         get() = WidgetLocalization.hijriMonthNames(effectiveMonthNameLanguage)
@@ -295,6 +334,8 @@ public data class WidgetOptions(
             showAdjacentDays = false,
             weekendPattern = WeekendPattern.FRIDAY_SATURDAY,
             showCellBorders = true,
+            theme = WidgetTheme.SYSTEM,
+            dateDisplayMode = WidgetDateDisplayMode.BOTH,
         )
     }
 }
@@ -494,6 +535,8 @@ public fun createWidgetOptions(
     showAdjacentDays: Boolean = false,
     weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
     showCellBorders: Boolean = true,
+    theme: WidgetTheme = WidgetTheme.SYSTEM,
+    dateDisplayMode: WidgetDateDisplayMode = WidgetDateDisplayMode.BOTH,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -507,6 +550,8 @@ public fun createWidgetOptions(
     showAdjacentDays = showAdjacentDays,
     weekendPattern = weekendPattern,
     showCellBorders = showCellBorders,
+    theme = theme,
+    dateDisplayMode = dateDisplayMode,
 )
 
 /**

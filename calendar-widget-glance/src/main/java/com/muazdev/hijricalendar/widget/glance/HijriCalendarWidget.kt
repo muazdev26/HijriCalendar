@@ -63,9 +63,11 @@ import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
+import com.muazdev.hijricalendar.widgetdata.WidgetDateDisplayMode
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
+import com.muazdev.hijricalendar.widgetdata.WidgetTheme
 import com.muazdev.hijricalendar.widgetdata.buildHijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.offsetHijriMonth
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
@@ -133,7 +135,6 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             // join it instead of building the century table inline on this composition.
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
         val openAction = actionStartActivity(openAppIntent(context))
         val prevAction = actionRunCallback<HijriWidgetPrevMonthCallback>()
         val nextAction = actionRunCallback<HijriWidgetNextMonthCallback>()
@@ -144,6 +145,10 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             // so a tap that lands on an open session still renders the newest month.
             val prefs = currentState<Preferences>()
             val options = HijriWidgetConfig.decodeOptions(prefs) ?: HijriWidgetConfig.DEFAULTS
+            // Resolved from the *reactive* options, not the peek above: a theme change is a settings
+            // write like any other, and a palette picked once outside this block would go on painting
+            // the previous one until something else happened to re-invalidate the widget.
+            val colors = WidgetColors.forTheme(options.theme)
             val viewedMonth = HijriWidgetConfig.decodeViewed(prefs)
             val selectedDay = HijriWidgetConfig.decodeSelectedDay(prefs)
             // A month step in flight. Read from the same snapshot as everything else, so the bar and
@@ -165,6 +170,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
+                dateDisplayMode = data.dateDisplayMode,
                 selectedDay = selectedDay,
                 isLoading = isLoading,
                 // Resolved here, where the options live: the footer must name an observance in the
@@ -195,7 +201,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         provideContent {
             val data = buildRenderData(context, options, viewedMonth = null)
             HijriWidgetRoot(
@@ -205,6 +211,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
+                dateDisplayMode = data.dateDisplayMode,
                 selectedDay = null,
                 isLoading = false,
                 selectedEventName = null,
@@ -250,6 +257,12 @@ internal data class HijriWidgetRenderData(
      * are identical whether or not a divider is drawn.
      */
     val showCellBorders: Boolean,
+    /**
+     * Which figures each grid cell paints, carried for the reason [showCellBorders] is: the cells are
+     * identical either way, so it cannot go in the cache's keys, but the renderer must paint what the
+     * options configured rather than re-reading them at compose time.
+     */
+    val dateDisplayMode: WidgetDateDisplayMode,
     /**
      * The day the user tapped, or `null` (FD-09). Read from the same reactive preferences snapshot as
      * the viewed month, so a tap and the render it triggers cannot disagree about what is selected —
@@ -558,6 +571,7 @@ internal object HijriWidgetRenderCache {
             layoutRtl = layoutRtl,
             showAdjacentDays = options.showAdjacentDays,
             showCellBorders = options.showCellBorders,
+            dateDisplayMode = options.dateDisplayMode,
             selectedDay = null,
         )
     }
@@ -648,6 +662,17 @@ internal class WidgetColors(
      * today", which is a different statement and has to survive their overlap.
      */
     val selectedDay: ColorProvider,
+    /**
+     * A navigation arrow that cannot be taken — the widget is already at the first or last month of
+     * its supported range.
+     *
+     * A member rather than a resource named at its one call site, which is what it used to be, for
+     * the reason [WidgetTheme] exists: a forced theme has to be able to repaint *every* colour the
+     * widget draws, and a colour referenced directly at a call site is invisible to
+     * [WidgetColors.forTheme] — a `WidgetTheme.DARK` widget would have had a light arrow in the one
+     * place the theme could not reach.
+     */
+    val arrowDimmed: ColorProvider,
 ) {
     companion object {
         val DEFAULT: WidgetColors = WidgetColors(
@@ -665,9 +690,74 @@ internal class WidgetColors(
             onEventDayText = ColorProvider(R.color.widget_on_event_day),
             cellBorder = ColorProvider(R.color.widget_cell_border),
             selectedDay = ColorProvider(R.color.widget_selected_day),
+            arrowDimmed = ColorProvider(R.color.widget_arrow_dimmed),
         )
+
+        /**
+         * The palette for [theme].
+         *
+         * Three palettes rather than one because a forced theme is the one thing a `ColorProvider`
+         * cannot do: [DEFAULT] references configuration-qualified resources so the launcher
+         * re-resolves them, and that *is* following the system. Pinning one appearance needs
+         * resources with no night variant — see `values/colors_widget_theme.xml`.
+         *
+         * Selects resource ids; it never resolves one, so this stays a cheap `when` and the
+         * no-restart property of FD-07 survives for all three branches. A theme change therefore
+         * costs an ordinary re-compose of the widget, which is unavoidable — the option is a
+         * configuration change, not a night-mode switch.
+         */
+        fun forTheme(theme: WidgetTheme): WidgetColors = when (theme) {
+            WidgetTheme.SYSTEM -> DEFAULT
+            WidgetTheme.LIGHT -> LIGHT
+            WidgetTheme.DARK -> DARK
+        }
     }
 }
+
+/**
+ * The forced **light** palette: the day values of `values/colors.xml` under names with no night
+ * variant, so a `WidgetTheme.LIGHT` widget stays light on a phone in dark mode.
+ *
+ * A file-level value rather than a second companion constant because the palette test walks
+ * `WidgetColors`'s declared fields and holds them to be exactly the palette's members; three
+ * constants in the companion would make "the members" ambiguous.
+ */
+private val LIGHT: WidgetColors = WidgetColors(
+    background = ColorProvider(R.color.widget_light_background),
+    accent = ColorProvider(R.color.widget_light_accent),
+    primaryText = ColorProvider(R.color.widget_light_text_primary),
+    secondaryText = ColorProvider(R.color.widget_light_text_secondary),
+    outOfMonthDay = ColorProvider(R.color.widget_light_day_out_of_month),
+    gregorianDay = ColorProvider(R.color.widget_light_day_gregorian_sub),
+    outOfMonthGregorianDay = ColorProvider(R.color.widget_light_day_out_faint),
+    weekendText = ColorProvider(R.color.widget_light_weekend_text),
+    todayBackground = ColorProvider(R.color.widget_light_today_background),
+    onTodayText = ColorProvider(R.color.widget_light_on_today),
+    eventDayBackground = ColorProvider(R.color.widget_light_event_day_background),
+    onEventDayText = ColorProvider(R.color.widget_light_on_event_day),
+    cellBorder = ColorProvider(R.color.widget_light_cell_border),
+    selectedDay = ColorProvider(R.color.widget_light_selected_day),
+    arrowDimmed = ColorProvider(R.color.widget_light_arrow_dimmed),
+)
+
+/** The forced **dark** palette. See [LIGHT]. */
+private val DARK: WidgetColors = WidgetColors(
+    background = ColorProvider(R.color.widget_dark_background),
+    accent = ColorProvider(R.color.widget_dark_accent),
+    primaryText = ColorProvider(R.color.widget_dark_text_primary),
+    secondaryText = ColorProvider(R.color.widget_dark_text_secondary),
+    outOfMonthDay = ColorProvider(R.color.widget_dark_day_out_of_month),
+    gregorianDay = ColorProvider(R.color.widget_dark_day_gregorian_sub),
+    outOfMonthGregorianDay = ColorProvider(R.color.widget_dark_day_out_faint),
+    weekendText = ColorProvider(R.color.widget_dark_weekend_text),
+    todayBackground = ColorProvider(R.color.widget_dark_today_background),
+    onTodayText = ColorProvider(R.color.widget_dark_on_today),
+    eventDayBackground = ColorProvider(R.color.widget_dark_event_day_background),
+    onEventDayText = ColorProvider(R.color.widget_dark_on_event_day),
+    cellBorder = ColorProvider(R.color.widget_dark_cell_border),
+    selectedDay = ColorProvider(R.color.widget_dark_selected_day),
+    arrowDimmed = ColorProvider(R.color.widget_dark_arrow_dimmed),
+)
 
 /**
  * The action for one day cell (FD-09), or `null` when the widget cannot be tapped.
@@ -716,6 +806,8 @@ internal fun HijriWidgetRoot(
     layoutRtl: Boolean,
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
+    /** Which figures each grid cell paints. Grid-only — see [WidgetOptions.dateDisplayMode]. */
+    dateDisplayMode: WidgetDateDisplayMode,
     selectedDay: HijriDaySelection?,
     /**
      * Whether a month step is in flight.
@@ -764,6 +856,7 @@ internal fun HijriWidgetRoot(
                 layoutRtl = layoutRtl,
                 showAdjacentDays = showAdjacentDays,
                 showCellBorders = showCellBorders,
+                dateDisplayMode = dateDisplayMode,
                 selectedDay = selectedDay,
                 isLoading = isLoading,
                 selectedEventName = selectedEventName,
@@ -878,6 +971,7 @@ private fun MonthHeader(
                 enabled = nextAvailable,
                 action = actions.next,
                 color = colors.primaryText,
+                dimmedColor = colors.arrowDimmed,
                 contentDescription = WidgetLocalization.ChromeLabels.nextMonth(language),
             )
             MonthTitle(
@@ -891,6 +985,7 @@ private fun MonthHeader(
                 enabled = prevAvailable,
                 action = actions.prev,
                 color = colors.primaryText,
+                dimmedColor = colors.arrowDimmed,
                 contentDescription = WidgetLocalization.ChromeLabels.previousMonth(language),
             )
         } else {
@@ -899,6 +994,7 @@ private fun MonthHeader(
                 enabled = prevAvailable,
                 action = actions.prev,
                 color = colors.primaryText,
+                dimmedColor = colors.arrowDimmed,
                 contentDescription = WidgetLocalization.ChromeLabels.previousMonth(language),
             )
             MonthTitle(
@@ -912,6 +1008,7 @@ private fun MonthHeader(
                 enabled = nextAvailable,
                 action = actions.next,
                 color = colors.primaryText,
+                dimmedColor = colors.arrowDimmed,
                 contentDescription = WidgetLocalization.ChromeLabels.nextMonth(language),
             )
         }
@@ -972,6 +1069,7 @@ private fun MonthGrid(
     layoutRtl: Boolean,
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
+    dateDisplayMode: WidgetDateDisplayMode,
     selectedDay: HijriDaySelection?,
     isLoading: Boolean,
     selectedEventName: String?,
@@ -1023,6 +1121,7 @@ private fun MonthGrid(
             todayEpochDay = todayEpochDay,
             showAdjacentDays = showAdjacentDays,
             showCellBorders = showCellBorders,
+            dateDisplayMode = dateDisplayMode,
             selectedDay = selectedDay,
             hijriSize = hijriSize,
             gregorianSize = gregorianSize,
@@ -1087,6 +1186,7 @@ private fun MonthDays(
     todayEpochDay: Long,
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
+    dateDisplayMode: WidgetDateDisplayMode,
     selectedDay: HijriDaySelection?,
     hijriSize: TextUnit,
     gregorianSize: TextUnit,
@@ -1158,6 +1258,7 @@ private fun MonthDays(
                             cell = cell,
                             todayEpochDay = todayEpochDay,
                             colors = colors,
+                            dateDisplayMode = dateDisplayMode,
                             hijriSize = hijriSize,
                             gregorianSize = gregorianSize,
                             // A rule after each column but the last (FD-04): one per column per row,
@@ -1377,6 +1478,7 @@ private fun NavigationArrow(
     enabled: Boolean,
     action: Action?,
     color: ColorProvider,
+    dimmedColor: ColorProvider,
     contentDescription: String,
 ) {
     val modifier = GlanceModifier
@@ -1390,11 +1492,9 @@ private fun NavigationArrow(
             provider = ImageProvider(resId),
             contentDescription = null,
             colorFilter = ColorFilter.tint(
-                // A disabled arrow is dimmed. That used to be `color.copy(alpha = 0.35f)` on a
-                // resolved colour; a `ColorProvider` cannot carry an alpha, and re-resolving one per
-                // render is exactly what FD-07 removed — so the dimmed state is its own resource
-                // (`widget_arrow_dimmed`) and therefore follows night mode for free.
-                if (enabled) color else ColorProvider(R.color.widget_arrow_dimmed)
+                // A disabled arrow is dimmed, from the palette rather than from a resource named
+                // here — so a forced theme reaches it. See `WidgetColors.arrowDimmed`.
+                if (enabled) color else dimmedColor
             ),
             modifier = GlanceModifier.size(40.dp)
         )
@@ -1471,12 +1571,62 @@ private fun RowScope.BlankCell(dividerAfter: Boolean, colors: WidgetColors) {
 }
 
 /**
- * The two figures inside a day cell: the Hijri day, and the Gregorian day under it.
+ * The two figures a day cell draws, decided from [cell] and [dateDisplayMode] without composing.
+ *
+ * The seam exists because [DayFigures] is a `@Composable` and cannot be called from a JVM unit test,
+ * and a test that re-declared the rule itself would only be testing itself — the same argument
+ * [GridCellWeights] and [isEventCell] make for the rest of this file. `null` for
+ * [gregorianSub] means "no second line", which is how HIJRI_ONLY and GREGORIAN_ONLY differ from one
+ * another while both differ from BOTH.
+ */
+internal data class DayCellFigures(
+    /** The cell's hero figure: the Hijri day, or the Gregorian one when that mode is selected. */
+    val main: String,
+    /** The subordinate line under it, or `null` when the mode draws only one figure. */
+    val gregorianSub: String?,
+)
+
+/**
+ * [cell]'s figures under [dateDisplayMode].
+ *
+ * GREGORIAN_ONLY promotes the Gregorian day to the hero rather than shrinking the Hijri one away — see
+ * [DayFigures] for why the promoted figure also takes the hero colour and size.
+ */
+internal fun dayCellFigures(
+    cell: HijriDayWidgetData,
+    dateDisplayMode: WidgetDateDisplayMode,
+): DayCellFigures = DayCellFigures(
+    main = if (dateDisplayMode == WidgetDateDisplayMode.GREGORIAN_ONLY) {
+        cell.gregorianDayText
+    } else {
+        cell.dayText
+    },
+    gregorianSub = cell.gregorianDayText
+        .takeIf { dateDisplayMode == WidgetDateDisplayMode.BOTH },
+)
+
+/**
+ * The figures inside a day cell: a main line, and — under [WidgetDateDisplayMode.BOTH] — the Gregorian
+ * day beneath it.
  *
  * Extracted from `DayCell` for the same reason as [CellFill] — the composable was over detekt's
  * complexity threshold once the observance fill added branches — and because the two `Text` calls are
  * the only place in the widget where [GridCellWeights] is read, so keeping them together keeps that
  * relationship visible.
+ *
+ * ## How [dateDisplayMode] maps onto these two lines
+ *
+ * **One main line, always drawn at the hero size and in the hero colour; a second line only under
+ * [WidgetDateDisplayMode.BOTH].** The main line is the cell's answer to "what day is it?" — the Hijri
+ * figure by default, the Gregorian one when that mode asks for it — so [WidgetDateDisplayMode.GREGORIAN_ONLY]
+ * is not the Gregorian digit rendered small and dim, which is what a "just hide the Hijri line" reading
+ * would produce and which nobody asked for. It is the Gregorian figure taking the Hijri figure's place.
+ *
+ * The colours come from the caller, which resolves them by the hero precedence (filled > out-of-month >
+ * weekend > regular) — see [dayFigureColor]. So a Gregorian-only out-of-month cell dims at the *hero*
+ * tier rather than at [WidgetColors.outOfMonthGregorianDay]'s fainter one. That is the right way round:
+ * the tier exists to subordinate the second line to the first, and in this mode there is no first line to
+ * subordinate it to.
  */
 @Composable
 private fun DayFigures(
@@ -1485,15 +1635,17 @@ private fun DayFigures(
     gregorianColor: ColorProvider,
     hijriSize: TextUnit,
     gregorianSize: TextUnit,
+    dateDisplayMode: WidgetDateDisplayMode,
 ) {
     val fonts = HijriWidgetFonts.default
+    val figures = dayCellFigures(cell, dateDisplayMode)
     Column(
         modifier = GlanceModifier.fillMaxSize(),
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
         Text(
-            text = cell.dayText,
+            text = figures.main,
             style = TextStyle(
                 color = hijriColor,
                 fontSize = hijriSize,
@@ -1503,17 +1655,19 @@ private fun DayFigures(
             ),
             maxLines = 1,
         )
-        Text(
-            text = cell.gregorianDayText,
-            style = TextStyle(
-                color = gregorianColor,
-                fontSize = gregorianSize,
-                fontWeight = GridCellWeights.GREGORIAN_DAY,
-                fontFamily = fonts.dayNumber.toGlanceFontFamily(),
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-        )
+        figures.gregorianSub?.let { sub ->
+            Text(
+                text = sub,
+                style = TextStyle(
+                    color = gregorianColor,
+                    fontSize = gregorianSize,
+                    fontWeight = GridCellWeights.GREGORIAN_DAY,
+                    fontFamily = fonts.dayNumber.toGlanceFontFamily(),
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -1603,6 +1757,7 @@ private fun RowScope.DayCell(
     cell: HijriDayWidgetData,
     todayEpochDay: Long,
     colors: WidgetColors,
+    dateDisplayMode: WidgetDateDisplayMode,
     hijriSize: TextUnit,
     gregorianSize: TextUnit,
     dividerAfter: Boolean,
@@ -1662,7 +1817,7 @@ private fun RowScope.DayCell(
                     cellHasDividers = cellHasDividers,
                 )
             }
-            DayFigures(cell, hijriColor, gregorianColor, hijriSize, gregorianSize)
+            DayFigures(cell, hijriColor, gregorianColor, hijriSize, gregorianSize, dateDisplayMode)
         }
         if (dividerAfter) CellDivider(colors)
     }
