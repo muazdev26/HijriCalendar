@@ -59,9 +59,13 @@ struct WidgetCatalogView: View {
     /// `overridesCsv` is not editable here — this screen has no month-length control yet — but it
     /// is round-tripped through the shared codec rather than dropped, because `edited` *replaces*
     /// the stored options wholesale and passing nil would silently wipe a configured override
-    /// every time the user tweaked an unrelated setting.
+    /// every time the user tweaked an unrelated setting. `showAdjacentDays`, `weekendPattern` and
+    /// `showCellBorders` are round-tripped the same way: `createWidgetOptions` exposes no Kotlin
+    /// default arguments to Swift, so they must be passed, and this screen offers no controls for
+    /// them (iOS does not yet paint weekends, so a picker would change nothing visible).
     private var edited: WidgetOptions {
-        WidgetOptionsKt.createWidgetOptions(
+        let stored = HijriShared.loadOptions()
+        return WidgetOptionsKt.createWidgetOptions(
             language: language,
             monthNameLanguage: monthNameLanguage,
             source: source,
@@ -72,8 +76,11 @@ struct WidgetCatalogView: View {
             pinnedYear: pinnedYear,
             pinnedMonth: pinnedMonth,
             overridesCsv: MonthLengthOverridesKt.encodeMonthLengthsCsv(
-                overrides: HijriShared.loadOptions().monthLengthOverrides
-            )
+                overrides: stored.monthLengthOverrides
+            ),
+            showAdjacentDays: stored.showAdjacentDays,
+            weekendPattern: stored.weekendPattern,
+            showCellBorders: stored.showCellBorders
         )
     }
 
