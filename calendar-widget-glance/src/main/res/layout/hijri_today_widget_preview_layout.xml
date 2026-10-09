@@ -69,8 +69,14 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- The hairline between the two halves -->
-        <View
+        <!-- The hairline between the two halves.
+
+             A FrameLayout, not a bare `View`: a previewLayout is inflated by the framework through
+             RemoteViews, which only instantiates classes annotated `@RemoteView`, and
+             `android.view.View` is not one of them — `AppWidgetHostView` fails with "Class not
+             allowed to be inflated android.view.View" and the picker shows the strip's preview as a
+             broken cell. FrameLayout is `@RemoteView` and draws the same 1dp rectangle. -->
+        <FrameLayout
             android:layout_width="1dp"
             android:layout_height="match_parent"
             android:layout_marginLeft="5dp"

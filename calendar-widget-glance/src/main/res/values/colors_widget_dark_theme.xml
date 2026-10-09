@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The dark half of the forced palettes — the values of `values-night/colors.xml`, restated under
+    names the launcher has no night variant for. See `colors_widget_theme.xml` for why a forced
+    palette has to be a parallel set rather than the qualified one.
+
+    Unqualified on purpose: a `values-night` copy of this file would be selected *in preference* to
+    this one on a dark device, which is correct today only because the two are identical — and it
+    would silently reintroduce the system-following behaviour the forced themes exist to remove.
+-->
+<resources>
+    <!-- `widget_background` -->
+    <color name="widget_dark_background">#1C1B1F</color>
+    <!-- `widget_accent` -->
+    <color name="widget_dark_accent">#81C784</color>
+    <!-- `widget_text_primary` -->
+    <color name="widget_dark_text_primary">#E6E1E5</color>
+    <!-- `widget_text_secondary` -->
+    <color name="widget_dark_text_secondary">#9E9A94</color>
+    <!-- `widget_day_out_of_month` -->
+    <color name="widget_dark_day_out_of_month">#69666A</color>
+    <!-- `widget_day_gregorian_sub` -->
+    <color name="widget_dark_day_gregorian_sub">#959296</color>
+    <!-- `widget_day_out_faint` -->
+    <color name="widget_dark_day_out_faint">#4C4A4E</color>
+    <!-- `widget_weekend_text` -->
+    <color name="widget_dark_weekend_text">#F2B8B5</color>
+    <!-- `widget_today_background` -->
+    <color name="widget_dark_today_background">#81C784</color>
+    <!-- `widget_on_today` -->
+    <color name="widget_dark_on_today">#1C1B1F</color>
+    <!-- `widget_event_day_background` -->
+    <color name="widget_dark_event_day_background">#2B3A2B</color>
+    <!-- `widget_on_event_day` -->
+    <color name="widget_dark_on_event_day">#E6E1E5</color>
+    <!-- `widget_cell_border` -->
+    <color name="widget_dark_cell_border">#1FFFFFFF</color>
+    <!-- `widget_selected_day` -->
+    <color name="widget_dark_selected_day">#81C784</color>
+    <!-- `widget_arrow_dimmed` -->
+    <color name="widget_dark_arrow_dimmed">#55524E</color>
+</resources>

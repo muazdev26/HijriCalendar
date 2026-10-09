@@ -59,7 +59,7 @@ internal class HijriCalendarWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val data = buildRenderData(context, options, viewedMonth)
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         provideContent {
             HijriWidgetRoot(
                 monthData = data.monthData,
@@ -68,6 +68,7 @@ internal class HijriCalendarWidgetPreview(
                 layoutRtl = data.layoutRtl,
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
+                dateDisplayMode = data.dateDisplayMode,
                 selectedDay = null,
                 // A preview never loads a month: it renders one the caller already resolved. The
                 // loading bar belongs to a real navigation step, and showing one here would imply a
@@ -138,7 +139,7 @@ internal class HijriTodayWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id, never `id.toString()` (WG-04b): `compose()` mints a fresh random
         // fake app-widget id per call, so keying on it inserted an entry no future read could ever
         // hit — the settings screen grew the cache without bound and got nothing for the cost.
@@ -203,7 +204,7 @@ internal class HijriDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
@@ -235,7 +236,7 @@ internal class GregorianDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
@@ -310,7 +311,7 @@ internal class HijriDualDateWidgetPreview(
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.DEFAULT
+        val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
