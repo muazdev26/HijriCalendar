@@ -214,24 +214,52 @@ public object HijriWidgetConfig {
         return decodeOptions(prefs) ?: DEFAULTS
     }
 
-    public suspend fun save(context: Context, glanceId: GlanceId, options: WidgetOptions) {
+    public suspend fun saveWidgetOptions(
+        context: Context,
+        glanceId: GlanceId,
+        options: WidgetOptions,
+        caller: String = "unknown",
+    ) {
         updateAppWidgetState(context, glanceId) { mutable ->
             mutable[OPTIONS_KEY] = encodeOptions(options)
         }
-        saveFamily(context, options)
+        HijriWidgetRefreshLog.d(
+            "write:widget",
+            "glance=$glanceId overrides=${options.monthLengthOverrides.size} language=${options.language} caller=$caller",
+        )
+    }
+
+    public suspend fun save(
+        context: Context,
+        glanceId: GlanceId,
+        options: WidgetOptions,
+        caller: String = "unknown",
+    ) {
+        saveWidgetOptions(context, glanceId, options, caller)
+        saveFamilyOptions(context, options, caller)
     }
 
     // ── Family options mirror (SharedPreferences) ───────────────────────────
 
     /**
-     * Persists the family-wide options mirror. Written by every [save] (configure-screen apply),
-     * so widgets without a settings screen — the Today strip and the 1x1 tiles — always render
-     * with the family's most recently chosen language, numerals and source.
+     * Persists the family-wide options mirror.
      */
-    public fun saveFamily(context: Context, options: WidgetOptions) {
+    public fun saveFamilyOptions(
+        context: Context,
+        options: WidgetOptions,
+        caller: String = "unknown",
+    ) {
         context.getSharedPreferences(RUNTIME_PREFS, Context.MODE_PRIVATE).edit {
             putString(KEY_FAMILY_OPTIONS, encodeOptions(options))
         }
+        HijriWidgetRefreshLog.d(
+            "write:family",
+            "caller=$caller overrides=${options.monthLengthOverrides.size} language=${options.language}",
+        )
+    }
+
+    public fun saveFamily(context: Context, options: WidgetOptions, caller: String = "unknown") {
+        saveFamilyOptions(context, options, caller)
     }
 
     /**
@@ -639,7 +667,7 @@ public object HijriWidgetConfig {
         // Seed the family mirror (once) so the Today strip inherits this widget's ported config
         // even if the user never opens the configure screen after the upgrade.
         if (!hasFamily(context)) {
-            saveFamily(context, options)
+            saveFamilyOptions(context, options, caller = "migrate-legacy")
         }
     }
 

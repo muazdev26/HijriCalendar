@@ -2,10 +2,12 @@ package com.muazdev.hijricalendar.widgetdata
 
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.UrduCalendarNames
 import com.muazdev.hijricalendar.core.WeekDay
@@ -423,6 +425,11 @@ public fun buildHijriMonthWidgetData(
     // widget came to disagree; the truncated one is now the only one.
     val gregorianMonthTitle =
         formatGregorianRange(gregorianFirst, gregorianLast, gregorianMonthNames, gregorianEra)
+    // The narrow-header form: the dominant Gregorian month, era dropped. Read from the same
+    // `calendarMonth.days` the grid cells come from, so the short title can never name a Gregorian
+    // month the row of cells below it does not mostly contain.
+    val gregorianShortTitle =
+        formatGregorianShortTitle(calendarMonth.days, gregorianMonthNames, gregorianEra)
 
     val days = calendarMonth.days.map { day ->
         val local = day.localDate
@@ -458,6 +465,7 @@ public fun buildHijriMonthWidgetData(
         hijriMonth = hijriMonth,
         hijriMonthName = hijriMonthName,
         gregorianMonthTitle = gregorianMonthTitle,
+        gregorianShortTitle = gregorianShortTitle,
         weekdayHeaders = weekdayHeaders,
         days = days,
         adjustmentDays = adjustmentDays,
@@ -489,6 +497,39 @@ private fun formatGregorianRange(
         else ->
             "${monthName(first)} ${year(first.year)} - ${monthName(last)} ${year(last.year)}"
     }
+}
+
+/**
+ * The narrow-header form of a Hijri month's Gregorian extent: the Gregorian month the month mostly
+ * occupies, with no era marker — `August 2026`.
+ *
+ * ## Why "mostly occupies"
+ *
+ * A Hijri month is 29 or 30 days and a Gregorian one 28-31, so about half of all Hijri months straddle
+ * two. The full title names both ends of that range (`July - August 2026 AD`), which is correct but too
+ * wide for a phone-width widget once the header shares its row with two nav arrows and two header
+ * icons. A narrow title has to drop something; it drops the **range** rather than truncating it, so the
+ * line never reads as a month the cells below it do not contain.
+ *
+ * Counted over the month's **own** days ([CalendarDay.isCurrentMonth]) rather than from
+ * `gregorianFirst`/`gregorianLast`, so a padded neighbouring-day cell cannot put weight behind a month
+ * the grid does not show. Ties resolve to the earlier month (insertion order is chronological), which
+ * is the right default for a month that begins in one Gregorian month and ends in the next.
+ *
+ * Returns an empty string for a month with no own days at all — unreachable for a real projection, and
+ * better than indexing an empty map.
+ */
+private fun formatGregorianShortTitle(days: List<CalendarDay>, names: List<String>, era: String?): String {
+    val counts = LinkedHashMap<Pair<Int, Int>, Int>()
+    for (day in days) {
+        if (!day.isCurrentMonth) continue
+        val date = day.localDate
+        val key = date.year to date.month.ordinal
+        counts[key] = (counts[key] ?: 0) + 1
+    }
+    val dominant = counts.maxByOrNull { it.value }?.key ?: return ""
+    val suffix = era?.let { " $it" } ?: ""
+    return "${names[dominant.second]} ${dominant.first}$suffix"
 }
 
 /**
@@ -562,12 +603,17 @@ public fun todayHijriWidgetData(
             return null
         }
     } else {
-        val hDate = try {
-            shifted.toHijrahDate()
-        } catch (_: Exception) {
-            return null
+        if (overrides.all().isEmpty()) {
+            val hDate = try {
+                shifted.toHijrahDate()
+            } catch (_: Exception) {
+                return null
+            }
+            Triple(hDate.day, hDate.month.number, hDate.year)
+        } else {
+            val oDate = ObservedHijriCalendar.observedDateAt(shifted.toEpochDays(), overrides) ?: return null
+            Triple(oDate.day, oDate.month, oDate.year)
         }
-        Triple(hDate.day, hDate.month.number, hDate.year)
     }
     val weekday = WeekDay.fromDayOfWeek(anchor.dayOfWeek)
     // Same normalisation as the grid builder (WD-04), for the same reason: a short list must not

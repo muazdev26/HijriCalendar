@@ -29,8 +29,16 @@ package com.muazdev.hijricalendar.widgetdata
  */
 public object GridTypography {
 
-    /** The smallest cell the rule is defined for, in dp. Matches a compact grid widget's cell. */
-    public const val MINIMUM_CELL_SIZE_DP: Float = 26f
+    /**
+     * The smallest cell the rule is defined for, in dp.
+     *
+     * Raised from 26dp to 28dp with the compact-grid redesign: the Hijri figure's floor moved from 13sp
+     * to 15sp, and `fitsInCellHeight` at 28dp is the smallest cell at which 15sp + 9sp still fit
+     * (28dp). The widget's own compact threshold is raised to match — see
+     * `HijriWidgetRoot.useCompact` — so a cell can never be drawn below the size the type rule was
+     * calibrated for.
+     */
+    public const val MINIMUM_CELL_SIZE_DP: Float = 28f
 
     /** The cell the sizes are calibrated at, in dp — roughly a `260×280` grid widget. */
     public const val REFERENCE_CELL_SIZE_DP: Float = 38f
@@ -43,7 +51,7 @@ public object GridTypography {
      * row underneath.
      */
     public fun hijriSizeSp(cellSizeDp: Float): Float =
-        scale(13f, cellSizeDp, HIJRI_FLOOR_SP, HIJRI_CEILING_SP)
+        scale(15f, cellSizeDp, HIJRI_FLOOR_SP, HIJRI_CEILING_SP)
 
     /**
      * The Gregorian day figure's size, in sp, for a [cellSizeDp] cell.
@@ -53,17 +61,17 @@ public object GridTypography {
      * *lower* on a small widget, which is the direction that made it illegible.
      */
     public fun gregorianSizeSp(cellSizeDp: Float): Float =
-        scale(8.5f, cellSizeDp, GREGORIAN_FLOOR_SP, GREGORIAN_CEILING_SP)
+        scale(9f, cellSizeDp, GREGORIAN_FLOOR_SP, GREGORIAN_CEILING_SP)
 
     /** Never below this, however small the cell. The value the old fixed 8sp failed to be. */
     public const val GREGORIAN_FLOOR_SP: Float = 9f
 
     /** The Gregorian line's ceiling; it is the bottom line, so it is the one that gets clipped. */
-    public const val GREGORIAN_CEILING_SP: Float = 11f
+    public const val GREGORIAN_CEILING_SP: Float = 12f
 
-    /** The Hijri figure's bounds. */
-    public const val HIJRI_FLOOR_SP: Float = 13f
-    public const val HIJRI_CEILING_SP: Float = 17f
+    /** The Hijri figure's bounds. The floor carries the "larger, bolder days" half of the redesign. */
+    public const val HIJRI_FLOOR_SP: Float = 15f
+    public const val HIJRI_CEILING_SP: Float = 20f
 
     /**
      * The share of a cell's height the two lines together may occupy.

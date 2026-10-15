@@ -266,7 +266,7 @@ class MonthLengthOverridesTest {
 
         state.selectDay(day)
 
-        assertEquals(ObservedHijriDate(1448, 3, 30, 30), state.selectedObservedDate)
+        assertEquals(observedDate(1448, 3, 30, 30), state.selectedObservedDate)
         assertNull(state.selectedDate)
         assertEquals(HijrahYearMonth(1448, 3), state.currentMonth)
     }
@@ -294,25 +294,80 @@ class MonthLengthOverridesTest {
         assertNull(state.monthLengthOf(1448, 3))
     }
 
+    // ── a forced length must not orphan a Pakistan selection ────────────
+
+    @Test
+    fun state_setMonthLength_reanchorsPakistanSelectionToTheSameRealDay() {
+        // Reproduces the crash reported from the sample: 2026-10-13 is 1448-04-30, the last day
+        // of a 30-day month. Forcing the month to 29 days must move the *selection* to the real
+        // day's new label (1448-05-01), not leave it naming a day the month no longer has —
+        // otherwise `selectedPakistanDate.localDate` throws `Invalid day 30` during composition.
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 4),
+            pakistanDates = true,
+            initialSelectedPakistanDate = pakistanDate(1448, 4, 30),
+        )
+        val selectedRealDay = state.selectedPakistanDate!!.localDate
+
+        state.setMonthLength(1448, 4, 29)
+
+        assertEquals(LocalDate(2026, 10, 13), selectedRealDay)
+        assertEquals(pakistanDate(1448, 5, 1), state.selectedPakistanDate)
+        assertEquals(selectedRealDay, state.selectedPakistanDate?.localDate)
+    }
+
+    @Test
+    fun state_clearMonthLength_reanchorsPakistanSelectionBack() {
+        HijriMonthOverrides.setMonthLength(1448, 4, 29)
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 5),
+            pakistanDates = true,
+            initialSelectedPakistanDate = pakistanDate(1448, 5, 1),
+        )
+
+        state.clearMonthLength(1448, 4)
+
+        assertEquals(LocalDate(2026, 10, 13), state.selectedPakistanDate?.localDate)
+        assertEquals(pakistanDate(1448, 4, 30), state.selectedPakistanDate)
+    }
+
+    @Test
+    fun state_restore_clampsAPakistanSelectionTheTableNoLongerAdmits() {
+        // A saved override table and a saved selection are restored independently, so an upgrade
+        // can hand the state a selection whose day the month no longer has. It must resolve
+        // (clamped) rather than throw from `localDate`.
+        HijriMonthOverrides.setMonthLength(1448, 4, 29)
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 4),
+            pakistanDates = true,
+            // The saved value names a 30th the table no longer admits, with the Gregorian day it
+            // carried while the month was still 30 days. The state must clamp it, not read this.
+            initialSelectedPakistanDate = PakistanHijriDate(1448, 4, 30, LocalDate(2026, 10, 13)),
+        )
+
+        assertEquals(pakistanDate(1448, 4, 29), state.selectedPakistanDate)
+        assertEquals(LocalDate(2026, 10, 12), state.selectedPakistanDate?.localDate)
+    }
+
     @Test
     fun state_setPakistanDates_carriesObservedSelectionByGregorianDay() {
         HijriMonthOverrides.setMonthLength(1448, 3, 30)
         val state = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 3),
-            initialSelectedObservedDate = ObservedHijriDate(1448, 3, 30, 30),
+            initialSelectedObservedDate = observedDate(1448, 3, 30, 30),
         )
 
         state.setPakistanDates(true)
 
         // The observed 30th falls on the Pakistan calendar's "real-world same day".
         assertEquals(
-            ObservedHijriDate(1448, 3, 30, 30).localDate,
+            observedDate(1448, 3, 30, 30).localDate,
             state.selectedPakistanDate?.localDate,
         )
         assertTrue(state.pakistanDates)
 
         state.setPakistanDates(false)
-        assertEquals(ObservedHijriDate(1448, 3, 30, 30).localDate, state.selectedObservedDate?.localDate)
+        assertEquals(observedDate(1448, 3, 30, 30).localDate, state.selectedObservedDate?.localDate)
     }
 
     @Test
@@ -320,7 +375,7 @@ class MonthLengthOverridesTest {
         HijriMonthOverrides.setMonthLength(1448, 3, 30)
         val state = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 3),
-            initialSelectedObservedDate = ObservedHijriDate(1448, 3, 30, 30),
+            initialSelectedObservedDate = observedDate(1448, 3, 30, 30),
         )
         val before = state.selectedObservedDate!!.localDate
 
@@ -353,12 +408,12 @@ class MonthLengthOverridesTest {
         val saver = hijriCalendarStateSaver(observedConfig())
         val original = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 3),
-            initialSelectedObservedDate = ObservedHijriDate(1448, 3, 30, 30),
+            initialSelectedObservedDate = observedDate(1448, 3, 30, 30),
         )
 
         val restored = saver.restore(saver.saveForTest(original)!!)!!
 
-        assertEquals(ObservedHijriDate(1448, 3, 30, 30), restored.selectedObservedDate)
+        assertEquals(observedDate(1448, 3, 30, 30), restored.selectedObservedDate)
         assertNull(restored.selectedDate)
     }
 
@@ -369,21 +424,21 @@ class MonthLengthOverridesTest {
         val saver = hijriCalendarStateSaver(observedConfig())
         val original = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 3),
-            initialSelectedObservedDate = ObservedHijriDate(1448, 3, 30, 30),
+            initialSelectedObservedDate = observedDate(1448, 3, 30, 30),
         )
 
         HijriMonthOverrides.clearAll()
         val restored = saver.restore(saver.saveForTest(original)!!)!!
 
-        assertEquals(ObservedHijriDate(1448, 3, 30, 30), restored.selectedObservedDate)
+        assertEquals(observedDate(1448, 3, 30, 30), restored.selectedObservedDate)
     }
 
     private fun nextObserved(date: ObservedHijriDate): ObservedHijriDate {
         val length = ObservedHijriCalendar.observedLength(date.year, date.month)
         return when {
-            date.day < length -> ObservedHijriDate(date.year, date.month, date.day + 1, length)
-            date.month < 12 -> ObservedHijriDate(date.year, date.month + 1, 1, ObservedHijriCalendar.observedLength(date.year, date.month + 1))
-            else -> ObservedHijriDate(date.year + 1, 1, 1, ObservedHijriCalendar.observedLength(date.year + 1, 1))
+            date.day < length -> observedDate(date.year, date.month, date.day + 1, length)
+            date.month < 12 -> observedDate(date.year, date.month + 1, 1, ObservedHijriCalendar.observedLength(date.year, date.month + 1))
+            else -> observedDate(date.year + 1, 1, 1, ObservedHijriCalendar.observedLength(date.year + 1, 1))
         }
     }
 

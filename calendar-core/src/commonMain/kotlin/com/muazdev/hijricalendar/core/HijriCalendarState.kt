@@ -40,7 +40,8 @@ import kotlinx.datetime.plus
  *   real-world Gregorian day where possible.
  * @param initialSelectedObservedDate The initially selected date in observed (override-shifted)
  *   space, used when [monthLengths] has any entry. Unlike [initialSelectedDate] it may name a
- *   day beyond a month's calculated length, such as a forced 30th.
+ *   day beyond a month's calculated length, such as a forced 30th. When omitted and an override is
+ *   in force, one is derived from [initialSelectedDate]'s real-world Gregorian day.
  * @param adjustmentDays Shifts the whole calendar relative to the underlying calculation
  *   to compensate for local moon sighting: the observed Hijri date of a Gregorian day is
  *   the conversion of `(date + adjustmentDays)`. All generated cells, weekday alignment,
@@ -53,7 +54,10 @@ import kotlinx.datetime.plus
  *   passing `today.toHijrahDate()` with `adjustmentDays != 0` still highlights the same
  *   real-world day that `isToday` highlights.
  * @param initialSelectedPakistanDate The initially selected date in Pakistan space. It is
- *   expected to be an observed date (already shifted by [adjustmentDays]).
+ *   expected to be an observed date (already shifted by [adjustmentDays]). When omitted,
+ *   [initialSelectedDate] is carried into Pakistan space by its real-world Gregorian day — the same
+ *   move [setPakistanDates] makes at runtime — so a state *constructed* in Pakistan mode selects
+ *   today rather than treating the Pakistan selection as absent.
  */
 @Stable
 public class HijriCalendarState(
@@ -130,8 +134,13 @@ public class HijriCalendarState(
     private var _pakistanDates by mutableStateOf(pakistanDates)
     private var _currentMonth by mutableStateOf(initialMonth)
     private var _selectedDate by mutableStateOf(initialSelectedDate.adjustToAdjustedSpace())
-    private var _selectedPakistanDate by mutableStateOf(initialSelectedPakistanDate)
-    private var _selectedObservedDate by mutableStateOf(initialSelectedObservedDate)
+    private var _selectedPakistanDate by mutableStateOf(
+        initialSelectedPakistanDate?.resolveAgainst(monthLengths)
+            ?: initialSelectedDate.derivePakistanSelection(),
+    )
+    private var _selectedObservedDate by mutableStateOf(
+        initialSelectedObservedDate ?: initialSelectedDate.deriveObservedSelection(),
+    )
     private var _overridesRevision by mutableStateOf(monthLengths.currentRevision)
     private var _showAdjacentDays by mutableStateOf(showAdjacentDays)
     private var _weekendDays by mutableStateOf(weekendDays)
@@ -191,6 +200,48 @@ public class HijriCalendarState(
         // A selection shifted past the edge of Umm al-Qura's table keeps its unshifted value
         // rather than being dropped; see [orNullIfOutOfRange].
         return orNullIfOutOfRange { toLocalDate().plus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate() } ?: this
+    }
+
+    /**
+     * The real-world Gregorian day [this] names, shifted by [adjustmentDays] into the space the
+     * generated cells live in.
+     *
+     * [this] is an *unadjusted* Umm al-Qura date — the contract of the constructor's
+     * `initialSelectedDate` — so its `localDate` is the real day and the adjustment is added exactly
+     * once. That is the same day [HijrahYearMonth.toCalendarMonth] feeds each cell through
+     * `gregorianToHijri`/`observedDateAt`, so a selection derived here lands on the cell the grid
+     * marks `isToday`.
+     */
+    private fun HijrahDate.shiftedByAdjustment() =
+        toLocalDate().plus(adjustmentDays, DateTimeUnit.DAY)
+
+    /**
+     * A Pakistan-space selection derived from [this] when Pakistan mode is on and the caller supplied
+     * no `initialSelectedPakistanDate`.
+     *
+     * This mirrors [setPakistanDates], which carries the current selection across the switch by its
+     * real-world day, and [goToToday], which selects Pakistan today: a state *constructed* in
+     * Pakistan mode must behave like one toggled into it. Without the derivation
+     * `selectedPakistanDate` stayed null, so the grid showed today ringed but **nothing selected**
+     * and the summary card fell back to the Umm al-Qura selection — one day high whenever an override
+     * had moved the month start (the sample's "today is the 3rd, but the card says the 4th").
+     */
+    private fun HijrahDate?.derivePakistanSelection(): PakistanHijriDate? {
+        if (!pakistanDates) return null
+        return this?.let { PakistanHijriCalendar.gregorianToHijri(it.shiftedByAdjustment(), monthLengths) }
+    }
+
+    /**
+     * Observed-space counterpart of [derivePakistanSelection], used when a month-length override is in
+     * force and the caller supplied no `initialSelectedObservedDate`.
+     *
+     * Deliberately null in Pakistan mode: [selectedDateSummary] reads observed space first, so
+     * deriving it there would make a Pakistan-mode card name the observed day instead of the Pakistan
+     * one.
+     */
+    private fun HijrahDate?.deriveObservedSelection(): ObservedHijriDate? {
+        if (pakistanDates || !hasObservedOverrides) return null
+        return this?.let { ObservedHijriCalendar.observedDateAt(it.shiftedByAdjustment().toEpochDays(), monthLengths) }
     }
 
     public val currentMonth: HijrahYearMonth get() = _currentMonth
@@ -334,23 +385,63 @@ public class HijriCalendarState(
      * Forces [year]/[month] to [length] (29 or 30) days, overriding both the Umm al-Qura
      * calculation and, in Pakistan mode, the [PakistanHijriCalendar.FIXES] table for that
      * month. Later months re-anchor off the new length until the next re-sync fix.
+     *
+     * A Pakistan selection is re-anchored to its real-world Gregorian day, so shrinking the
+     * month under the selected day moves the selection to the day's new label rather than
+     * leaving it naming a day the month no longer has. See [changeMonthLengths].
      */
     public fun setMonthLength(year: Int, month: Int, length: Int) {
-        monthLengths.setMonthLength(year, month, length)
-        _overridesRevision = monthLengths.currentRevision
+        changeMonthLengths { monthLengths.setMonthLength(year, month, length) }
     }
 
     /** Removes a user-forced length for [year]/[month], falling back to the calculation. */
     public fun clearMonthLength(year: Int, month: Int) {
-        monthLengths.clearMonthLength(year, month)
-        _overridesRevision = monthLengths.currentRevision
+        changeMonthLengths { monthLengths.clearMonthLength(year, month) }
     }
 
     /** Removes every user-forced length, restoring the pure calculated calendar. */
     public fun clearAllMonthLengths() {
-        monthLengths.clearAll()
-        _overridesRevision = monthLengths.currentRevision
+        changeMonthLengths { monthLengths.clearAll() }
     }
+
+    /**
+     * Applies a month-length change and keeps any Pakistan selection resolvable.
+     *
+     * A [PakistanHijriDate] carries no independent Gregorian coordinate — [PakistanHijriDate.localDate]
+     * reconstructs one from the override table — so forcing a month shorter can leave a stored 30th
+     * naming a day its month does not have, and resolving it throws `Invalid day 30` from
+     * [PakistanHijriCalendar.hijriToGregorian], which crashed the sample's summary card mid-composition.
+     *
+     * The real day is resolved *before* the change (the old table is the only one that admits the
+     * stored date), then re-labelled under the new table: the Gregorian day is the one coordinate
+     * all three date spaces share, which is why an override that shifts every later month start
+     * must move the selected day rather than re-interpret the same `year/month/day`. When the day
+     * cannot be re-resolved (out of range) the selection is clamped instead of dropped.
+     */
+    private fun changeMonthLengths(change: () -> Unit) {
+        val selectedRealDay = _selectedPakistanDate?.let { selected ->
+            orNullIfOutOfRange {
+                PakistanHijriCalendar.hijriToGregorian(selected.year, selected.month, selected.day, monthLengths)
+            }
+        }
+        change()
+        _overridesRevision = monthLengths.currentRevision
+        val selected = _selectedPakistanDate ?: return
+        _selectedPakistanDate = selectedRealDay
+            ?.let { PakistanHijriCalendar.gregorianToHijri(it, monthLengths) }
+            ?: selected.resolveAgainst(monthLengths)
+    }
+
+    /**
+     * A selection clamped to the month length now in force, or `null` when the year is outside
+     * [PakistanHijriCalendar.MIN_YEAR]..[PakistanHijriCalendar.MAX_YEAR].
+     *
+     * Used where the original real-world day is unrecoverable — restoring a saved selection against
+     * a saved override table — because a selection that cannot be resolved is worse than one that is
+     * one day short: [PakistanHijriDate.localDate] would throw on every recomposition.
+     */
+    private fun PakistanHijriDate.resolveAgainst(overrides: HijriMonthLengths): PakistanHijriDate? =
+        pakistanHijriDateAt(year, month, day, overrides)
 
     /**
      * Routes a tapped cell to the selection space it belongs to (Umm al-Qura, observed
@@ -702,9 +793,9 @@ internal fun hijriCalendarStateSaver(
         val initialSelectedDate =
             if (selectionType == SELECTION_HIJRAH && !pakistan) HijrahDate(saved[4], saved[5], saved[6]) else null
         val initialSelectedPakistanDate =
-            if (selectionType == SELECTION_PAKISTAN && pakistan) PakistanHijriDate(saved[4], saved[5], saved[6]) else null
+            if (selectionType == SELECTION_PAKISTAN && pakistan) restoredPakistanDate(saved) else null
         val initialSelectedObservedDate =
-            if (selectionType == SELECTION_OBSERVED && !pakistan) ObservedHijriDate(saved[4], saved[5], saved[6], saved[7]) else null
+            if (selectionType == SELECTION_OBSERVED && !pakistan) restoredObservedDate(saved) else null
         HijriCalendarState(
             initialMonth = HijrahYearMonth(year, month),
             initialSelectedDate = initialSelectedDate,
@@ -726,6 +817,62 @@ private fun HijrahDate?.toUnadjustedSpace(adjustmentDays: Int): HijrahDate? {
     if (this == null || adjustmentDays == 0) return this
     return orNullIfOutOfRange { toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate() } ?: this
 }
+
+/**
+ * Rebuilds the saved Pakistan selection, clamped to the month length in force.
+ *
+ * The saver carries display configuration only, not an override table, so the restored state is
+ * built with the process-global [HijriMonthOverrides.current] — the same table the saver's own
+ * `save` reads through [HijriCalendarState.monthLengths] by default.
+ */
+private fun restoredPakistanDate(saved: List<Int>): PakistanHijriDate? =
+    pakistanHijriDateAt(saved[4], saved[5], saved[6], HijriMonthOverrides.current)
+
+/**
+ * Rebuilds the saved observed selection, resolving its Gregorian day against the process-global
+ * table (the saver carries no table). Resolving it lazily was the hazard: a value type cannot read a
+ * table, and deriving against [HijriMonthOverrides.current] would report another calendar's day.
+ */
+private fun restoredObservedDate(saved: List<Int>): ObservedHijriDate = ObservedHijriDate(
+    year = saved[4],
+    month = saved[5],
+    day = saved[6],
+    monthLength = saved[7],
+    localDate = ObservedHijriCalendar.observedToGregorian(
+        saved[4],
+        saved[5],
+        saved[6],
+        HijriMonthOverrides.current,
+    ),
+)
+
+/**
+ * Builds a [PakistanHijriDate] for [year]/[month]/[day], resolving its real-world Gregorian day
+ * against [overrides] and clamping a day the table no longer admits.
+ *
+ * This is the only way to build a Pakistan date from raw coordinates, because
+ * [PakistanHijriDate.localDate] is a stored field rather than a getter over the process global: a
+ * caller holding a scoped table must resolve the Gregorian day *with that table*, or the value
+ * describes a different calendar's day.
+ *
+ * Clamping rather than rejecting preserves the restore path's behaviour. A saved selection and a
+ * saved override table come back independently, so an upgrade can hand the state a day its month no
+ * longer has; naming that day would make [PakistanHijriDate.localDate] throw on every recomposition.
+ *
+ * Returns `null` only when the month is outside [PakistanHijriCalendar]'s supported range.
+ */
+internal fun pakistanHijriDateAt(
+    year: Int,
+    month: Int,
+    day: Int,
+    overrides: HijriMonthLengths,
+): PakistanHijriDate? =
+    orNullIfOutOfRange { PakistanHijriCalendar.lengthOfMonth(year, month, overrides) }
+        ?.let { length -> minOf(day, length) }
+        ?.let { resolvedDay ->
+            orNullIfOutOfRange { PakistanHijriCalendar.hijriToGregorian(year, month, resolvedDay, overrides) }
+                ?.let { localDate -> PakistanHijriDate(year, month, resolvedDay, localDate) }
+        }
 
 private const val SELECTION_NONE = 0
 private const val SELECTION_HIJRAH = 1

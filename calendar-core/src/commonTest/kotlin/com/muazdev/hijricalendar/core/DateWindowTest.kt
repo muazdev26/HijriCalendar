@@ -194,7 +194,7 @@ class DateWindowTest {
         state.selectDate(inWindow)
         assertEquals(inWindow, state.selectedDate, "an in-window day must be accepted")
 
-        val earlyPakistan = PakistanHijriDate(year, month, 5)
+        val earlyPakistan = pakistanDate(year, month, 5)
         state.selectPakistanDate(earlyPakistan)
         assertEquals(
             null,
@@ -202,7 +202,7 @@ class DateWindowTest {
             "an out-of-window Pakistan day must be rejected and leave the selection alone",
         )
 
-        val inWindowPakistan = PakistanHijriDate(year, month, 20)
+        val inWindowPakistan = pakistanDate(year, month, 20)
         state.selectPakistanDate(inWindowPakistan)
         assertEquals(
             inWindowPakistan,
@@ -210,7 +210,7 @@ class DateWindowTest {
             "an in-window Pakistan day must be accepted",
         )
 
-        val earlyObserved = ObservedHijriDate(year, month, 5, observedMonthLength(year, month))
+        val earlyObserved = observedDate(year, month, 5, observedMonthLength(year, month))
         state.selectObservedDate(earlyObserved)
         assertEquals(
             null,
@@ -218,7 +218,7 @@ class DateWindowTest {
             "an out-of-window observed day must be rejected and leave the selection alone",
         )
 
-        val inWindowObserved = ObservedHijriDate(year, month, 20, observedMonthLength(year, month))
+        val inWindowObserved = observedDate(year, month, 20, observedMonthLength(year, month))
         state.selectObservedDate(inWindowObserved)
         assertEquals(
             inWindowObserved,

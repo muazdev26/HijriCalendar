@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Static preview shown in the Android 12-14 widget picker for the resizable Hijri calendar grid
-    widget. Mirrors the live render: a centred one-line month title between the two nav arrows, the
-    weekday row, then a full 6-row x 7 month grid with today's cell filled.
+    widget. Mirrors the live render: a centred two-line month title between the two nav arrows, the
+    weekday row, then a full 6-row x 7 month grid with today's cell carrying the selected-day block.
 
     Android 15+ pickers use the generated preview published by HijriWidgetPreviewPublisher, built
     from the same projection as the live widget. This file exists for the two OS generations that
@@ -13,15 +13,22 @@
 
     The dates are a fixed illustrative snapshot: Muharram 1448, Saturday-first, Urdu, Arabic-Indic
     numerals, with "today" pinned to 19 Muharram / 1 August 2026, a plain Wednesday, so the filled
-    highlight is legible without also sitting on a weekend cell. A static preview cannot track the
-    real date; what it can do is get the shape right.
+    block is legible without also sitting on a weekend cell. A static preview cannot track the real
+    date; what it can do is get the shape right.
+
+    Today is a **fill**: the block means "the day this widget is presenting as chosen", and today is
+    that day until the user taps another one (`isSelectedCell`). So a preview of the fresh, unselected
+    state shows the block on today — exactly as the Android 15+ generated preview renders it, which
+    likewise passes no selection. The block tints by `widget_today_background` rather than
+    `widget_selected_day` only because the pre-Android-12 `previewImage` vector references that token;
+    both carry the same value.
 
     One caveat this layout cannot express: each day cell is a single TextView holding a two-line
     string, so both of its lines share one textStyle. The live render draws them as two Text views at
-    *different* weights (the figure Bold, the Gregorian digit Medium), so this preview overstates the
-    Gregorian line. That is the hand-maintained-mirror cost noted above; splitting 41 cells into 82
-    views is not worth it for a preview only Android 12 to 14 shows. The live weights are asserted in
-    GridCellWeightsTest.
+    *different* weights (the figure Bold, the Gregorian digit Medium), so this preview overstates
+    the Gregorian line. That is the hand-maintained-mirror cost noted above; splitting 41 cells into
+    82 views is not worth it for a preview only Android 12 to 14 shows. The live weights are asserted
+    in GridCellWeightsTest.
 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -33,7 +40,7 @@
     android:padding="10dp"
     tools:ignore="UnusedAttribute">
 
-    <!-- Header row: previous arrow, centred Hijri + Gregorian month title, next arrow. -->
+    <!-- Header row: previous arrow, the centred two-line month title, next arrow. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -48,18 +55,40 @@
             android:src="@drawable/ic_arrow_left"
             android:tint="@color/widget_text_primary" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:ellipsize="end"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="محرم ۱۴۴۸ ھ · July - August 2026 AD"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <!-- Line 1: the Hijri month + year, `widget_text_primary` Bold. -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="محرم ۱۴۴۸ ھ"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!-- Line 2: the Gregorian month + year, `widget_text_secondary` Medium. A phone-width grid
+                 widget is in the header's narrow tier, which drops the Gregorian range for the
+                 dominant month, so the preview does the same. -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="August 2026"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
 
         <ImageView
             android:layout_width="40dp"
@@ -180,7 +209,7 @@
             android:maxLines="2"
             android:text="٢٥\n8"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -193,7 +222,7 @@
             android:maxLines="2"
             android:text="٢٦\n9"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -206,7 +235,7 @@
             android:maxLines="2"
             android:text="٢٧\n10"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -219,7 +248,7 @@
             android:maxLines="2"
             android:text="٢٨\n11"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -232,7 +261,7 @@
             android:maxLines="2"
             android:text="٢٩\n12"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -245,7 +274,7 @@
             android:maxLines="2"
             android:text="٣٠\n13"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -258,7 +287,7 @@
             android:maxLines="2"
             android:text="١\n14"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -279,7 +308,7 @@
             android:maxLines="2"
             android:text="٢\n15"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -292,7 +321,7 @@
             android:maxLines="2"
             android:text="٣\n16"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -305,7 +334,7 @@
             android:maxLines="2"
             android:text="٤\n17"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -318,7 +347,7 @@
             android:maxLines="2"
             android:text="٥\n18"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -331,7 +360,7 @@
             android:maxLines="2"
             android:text="٦\n19"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -344,7 +373,7 @@
             android:maxLines="2"
             android:text="٧\n20"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -357,7 +386,7 @@
             android:maxLines="2"
             android:text="٨\n21"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -378,7 +407,7 @@
             android:maxLines="2"
             android:text="٩\n22"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -391,7 +420,7 @@
             android:maxLines="2"
             android:text="١٠\n23"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -404,7 +433,7 @@
             android:maxLines="2"
             android:text="١١\n24"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -417,7 +446,7 @@
             android:maxLines="2"
             android:text="١٢\n25"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -430,7 +459,7 @@
             android:maxLines="2"
             android:text="١٣\n26"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -443,7 +472,7 @@
             android:maxLines="2"
             android:text="١٤\n27"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -456,7 +485,7 @@
             android:maxLines="2"
             android:text="١٥\n28"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -477,7 +506,7 @@
             android:maxLines="2"
             android:text="١٦\n29"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -490,7 +519,7 @@
             android:maxLines="2"
             android:text="١٧\n30"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -503,8 +532,14 @@
             android:maxLines="2"
             android:text="١٨\n31"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
+        <!--
+            Today's cell: the default selection, so it carries the same block a tapped day does —
+            `widget_selected_day` content on the accent fill. The fill is the radius-14dp shape drawable
+            a `previewLayout` needs in place of Glance's `cornerRadius`. A `LinearLayout` rather than a
+            single TextView so the figure and its Gregorian sub-line stay two coloured children.
+        -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -522,7 +557,7 @@
                 android:maxLines="1"
                 android:text="١٩"
                 android:textColor="@color/widget_on_today"
-                android:textSize="13sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -533,7 +568,7 @@
                 android:maxLines="1"
                 android:text="1"
                 android:textColor="@color/widget_on_today"
-                android:textSize="8sp" />
+                android:textSize="9sp" />
         </LinearLayout>
         <TextView
             android:layout_width="0dp"
@@ -546,7 +581,7 @@
             android:maxLines="2"
             android:text="٢٠\n2"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -559,7 +594,7 @@
             android:maxLines="2"
             android:text="٢١\n3"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -572,7 +607,7 @@
             android:maxLines="2"
             android:text="٢٢\n4"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -593,7 +628,7 @@
             android:maxLines="2"
             android:text="٢٣\n5"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -606,7 +641,7 @@
             android:maxLines="2"
             android:text="٢٤\n6"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -619,7 +654,7 @@
             android:maxLines="2"
             android:text="٢٥\n7"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -632,7 +667,7 @@
             android:maxLines="2"
             android:text="٢٦\n8"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -645,7 +680,7 @@
             android:maxLines="2"
             android:text="٢٧\n9"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -658,7 +693,7 @@
             android:maxLines="2"
             android:text="٢٨\n10"
             android:textColor="@color/widget_text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -671,7 +706,7 @@
             android:maxLines="2"
             android:text="٢٩\n11"
             android:textColor="@color/widget_weekend_text"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -692,7 +727,7 @@
             android:maxLines="2"
             android:text="١\n12"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -705,7 +740,7 @@
             android:maxLines="2"
             android:text="٢\n13"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -718,7 +753,7 @@
             android:maxLines="2"
             android:text="٣\n14"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -731,7 +766,7 @@
             android:maxLines="2"
             android:text="٤\n15"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -744,7 +779,7 @@
             android:maxLines="2"
             android:text="٥\n16"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -757,7 +792,7 @@
             android:maxLines="2"
             android:text="٦\n17"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
             android:layout_width="0dp"
@@ -770,7 +805,7 @@
             android:maxLines="2"
             android:text="٧\n18"
             android:textColor="@color/widget_day_out_of_month"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

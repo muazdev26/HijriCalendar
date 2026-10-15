@@ -42,16 +42,14 @@
     <color name="widget_light_day_out_faint">#C5C2BF</color>
     <!-- `widget_weekend_text` -->
     <color name="widget_light_weekend_text">#B3261E</color>
-    <!-- `widget_today_background` -->
-    <color name="widget_light_today_background">#2E7D32</color>
     <!-- `widget_on_today` -->
     <color name="widget_light_on_today">#FFFFFF</color>
     <!-- `widget_event_day_background` -->
     <color name="widget_light_event_day_background">#E4EEE2</color>
     <!-- `widget_on_event_day` -->
     <color name="widget_light_on_event_day">#1C1B1F</color>
-    <!-- `widget_cell_border` -->
-    <color name="widget_light_cell_border">#1F000000</color>
+    <!-- `widget_cell_border` — the accent at 40%, the same hairline the system-derived palette uses -->
+    <color name="widget_light_cell_border">#662E7D32</color>
     <!-- `widget_selected_day` -->
     <color name="widget_light_selected_day">#2E7D32</color>
     <!-- `widget_arrow_dimmed` -->

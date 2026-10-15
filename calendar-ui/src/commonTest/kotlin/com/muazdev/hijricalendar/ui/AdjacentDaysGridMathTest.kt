@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.ui
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.text.TextStyle
@@ -228,7 +229,7 @@ class AdjacentDaysGridMathTest {
 }
 
 /**
- * FD-04: the weekday header's weight.
+ * FD-04, and round 2 of the same report: the weekday header's *weight* and *tone*.
  *
  * The Urdu weekday names (`جمعرات`, `بدھ`) are the ones that read as weak at `labelSmall`: a longer
  * word at a lighter weight disappears into the row above it. The weight was raised to bold.
@@ -237,6 +238,14 @@ class AdjacentDaysGridMathTest {
  * typography, because a typography change would also change the **size** — which was not asked for,
  * and would move the grid's row height and every cell beneath it. That reasoning is not visible in
  * the composable, so the style is a named internal constant and the size is asserted alongside it.
+ *
+ * Round 2 reported the names as still not bold. The platform settles why more weight is not
+ * available: Glance (the widget renderer) maps `fontWeight` onto a `TextAppearanceSpan` whose
+ * `Medium` and `Bold` resolve to the same style, and a `fontFamily` becomes a `TypefaceSpan` that
+ * re-applies the paint's current style and even synthesises bold when the face has none — so on
+ * neither surface is a *missing* weight the mechanism. What was left was the tone, and it was muting
+ * the row: `dayOfWeekLabelColor` defaulted to `onSurfaceVariant`, the tone Material reserves for
+ * secondary content. [theWeekdayLabelsUseTheDayContentTone] pins the replacement rule.
  */
 @OptIn(ExperimentalTestApi::class)
 class DayOfWeekLabelStyleTest {
@@ -263,6 +272,41 @@ class DayOfWeekLabelStyleTest {
             expectedLabelSize,
             style.fontSize,
             "only the weight was meant to change; a different size moves every row in the grid",
+        )
+    }
+
+    /**
+     * Round 2's fix: the weekday labels take the tone of the days they label, not the muted one.
+     *
+     * `onSurfaceVariant` is what made a `Bold` row read as a caption. Asserted as a *relationship*
+     * with `dayContentColor` rather than as the literal `onSurface`, because "the weekday labels are
+     * as strong as the days under them" is the design decision and it stays true if the palette moves.
+     *
+     * The one value that cannot be asserted here is the widget's: its weekday row moved to the
+     * `primaryText` provider, which is resolved inside a Glance composition and is not reachable from a
+     * JVM unit test at all. Its *size* is covered by `GridHeaderTest` in `calendar-widget-glance`.
+     */
+    @Test
+    fun theWeekdayLabelsUseTheDayContentTone() = runComposeUiTest {
+        var observed: HijriCalendarColors? = null
+        var mutedTone: Color? = null
+        setContent {
+            MaterialTheme {
+                observed = HijriCalendarDefaults.colors()
+                mutedTone = MaterialTheme.colorScheme.onSurfaceVariant
+            }
+        }
+        waitForIdle()
+
+        val colors = observed ?: error("the palette was never composed")
+        assertEquals(
+            colors.dayContentColor,
+            colors.dayOfWeekLabelColor,
+            "the weekday labels take the same tone as the day numbers they label",
+        )
+        assertFalse(
+            colors.dayOfWeekLabelColor == mutedTone,
+            "onSurfaceVariant is what made a bold row read as a caption",
         )
     }
 }

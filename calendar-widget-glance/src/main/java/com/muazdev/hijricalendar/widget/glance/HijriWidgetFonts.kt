@@ -21,23 +21,36 @@ import androidx.glance.text.FontFamily
  *
  * Glance's `FontFamily` has exactly one constructor, `FontFamily(family: String)`, and it applies it
  * as `TypefaceSpan(family.family)` (Glance's `TextTranslator`). A `TypefaceSpan` resolves through the
- * **system** font manager. So the family must be one the *system* knows:
+ * **system** font manager — and it resolves in the **host's** process, not the app's, because the
+ * `CharSequence` travels to the launcher inside a RemoteViews. So the family must be one the
+ * *system* knows:
  *
- * - **Downloadable fonts** (the Google Fonts provider / `FontRequest`) — cached by family name by the
- *   system once fetched. **These work.**
- * - **Fonts the user installed system-wide.** These work.
- * - The built-ins: `sans-serif`, `serif`, `monospace`, `cursive`.
+ * - The built-ins: `serif`, `sans-serif`, `monospace`, `cursive`, `casual`, `serif-monospace`,
+ *   `sans-serif-condensed`, `sans-serif-smallcaps`. These work.
+ * - Whatever the OEM preinstalled (`roboto-flex`, `google-sans`, `lato`, `rubik`, … on a Pixel) and
+ *   anything the user added through the system's own font settings. These work.
+ * - **Fonts bundled in the app's `res/font/` do NOT work**, and no amount of wiring changes that. A
+ *   bundled font is an app-private resource; the system font manager has never seen it, so the
+ *   `TypefaceSpan` falls back to the default and the widget silently renders in the system face. That
+ *   includes a font shipped through Compose Multiplatform's `composeResources` — on Android it
+ *   compiles to an ordinary bundled `res/font` entry, which is the case this API cannot serve.
+ * - **Downloadable fonts (the Google Fonts provider / `FontRequest`) do NOT work either** — this was
+ *   long believed to be the workaround for the paragraph above, and it is not one. The request
+ *   succeeds and the provider hands back a `Typeface`, but the family stays private to the requesting
+ *   app: it never enters the system font configuration, so the launcher's `Typeface.create(name, …)`
+ *   finds nothing. Measured on a Pixel 6a (Android 17) while wiring the sample: after a successful
+ *   `FontsContractCompat.requestFont`, `adb shell cmd font dump amiri` still answers `not found`,
+ *   both before and after `cmd font restart`. The `/data/fonts/files/` directory is the **font
+ *   updater**'s, and its entries read `Font is updated from /system/fonts/…` — it can only replace a
+ *   family the system config already names, so it is not a route an app can add one through. Putting
+ *   a Google font on the widgets therefore takes a system-level install (OEM font settings, or
+ *   `/data/fonts` on a privileged device), not app code.
  *
- * **A font bundled in the app's `res/font/` will NOT work, and no amount of wiring changes that.**
- * A bundled font is an app-private resource; the system font manager has never seen it, so the
- * `TypefaceSpan` falls back to the default and the widget silently renders in the system face. That
- * includes a font shipped through Compose Multiplatform's `composeResources` — on Android it compiles
- * to an ordinary bundled `res/font` entry, which is the case this API cannot serve. Glance exposes no
- * resource-id font API to route around it, so a host in that position must move the font to a
- * downloadable font for this to take effect.
+ * Glance exposes no resource-id font API to route around any of this.
  *
  * There is no error and no log when a name does not resolve; it is a silent fallback. If a widget
- * looks unchanged after setting this, that is the first thing to check.
+ * looks unchanged after setting this, that is the first thing to check — and
+ * `adb shell cmd font dump <family>` answers exactly the question the launcher's `TypefaceSpan` asks.
  *
  * ## Why this is not a field on `WidgetOptions`
  *

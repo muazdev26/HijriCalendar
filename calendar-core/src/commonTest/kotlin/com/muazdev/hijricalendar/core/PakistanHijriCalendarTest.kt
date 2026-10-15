@@ -55,7 +55,7 @@ class PakistanHijriCalendarTest {
         officialAnchors.forEach { (yearMonth, gregorian) ->
             val (year, month) = yearMonth
             assertEquals(
-                PakistanHijriDate(year, month, 1),
+                pakistanDate(year, month, 1),
                 PakistanHijriCalendar.gregorianToHijri(gregorian),
                 "$gregorian should be $year-$month-1",
             )
@@ -69,7 +69,7 @@ class PakistanHijriCalendarTest {
             val nextStart = officialAnchors[index + 1].second
             val length = PakistanHijriCalendar.lengthOfMonth(yearMonth.first, yearMonth.second)
             assertEquals(nextStart, gregorian.plus(length, DateTimeUnit.DAY), "month boundary after $yearMonth")
-            assertEquals(PakistanHijriDate(nextYear, nextMonth, 1), PakistanHijriCalendar.gregorianToHijri(nextStart))
+            assertEquals(pakistanDate(nextYear, nextMonth, 1), PakistanHijriCalendar.gregorianToHijri(nextStart))
         }
     }
 
@@ -80,7 +80,7 @@ class PakistanHijriCalendarTest {
         // Verified 2026-09-13: Pakistan in its 30 Rabi al-Awwal 1448 while Umm al-Qura
         // already ran to 2 Rabi al-Thani.
         assertEquals(
-            PakistanHijriDate(1448, 3, 30),
+            pakistanDate(1448, 3, 30),
             PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 9, 13)),
         )
         assertEquals(LocalDate(2026, 9, 13), PakistanHijriCalendar.hijriToGregorian(1448, 3, 30))
@@ -91,11 +91,11 @@ class PakistanHijriCalendarTest {
     fun pakistanThirtyLandsOneDayAfterUmmalQuraRabiAlThani() {
         // Umm al-Qura considers 2026-09-12 "1 Rabi al-Thani"; Pakistan is still 29 Rabi al-Awwal.
         assertEquals(
-            PakistanHijriDate(1448, 3, 29),
+            pakistanDate(1448, 3, 29),
             PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 9, 12)),
         )
-        assertEquals(PakistanHijriDate(1448, 3, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 8, 15)))
-        assertEquals(PakistanHijriDate(1448, 4, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 9, 14)))
+        assertEquals(pakistanDate(1448, 3, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 8, 15)))
+        assertEquals(pakistanDate(1448, 4, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 9, 14)))
     }
 
     // ── Robustness ──────────────────────────────────────────────────────

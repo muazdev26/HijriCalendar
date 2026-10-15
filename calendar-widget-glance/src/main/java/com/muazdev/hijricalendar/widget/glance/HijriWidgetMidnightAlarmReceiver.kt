@@ -12,13 +12,19 @@ import android.content.Intent
  * start and after boot. If the app is on screen at midnight the render is skipped but recorded
  * as pending, so [HijriWidgetRefresher] applies it as soon as the app leaves the foreground.
  *
- * **The re-arm is a guarantee, not a happy-path step** (WG-07). It runs in a `finally`, so the next
- * midnight boundary exists even when the render above throws — and it used to be the second
- * statement rather than a `finally`, which meant a single `DataStore` I/O failure at 00:00 could
- * leave the alarm permanently unarmed. From then on the only recovery was
- * [HijriWidgetRefreshWorker]'s next daily run, so the widget could show yesterday's date for up to a
- * day, with no log line to explain it. Both the render and the re-arm are logged at error level on
- * failure, which is what makes such a report diagnosable at all.
+ * **The re-arm is a guarantee, not a happy-path step** (WG-07), but a *conditional* one: it runs in
+ * a `finally` so the next midnight boundary exists even when the render above throws, and it runs
+ * only while a widget is still placed (WG-18). It used to be the second statement rather than a
+ * `finally`, which meant a single `DataStore` I/O failure at 00:00 could leave the alarm permanently
+ * unarmed. From then on the only recovery was [HijriWidgetRefreshWorker]'s next daily run, so the
+ * widget could show yesterday's date for up to a day, with no log line to explain it. Both the
+ * render and the re-arm are logged at error level on failure, which is what makes such a report
+ * diagnosable at all.
+ *
+ * The placement gate matters here because the alarm can fire into the moment just after the user
+ * removed the last widget: re-arming unconditionally would resurrect the exact alarm whose removal
+ * is the point of WG-18, and the user would see the status-bar indicator come back. When no widget
+ * is left there is nothing to roll over, so the alarm simply stops.
  *
  * Work runs on [HijriWidgetScope] (application context, logging handler) rather than an ad-hoc
  * scope, because this is the one place in the module that calls fallible library code with no
@@ -42,12 +48,14 @@ internal class HijriWidgetMidnightAlarmReceiver : BroadcastReceiver() {
         } catch (throwable: Exception) {
             // Must not escape: this would be a process death at 00:00. `Exception` rather than
             // `Throwable` because an `Error` (OOM, for instance) is not something to continue from
-            // — but `finally` still runs for it, so the alarm is re-armed either way.
+            // — but `finally` still runs for it, so the next boundary is armed either way (while a
+            // widget is still placed).
             HijriWidgetRefreshLog.e("midnight", "refresh failed: ${throwable.message}", throwable)
         } finally {
-            // Always re-arm. `runCatching` because this is the recovery path and must not itself be
-            // the thing that throws (a `SecurityException` from the platform, for instance).
-            runCatching { HijriWidgetRefreshScheduler.armMidnightAlarm(context) }
+            // Always attempt the re-arm, gated on a widget still being placed. `runCatching` because
+            // this is the recovery path and must not itself be the thing that throws (a
+            // `SecurityException` from the platform, for instance).
+            runCatching { HijriWidgetRefreshScheduler.armMidnightAlarmIfPlaced(context) }
                 .onFailure {
                     HijriWidgetRefreshLog.e("midnight", "re-arm failed: ${it.message}", it)
                 }

@@ -6,7 +6,6 @@
     <ID>FinalNewline:HijriCalendarGridMathTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarGridMathTest.kt</ID>
     <ID>ForEachOnRange:HijriCalendarGrid.kt$0 until CalendarMonth.DAYS_IN_WEEK</ID>
     <ID>ImportOrdering:PreviewData.kt$import com.muazdev.hijricalendar.core.CalendarDay import com.abdulrahman_b.hijrahdatetime.HijrahDate</ID>
-    <ID>LongParameterList:HijriCalendarGrid.kt$( days: List&lt;CalendarDay&gt;, onDayClick: (CalendarDay) -&gt; Unit, colors: HijriCalendarColors, useArabicIndicNumerals: Boolean, dateDisplayMode: DateDisplayMode, dayCellSize: Dp?, labels: HijriCalendarLabels, dayContent: (@Composable (CalendarDay) -&gt; Unit)?, )</ID>
     <ID>NewLineAtEndOfFile:HijriCalendarDayCellTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarDayCellTest.kt</ID>
     <ID>NewLineAtEndOfFile:HijriCalendarGridMathTest.kt$com.muazdev.hijricalendar.ui.HijriCalendarGridMathTest.kt</ID>
   </CurrentIssues>

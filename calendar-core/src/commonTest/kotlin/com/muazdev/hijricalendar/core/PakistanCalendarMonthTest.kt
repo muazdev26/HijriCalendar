@@ -28,16 +28,16 @@ class PakistanCalendarMonthTest {
     fun monthsAfterLastFixResolveToAbsoluteGregorianDays() {
         assertEquals(LocalDate(2026, 10, 14), PakistanHijriCalendar.hijriToGregorian(1448, 5, 1))
         assertEquals(LocalDate(2026, 10, 13), PakistanHijriCalendar.hijriToGregorian(1448, 4, 30))
-        assertEquals(PakistanHijriDate(1448, 5, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 14)))
-        assertEquals(PakistanHijriDate(1448, 4, 30), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 13)))
-        assertEquals(PakistanHijriDate(1448, 5, 7), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 20)))
-        assertEquals(PakistanHijriDate(1448, 6, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 11, 13)))
-        assertEquals(PakistanHijriDate(1448, 6, 23), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 12, 5)))
+        assertEquals(pakistanDate(1448, 5, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 14)))
+        assertEquals(pakistanDate(1448, 4, 30), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 13)))
+        assertEquals(pakistanDate(1448, 5, 7), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 20)))
+        assertEquals(pakistanDate(1448, 6, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 11, 13)))
+        assertEquals(pakistanDate(1448, 6, 23), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 12, 5)))
     }
 
     @Test
     fun adjacentMonthsAfterFixNeitherReuseOldDatesNorSkipAMonth() {
-        val oldAnchorDate = PakistanHijriDate(1448, 3, 30)
+        val oldAnchorDate = pakistanDate(1448, 3, 30)
         for (month in 5..8) {
             val days = grid(1448, month).days
             assertEquals(42, days.size)
@@ -60,9 +60,9 @@ class PakistanCalendarMonthTest {
     private fun next(d: PakistanHijriDate): PakistanHijriDate {
         val length = PakistanHijriCalendar.lengthOfMonth(d.year, d.month)
         return when {
-            d.day < length -> PakistanHijriDate(d.year, d.month, d.day + 1)
-            d.month < 12 -> PakistanHijriDate(d.year, d.month + 1, 1)
-            else -> PakistanHijriDate(d.year + 1, 1, 1)
+            d.day < length -> pakistanDate(d.year, d.month, d.day + 1)
+            d.month < 12 -> pakistanDate(d.year, d.month + 1, 1)
+            else -> pakistanDate(d.year + 1, 1, 1)
         }
     }
 
@@ -71,18 +71,21 @@ class PakistanCalendarMonthTest {
         val plusOne = grid(1448, 4, adjustmentDays = 1)
         // Observed Pakistan date of the real Gregorian day 2026-09-14 is pakistan(2026-09-15) = 1448-04-02.
         val shiftedCell = plusOne.days.first { it.localDate == LocalDate(2026, 9, 14) }
-        assertEquals(PakistanHijriDate(1448, 4, 2), shiftedCell.pakistanDate)
+        assertEquals(pakistanDate(1448, 4, 2), shiftedCell.pakistanDate)
         // The observed "1" of 1448-04 lands one Gregorian day earlier.
-        assertEquals(LocalDate(2026, 9, 13), plusOne.days.first { it.pakistanDate == PakistanHijriDate(1448, 4, 1) }.localDate)
+        assertEquals(
+            LocalDate(2026, 9, 13),
+            plusOne.days.first { it.pakistanDate == pakistanDate(1448, 4, 1) }.localDate,
+        )
 
         // Unadjusted grid for the same real day still shows the 1st.
         val plain = grid(1448, 4)
-        assertEquals(PakistanHijriDate(1448, 4, 1), plain.days.first { it.localDate == LocalDate(2026, 9, 14) }.pakistanDate)
+        assertEquals(pakistanDate(1448, 4, 1), plain.days.first { it.localDate == LocalDate(2026, 9, 14) }.pakistanDate)
 
         // Negative adjustment mirrors the same day metadata but backwards.
         val minusOne = grid(1448, 4, adjustmentDays = -1)
         val shiftedBackCell = minusOne.days.first { it.localDate == LocalDate(2026, 9, 14) }
-        assertEquals(PakistanHijriDate(1448, 3, 30), shiftedBackCell.pakistanDate)
+        assertEquals(pakistanDate(1448, 3, 30), shiftedBackCell.pakistanDate)
     }
 
     @Test

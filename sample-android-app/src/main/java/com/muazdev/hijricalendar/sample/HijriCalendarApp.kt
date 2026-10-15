@@ -41,5 +41,9 @@ class HijriCalendarApp : Application() {
         // when the last one is stopped, so a refresh skipped while the app was visible is not
         // lost until the next midnight.
         registerActivityLifecycleCallbacks(HijriWidgetForegroundWatcher(this))
+
+        // Gives the widgets a system font of the host's choosing (point 8). Set here, before any
+        // widget can be composed, because the font is read at render time.
+        WidgetTypography.install()
     }
 }

@@ -85,11 +85,13 @@ internal object HijriWidgetRenderQueue {
     }
 
     private sealed interface Pending {
+        val reason: String
+
         /** Re-render this one instance. */
-        data class Instance(val id: GlanceId) : Pending
+        data class Instance(val id: GlanceId, override val reason: String) : Pending
 
         /** Re-run a full sweep; subsumes any queued [Instance]. */
-        data object Sweep : Pending
+        data class Sweep(override val reason: String) : Pending
     }
 
     private val work = ConcurrentLinkedQueue<Pending>()
@@ -103,11 +105,12 @@ internal object HijriWidgetRenderQueue {
      * coalesced follow-up when a render is already in flight (never blocks the tap on the in-flight
      * render).
      */
-    suspend fun render(context: Context, glanceId: GlanceId): RenderOutcome =
-        submit(context, Pending.Instance(glanceId))
+    suspend fun render(context: Context, glanceId: GlanceId, reason: String = "instance"): RenderOutcome =
+        submit(context, Pending.Instance(glanceId, reason))
 
     /** Renders every bound instance of both widget classes as one sweep, coalesced the same way. */
-    suspend fun renderAll(context: Context): RenderOutcome = submit(context, Pending.Sweep)
+    suspend fun renderAll(context: Context, reason: String = "sweep"): RenderOutcome =
+        submit(context, Pending.Sweep(reason))
 
     private suspend fun submit(context: Context, request: Pending): RenderOutcome {
         work.add(request)
@@ -156,10 +159,13 @@ internal object HijriWidgetRenderQueue {
                 }
             }
             if (batch.isEmpty()) return
-            if (batch.any { it is Pending.Sweep }) {
-                renderNow(context, glanceId = null)
+            val sweepRequest = batch.firstOrNull { it is Pending.Sweep }
+            if (sweepRequest != null) {
+                renderNow(context, glanceId = null, reason = sweepRequest.reason)
             } else {
-                batch.filterIsInstance<Pending.Instance>().forEach { renderNow(context, it.id) }
+                batch.filterIsInstance<Pending.Instance>().forEach {
+                    renderNow(context, glanceId = it.id, reason = it.reason)
+                }
             }
             if (work.isEmpty()) return
         }
@@ -173,7 +179,10 @@ internal object HijriWidgetRenderQueue {
      * `AppWidgetManager`. The default is the production behaviour; only tests replace it, and they
      * restore it in a `finally`.
      */
-    private suspend fun renderNow(context: Context, glanceId: GlanceId?) {
+    private suspend fun renderNow(context: Context, glanceId: GlanceId?, reason: String = "render") {
+        val scope = if (glanceId == null) "full" else "single"
+        val widgetsCount = if (glanceId == null) HijriWidgetPresence.totalPlacedCount(context) else 1
+        HijriWidgetRefreshLog.d("queue:sweep", "reason=$reason scope=$scope widgets=$widgetsCount")
         renderAction(context, glanceId)
     }
 

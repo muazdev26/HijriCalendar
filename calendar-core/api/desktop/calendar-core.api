@@ -295,7 +295,6 @@ public final class com/muazdev/hijricalendar/core/ObservedHijriDate : java/lang/
 	public static final field $stable I
 	public static final field Companion Lcom/muazdev/hijricalendar/core/ObservedHijriDate$Companion;
 	public fun <init> (IIIILkotlinx/datetime/LocalDate;)V
-	public synthetic fun <init> (IIIILkotlinx/datetime/LocalDate;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun compareTo (Lcom/muazdev/hijricalendar/core/ObservedHijriDate;)I
 	public synthetic fun compareTo (Ljava/lang/Object;)I
 	public final fun component1 ()I
@@ -370,14 +369,15 @@ public final class com/muazdev/hijricalendar/core/PakistanHijriCalendar$Fix {
 public final class com/muazdev/hijricalendar/core/PakistanHijriDate : java/lang/Comparable {
 	public static final field $stable I
 	public static final field Companion Lcom/muazdev/hijricalendar/core/PakistanHijriDate$Companion;
-	public fun <init> (III)V
+	public fun <init> (IIILkotlinx/datetime/LocalDate;)V
 	public fun compareTo (Lcom/muazdev/hijricalendar/core/PakistanHijriDate;)I
 	public synthetic fun compareTo (Ljava/lang/Object;)I
 	public final fun component1 ()I
 	public final fun component2 ()I
 	public final fun component3 ()I
-	public final fun copy (III)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
-	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/PakistanHijriDate;IIIILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public final fun component4 ()Lkotlinx/datetime/LocalDate;
+	public final fun copy (IIILkotlinx/datetime/LocalDate;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/PakistanHijriDate;IIILkotlinx/datetime/LocalDate;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDay ()I
 	public final fun getLocalDate ()Lkotlinx/datetime/LocalDate;

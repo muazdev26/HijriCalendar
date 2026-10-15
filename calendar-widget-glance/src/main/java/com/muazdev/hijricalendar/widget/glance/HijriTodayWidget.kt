@@ -6,10 +6,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.Preferences
 import androidx.glance.ExperimentalGlanceApi
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
+import androidx.glance.currentState
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -51,6 +53,21 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  */
 public class HijriTodayWidget : GlanceAppWidget() {
 
+    /**
+     * Deliberately `Single`, **not** `Exact`, while [TodayStripTypography.daySizeFor] is not yet safe
+     * to activate.
+     *
+     * Point 7's investigation found that the strip's height-derived figure cannot work under `Single`
+     * — `AppWidgetUtils.kt` builds `SizeMode.Single`'s `LocalSize` from the provider's declared
+     * *minimum*, so `daySizeFor` sees a constant and the design's "a tall placement renders a bigger
+     * figure" has never been true on a device. `Exact` fixes that, and was tried here: on a Pixel 6a
+     * (strip 218x97dp) the figure jumped from the 26sp it has always rendered to the 40sp ceiling, and
+     * **the month caption was clipped off the bottom of the cell** — `daySizeFor`'s reserve models a
+     * line box as 1.17em, while the real boxes (Urdu Nastaliq in particular: an 11sp caption measured
+     * 31px of ink at 420dpi) are taller. The figure is restored to 26sp via
+     * [TodayStripTypography.daySizeFloor] and `Exact` is left off until the reserve is derived from
+     * measured boxes rather than a ratio. Recorded in `docs/FEEDBACK-TODOS-2.md`.
+     */
     override val sizeMode: SizeMode = SizeMode.Single
 
     /**
@@ -68,16 +85,21 @@ public class HijriTodayWidget : GlanceAppWidget() {
         // process-global family mirror below — the strip has no settings screen of its own and
         // follows whatever the family's most recent configure-screen save configured.
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
-        val peeked = HijriWidgetConfig.loadFamily(context)
+        val peeked = HijriWidgetConfig.load(context, id)
         if (peeked.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
-            val options = HijriWidgetConfig.loadFamily(context)
-            // Resolved from the options read here rather than from the peek above, so a theme change
-            // repaints the strip instead of waiting for something else to invalidate it.
+            val prefs = currentState<Preferences>()
+            val rawOptions = HijriWidgetConfig.decodeOptions(prefs)
+            val options = rawOptions ?: HijriWidgetConfig.loadFamily(context)
+            val optionsFrom = if (rawOptions != null) "perWidget" else "family"
+            HijriWidgetRefreshLog.d(
+                "render:tile",
+                "type=Today overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=$optionsFrom",
+            )
             val colors = WidgetColors.forTheme(options.theme)
             val data = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
@@ -104,9 +126,13 @@ public class HijriTodayWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
+        HijriWidgetRefreshLog.d(
+            "render:tile",
+            "type=Today overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=family",
+        )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null)
+            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
             HijriTodayRoot(
                 today = data.todayHijri,
                 colors = colors,
@@ -128,8 +154,10 @@ public class HijriTodayWidget : GlanceAppWidget() {
  * whole strip, **not repeated on each side** — both halves are the same physical day, so a second copy
  * would say nothing the first did not.
  *
- * [daySize] is unchanged at 26sp: the day figure is what the strip exists to show, and the third line
- * is paid for in height (see [STRIP_MIN_HEIGHT_DP]) rather than by shrinking it.
+ * The day figure is what the strip exists to show, so it is not traded away for the other two lines:
+ * [daySizeFor] floors it at 26sp, the size the strip has always rendered, and the third line is paid
+ * for in height (see [STRIP_MIN_HEIGHT_DP]) instead. Note that [daySizeFor] is currently a constant
+ * on a device because [HijriTodayWidget.sizeMode] is `Single` — see that property for why.
  */
 internal object TodayStripTypography {
 
@@ -187,8 +215,82 @@ internal object TodayStripTypography {
     fun nonDayHeightDp(): Float =
         (weekdaySize.value + captionSize.value) * LINE_HEIGHT_RATIO + lineGap.value * 2
 
-    /** Never smaller than this, however short the strip — below it the month line would be clipped. */
-    val daySizeFloor = 20.sp
+    /**
+     * One half's caption: the month + year, with the era kept only when the half can hold it.
+     *
+     * Round-2 feedback, point 9. The caption is a single `Text` with `maxLines = 1`, and Glance clips
+     * rather than ellipsising — and because the line is centred, an over-long caption loses characters
+     * off **both** ends, which is why the year was disappearing from the squeezed two-date strip even
+     * though it is the part worth keeping. So the string is chosen here instead, before it is measured:
+     * the month and the year always render, and the era marker (`ھ` / `AH`) is what is given up.
+     *
+     * [yearText] is the projection's era-appended year (`1448 ھ`, `2026 AH`) — the bare year is its
+     * first space-separated part, so no extra projection field is needed and the era keeps the spelling
+     * the projection chose for the widget's language (WG-12). When the projection appended no era the
+     * two candidates are the same string and nothing is dropped.
+     *
+     * The width is *estimated* (see [estimatedCaptionWidthDp]); both wrong answers are benign, and the
+     * estimate errs towards the era going early rather than the year being cut.
+     */
+    fun captionFor(
+        monthName: String,
+        yearText: String,
+        halfWidthDp: Float,
+        language: WidgetLanguage,
+    ): String {
+        val full = "$monthName $yearText"
+        // `halfWidthDp` reaches us from `LocalSize.current.width`, which under `SizeMode.Single`
+        // reports Glance's *minimum-size* cell for this strip (40dp, rounded down to ~25dp after
+        // the dp/px round-trip documented under 7b) instead of the width the launcher actually
+        // granted. The strip is painted from ~218dp of real width upward, so any value below 20 dp
+        // is the artefact rather than the placement. Dropping the era on an artefact is what hid the
+        // era marker even on full-screen strips. Keep the era whenever the width we see is clearly
+        // not real, and otherwise apply the heuristic unchanged.
+        if (halfWidthDp < 20f || estimatedCaptionWidthDp(full, language) <= halfWidthDp) return full
+        return "$monthName ${yearText.substringBeforeLast(' ')}"
+    }
+
+    /**
+     * A rough rendered width for a caption line, in dp.
+     *
+     * Glance 1.2 offers no text measurement, and the only decision this feeds is whether the era is
+     * dropped, so a per-character average is enough. The two constants below are **measured** rather
+     * than guessed — a caption's rendered width divided by its character count, at this size:
+     * an 18-character Urdu caption measured 0.42em per character on a Pixel 6a and a 21-character
+     * Latin one 0.52em, which is the whole reason this takes a [WidgetLanguage] instead of one
+     * constant. Nastaliq's joined forms are narrower than the Latin faces' advance, so one constant
+     * would either drop the Urdu era far too early or keep the Latin one long past the clip.
+     */
+    fun estimatedCaptionWidthDp(text: String, language: WidgetLanguage): Float =
+        text.length * advanceEmFor(language) * captionSize.value
+
+    /** The width one date half has for its caption: half of the strip less its padding and divider. */
+    fun captionHalfWidthDp(grantedWidthDp: Float): Float =
+        ((grantedWidthDp - HORIZONTAL_PADDING_DP * 2 - DIVIDER_WIDTH_DP - DIVIDER_GAP_DP * 2) / 2f)
+            .coerceAtLeast(0f)
+
+    /** Per-character advance used by [estimatedCaptionWidthDp]. */
+    private fun advanceEmFor(language: WidgetLanguage): Float =
+        if (language.isRtl) RTL_ADVANCE_EM else LTR_ADVANCE_EM
+
+    /** Measured on a Pixel 6a: Urdu Nastaliq, ~0.42em per character at [captionSize]. */
+    private const val RTL_ADVANCE_EM = 0.42f
+
+    /** Measured on a Pixel 6a: Latin, ~0.52em per character at [captionSize]. */
+    private const val LTR_ADVANCE_EM = 0.52f
+
+    /** The divider line's own width, so [captionHalfWidthDp] subtracts what the row actually spends. */
+    const val DIVIDER_WIDTH_DP = 1
+
+    /**
+     * Never smaller than this, however short the strip — below it the month line would be clipped.
+     *
+     * 26sp is the figure the strip has always rendered, and it is the floor because `Single` reports
+     * the declared minimum, so this is the value the strip draws on a device today (see
+     * [HijriTodayWidget.sizeMode]). Lowering it to the old 20sp would shrink a placed strip for no
+     * gain; raising the ceiling path is the reserved work, not the floor.
+     */
+    val daySizeFloor = 26.sp
 
     /** Never larger than this, however tall: a strip should still read as a strip. */
     val daySizeCeiling = 40.sp
@@ -293,16 +395,7 @@ internal fun HijriTodayRoot(
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
         if (today == null) {
-            Text(
-                // Resolved from the widget's own language, not the device locale (WG-12) — see
-                // [WidgetLocalization.ChromeLabels].
-                text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
-                style = TextStyle(
-                    color = colors.secondaryText,
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                ),
-            )
+            StripUnavailable(colors = colors, language = language)
             return@Column
         }
         // The weekday both halves share: `TodayHijriWidgetData.weekdayName`, projected in the widget's
@@ -329,12 +422,21 @@ internal fun HijriTodayRoot(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.Vertical.CenterVertically,
         ) {
+            val halfWidthDp = TodayStripTypography.captionHalfWidthDp(cell.width.value)
             val hijri = @Composable {
                 DateSide(
                     dayText = today.hijriDayText,
                     // Era-appended by the projection (FD-05); a renderer must not format the era
                     // itself, because the marker follows the widget's language, not the device (WG-12).
-                    caption = "${today.hijriMonthName} ${today.hijriYearText}",
+                    // `captionFor` keeps the year and drops the era when this half cannot hold both
+                    // (round-2 point 9) — the strip is the only widget whose caption has two halves
+                    // to share a narrow width.
+                    caption = TodayStripTypography.captionFor(
+                        monthName = today.hijriMonthName,
+                        yearText = today.hijriYearText,
+                        halfWidthDp = halfWidthDp,
+                        language = language,
+                    ),
                     daySize = daySize,
                     colors = colors,
                     gregorian = false,
@@ -343,7 +445,12 @@ internal fun HijriTodayRoot(
             val gregorian = @Composable {
                 DateSide(
                     dayText = today.gregorianDayText,
-                    caption = "${today.gregorianMonthName} ${today.gregorianYearText}",
+                    caption = TodayStripTypography.captionFor(
+                        monthName = today.gregorianMonthName,
+                        yearText = today.gregorianYearText,
+                        halfWidthDp = halfWidthDp,
+                        language = language,
+                    ),
                     daySize = daySize,
                     colors = colors,
                     gregorian = true,
@@ -364,6 +471,26 @@ internal fun HijriTodayRoot(
 }
 
 /**
+ * The strip's body when the projection could not be built at all.
+ *
+ * Its own composable rather than an inline branch because `HijriTodayRoot` had grown past detekt's
+ * method-length limit, and this is the one part of it that is not the strip's layout: it is the
+ * `ChromeLabels.monthUnavailable` message, resolved from the widget's own language rather than the
+ * device locale (WG-12, the same rule every other string on this widget follows).
+ */
+@Composable
+private fun StripUnavailable(colors: WidgetColors, language: WidgetLanguage) {
+    Text(
+        text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
+        style = TextStyle(
+            color = colors.secondaryText,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+        ),
+    )
+}
+
+/**
  * The hairline between the two date halves.
  *
  * `widget_cell_border` is the grid's own divider token (FD-04), reused rather than given a second
@@ -381,7 +508,7 @@ private fun RowScope.DateDivider(colors: WidgetColors) {
     Box(
         modifier = GlanceModifier
             .padding(horizontal = DIVIDER_GAP_DP.dp)
-            .width(1.dp)
+            .width(TodayStripTypography.DIVIDER_WIDTH_DP.dp)
             .fillMaxHeight()
             .background(colors.cellBorder),
     ) {}

@@ -34,7 +34,9 @@ class GridCellWeightsTest {
     /**
      * The Gregorian digit is Medium — not plain.
      *
-     * Plain is what made the cell read as unbolded despite the bold figure above it.
+     * Plain is what made the cell read as unbolded despite the bold figure above it. `Medium` is the
+     * heaviest weight Glance offers below `Bold` (its `FontWeight` is a three-value set), so the
+     * redesign's emphasis comes from the figure's larger *size* rather than a heavier digit.
      */
     @Test
     fun theGregorianDigitIsNotPlain() {
@@ -50,7 +52,7 @@ class GridCellWeightsTest {
      *
      * Without this the two weights could both become `Bold` — every assertion above would still pass,
      * and the cell would have two competing numbers in it. `Medium` is the deliberate middle: enough
-     * weight to look deliberate at 9-11sp, not enough to compete with the figure.
+     * weight to sit under a bold hero without becoming one, and the only such weight Glance has.
      */
     @Test
     fun theTwoLinesAreAHierarchyNotTwoHeroes() {

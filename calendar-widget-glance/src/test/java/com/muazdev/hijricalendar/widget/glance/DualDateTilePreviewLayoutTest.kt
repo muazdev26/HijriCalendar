@@ -52,17 +52,33 @@ class DualDateTilePreviewLayoutTest {
     // ── The tile shares the sibling tiles' numbers ─────────────────────────────
 
     /**
-     * The day figure is the sibling tiles' figure, less an explicit share — **and no more or less**.
+     * The day figure is the sibling tiles' figure, less an explicit share — **at the reference cell**;
+     * from there it grows with the tile up to its own ceiling.
      *
      * The figure dropped to 30sp so the four lines of this tile coexist. That reduction has to be bounded,
      * or "a bit smaller" becomes an open-ended licence: the assertion is that the day is *under* the
-     * sibling tiles' 36sp and still well above every caption, so it stays the tile's loudest element.
+     * sibling tiles' reference figure at the reference cell and still well above every caption, so it stays
+     * the tile's loudest element.
+     *
+     * **The scaling is point 7.** This test used to assert the opposite — "the fixed figure, not a
+     * width-scaled one, at every width" — which was correct while the tile was a non-resizable 1x1 and
+     * is exactly what made a resize a no-op. A ceiling bounds what a very large placement can reach, so
+     * the tile still reads at arm's length rather than from across the room.
      */
     @Test
-    fun theDayFigureIsTheSiblingFigureLessAnExplicitShare() {
+    fun theDayFigureGrowsFromTheSiblingFigureUpToItsCeiling() {
+        assertEquals(
+            "at the reference width the figure must be the reference figure, so a preview and a placed " +
+                "1x1 agree",
+            DualDateTileTypography.daySize.value.toDouble(),
+            DualDateTileTypography.sizesFor(DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP)
+                .daySize.value.toDouble(),
+            0.01,
+        )
         assertTrue(
-            "the day figure must stay below the sibling tiles' ${DateTileTypography.daySize.value}sp, " +
-                "because this tile carries four lines rather than their three",
+            "the reference figure must stay below the sibling tiles' " +
+                "${DateTileTypography.daySize.value}sp, because this tile carries four lines rather " +
+                "than their three",
             DualDateTileTypography.daySize.value < DateTileTypography.daySize.value,
         )
         assertTrue(
@@ -72,15 +88,31 @@ class DualDateTilePreviewLayoutTest {
             DualDateTileTypography.daySize.value >
                 DualDateTileTypography.daySize.value * DualDateTileTypography.CAPTION_MAX_SHARE,
         )
-        // And it is the fixed figure, not a width-scaled one, at every width.
-        for (width in 1..200) {
-            assertEquals(
-                "at ${width}dp the day must be the fixed figure, not a width-scaled one",
-                DualDateTileTypography.daySize.value,
-                DualDateTileTypography.sizesFor(width.toFloat()).daySize.value,
-                0.001f,
+        assertTrue(
+            "the ceiling must leave room to grow, or a stretched tile renders the same figure",
+            DualDateTileTypography.daySizeCeiling.value > DualDateTileTypography.daySize.value,
+        )
+        assertTrue(
+            "a wider cell must render a larger figure",
+            DualDateTileTypography.sizesFor(138f).daySize.value >
+                DualDateTileTypography.sizesFor(51f).daySize.value,
+        )
+        for (width in 1..400) {
+            val day = DualDateTileTypography.sizesFor(width.toFloat()).daySize.value
+            assertTrue(
+                "at ${width}dp the day (${day}sp) must sit between " +
+                    "${DualDateTileTypography.daySizeFloor.value}sp and " +
+                    "${DualDateTileTypography.daySizeCeiling.value}sp",
+                day >= DualDateTileTypography.daySizeFloor.value - 0.001f &&
+                    day <= DualDateTileTypography.daySizeCeiling.value + 0.001f,
             )
         }
+        assertEquals(
+            "and the ceiling is final however far the tile is stretched",
+            DualDateTileTypography.daySizeCeiling.value.toDouble(),
+            DualDateTileTypography.sizesFor(4000f).daySize.value.toDouble(),
+            0.01,
+        )
     }
 
     /**
@@ -88,17 +120,21 @@ class DualDateTilePreviewLayoutTest {
      *
      * `CAPTION_RATIO` is a **scale** rather than a constant, so the band weekday and the Hijri month name
      * still widen with the granted width the way the sibling tiles' names do. It is also what keeps the
-     * weekday under the day figure: unscaled, the sibling rule returns 32sp at a 72dp text width, which
-     * would have made a weekday larger than the Hijri day.
+     * weekday under the day figure: unscaled, the sibling rule would make a weekday larger than the Hijri
+     * day. The clamp is against the figure **the same cell renders** (`sizes.daySize`), not the reference
+     * one, so the two cannot drift apart as the tile grows (point 7).
      */
     @Test
     fun theCaptionsScaleTheSiblingTilesOwnRule() {
-        for (width in 1..200) {
+        for (width in 1..400) {
             val sibling = DateTileTypography.weekdaySizeFor(width.toFloat()).value
             val sizes = DualDateTileTypography.sizesFor(width.toFloat())
 
             // The relationship: the sibling rule, scaled, then clamped at both ends.
-            val ceiling = DualDateTileTypography.daySize.value * DualDateTileTypography.CAPTION_MAX_SHARE
+            val ceiling = minOf(
+                DualDateTileTypography.monthSizeCeiling.value,
+                sizes.daySize.value * DualDateTileTypography.CAPTION_MAX_SHARE,
+            )
             val expected = (sibling * DualDateTileTypography.CAPTION_RATIO)
                 .coerceIn(DateTileTypography.weekdaySizeFloor.value, ceiling)
 
@@ -276,7 +312,8 @@ class DualDateTilePreviewLayoutTest {
     @Test
     fun theBudgetDoesNotExceedTheSiblingTilesOwn() {
         val siblingSum = DateTileTypography.weekdaySizeCeiling.value * 2 + DateTileTypography.daySize.value
-        val siblingWorstCase = siblingSum * DualDateTileTypography.LINE_HEIGHT_RATIO
+        val siblingWorstCase = siblingSum * DualDateTileTypography.LINE_HEIGHT_RATIO +
+            DateTileTypography.VERTICAL_PADDING_DP * 2
         val ours = DualDateTileTypography.verticalBudgetDp(
             DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP,
         )
@@ -531,18 +568,13 @@ class DualDateTilePreviewLayoutTest {
     }
 
     /**
-     * The band carries the **weekday name alone** and has no padding of its own.
+     * The band carries the **weekday name alone** and includes vertical padding so glyphs are not clipped.
      *
-     * The padding half is a reported defect turned into a test: an earlier version added 2dp inside the
-     * band, and because a line box's leading is asymmetric — more space below the baseline than above it —
-     * *symmetric* padding around it lands off-centre by the font's descent. On a device that showed as a
-     * stripe of empty accent above the text, which reads as a layout mistake because it is one.
-     *
-     * The band-also-carries-the-day half is a reverted arrangement: folding the figure into the band did
-     * save height, but it read as a header label rather than as the answer the tile exists to give.
+     * Top padding (BAND_TOP_PADDING_DP = 2dp) prevents taller glyphs/ascenders (e.g. Urdu/Arabic script)
+     * from being cut off at the top of the accent band.
      */
     @Test
-    fun theBandCarriesOnlyTheWeekdayAndHasNoVerticalPadding() {
+    fun theBandCarriesOnlyTheWeekdayAndHasVerticalPadding() {
         val band = childrenOf(layoutRoot()).first()
 
         assertEquals("the band must be a single TextView", "TextView", band.tagName)
@@ -552,9 +584,8 @@ class DualDateTilePreviewLayoutTest {
             attr(band, "android:text"),
         )
         assertEquals(
-            "the mirror's band must not pad ABOVE its text: a line box's leading is asymmetric, so any " +
-                "space above the glyphs reads as a stripe of empty accent",
-            "0dp",
+            "the mirror's band must include top padding to prevent glyph clipping",
+            "${DualDateTileTypography.BAND_TOP_PADDING_DP}dp",
             attr(band, "android:paddingTop"),
         )
         assertEquals(
@@ -563,12 +594,13 @@ class DualDateTilePreviewLayoutTest {
             attr(band, "android:paddingBottom"),
         )
 
-        // The live side: the band is its line box plus BAND_PADDING_DP, which is added **below** the text.
+        // The live side: the band includes top and bottom padding around its line box.
         val sizes = DualDateTileTypography.sizesFor(DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP)
         val expected = sizes.weekdaySize.value * DualDateTileTypography.LINE_HEIGHT_RATIO +
+            DualDateTileTypography.BAND_TOP_PADDING_DP +
             DualDateTileTypography.BAND_PADDING_DP
         assertEquals(
-            "the live band's height is its line box plus the below-only padding",
+            "the live band's height includes top and bottom padding",
             expected.toDouble(),
             bandHeightDp(sizes).toDouble(),
             0.001,
@@ -604,15 +636,17 @@ class DualDateTilePreviewLayoutTest {
     }
 
     /**
-     * The widget-info is a **strict** 1×1: a 40dp minimum and no resizing.
+     * The widget-info is a **resizable 1×1**: a 40dp minimum, on both axes, pinned to the same 40dp.
      *
-     * The property that is easy to break by "fixing" the clipping: on launchers before Android 12 the cell
-     * count is derived from `minWidth`/`minHeight`, so raising `minHeight` here would make this a two-cell
-     * widget on exactly those launchers. The Today strip can afford a raised minimum because it is
-     * resizable.
+     * Point 7 made this tile resizable, which is what lets its type grow with the cell
+     * (`SizeMode.Exact` on the widget). What must *not* change is the 40dp minimum: on launchers before
+     * Android 12 the cell count is derived from `minWidth`/`minHeight`, so raising either — or letting
+     * `minResizeWidth`/`minResizeHeight` drift above them — would make this a two-cell widget on
+     * exactly those launchers. The Today strip can afford a raised minimum; a widget placed as a 1x1
+     * cannot.
      */
     @Test
-    fun theWidgetInfoIsAStrictSingleCell() {
+    fun theWidgetInfoIsAResizableSingleCellWithAFortyDpFloor() {
         val info = File("src/main/res/xml/hijri_dual_date_widget_info.xml")
         assertTrue(
             "widget-info not found at ${info.absolutePath}; if the res directory moved, fix this path " +
@@ -624,12 +658,12 @@ class DualDateTilePreviewLayoutTest {
 
         assertEquals("appwidget-provider", root.tagName)
         assertEquals(
-            "a strict 1x1 must not be resizable, or it stops being the thing this ticket adds",
-            "none",
+            "the tile must be resizable on both axes, or its type can never grow (point 7)",
+            "horizontal|vertical",
             attr(root, "android:resizeMode"),
         )
-        assertEquals("a strict 1x1 targets one cell", "1", attr(root, "android:targetCellWidth"))
-        assertEquals("a strict 1x1 targets one cell", "1", attr(root, "android:targetCellHeight"))
+        assertEquals("a 1x1 targets one cell", "1", attr(root, "android:targetCellWidth"))
+        assertEquals("a 1x1 targets one cell", "1", attr(root, "android:targetCellHeight"))
         assertEquals(
             "the declared minimum height must stay at the tiles' 40dp: on launchers before Android 12 the " +
                 "cell count is derived from minWidth/minHeight, so a larger value makes this a two-cell " +
@@ -641,6 +675,16 @@ class DualDateTilePreviewLayoutTest {
             "the declared minimum width",
             "${DualDateTileTypography.TILE_MIN_WIDTH_DP}dp",
             attr(root, "android:minWidth"),
+        )
+        assertEquals(
+            "minResizeHeight must not exceed the minimum, for the same pre-Android-12 reason",
+            "${DualDateTileTypography.TILE_MIN_HEIGHT_DP}dp",
+            attr(root, "android:minResizeHeight"),
+        )
+        assertEquals(
+            "and the same for the width",
+            "${DualDateTileTypography.TILE_MIN_WIDTH_DP}dp",
+            attr(root, "android:minResizeWidth"),
         )
         assertEquals(
             "the 30-minute sweep every widget-info in this family declares",
@@ -801,23 +845,17 @@ class DualDateTilePreviewLayoutTest {
         "Gregorian date" to subRowSize,
     )
 
-    /** The live band's height in dp — its text's line box, with no padding added. */
+    /** The live band's height in dp — its text's line box, plus top and bottom padding. */
     private fun bandHeightDp(sizes: DualDateTileSizes): Float =
         sizes.weekdaySize.value * DualDateTileTypography.LINE_HEIGHT_RATIO +
+            DualDateTileTypography.BAND_TOP_PADDING_DP +
             DualDateTileTypography.BAND_PADDING_DP
 
     private companion object {
         /**
          * The most vertical space the four zones are accepted to ask for, in dp, at the reference width.
-         *
-         * ~92dp, against the sibling tiles' accepted ~129dp for three lines — **less**, because the four
-         * lines sit across three zones rather than four.
-         *
-         * **It is not a target.** It is what this layout costs with the family's sizes, and the tile still
-         * clips on a cell shorter than it — the same accepted cost the sibling tiles carry and record
-         * rather than design away.
          */
-        const val ACCEPTED_MAX_REQUESTED_DP = 92
+        const val ACCEPTED_MAX_REQUESTED_DP = 69
 
         /**
          * How much leading may sit between a line box and its glyphs before the "equal by construction,

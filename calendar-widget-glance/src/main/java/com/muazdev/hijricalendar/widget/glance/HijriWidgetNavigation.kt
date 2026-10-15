@@ -106,7 +106,7 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
         // failure on either suspension point must still reach the `finally`, or the flag stays set
         // with no process left in this callback to clear it.
         HijriWidgetConfig.setLoading(context, glanceId, true)
-        HijriWidgetRenderQueue.render(context, glanceId)
+        HijriWidgetRenderQueue.render(context, glanceId, reason = "nav:step_start")
         val options = HijriWidgetConfig.load(context, glanceId)
         HijriWidgetRefreshLog.d("nav:step($step)", "options.language=${options.language}")
         if (options.source.pakistan) {
@@ -151,7 +151,7 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
             // Hold the bar up long enough to be seen — see MIN_LOADING_VISIBLE_MS.
             val remaining = HijriWidgetNavigation.MIN_LOADING_VISIBLE_MS - startedAt.elapsedNow().inWholeMilliseconds
             if (remaining > 0) delay(remaining)
-            HijriWidgetRenderQueue.render(context, glanceId)
+            HijriWidgetRenderQueue.render(context, glanceId, reason = "nav:step_end")
         }
     }
 }
@@ -167,7 +167,7 @@ public class HijriWidgetTodayResetCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         HijriWidgetConfig.clearViewedMonth(context, glanceId)
         HijriWidgetConfig.clearSelectedDay(context, glanceId)
-        HijriWidgetRenderQueue.render(context, glanceId)
+        HijriWidgetRenderQueue.render(context, glanceId, reason = "nav:today_reset")
     }
 }
 
@@ -252,5 +252,5 @@ internal suspend fun selectDay(
         HijriWidgetConfig.setViewedMonth(context, glanceId, year, month)
     }
     HijriWidgetConfig.setSelectedDay(context, glanceId, year, month, day)
-    HijriWidgetRenderQueue.render(context, glanceId)
+    HijriWidgetRenderQueue.render(context, glanceId, reason = "nav:select_day")
 }
