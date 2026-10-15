@@ -29,9 +29,17 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val viewModel: CalendarViewModel = koinViewModel()
 
+                // In-app settings changes are mirrored onto the placed widgets (point 4). The
+                // ViewModel has no Context by design, so the write/render pair is wired here, next
+                // to the callbacks that carry the values out of the shared screen.
+                val widgetSync = remember { WidgetSettingsSync(applicationContext) }
+
                 // Widget deep link (hijricalendar://today) → jump the calendar to today.
                 val deepLinkJumpsToToday = remember(intent) {
                     intent?.data?.toString()?.startsWith(HIJRI_DEEP_LINK_TODAY) == true
+                }
+                LaunchedEffect(Unit) {
+                    widgetSync.sync(viewModel.state.adjustmentDays, viewModel.state.pakistanDates, viewModel.state.monthLengths)
                 }
                 LaunchedEffect(deepLinkJumpsToToday) {
                     if (deepLinkJumpsToToday) viewModel.goToToday()
@@ -52,11 +60,20 @@ class MainActivity : ComponentActivity() {
                         onJumpToToday = viewModel::goToToday,
                         labels = UrduCalendarLabels,
                         showAdjustmentSelector = true,
-                        onAdjustmentDaysChange = viewModel::onAdjustmentDaysChange,
+                        onAdjustmentDaysChange = { days ->
+                            viewModel.onAdjustmentDaysChange(days)
+                            widgetSync.sync(days, viewModel.state.pakistanDates, viewModel.state.monthLengths)
+                        },
                         showPakistanToggle = true,
-                        onPakistanDatesChange = viewModel::onPakistanDatesChange,
+                        onPakistanDatesChange = { pakistan ->
+                            viewModel.onPakistanDatesChange(pakistan)
+                            widgetSync.sync(viewModel.state.adjustmentDays, pakistan, viewModel.state.monthLengths)
+                        },
                         showMonthLengthSettings = true,
-                        onMonthLengthOverridesChanged = viewModel::persistMonthLengthOverrides,
+                        onMonthLengthOverridesChanged = {
+                            viewModel.persistMonthLengthOverrides()
+                            widgetSync.sync(viewModel.state.adjustmentDays, viewModel.state.pakistanDates, viewModel.state.monthLengths)
+                        },
                         showAdjacentDaysToggle = true,
                         showWeekendPatternToggle = true,
                         showCellBordersToggle = true,

@@ -108,7 +108,7 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
                 // is "not pinned" (WD-03), so comparing the two fields independently would report a
                 // change where the rendered month did not move.
                 val pinnedChanged = previous.pinned != options.pinned
-                HijriWidgetConfig.save(this@HijriWidgetSettingsActivity, id, options)
+                HijriWidgetConfig.saveWidgetOptions(this@HijriWidgetSettingsActivity, id, options, caller = "settings-apply")
                 // A pinned month is an explicit "show this month"; drop any transient on-widget
                 // navigation state so the grid honours the new pin (a no-op for the strip and the
                 // 1x1 tiles, which have no navigation state).
@@ -117,8 +117,8 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
                 }
             } else {
                 // No widget id yet (launched from the catalog without targeting an instance)
-                // — persist the family mirror directly so the strip and tiles follow the choices.
-                HijriWidgetConfig.saveFamily(this@HijriWidgetSettingsActivity, options)
+                // — persist the family mirror directly so newly placed widgets follow the choices.
+                HijriWidgetConfig.saveFamilyOptions(this@HijriWidgetSettingsActivity, options, caller = "settings-apply")
             }
             // Re-render the whole family (the edited widget plus its siblings, which follow the
             // family options mirror) so every widget updates immediately.
