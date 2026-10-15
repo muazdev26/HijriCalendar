@@ -12,15 +12,15 @@ import android.util.Log
  *
  * Filter with: `adb logcat -s HijriWidgetRefresh`
  */
-internal object HijriWidgetRefreshLog {
+public object HijriWidgetRefreshLog {
 
-    const val TAG = "HijriWidgetRefresh"
+    public const val TAG: String = "HijriWidgetRefresh"
 
-    fun d(reason: String, message: String) {
+    public fun d(reason: String, message: String) {
         Log.d(TAG, "[$reason] $message")
     }
 
-    fun e(reason: String, message: String, t: Throwable? = null) {
+    public fun e(reason: String, message: String, t: Throwable? = null) {
         Log.e(TAG, "[$reason] $message", t)
     }
 }

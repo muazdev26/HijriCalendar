@@ -17,9 +17,9 @@ import android.content.Intent
  * API 26+ implicit-broadcast manifest ban, so midnight rollover is instead handled by the
  * exact AlarmManager alarm.
  *
- * On boot the process starts via [BOOT_COMPLETED], so the host application's `onCreate`
- * has already re-armed the midnight alarm before this receiver runs; we only need to catch the
- * widget up.
+ * On boot the process starts via [BOOT_COMPLETED], so the host application's `onCreate` has already
+ * reconciled the scheduling; we reconcile again here (idempotent) so a boot with no widget placed
+ * ends with no pending alarm rather than one inherited from a previous install state.
  */
 internal class HijriWidgetUpdateReceiver : BroadcastReceiver() {
 
@@ -31,7 +31,7 @@ internal class HijriWidgetUpdateReceiver : BroadcastReceiver() {
             action == Intent.ACTION_LOCALE_CHANGED ||
             action == Intent.ACTION_BOOT_COMPLETED
         ) {
-            HijriWidgetRefreshScheduler.armMidnightAlarm(context)
+            HijriWidgetRefreshScheduler.reconcile(context)
             HijriWidgetRefresher.refreshAllAsync(
                 context,
                 reason = "system:$action",

@@ -86,7 +86,7 @@ public object HijriWidgetRefresher {
             "render: epochDay=$todayEpochDay lastUpdated=$lastUpdated (foreground=$foreground, " +
                 "fresh=$fresh, pending=$pending, bypassGate=$bypassGate, bypassDedupe=$bypassDedupe)",
         )
-        when (HijriWidgetRenderQueue.renderAll(context)) {
+        when (HijriWidgetRenderQueue.renderAll(context, reason = reason)) {
             HijriWidgetRenderQueue.RenderOutcome.Coalesced -> {
                 // Deliberately leaves `markUpdatedNow` alone. A render is in flight and will drain
                 // our sweep, so the work is not lost — but the marker means "the display now shows
@@ -141,7 +141,7 @@ public object HijriWidgetRefresher {
             return
         }
         HijriWidgetRefreshLog.d(reason, "render instance: $glanceId")
-        when (HijriWidgetRenderQueue.render(context, glanceId)) {
+        when (HijriWidgetRenderQueue.render(context, glanceId, reason = reason)) {
             HijriWidgetRenderQueue.RenderOutcome.Coalesced ->
                 HijriWidgetRefreshLog.d(reason, "instance render coalesced into an in-flight render")
             HijriWidgetRenderQueue.RenderOutcome.Rendered ->
