@@ -2,10 +2,16 @@
 <!--
     The filled "today" cell background, as a static preview can express it.
 
-    The live render applies this colour with `cornerRadius(14.dp)` from Glance, which a
-    `previewLayout` cannot do inline; a shape drawable is the framework-side equivalent. The radius
-    is matched to the live one so the picker preview does not show a square where the placed widget
-    shows a rounded pill.
+    Today is the default selection, so the live render fills today's cell with the selected-day block:
+    `fillMaxSize().background(widget_selected_day)` when the grid draws its dividers, and
+    `padding(1.dp).background(...).cornerRadius(14.dp)` when it does not. This preview layout depicts
+    the dividers-off grid (1dp cell margins, no rule views), and a `previewLayout` cannot apply a
+    corner radius inline — a shape drawable is the framework-side equivalent. The radius is matched to
+    the live one so the picker preview does not show a square where the placed widget shows a rounded
+    pill.
+
+    The colour is `widget_today_background` rather than `widget_selected_day` because the pre-Android-12
+    `previewImage` vector references the same token; both carry the same value (see `colors.xml`).
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">

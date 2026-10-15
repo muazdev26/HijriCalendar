@@ -60,14 +60,17 @@ class WidgetPaletteNightTest {
         "widget_text_primary",
         "widget_text_secondary",
         "widget_weekend_text",
-        "widget_today_background",
         "widget_on_today",
         // FD-07: the dimmed day figures. Real resources now, precisely because a ColorProvider cannot
         // carry an alpha.
         "widget_day_out_of_month",
         "widget_day_gregorian_sub",
         "widget_day_out_faint",
-        // The cell divider (FD-04) and the selected-day badge (FD-09).
+        // The cell divider (FD-04) and the selected-day fill (FD-09). `widget_today_background` is not
+        // listed: today is the *default selection*, and the Glance render fills today's cell with
+        // `widget_selected_day` like any other chosen day, so nothing in the composition reads the
+        // old token — only the static preview drawable and the pre-Android-12 vector do, which is why
+        // the colour resource survives.
         "widget_cell_border",
         "widget_selected_day",
         // The observance fill (FD-08): two resources, because a ColorProvider cannot carry an alpha
@@ -184,7 +187,7 @@ class WidgetPaletteNightTest {
         val expected = listOf(
             "accent", "arrowDimmed", "background", "cellBorder", "eventDayBackground", "gregorianDay",
             "onEventDayText", "onTodayText", "outOfMonthDay", "outOfMonthGregorianDay", "primaryText",
-            "secondaryText", "selectedDay", "todayBackground", "weekendText",
+            "secondaryText", "selectedBackground", "weekendText",
         )
         // Compose adds $stable and the companion's Companion/DEFAULT are static, not per-instance.
         val actual = WidgetColors::class.java.declaredFields

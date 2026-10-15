@@ -98,8 +98,12 @@ class StaticPreviewLayoutTest {
         val cells = gridPreview().gridRows().flatMap { it.children() }
         return GridCells(
             all = cells,
+            // Today is the **default selection**, so the fresh preview marks it with the block a tapped
+            // day gets: a `LinearLayout` carrying the `widget_today_background` fill drawable — the
+            // preview's dividers-off equivalent of Glance's `cornerRadius` — whose two `TextView`s are
+            // `widget_on_today`.
             today = cells.filter { cell ->
-                cell.deepAttr("android:background").any { it.contains("widget_today_background") }
+                cell.attr("android:background")?.contains("widget_today_background") == true
             },
         )
     }
@@ -130,8 +134,16 @@ class StaticPreviewLayoutTest {
     }
 
     @Test
-    fun exactlyOneCellIsHighlightedAsToday() {
-        assertEquals("exactly one cell should carry today's fill", 1, gridCells().today.size)
+    fun exactlyOneCellCarriesTheSelectionBlock() {
+        // Today is the default selection, so the fresh preview fills exactly one cell — today's — with
+        // the selection block. Two would mean a second "today"; none would mean the preview advertises
+        // an unmarked grid the widget never renders in its untouched state.
+        assertEquals(
+            "exactly one cell should carry the selection block — today is the default selection, so " +
+                "the fresh preview fills today's cell and nothing else",
+            1,
+            gridCells().today.size,
+        )
     }
 
     @Test
@@ -158,19 +170,24 @@ class StaticPreviewLayoutTest {
 
     @Test
     fun everyVisualTierTheLiveRenderUsesIsPresent() {
-        // The live render dims out-of-month days to `primaryText.copy(alpha = 0.38f)` and shades
-        // weekends. The alpha is flattened into `widget_text_muted` for the preview (a
-        // `previewLayout` is inflated by the framework, not by Glance, so it cannot apply one).
-        // Asserting the tier is present, not the hex value — that would only prove the XML says
-        // what the XML says.
+        // Each tier the live `DayCell` and header paint, so the picker advertises the same vocabulary
+        // of dimming and highlighting the placed widget has. Asserting the tier is present, not the hex
+        // value — that would only prove the XML says what the XML says.
+        //
+        // The today/selection block is the two tokens the fresh snapshot uses: the fill
+        // (`widget_today_background`, the preview's own name for `widget_selected_day`) and its content
+        // (`widget_on_today`). `widget_accent` and `widget_day_gregorian_sub` are deliberately absent:
+        // they are the TODAY-*figure* tier, which the widget only draws once another day is selected,
+        // and this snapshot is the untouched state where today wears the block instead.
         val root = gridPreview()
         val referenced = root.deepAttr("android:textColor") + root.deepAttr("android:background")
         listOf(
             "widget_text_primary" to "in-month days",
             "widget_day_out_of_month" to "out-of-month days",
             "widget_weekend_text" to "weekend days",
-            "widget_today_background" to "today's fill",
-            "widget_on_today" to "today's content",
+            "widget_today_background" to "the selection block's fill",
+            "widget_on_today" to "the selection block's content",
+            "widget_text_secondary" to "the weekday row and the Gregorian header line",
         ).forEach { (token, what) ->
             assertTrue(
                 "no $what styling ($token) in the static grid preview",
@@ -316,14 +333,24 @@ class StaticPreviewLayoutTest {
     }
 
     @Test
-    fun theStaticGridNamesBothTheHijriAndTheGregorianMonthOnOneLine() {
-        // The live header is a single centred line carrying both (WD-02). The preview used to carry
-        // only a Gregorian range, which no longer matches anything the widget renders.
-        val titles = gridPreview().deepAttr("android:text").filter { it.contains("2026") }
-        assertEquals("expected exactly one combined month+year title", 1, titles.size)
+    fun theStaticGridNamesTheHijriAndTheGregorianMonthOnTwoLines() {
+        // The live header is two centred lines (the redesign): the Hijri month + year above the
+        // Gregorian one. The preview used to carry a single `·`-joined line, which the widget no
+        // longer renders.
+        val texts = gridPreview().deepAttr("android:text")
+        assertEquals(
+            "expected one Hijri title line",
+            1,
+            texts.count { it.contains("۱۴۴۸") },
+        )
+        assertEquals(
+            "expected one Gregorian title line",
+            1,
+            texts.count { it.contains("2026") },
+        )
         assertTrue(
-            "the title should carry both calendars, got \"${titles.single()}\"",
-            titles.single().contains('·'),
+            "the two-month title is two lines now, not one `·`-joined line",
+            texts.none { it.contains('·') },
         )
     }
 

@@ -6,12 +6,15 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
+import androidx.glance.currentState
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
@@ -22,7 +25,6 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -41,32 +43,54 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  * the Hijri date, [GregorianDateWidget] the Gregorian one — and the only widget that showed both was
  * the resizable Today strip, which cannot be placed in a single cell.
  *
- * **Strictly 1x1 and not resizable**, which is the whole constraint on this layout. The widget-info
- * declares the same 40dp minimum as the other tiles and `resizeMode="none"`; `minHeight` is *not*
- * raised to make the content fit, because on launchers before Android 12 the cell count is derived
- * from `minWidth`/`minHeight`, so a 72dp minimum would make this **two** cells tall there. The strip
- * can afford that because it is resizable. A strict 1x1 cannot, so the type is sized to the cell the
- * launcher grants — see [DualDateTileTypography].
+ * **Placed as a 1x1, and resizable on both axes since point 7.** The widget-info keeps the same
+ * 40dp minimum as the other tiles — `minHeight` is deliberately *not* raised to make the content
+ * fit, because on launchers before Android 12 the cell count is derived from
+ * `minWidth`/`minHeight`, so a 72dp minimum would make this **two** cells tall there. What the
+ * minimum does not do is pin the type: [sizeMode] is `Exact`, so a stretched tile renders the same
+ * four zones larger rather than the same four zones inside more empty space — see
+ * [DualDateTileTypography].
  *
  * No settings screen and no per-widget state: it follows the family options mirror
  * ([HijriWidgetConfig.loadFamily]) like the other two tiles. Tapping anywhere opens the app.
  */
 public class HijriDualDateWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Single
+    /**
+     * `SizeMode.Exact`, so the composition sees the cell the launcher granted — the same reasoning as
+     * [HijriDateWidget.sizeMode], and for this tile the same reason it is safe: the only interaction
+     * is one `actionStartActivity`, a `PendingIntent` attached to the `RemoteViews`, so composing
+     * per size cannot double-launch the app.
+     */
+    override val sizeMode: SizeMode = SizeMode.Exact
+
+    /**
+     * The picker preview composes at the tile's square reference cell rather than the bare 40dp
+     * minimum, so the picker shows the four zones at the sizes a placed 1x1 renders them — the same
+     * arrangement the sibling tiles use.
+     */
+    override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(
+        setOf(DUAL_DATE_TILE_PREVIEW_SIZE),
+    )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Same one-shot peek as the rest of the family: port legacy config (seeding the family mirror
-        // once) and warm the Pakistan century table if the family now opts into it.
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
-        val options = HijriWidgetConfig.loadFamily(context)
-        if (options.source.pakistan) {
+        val peeked = HijriWidgetConfig.load(context, id)
+        if (peeked.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.forTheme(options.theme)
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
+            val prefs = currentState<Preferences>()
+            val rawOptions = HijriWidgetConfig.decodeOptions(prefs)
+            val options = rawOptions ?: HijriWidgetConfig.loadFamily(context)
+            val optionsFrom = if (rawOptions != null) "perWidget" else "family"
+            HijriWidgetRefreshLog.d(
+                "render:tile",
+                "type=DualDate overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=$optionsFrom",
+            )
+            val colors = WidgetColors.forTheme(options.theme)
             val today = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
@@ -86,20 +110,22 @@ public class HijriDualDateWidget : GlanceAppWidget() {
      * Real picker preview for Android 15+: today's Hijri + Gregorian date in the family's current
      * options, non-interactive. [HijriWidgetPreviewPublisher] publishes the result.
      *
-     * Keeps `SizeMode.Single` as its `previewSizeMode`, i.e. the *real* 40dp minimum, rather than a
-     * composed-at-a-realistic-size bucket like the grid and the strip use. This tile declares no
-     * `minHeight` it can be stretched against — a 1x1 is a 1x1 — so a preview composed at anything
-     * other than the minimum would be showing a size the picker cannot grant, which is exactly the
-     * mismatch the responsive preview sizes exist to avoid elsewhere.
+     * The preview composes at [previewSizeMode]'s square reference cell rather than the declared
+     * 40dp minimum, because a preview at the minimum advertises four unreadable lines as if they
+     * were the tile.
      */
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val options = HijriWidgetConfig.loadFamily(context)
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
+        HijriWidgetRefreshLog.d(
+            "render:tile",
+            "type=DualDate overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=family",
+        )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null)
+            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
             DualDateTileRoot(
                 today = data.todayHijri,
                 colors = colors,
@@ -116,7 +142,7 @@ public class HijriDualDateWidget : GlanceAppWidget() {
  * `previewLayout` mirror can be held to them — the same arrangement as [DateTileTypography] and
  * [TodayStripTypography].
  *
- * ## Four zones: fixed labels, flexing day figure
+ * ## Four zones, all sized from the granted width
  *
  * The tile stacks a header band, a sub-row, the day figure and the weekday. Laid out as fixed line
  * boxes those four ask for more height than a 1x1 cell provides — and the obvious ways out are both
@@ -132,25 +158,28 @@ public class HijriDualDateWidget : GlanceAppWidget() {
  * 72dp cell it produced a **6sp weekday**: smaller than the icon next to it, and unreadable at
  * arm's length. Every zone shrank together, so a modest cell took the labels down with it.
  *
- * The strip's insight is the opposite, and it is the whole fix: **the small lines are fixed at a size
- * chosen for reading, and only the day figure flexes** into whatever height is left. A 72dp cell then
- * gets a 13sp weekday and a 20sp day figure instead of a 13sp weekday and a 6sp one; a 140dp cell
- * gets the same 13sp weekday and a 40sp figure.
+ * The model that replaced it is **width-driven, like the sibling tiles, with the day figure scaling
+ * with the tile**: the captions are the sibling tiles' own rule
+ * (`DateTileTypography.weekdaySizeFor`) dialled back by `CAPTION_RATIO`, and the day figure is
+ * [DualDateTileTypography.daySizeFor] — 20sp at the reference width, growing to 40sp. So a 72dp cell
+ * gets a ~11sp weekday and a 20sp figure, and a wider cell grows both, the figure faster. That is
+ * what keeps the day the tile's loudest zone at every size rather than only at the reference one
+ * (`isDayDominant` states the invariant next to the rule that maintains it).
  *
- * The consequence is honest and belongs here rather than in a device bug report: **the three labels
- * claim about 45dp before the day figure gets any**, so a cell well under a typical 1x1 cannot show
- * them at full size. Where they genuinely do not fit, [sizesFor] scales *everything* uniformly so
- * nothing clips — a legible-but-tight tile becomes an illegible-but-complete one, which is the right
- * way round. The declared 40dp minimum is in that regime and always has been; see
- * [theWidgetInfoIsAStrictSingleCell]'s counterpart in the test.
+ * The consequence is honest and belongs here rather than in a device bug report: **the four zones
+ * claim more height than a small cell has**, so a cell well under a typical 1x1 cannot show them all
+ * at full size. Nothing shrinks to fit — FD-10 is explicit that this family does not shrink a tile's
+ * type for its cell, and a legible-but-cropped tile beats an illegible-but-complete one. The declared
+ * 40dp minimum is in that regime and always has been; [verticalBudgetDp] records the arithmetic and
+ * `DualDateTilePreviewLayoutTest` holds the layout to it.
  *
  * ```
  * ┌────────────────────────┐
- * │  HEADER BAND          │  Hijri month, white on accent  (fixed)
+ * │  HEADER BAND          │  Hijri month, white on accent  (width-scaled)
  * ├────────────────────────┤
- * │  Greg month ·  Greg day│  small row, two ends           (fixed)
- * │       HIJRI DAY        │  dominant figure          (flexes)
- * │        weekday         │                              (fixed)
+ * │  Greg month ·  Greg day│  small row, two ends           (width-scaled)
+ * │       HIJRI DAY        │  dominant figure                  (grows most)
+ * │        weekday         │                              (width-scaled)
  * └────────────────────────┘
  * ```
  * ## The equal-margin requirement, and what this layout can and cannot promise
@@ -197,228 +226,127 @@ internal object DualDateTileTypography {
      */
     const val TILE_MIN_HEIGHT_DP = 40
 
-    /** The declared minimum tile width — and the narrowest a sub-row or weekday name can be drawn. */
+    /**
+     * The declared minimum tile width — and the narrowest a sub-row or weekday name can be drawn.
+     */
     const val TILE_MIN_WIDTH_DP = 40
 
-    /**
-     * The height at which the sizes are the ones a 1x1 cell is normally granted, and the size the
-     * Android 12-14 `previewLayout` mirror is rendered at.
-     *
-     * Not a measurement: there is no way to ask a launcher what it will grant, and launchers disagree
-     * by tens of dp. It is the smallest of the typical 1x1 grants, chosen so the static mirror shows
-     * the **conservative** end of what the live tile renders rather than an optimistic one.
-     */
     const val TILE_REFERENCE_TEXT_WIDTH_DP: Float = DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP
+    const val REFERENCE_HEIGHT_DP: Float = 72f
 
     /** Horizontal clear space. The band itself stays flush to the tile's edges. */
     const val HORIZONTAL_PADDING_DP = 6
 
-    /**
-     * The band's extra height, in dp — added **below** its text, never above it.
-     *
-     * The band is grown by padding under the weekday, not by padding the box symmetrically, and the reason
-     * is a reported defect. A line box's leading is asymmetric — more space below the baseline than above
-     * it — so *symmetric* padding lands off-centre by the descent, which showed on a device as a stripe of
-     * empty accent **above** the text. Padding below only keeps the space above the glyphs exactly as it
-     * was and puts the added height where it reads as a header bar rather than as a gap.
-     */
-    const val BAND_PADDING_DP = 6
+    /** Top padding inside the band to prevent glyph clipping (e.g., Arabic/Urdu ascenders). */
+    const val BAND_TOP_PADDING_DP = 2
+
+    const val BAND_PADDING_DP = 3
 
     /**
      * The gap between the tile's body lines, in dp.
-     *
-     * 1dp, matching the Today strip's [TodayStripTypography.lineGap]. Small on purpose: the request this
-     * answers was for the Gregorian date to sit "without any large spaces", and a 1x1 has no height to
-     * spend on breathing room — every dp here comes out of the ~99dp budget the four lines share.
      */
     val lineGap = 1.dp
 
     /**
      * The separator between the Gregorian month name and day, in this tile's own typography.
-     *
-     * **A literal, not a projected string**, and deliberately: it is punctuation rather than text, and a
-     * dash reads the same in both supported languages — it does not move to the other side of a date. The
-     * grid header already joins its two title halves with a literal `" · "` for the same reason, so this
-     * follows existing practice rather than inventing a second one.
-     *
-     * What *must* come from the projection is the month name, the weekday and the numerals, because those
-     * are language- and numeral-specific (WG-12). A separator is neither.
      */
     const val DATE_SEPARATOR = " - "
 
-    // ── The type sizes ────────────────────────────────────────────────────────
-    //
-    // **These are the sibling tiles' own numbers, not a parallel set.** Every one below is read from
-    // [DateTileTypography], the object `HijriDateWidget` and `GregorianDateWidget` already size
-    // themselves with, and that is the whole design:
-    //
-    //   * the day figure is [DateTileTypography.daySize] — **the same 36sp** all three tiles draw, so a
-    //     number on this tile is indistinguishable in weight from a number on either other one;
-    //   * the header band's month name and the weekday line are both sized by
-    //     [DateTileTypography.weekdaySizeFor], the rule the sibling tiles already use for both of their
-    //     caption lines.
-    //
-    // ## The sizing *posture* is shared too, and it is the part that matters
-    //
-    // The sibling tiles ask for **~107–122dp of line box in a cell whose declared minimum is 40dp**, and
-    // they accept clipping below that rather than shrink. [DateTileTypography]'s KDoc records why: a
-    // band layout that sized each line from its own share of the granted height was tried, and reverted,
-    // because holding the captions to a quarter of the cell cost ~10sp of their size.
-    //
-    // An earlier version of *this* tile took the opposite posture — it shrank the whole tile to fit
-    // whatever it was granted — and that is why it rendered a 6sp weekday and then, when its sizes were
-    // raised, a 12.9sp one. Fitting the content is not what this family does, and a four-zone tile has
-    // less to give than a three-zone one.
-    //
-    // So this tile sizes for the cell a launcher actually grants and overflows below that, and
-    // `DualDateTilePreviewLayoutTest` records the budget instead of pretending to meet the minimum.
+    /**
+     * The figure at the reference width — and its floor, since a placed 1x1 must never render
+     * *smaller* than the size it has always had (FD-10: this family never shrinks a tile's type to
+     * fit its cell). Grows with the granted width up to [daySizeCeiling]; see [daySizeFor].
+     */
+    val daySize = 20.sp
+    val daySizeFloor = daySize
 
     /**
-     * The Hijri day figure, in the **centre** of the tile under the band.
-     *
-     * 30sp, which is `DateTileTypography.daySize` (36sp) less a sixth. The reduction is what lets the four
-     * lines coexist: the sibling tiles carry two caption lines at 32sp against a 36sp figure and already
-     * accept clipping on a short cell, while this tile has four lines rather than three.
-     *
-     * **It is still the dominant figure**, which is the property that matters and the one [isDayDominant]
-     * guards: every caption in this layout is [CAPTION_RATIO] of the sibling tiles' own rule against it
-     * and clamped below it, so nothing can overtake it at any width.
+     * The figure's ceiling at a large cell. Point 7: the figure tracks the granted width instead of
+     * being a constant, so the tile's loudest zone is also the one that grows most on a resize.
      */
-    val daySize = 22.sp
+    val daySizeCeiling = 40.sp
 
-    /**
-     * The scale the captions are drawn at, as a fraction of the sibling tiles' name-sizing rule.
-     *
-     * 0.6, and it is a **scale** rather than a fixed size so the captions still widen with the tile the
-     * way the sibling tiles' do — the rule is borrowed whole and dialled back, not replaced by a constant
-     * that would stop responding to the granted width.
-     *
-     * It is also what keeps the weekday under the band day. Unscaled, the sibling rule returns 32sp at a
-     * 72dp text width, which would have made the **weekday larger than the Hijri day** and inverted the
-     * tile.
-     */
-    const val CAPTION_RATIO = 0.7f
-
-    /**
-     * The largest a caption may be, as a share of [daySize] — so the figure always dominates.
-     *
-     * `internal` rather than `private` because the test asserts the clamp's meaning and must not restate
-     * the number: a private constant that a test duplicates is a second source of truth, and restating it
-     * here is exactly how a caption clamp came to be 0.7 in the test while the tile said 0.8 — which fails
-     * as a plausible-looking assertion about a *different* number.
-     */
+    const val CAPTION_RATIO = 0.85f
     internal const val CAPTION_MAX_SHARE = 0.8f
 
-    /**
-     * The Hijri month name, alone in the band.
-     *
-     * Borrowed from [DateTileTypography.weekdaySizeFor] like every other name here, then scaled by
-     * [CAPTION_RATIO] and clamped between the sibling tiles' caption floor and [CAPTION_MAX_SHARE]
-     * of the figure. The two clamps are what keep the hierarchy true at both ends of the size range: a
-     * narrow cell would otherwise render the caption too small to read, and a wide one too large to be a
-     * caption under a figure.
-     */
-    fun monthSizeFor(availableWidth: Float): TextUnit = captionSizeFor(availableWidth)
-
-    /**
-     * The weekday, last, at the same size as the band's caption.
-     *
-     * Both are captions on a page whose figure is [daySize], so they share one rule and come out the
-     * same size — the same reasoning that gives the sibling tiles two identical caption lines.
-     */
-    fun weekdaySizeFor(availableWidth: Float): TextUnit = captionSizeFor(availableWidth)
-
-    /**
-     * The Gregorian month and day in the sub-row, at opposite ends.
-     *
-     * A **caption**, and deliberately the smallest line on the tile: the two ends are one date split by
-     * the page fold, and the Hijri day in the band is the figure this tile exists to show. A Gregorian day
-     * at equal weight would put two dominant numbers on the tile — the failure FD-05's removal of the
-     * year already avoided on the other two tiles.
-     */
-    val subRowSize = 16.sp
-
-    /**
-     * The smallest a caption may be at a narrow tile, in sp.
-     *
-     * [DateTileTypography.weekdaySizeFloor]'s floor, the one the sibling tiles hold their captions to, so
-     * no line here can be smaller than the smallest line on any other 1x1 tile in the family.
-     */
+    val subRowSize = 10.5.sp
     val subRowSizeFloor = DateTileTypography.weekdaySizeFloor
+    val subRowSizeCeiling = 16.sp
 
-    /** The caption rule: the sibling tiles' own, scaled down and clamped. See [CAPTION_RATIO]. */
-    private fun captionSizeFor(availableWidth: Float): TextUnit =
+    val monthSizeFloor = 10.sp
+    val monthSizeCeiling = 22.sp
+
+    /**
+     * The day figure for a granted width: [daySize] at [TILE_REFERENCE_TEXT_WIDTH_DP], scaling with
+     * the tile and clamped to [daySizeFloor]..[daySizeCeiling].
+     *
+     * Exactly `daySize` at the reference width, which is what keeps a preview and a placed 1x1 in
+     * agreement; the captions are then held under the figure the *same* cell renders.
+     */
+    fun daySizeFor(availableWidthDp: Float): TextUnit =
+        (daySize.value * availableWidthDp / TILE_REFERENCE_TEXT_WIDTH_DP)
+            .coerceIn(daySizeFloor.value, daySizeCeiling.value)
+            .sp
+
+    /**
+     * A caption — the band weekday, the Hijri month name — for a granted width, held under
+     * `CAPTION_MAX_SHARE` of the day figure **that the same cell will render**, so the two values
+     * cannot drift apart as the tile grows.
+     */
+    private fun captionSizeFor(availableWidth: Float, daySizeSp: Float): TextUnit =
         (DateTileTypography.weekdaySizeFor(availableWidth).value * CAPTION_RATIO)
             .coerceIn(
-                DateTileTypography.weekdaySizeFloor.value,
-                daySize.value * CAPTION_MAX_SHARE,
+                monthSizeFloor.value,
+                minOf(monthSizeCeiling.value, daySizeSp * CAPTION_MAX_SHARE),
             ).sp
 
+    /** The caption rule at the reference cell, for callers that have only a width. */
+    fun monthSizeFor(availableWidth: Float): TextUnit = captionSizeFor(availableWidth, daySize.value)
+
+    fun weekdaySizeFor(availableWidth: Float): TextUnit = captionSizeFor(availableWidth, daySize.value)
+
     /**
-     * The four type sizes for a tile [availableWidth] wide.
-     *
-     * **Width, not height** — because that is the axis the sibling tiles size on, and the axis a fixed 1x1
-     * actually varies along. `SizeMode.Single` still reports a real size and launchers disagree on how wide
-     * a 1x1 is by tens of dp, so a name sized for one reads as a caption on another. The band day is fixed
-     * because it is not the length-sensitive one.
-     *
-     * No height term at all, deliberately: a four-line tile has no vertical room to spare, so letting the
-     * height shrink anything would immediately take size off the text — which is what made two earlier
-     * versions of this tile unreadable on a device.
-     *
-     * Pure and Dp-free so it can be asserted without a `Context` or a composition.
+     * The tile's type sizes for a granted width. `grantedHeightDp` is accepted for signature parity
+     * with the sibling tiles' `DateTileTypography.sizesFor(width, height)` and unused **on purpose**:
+     * FD-10 is explicit that a 1x1 tile must never shrink its type to fit its cell (the family does
+     * not), so the sizes derive from the width alone — only the *budget* below is a function of the
+     * height, and it compares against that height at the call site rather than shrinking to it.
      */
-    fun sizesFor(availableWidthDp: Float): DualDateTileSizes {
-        val monthSize = monthSizeFor(availableWidthDp)
+    @Suppress("UnusedParameter")
+    fun sizesFor(availableWidthDp: Float, grantedHeightDp: Float): DualDateTileSizes {
+        val day = daySizeFor(availableWidthDp)
+        val caption = captionSizeFor(availableWidthDp, day.value)
+        val subRow = minOf(caption.value, subRowSizeCeiling.value)
+            .coerceIn(subRowSizeFloor.value, subRowSizeCeiling.value)
+            .sp
+
         return DualDateTileSizes(
-            monthSize = monthSize,
-            daySize = daySize,
-            // Never larger than the caption above it, or the sub-row would out-weigh the month name it
-            // belongs with.
-            subRowSize = minOf(subRowSize.value, monthSize.value).coerceAtLeast(subRowSizeFloor.value).sp,
-            weekdaySize = weekdaySizeFor(availableWidthDp),
+            monthSize = caption,
+            daySize = day,
+            subRowSize = subRow,
+            weekdaySize = caption,
         )
     }
 
-    /**
-     * The vertical budget these four lines ask for, in dp, at [availableWidthDp].
-     *
-     * **Recorded rather than met, exactly as [DateTileTypography] records its own.** A four-zone tile
-     * needs more height than a three-zone one — this is ~125dp at a 72dp-wide cell against the sibling
-     * tiles' ~107dp — so it clips its last line on a cell shorter than that, and the honest thing is to
-     * say so here and let the test hold the number, rather than to shrink the type until the number looks
-     * acceptable. The alternative was tried and is what made this tile unreadable.
-     */
-    fun verticalBudgetDp(availableWidthDp: Float): Float {
-        val sizes = sizesFor(availableWidthDp)
+    fun sizesFor(availableWidthDp: Float): DualDateTileSizes =
+        sizesFor(availableWidthDp, REFERENCE_HEIGHT_DP)
+
+    fun verticalBudgetDp(availableWidthDp: Float, grantedHeightDp: Float): Float {
+        val sizes = sizesFor(availableWidthDp, grantedHeightDp)
         val sum = sizes.monthSize.value + sizes.daySize.value +
             sizes.subRowSize.value + sizes.weekdaySize.value
-        return sum * LINE_HEIGHT_RATIO + BAND_PADDING_DP
+        return sum * LINE_HEIGHT_RATIO + BAND_TOP_PADDING_DP + BAND_PADDING_DP + lineGap.value * 2
     }
 
-    /**
-     * The upper bound on how far a line's glyphs can sit inside its box, in dp.
-     *
-     * **A bound, not a measurement**, and deliberately stated in the module rather than discovered on
-     * a device. It is the largest leading [LINE_HEIGHT_RATIO] allows between the largest label's line
-     * box and its glyph run — the header band, since a band puts its line's whole inset on show. That
-     * is the whole residue the equal-inset construction leaves, and quoting it as a number is what lets
-     * the top and bottom margins be *compared* rather than merely asserted equal in intent.
-     *
-     * It can be tightened by measuring real glyph bounds, which is what D1's two abandoned routes (an
-     * `AndroidRemoteViews` layout, or a drawn `Bitmap`) were for. Neither is taken here.
-     */
+    fun verticalBudgetDp(availableWidthDp: Float): Float =
+        verticalBudgetDp(availableWidthDp, REFERENCE_HEIGHT_DP)
+
     val RESIDUAL_MARGIN_DP: Float =
         DateTileTypography.weekdaySizeAtReference.value * (LINE_HEIGHT_RATIO - 1f) / 2f
 }
 
 /**
  * The four type sizes a dual-date tile renders at, as one value.
- *
- * A single type rather than four independent parameters because they are not independently choosable:
- * three of them are fixed together and the fourth is derived from the height they leave over, so a
- * caller that took [daySize] alone could pair it with a stale [weekdaySize] and get a tile whose
- * proportions do not match — which is not a failure any single-number assertion would catch.
  */
 internal data class DualDateTileSizes(
     /** The Hijri month name, alone in the band. */
@@ -428,10 +356,6 @@ internal data class DualDateTileSizes(
     val subRowSize: TextUnit,
     val weekdaySize: TextUnit,
 ) {
-    /**
-     * The four zones stacked as line boxes, in dp — what [DualDateTileTypography.sizesFor] fits
-     * against the granted height, and what the preview-layout test recomputes from the XML.
-     */
     fun stackedHeightDp(): Float =
         (monthSize.value + daySize.value + subRowSize.value + weekdaySize.value) *
             DualDateTileTypography.LINE_HEIGHT_RATIO
@@ -440,32 +364,6 @@ internal data class DualDateTileSizes(
 /**
  * The tile's layout, top to bottom: the weekday in a filled band, the Hijri day centred, the Hijri month
  * name in full beneath it, then the Gregorian date. Tapping anywhere opens the app.
- *
- * ```
- * Column
- * ├── Box  band, full width, accent fill: the weekday name
- * └── Box  defaultWeight(), centre-aligned
- *     └── Column
- *         ├── Text Hijri day, accent, bold      <- the figure
- *         ├── Text Hijri month name, full
- *         └── Box  fillMaxWidth, centred: Gregorian month - day
- * ```
- *
- * ## How the margins are shared
- *
- * The band is a fixed height at the top and the region below it is a **weighted, centre-aligned** `Box`, so
- * whatever height the launcher grants beyond the four lines' own boxes is split evenly between the space
- * above the day and the space below the Gregorian date. A top-pinned region would render its content first
- * and pool all the slack underneath, which is the arrangement the strip's KDoc records as making a leftover
- * height read as a mistake.
- *
- * The residue this leaves is the leading inside each `Text`'s line box, which Glance cannot remove — see
- * [DualDateTileTypography] for why, and for what it costs.
- *
- * ## Reading direction
- *
- * The Gregorian date is the tile's only left/right order; see [GregorianDateLine] for why its order keys
- * on the **device** rather than the language.
  */
 @Composable
 internal fun DualDateTileRoot(
@@ -477,24 +375,9 @@ internal fun DualDateTileRoot(
 ) {
     val fonts = HijriWidgetFonts.default
     val cell = LocalSize.current
-    // Width, not height — see [DualDateTileTypography.sizesFor]. The granted width is what a fixed 1x1
-    // varies along, and it is the axis the sibling tiles size their names on.
     val availableWidth = cell.width - DualDateTileTypography.HORIZONTAL_PADDING_DP.dp * 2
-    val sizes = DualDateTileTypography.sizesFor(availableWidth.value)
+    val sizes = DualDateTileTypography.sizesFor(availableWidth.value, cell.height.value)
 
-    // One line per render, under the family's existing log tag, so the granted height can be read off
-    // a device instead of guessed at.
-    //
-    // This exists because "the text is too small" is otherwise undiagnosable from a screenshot: there
-    // is no way to ask a launcher what it grants, the answer differs per launcher, and *every* number
-    // in [DualDateTileTypography] is conditional on it. `adb logcat -s HijriWidgetRefresh` reports the
-    // height the cell actually gave this tile and the sizes it derived, which is the difference between
-    // tuning the numbers and guessing at them.
-    //
-    // The label-budget line is the one that matters when a size looks wrong: it says whether the
-    // labels fitted (budget >= 0) or were scaled down to fit (budget < 0), which is the distinction
-    // that is invisible from the outside and easy to get backwards — raising the label sizes *lowers*
-    // the headroom, it does not raise it.
     logSizes(availableWidth.value, cell.height.value, sizes)
 
     val modifier = GlanceModifier.fillMaxSize().background(colors.background)
@@ -638,12 +521,9 @@ private fun HeaderBand(
     colors: WidgetColors,
     fonts: HijriWidgetFonts,
 ) {
-    val bandHeight = sizes.weekdaySize.value * DualDateTileTypography.LINE_HEIGHT_RATIO +
-        DualDateTileTypography.BAND_PADDING_DP
     Box(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .height(bandHeight.dp)
             .background(colors.accent),
         contentAlignment = Alignment.Center,
     ) {
@@ -652,7 +532,7 @@ private fun HeaderBand(
             modifier = GlanceModifier.padding(
                 start = DualDateTileTypography.HORIZONTAL_PADDING_DP.dp,
                 end = DualDateTileTypography.HORIZONTAL_PADDING_DP.dp,
-                // Below only — see [BAND_PADDING_DP].
+                top = DualDateTileTypography.BAND_TOP_PADDING_DP.dp,
                 bottom = DualDateTileTypography.BAND_PADDING_DP.dp,
             ),
             style = TextStyle(

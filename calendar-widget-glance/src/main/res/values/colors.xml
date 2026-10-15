@@ -4,6 +4,13 @@
     <color name="widget_accent">#2E7D32</color>
     <color name="widget_text_primary">#1C1B1F</color>
     <color name="widget_text_secondary">#6E6A63</color>
+    <!--
+        The pre-Android-12 `previewImage` vector's today fill. The live render fills today's cell with
+        `widget_selected_day` (today is the default selection), and this is the same value for the one
+        preview tier that cannot reference the live token. Kept as its own name rather than aliased to
+        or deleted in favour of `widget_selected_day`, because removing a resource a consumer may
+        reference is a breaking change.
+    -->
     <color name="widget_today_background">#2E7D32</color>
     <color name="widget_on_today">#FFFFFF</color>
     <color name="widget_weekend_text">#B3261E</color>
@@ -34,18 +41,25 @@
     <color name="widget_day_out_faint">#C5C2BF</color>
     <color name="widget_arrow_dimmed">#8F8B85</color>
     <!--
-        The cell divider (FD-04), off by default. A hairline rather than a full border because the
-        grid is 42 cells: a visible border on each would make the month look like a spreadsheet, and
-        on a `previewLayout` the framework cannot draw a per-cell separator without 42 more views.
+        The cell divider (FD-04). The active-colour hairline: the palette accent at 40% over
+        `widget_background`, so the grid reads as the calendar's own grid rather than as a grey
+        spreadsheet rule. Still one hairline per row/column rather than a border per cell — the grid
+        is 42 cells and a full border on each would cost 42 more views on a `previewLayout`.
     -->
-    <color name="widget_cell_border">#1F000000</color>
-    <!-- The ring around a tapped day (FD-09). A ring rather than a fill, so "selected" and "today"
-         stay distinguishable on the rare day that is both. -->
+    <color name="widget_cell_border">#662E7D32</color>
+    <!--
+        The fill of the chosen day (FD-09, redesigned). A full accent **block**, where this used to be
+        a corner ring: a ring could not carry the accent without an alpha (which a `ColorProvider`
+        cannot express) and read as decoration laid over the grid rather than as the chosen day. Today
+        is the default selection, so an untouched widget fills today's cell with this and the block
+        moves to whatever the user taps; a cell that is both today and selected shows only this.
+    -->
     <color name="widget_selected_day">#2E7D32</color>
     <!--
-        The observance fill (FD-08). A **container**, not the accent: `widget_today_background` is the
-        accent, and reusing it would make Ashura read as today. This is the accent at 14% over
-        `widget_background` (#FBF7F1) — visible as a wash, still letting the day figure carry it.
+        The observance fill (FD-08). A **container**, not the accent: `widget_selected_day` is the
+        selection and `widget_accent` marks today's figure, so reusing either would make Ashura read as
+        a chosen day. This is the accent at 14% over `widget_background` (#FBF7F1) — visible as a wash,
+        still letting the day figure carry it.
     -->
     <color name="widget_event_day_background">#E4EEE2</color>
     <!-- `widget_text_primary` over the fill above: an observance day must not dim its own figure. -->

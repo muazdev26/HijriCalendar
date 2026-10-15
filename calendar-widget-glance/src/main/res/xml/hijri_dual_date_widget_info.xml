@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FD-10: the strict 1x1 dual-date tile.
+<!-- FD-10: the dual-date 1x1 tile.
 
-     Byte-for-byte the two existing tiles' info except for its own description, preview resources and
-     `minHeight`. That last one is load-bearing and deliberately NOT raised: on launchers before
-     Android 12 the cell count is derived from minWidth/minHeight (`cells = ceil((size + 30) / 70)`), so
-     a 72dp minimum here would make this a *two*-cell widget on those launchers. The Today strip can
-     afford a raised minimum because it is resizable; a strict 1x1 cannot. The content is sized to
-     the cell the launcher grants instead — see DualDateTileTypography.
+     Byte-for-byte the two existing tiles' info except for its own description and preview resources.
+     The 40dp minimum is load-bearing and deliberately NOT raised: on launchers before Android 12 the
+     cell count is derived from minWidth/minHeight (`cells = ceil((size + 30) / 70)`), so a 72dp
+     minimum would make this a *two*-cell widget on those launchers. `minResizeWidth`/`minResizeHeight`
+     are pinned to the same 40dp for the same reason; the tile is resizable on both axes (point 7) and
+     the content is sized from the cell the launcher grants — see DualDateTileTypography — so a
+     stretched tile renders larger type rather than the same four zones with more empty space.
 
      No `android:configure`: the library ships no configure activity for any widget, and this tile
      follows the family options mirror like the other two 1x1 tiles. `DualDateTilePreviewLayoutTest`
@@ -16,10 +17,12 @@
     android:description="@string/hijri_dual_date_widget_description"
     android:initialLayout="@layout/hijri_widget_loading"
     android:minWidth="40dp"
+    android:minResizeWidth="40dp"
     android:minHeight="40dp"
+    android:minResizeHeight="40dp"
     android:previewImage="@drawable/hijri_dual_date_widget_preview"
     android:previewLayout="@layout/hijri_dual_date_widget_preview_layout"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:targetCellWidth="1"
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"

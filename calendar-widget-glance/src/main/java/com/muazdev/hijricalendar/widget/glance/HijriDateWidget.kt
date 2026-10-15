@@ -3,15 +3,19 @@ package com.muazdev.hijricalendar.widget.glance
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
+import androidx.glance.currentState
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
@@ -30,28 +34,61 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 
 /**
- * A fixed 1x1 tile showing today's Hijri date as a weekday name over a big day figure over the
+ * A resizable tile showing today's Hijri date as a weekday name over a big day figure over the
  * localized month name. Has no settings screen and no per-widget state: it renders with the
  * family options mirror ([HijriWidgetConfig.loadFamily]) written by the calendar-grid
  * widget's configuration screen, and is swept on every family refresh alongside the Today strip.
  * Tapping anywhere opens the app.
+ *
+ * Placed as a 1x1, but **resizable on both axes** (point 7): the type is derived from the cell the
+ * launcher actually granted, so a 2x1 or 2x2 placement renders larger text rather than the same
+ * three lines inside more empty space. [sizeMode] is what makes that work — see the override.
  */
 public class HijriDateWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Single
+    /**
+     * `SizeMode.Exact`, not `Single`.
+     *
+     * `Single` hands the composition `LocalSize` = the provider's declared minimum
+     * (`AppWidgetUtils.kt` → `SizeMode.Single -> listOf(minSize)`), *not* the size the launcher
+     * granted — and a declared minimum is a floor, so [DateTileTypography.sizesFor] would be
+     * computing from 40dp no matter how far the user stretched the tile. Under `Single` this tile
+     * could only ever render one size, which is the whole of what point 7 asks it not to do.
+     *
+     * `Exact` composes once per size in the host's options bundle, so a resize re-runs the
+     * composition with the new size and the type grows with it. It is safe for this tile in a way
+     * it would not be for the grid widget: the tile's only interaction is one
+     * `actionStartActivity`, which is a `PendingIntent` attached to the `RemoteViews` — a tap fires
+     * the one on the displayed view, so multiple size compositions cannot double-launch the app.
+     *
+     * `Exact` is not a `PreviewSizeMode`, so the picker preview is declared separately:
+     * `DateTileTypography.REFERENCE_CELL`, the cell the sizes are tuned against, rather than the
+     * bare 40dp minimum the picker would otherwise compose at.
+     */
+    override val sizeMode: SizeMode = SizeMode.Exact
+
+    override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(
+        setOf(DateTileTypography.REFERENCE_CELL),
+    )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Same one-shot peek as the rest of the family: port legacy config (seeding the family
-        // mirror once) and warm up the Pakistan century table if the family now opts into it.
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
-        val options = HijriWidgetConfig.loadFamily(context)
-        if (options.source.pakistan) {
+        val peeked = HijriWidgetConfig.load(context, id)
+        if (peeked.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.forTheme(options.theme)
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
+            val prefs = currentState<Preferences>()
+            val rawOptions = HijriWidgetConfig.decodeOptions(prefs)
+            val options = rawOptions ?: HijriWidgetConfig.loadFamily(context)
+            val optionsFrom = if (rawOptions != null) "perWidget" else "family"
+            HijriWidgetRefreshLog.d(
+                "render:tile",
+                "type=HijriDate overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=$optionsFrom",
+            )
+            val colors = WidgetColors.forTheme(options.theme)
             val today = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
@@ -78,9 +115,13 @@ public class HijriDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
+        HijriWidgetRefreshLog.d(
+            "render:tile",
+            "type=HijriDate overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=family",
+        )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null)
+            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
             DateTileRoot(
                 dayText = data.todayHijri?.hijriDayText,
                 monthText = data.todayHijri?.hijriMonthName,
@@ -95,24 +136,36 @@ public class HijriDateWidget : GlanceAppWidget() {
 }
 
 /**
- * A fixed 1x1 tile showing today's Gregorian date in the same three-line layout as
- * [HijriDateWidget] — weekday name, day figure, month name. Same family-options-mirror rendering
- * and the same tap-to-open-app behaviour.
+ * A resizable tile showing today's Gregorian date in the same three-line layout as
+ * [HijriDateWidget] — weekday name, day figure, month name. Same family-options-mirror rendering,
+ * same tap-to-open-app behaviour, and the same resizable/[SizeMode.Exact] sizing.
  */
 public class GregorianDateWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Single
+    override val sizeMode: SizeMode = SizeMode.Exact
+
+    override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(
+        setOf(DateTileTypography.REFERENCE_CELL),
+    )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
-        val options = HijriWidgetConfig.loadFamily(context)
-        if (options.source.pakistan) {
+        val peeked = HijriWidgetConfig.load(context, id)
+        if (peeked.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
-        val colors = WidgetColors.forTheme(options.theme)
         val openAction = actionStartActivity(openAppIntent(context))
 
         provideContent {
+            val prefs = currentState<Preferences>()
+            val rawOptions = HijriWidgetConfig.decodeOptions(prefs)
+            val options = rawOptions ?: HijriWidgetConfig.loadFamily(context)
+            val optionsFrom = if (rawOptions != null) "perWidget" else "family"
+            HijriWidgetRefreshLog.d(
+                "render:tile",
+                "type=GregorianDate overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=$optionsFrom",
+            )
+            val colors = WidgetColors.forTheme(options.theme)
             val today = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
@@ -139,9 +192,13 @@ public class GregorianDateWidget : GlanceAppWidget() {
         if (options.source.pakistan) {
             PakistanWarmUp.ensureWarm()
         }
+        HijriWidgetRefreshLog.d(
+            "render:tile",
+            "type=GregorianDate overrides=${options.monthLengthOverrides.size} language=${options.language} optionsFrom=family",
+        )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null)
+            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
             DateTileRoot(
                 dayText = data.todayHijri?.gregorianDayText,
                 monthText = data.todayHijri?.gregorianMonthName,
@@ -170,125 +227,75 @@ public class GregorianDateWidget : GlanceAppWidget() {
  * floor, and the day figure is smaller than it used to be so that all three lines fit together.
  * `DateTilePreviewLayoutTest` records the arithmetic rather than asserting a fit that 40dp cannot
  * deliver.
+ *
+ * Point 7 changed *which* cell that is: [HijriDateWidget.sizeMode] is `Exact`, so `LocalSize` is the
+ * size the launcher granted rather than the declared minimum, and the ceilings were raised
+ * (16/30 → 22/44) so a stretched tile has somewhere to grow. The caption tracks the granted width,
+ * the figure stays twice the caption, and both are capped.
  */
+internal data class DateTileSizes(
+    val captionSize: TextUnit,
+    val daySize: TextUnit,
+)
+
 internal object DateTileTypography {
 
-    /**
-     * The localized weekday name, on its own line at the top, sized to the width the launcher gave.
-     *
-     * **Same treatment as the month name and bold, deliberately.** It shipped as 10sp Medium in
-     * `widget_text_secondary` and read as a caption rather than as part of the date — the weekday is
-     * half the answer to "what day is it?", and it was the weakest line on the tile.
-     *
-     * Sized by [weekdaySizeFor] rather than fixed, because the tile's width is the one dimension the
-     * host actually varies: `SizeMode.Single` means there is a single bucket, but launchers disagree
-     * on how wide a 1x1 is by tens of dp, and a name that reads comfortably in one reads as a caption
-     * in another. See [weekdaySizeFor] for the rule and its limits.
-     *
-     * **The gap under this line is not padding and cannot be removed here.** Nothing pads it; the
-     * Column's only vertical padding is [VERTICAL_PADDING_DP] around all three lines. What shows as
-     * a gap is line-box leading: Glance gives each `Text` a box of the font's natural
-     * ascent-plus-descent (roughly `1.17x` the size), and the 26sp day figure below carries a lot of
-     * empty box above its digit. Squeezing it would need a `lineHeight` on the `TextStyle`, and
-     * **Glance 1.2.0 has no such parameter** — `androidx.glance.text.TextStyle` exposes only color,
-     * fontSize, fontWeight, fontStyle, textAlign, textDecoration and fontFamily. Confirmed 2026-10-06:
-     * an explicit `lineHeight` fails to compile against the pinned Glance. The remaining levers are
-     * the three sizes here, and shrinking the day figure to buy vertical room is a worse trade than
-     * the gap.
-     */
     fun weekdaySizeFor(availableWidth: Dp): TextUnit = weekdaySizeFor(availableWidth.value)
 
-    /**
-     * The weekday font size for [availableWidth], clamped to
-     * [[weekdaySizeFloor], [weekdaySizeCeiling]].
-     *
-     * **This one rule now sizes both caption lines** — the weekday on top and the month name at the
-     * bottom. They were separate functions with separate bounds (32sp/14–34 against 28sp/10–30) until
-     * the year came off the bottom line. That change is what allowed them to merge: the reason for the
-     * month line's tighter ceiling was that it was *twice as long* than a weekday name, carrying a
-     * month **and** an era'd year — `محرم ١٤٤٨ ھ` against `جمعرات`. With the year gone it is `محرم`,
-     * the same class of string as the weekday above it, so a separate rule bought nothing and only
-     * created a second set of numbers to keep in step.
-     *
-     * Merging makes them equal at *every* width, not merely at the reference width, which is the
-     * stronger version of the FD-01 styling the separate rule was trying to approximate.
-     *
-     * Linear in width about [WEEKDAY_REFERENCE_WIDTH_DP], so a wider tile gets proportionally larger
-     * text and a narrower one proportionally smaller text. Three deliberate bounds:
-     *
-     * - **A floor, and it is the important one.** At the 40dp minimum the tile-info declares there
-     *   are only about 28dp of text width, which works out below [WEEKDAY_REFERENCE_WIDTH_DP] and lands
-     *   on the floor. `Thursday` is the longest string on the tile — twice the width of `جمعرات`'s
-     *   glyph run in most fonts — so an unbounded scale would render it as a clipped stub on a
-     *   launcher that grants a tight cell, which is worse than a small one.
-     * - **A ceiling**, because the text still has to leave room for the day figure between the two
-     *   caption lines. A tile is not a banner.
-     * - **Monotonicity** is the property the tests pin: never smaller as the tile gets wider.
-     *
-     * Pure and Dp-free so it can be asserted without a `Context` or a composition.
-     */
     fun weekdaySizeFor(availableWidth: Float): TextUnit {
         val scaled = weekdaySizeAtReference.value * availableWidth / WEEKDAY_REFERENCE_WIDTH_DP
         return scaled.coerceIn(weekdaySizeFloor.value, weekdaySizeCeiling.value).sp
     }
 
-    /**
-     * The width at which [weekdaySizeFor] returns [weekdaySizeAtReference].
-     *
-     * Roughly a 1x1 cell on a current Android launcher. It is a design constant, not a measurement —
-     * there is no way to ask a launcher what it will grant — and the floor exists so being wrong in
-     * either direction is survivable.
-     */
     const val WEEKDAY_REFERENCE_WIDTH_DP: Float = 72f
-
-/** The weekday size at [WEEKDAY_REFERENCE_WIDTH_DP]. */
-    val weekdaySizeAtReference = 32.sp
-
-    /** Never smaller than this, however narrow the tile. */
-    val weekdaySizeFloor = 14.sp
+    const val REFERENCE_HEIGHT_DP: Float = 72f
 
     /**
-     * Never larger than this, however wide.
-     *
-     * Set above [weekdaySizeAtReference] on purpose: when it sat *below* it, the clamp made this
-     * line a constant — every width past ~38dp returned the ceiling and the scale did nothing. The
-     * ceiling's job is to stop a name crowding out the day figure, not to pre-empt the reference.
+     * The cell the sizes are tuned against: a 1x1 on a phone launcher. Used as the picker's preview
+     * size, because a preview composed at the bare 40dp minimum would advertise three unreadable
+     * lines as if they were the tile.
      */
-    val weekdaySizeCeiling = 34.sp
+    val REFERENCE_CELL = DpSize(WEEKDAY_REFERENCE_WIDTH_DP.dp, REFERENCE_HEIGHT_DP.dp)
 
-    /** Horizontal padding on each side; the text width is the tile's width less twice this. */
+    /**
+     * A `Text` line box as a multiple of its font size. Glance boxes every `Text` at ascent +
+     * descent (there is no `lineHeight` on `TextStyle`), so the three lines claim
+     * `(caption + day + caption) * LINE_HEIGHT_RATIO` and no layout nudge can reclaim it.
+     */
+    const val LINE_HEIGHT_RATIO: Float = 1.2f
+
+    val weekdaySizeAtReference = 13.sp
+    val weekdaySizeFloor = 10.sp
+
+    /** The caption's ceiling at a large cell. The figure is twice it; see [sizesFor]. */
+    val weekdaySizeCeiling = 22.sp
+
+    val daySize = 26.sp
+    val daySizeFloor = 18.sp
+    val daySizeCeiling = 44.sp
+
     const val PADDING_DP = 6
-
-    /**
-     * The day figure — the thing the tile exists to show. Fixed: it is not the length-sensitive one,
-     * and it is not width-scaled.
-     */
-    val daySize = 36.sp
-
-    /**
-     * Vertical padding inside the tile's own edges.
-     *
-     * **Back to 2dp.** This was raised to 6dp to match [PADDING_DP], which was wrong twice over: the
-     * column is centre-aligned, so symmetric padding cannot move anything — it only shrinks the content
-     * box — and on a short cell the extra 8dp came straight out of the bottom line. That is what sliced
-     * the month name in half, which was reported as the padding change being "very bad".
-     *
-     * A band-based layout that sized each line from its own share of the granted height was tried as the
-     * way to remove the clipping for good. It was reverted: holding the captions to a quarter of the cell
-     * cost ~10sp of their size, and it made the width scaling inert at any typical cell height. This is
-     * the simplest thing that rendered correctly, and the vertical budget it implies is recorded in
-     * `DateTilePreviewLayoutTest` rather than left to be discovered on a device.
-     */
     const val VERTICAL_PADDING_DP = 2
 
-    /** The widget-info's declared minimum tile height. Read by the test that records the budget. */
     const val TILE_MIN_HEIGHT_DP = 40
-
-    /**
-     * The widget-info's declared minimum tile width — and therefore the width the weekday name has at
-     * its smallest, which is what puts [weekdaySizeFloor] to work.
-     */
     const val TILE_MIN_WIDTH_DP = 40
+
+    fun sizesFor(availableWidthDp: Float, availableHeightDp: Float): DateTileSizes {
+        val widthCaption = weekdaySizeFor(availableWidthDp).value
+        // Three lines, the figure twice a caption: `caption + 2*caption + caption` = four captions
+        // of line box. The old `4.68` under-counted the row count, so a tall cell could be asked
+        // for ~3% more height than it had; `4 * LINE_HEIGHT_RATIO` is exactly the three line boxes.
+        val heightMaxCaption = availableHeightDp / (4f * LINE_HEIGHT_RATIO)
+        val caption = minOf(widthCaption, heightMaxCaption)
+            .coerceIn(weekdaySizeFloor.value, weekdaySizeCeiling.value)
+            .sp
+
+        val day = (caption.value * 2.0f)
+            .coerceIn(daySizeFloor.value, daySizeCeiling.value)
+            .sp
+
+        return DateTileSizes(captionSize = caption, daySize = day)
+    }
 }
 
 /**
@@ -337,11 +344,10 @@ internal fun DateTileRoot(
     val modifier = GlanceModifier.fillMaxSize().background(colors.background)
     val clickableModifier = if (openAction != null) modifier.clickable(openAction) else modifier
 
-    // The granted width, so the weekday name can be sized to it. `SizeMode.Single` still reports a
-    // real size, and it varies by tens of dp between launchers.
+    // Sized to both width and height granted by launcher so text fits cleanly without clipping.
     val availableWidth = cell.width - DateTileTypography.PADDING_DP.dp * 2
-
-    val captionSize = DateTileTypography.weekdaySizeFor(availableWidth)
+    val availableHeight = cell.height - DateTileTypography.VERTICAL_PADDING_DP.dp * 2
+    val sizes = DateTileTypography.sizesFor(availableWidth.value, availableHeight.value)
 
     Column(
         modifier = clickableModifier.padding(
@@ -358,7 +364,7 @@ internal fun DateTileRoot(
                 text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                 style = TextStyle(
                     color = colors.secondaryText,
-                    fontSize = captionSize,
+                    fontSize = sizes.captionSize,
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
@@ -367,7 +373,7 @@ internal fun DateTileRoot(
         }
         CaptionBand(
             text = weekdayText.orEmpty(),
-            fontSize = captionSize,
+            fontSize = sizes.captionSize,
             fontFamily = fonts.weekday.toGlanceFontFamily(),
             color = colors.primaryText,
         )
@@ -375,7 +381,7 @@ internal fun DateTileRoot(
             text = dayText,
             style = TextStyle(
                 color = colors.accent,
-                fontSize = DateTileTypography.daySize,
+                fontSize = sizes.daySize,
                 fontWeight = FontWeight.Bold,
                 fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
@@ -384,7 +390,7 @@ internal fun DateTileRoot(
         )
         CaptionBand(
             text = monthText.orEmpty(),
-            fontSize = captionSize,
+            fontSize = sizes.captionSize,
             // The Hijri tile shows a Hijri month name, the Gregorian one a Gregorian one; the caller
             // says which by naming the field it passes in.
             fontFamily = fonts.forMonthTitle(gregorian).toGlanceFontFamily(),

@@ -113,6 +113,8 @@ private object ConsumerResolutionCheck {
     suspend fun publicConfigApi(context: android.content.Context, glanceId: GlanceId) {
         val options: WidgetOptions = HijriWidgetConfig.load(context, glanceId)
         HijriWidgetConfig.save(context, glanceId, options)
+        HijriWidgetConfig.saveWidgetOptions(context, glanceId, options)
+        HijriWidgetConfig.saveFamilyOptions(context, options)
         val saver = HijriWidgetConfig.widgetOptionsSaver()
 
         // `WidgetOptions` members, including the ones added by WD-01.

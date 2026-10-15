@@ -100,7 +100,9 @@ HijriWidgetConfig
 HijriWidgetConfig.DEFAULTS
 HijriWidgetConfig.load
 HijriWidgetConfig.save
+HijriWidgetConfig.saveWidgetOptions
 HijriWidgetConfig.saveFamily
+HijriWidgetConfig.saveFamilyOptions
 HijriWidgetConfig.loadFamily
 HijriWidgetConfig.hasFamily
 HijriWidgetConfig.loadViewedMonth
@@ -178,3 +180,9 @@ HijriWidgetConfig.migrateLegacyIfNeeded
 # Android 15+ `providePreview` trees honour it.
 HijriWidgetFonts
 HijriWidgetFonts.public
+
+# ── Diagnostic channel for widget refresh logs.
+HijriWidgetRefreshLog
+HijriWidgetRefreshLog.TAG
+HijriWidgetRefreshLog.d
+HijriWidgetRefreshLog.e

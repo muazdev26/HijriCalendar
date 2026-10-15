@@ -12,7 +12,6 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.math.roundToInt
 
 /**
  * FD-01: the 1x1 tiles must name the day they are showing, the day name must be sized to the width
@@ -262,55 +261,63 @@ class DateTilePreviewLayoutTest {
     }
 
     /**
-     * The vertical budget, held to the figure accepted for this layout.
+     * The tile's two contracts with the cell it is given, both asserted: **the type grows with the
+     * cell** (point 7 — and the whole reason `sizeMode` is `Exact`), and **the three lines fit the
+     * height they were told about** above the point where the floors are what set the caption size.
      *
-     * Three lines of type cannot fit the declared 40dp `minHeight` at any size worth reading. The tile
-     * is therefore sized for the cell a launcher actually grants, which for a 1x1 is comfortably more
-     * than its own declared minimum — **and on a launcher that grants less, the bottom line is
-     * clipped.** That is a known, accepted cost of this layout, not an oversight, and this number is
-     * what makes it visible.
+     * This test used to pin a single figure, `ACCEPTED_MAX_REQUESTED_DP` = 74dp, computed from the
+     * old ceilings (16sp captions, a 26sp figure). Point 7 raised those ceilings to 22/44 so that a
+     * stretched tile has somewhere to grow, which makes "the layout asks for at most 74dp" the wrong
+     * thing to assert: a ceiling is not a request, and the request is now a function of the granted
+     * cell. Re-baselining the number alone would have left the test asserting a figure no render can
+     * produce. The three earlier re-baselines (and why each was cosmetic) are recorded in
+     * `docs/issues/2026-10-03/FD-01`; this change is the fourth and the first that is not cosmetic.
      *
-     * **This assertion has been re-basedelined three times, for three different reasons:**
-     *
-     * 1. It originally compared against a hardcoded ~79dp, the cost of the two-line 34sp layout FD-01
-     *    replaced. That baseline broke when `daySize` grew 26sp -> 36sp.
-     * 2. It was re-basedelined against a two-line layout recomputed at the live `daySize` — a real
-     *    property, until the caption lines grew to 32sp each.
-     * 3. It was then raised twice for cosmetic changes that added height without adding value: 129dp
-     *    when both caption lines were merged onto one size rule, and 137dp when `VERTICAL_PADDING_DP`
-     *    went 2dp -> 6dp. **The 6dp padding was reverted** — it sliced the month name in half and, on a
-     *    centre-aligned column, could not move the text at all — which brings the figure back to ~129dp,
-     *    with both captions now sharing the one 34sp ceiling.
-     *
-     * A band-based layout (1 : 2 : 1 of the granted height, type sized from each band) was tried as the
-     * way to remove the clipping for good, and reverted: holding the captions to a quarter of the cell
-     * cost ~10sp of their size and made the width scaling inert at any typical cell height. This budget
-     * is what that layout would have made honest, and it is recorded here instead.
-     *
-     * The comparison against the old two-line layout is **not** reinstated: at 124dp it no longer holds,
-     * and asserting it would only assert that the tile is too tall. What is asserted is that the tile has
-     * not grown past what was accepted, so a further increase is visible.
-     *
-     * The real check is a device, across launchers that grant different cells;
-     * `docs/issues/2026-10-03/FD-01` says so.
+     * The floor case is stated rather than hidden: three lines at the 10sp caption floor with a 20sp
+     * figure need 48dp of line boxes, so a cell shorter than that cannot hold them and the tile
+     * clips — the accepted cost of this layout, and the reason the declared minimum is a floor rather
+     * than a fit. `docs/issues/2026-10-03/FD-01` says the real check is a device across launchers.
      */
     @Test
-    fun theThreeLinesStayWithinTheAcceptedVerticalBudget() {
-        val captionSp = DateTileTypography.weekdaySizeCeiling.value.toInt()
-        val lineSp = captionSp +
-            DateTileTypography.daySize.value.toInt() +
-            captionSp
-        // Rounded, because `LINE_HEIGHT_RATIO` is a `Float` and 100 * 1.2f is 120.00001f, not 120f.
-        val requestedDp =
-            (lineSp * LINE_HEIGHT_RATIO + DateTileTypography.VERTICAL_PADDING_DP * 2).roundToInt()
+    fun theTypeGrowsWithTheCellAndFitsTheHeightItWasGiven() {
+        val narrow = DateTileTypography.sizesFor(28f, 36f) // the declared 40dp cell, less padding
+        val wide = DateTileTypography.sizesFor(138f, 138f) // ~2x2 on a phone launcher
 
+        assertTrue(
+            "a larger cell must render a larger caption; got ${narrow.captionSize} then " +
+                "${wide.captionSize}",
+            wide.captionSize.value > narrow.captionSize.value,
+        )
+        assertTrue(
+            "and a larger day figure; got ${narrow.daySize} then ${wide.daySize}",
+            wide.daySize.value > narrow.daySize.value,
+        )
+
+        // Above the floors, the three line boxes must fit the height the tile was given.
+        for (height in listOf(48f, 60f, 72f, 96f, 140f, 240f)) {
+            val sizes = DateTileTypography.sizesFor(400f, height)
+            val requested =
+                (sizes.captionSize.value * 2 + sizes.daySize.value) * DateTileTypography.LINE_HEIGHT_RATIO
+            assertTrue(
+                "at ${height}dp the three lines ask for ${requested}dp; a tile must fit the height " +
+                    "it was given or its last line is clipped",
+                requested <= height + 0.01f,
+            )
+        }
+
+        // And the ceilings bound it, so no placement can outgrow its own reading distance.
+        val huge = DateTileTypography.sizesFor(4000f, 4000f)
         assertEquals(
-            "the three lines ask for ~${requestedDp}dp, past the ~${ACCEPTED_MAX_REQUESTED_DP}dp " +
-                "accepted for this layout. Raising it is not free: the tile already clips on a cell " +
-                "shorter than this, and the 6dp padding that pushed it to 137dp had to be reverted " +
-                "because it sliced the month name",
-            ACCEPTED_MAX_REQUESTED_DP,
-            requestedDp,
+            "the caption ceiling",
+            DateTileTypography.weekdaySizeCeiling.value.toDouble(),
+            huge.captionSize.value.toDouble(),
+            0.01,
+        )
+        assertEquals(
+            "the figure ceiling",
+            DateTileTypography.daySizeCeiling.value.toDouble(),
+            huge.daySize.value.toDouble(),
+            0.01,
         )
     }
 
@@ -379,9 +386,6 @@ class DateTilePreviewLayoutTest {
     )
 
     private companion object {
-        /** A TextView's rendered line height as a multiple of its font size. */
-        const val LINE_HEIGHT_RATIO = 1.2f
-
         /** The preview XML attribute every text size lives in. */
         const val TEXT_SIZE = "android:textSize"
 
@@ -390,20 +394,5 @@ class DateTilePreviewLayoutTest {
 
         /** The Urdu Hijri era marker, `ھ` — one the tile's bottom line must never contain. */
         const val HIJRI_ERA = "ھ"
-
-        /**
-         * The most vertical space the three lines are accepted to ask for, in dp.
-         *
-         * ~129dp for the layout that is actually in the tree: two caption lines at the shared 34sp
-         * ceiling plus the 36sp day figure, at 2dp of vertical padding.
-         *
-         * It reached 137dp only while `VERTICAL_PADDING_DP` was 6dp; that padding was reverted, so the
-         * figure came back down. See the budget test's KDoc for the full history, including the two
-         * earlier re-baselines and the band layout that was tried and undone.
-         *
-         * It is a judgement call about how much taller than its declared `minHeight` this tile may be,
-         * **not** a measurement of what a launcher grants.
-         */
-        const val ACCEPTED_MAX_REQUESTED_DP = 129
     }
 }

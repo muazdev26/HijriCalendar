@@ -33,7 +33,7 @@
     android:orientation="vertical"
     tools:ignore="UnusedAttribute">
 
-    <!-- The accent band: the weekday name. No vertical padding — see the note above. -->
+    <!-- The accent band: the weekday name. Top padding prevents glyph clipping (e.g. Urdu/Arabic ascenders). -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,12 +43,12 @@
         android:includeFontPadding="false"
         android:maxLines="1"
         android:paddingLeft="6dp"
-        android:paddingTop="0dp"
+        android:paddingTop="2dp"
         android:paddingRight="6dp"
-        android:paddingBottom="6dp"
+        android:paddingBottom="3dp"
         android:text="بدھ"
         android:textColor="@color/widget_on_today"
-        android:textSize="18sp"
+        android:textSize="11sp"
         android:textStyle="bold" />
 
     <!-- Centred, matching the live weighted Box: this is what splits the leftover height between the
@@ -70,7 +70,7 @@
             android:maxLines="1"
             android:text="۲۴"
             android:textColor="@color/widget_accent"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <!-- The Hijri month name in FULL. -->
@@ -84,7 +84,7 @@
             android:maxLines="1"
             android:text="ربیع الثانی"
             android:textColor="@color/widget_text_primary"
-            android:textSize="18sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <!-- The Gregorian date: one compact CENTRED phrase, adjacent rather than spread, with the day on
@@ -108,7 +108,7 @@
                 android:maxLines="1"
                 android:text="ستمبر"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="16sp" />
+                android:textSize="11sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -118,7 +118,7 @@
                 android:maxLines="1"
                 android:text=" - "
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="16sp" />
+                android:textSize="11sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -128,7 +128,7 @@
                 android:maxLines="1"
                 android:text="۳۰"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="16sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

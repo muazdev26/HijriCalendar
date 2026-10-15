@@ -25,8 +25,6 @@
     <color name="widget_dark_day_out_faint">#4C4A4E</color>
     <!-- `widget_weekend_text` -->
     <color name="widget_dark_weekend_text">#F2B8B5</color>
-    <!-- `widget_today_background` -->
-    <color name="widget_dark_today_background">#81C784</color>
     <!-- `widget_on_today` -->
     <color name="widget_dark_on_today">#1C1B1F</color>
     <!-- `widget_event_day_background` -->
@@ -34,7 +32,7 @@
     <!-- `widget_on_event_day` -->
     <color name="widget_dark_on_event_day">#E6E1E5</color>
     <!-- `widget_cell_border` -->
-    <color name="widget_dark_cell_border">#1FFFFFFF</color>
+    <color name="widget_dark_cell_border">#6681C784</color>
     <!-- `widget_selected_day` -->
     <color name="widget_dark_selected_day">#81C784</color>
     <!-- `widget_arrow_dimmed` -->

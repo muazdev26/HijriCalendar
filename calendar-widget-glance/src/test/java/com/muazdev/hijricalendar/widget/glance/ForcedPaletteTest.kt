@@ -42,7 +42,6 @@ class ForcedPaletteTest {
         "day_gregorian_sub" to "widget_day_gregorian_sub",
         "day_out_faint" to "widget_day_out_faint",
         "weekend_text" to "widget_weekend_text",
-        "today_background" to "widget_today_background",
         "on_today" to "widget_on_today",
         "event_day_background" to "widget_event_day_background",
         "on_event_day" to "widget_on_event_day",
