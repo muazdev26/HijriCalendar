@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -84,6 +85,11 @@ public fun HijriCalendarDayCell(
      * top of the grid rather than a cell of it. So a highlighted cell becomes a **block that covers
      * the whole cell**, flush to the rules on every side.
      *
+     * The today ring follows the same switch: it is drawn in both modes, but as a circle without
+     * dividers and as a rectangle with them. Skipping it under dividers, as an earlier version did,
+     * left today with no marker at all once another day was selected — the fill had moved and the
+     * ring was the only thing left to show it.
+     *
      * `false` by default, which is exactly the existing circular appearance, so every current caller
      * and every existing consumer is unchanged.
      */
@@ -137,11 +143,16 @@ public fun HijriCalendarDayCell(
             )
             .background(style.backgroundColor)
             .then(
-                if (cellHasDividers) {
-                    Modifier
-                } else {
-                    Modifier.border(style.borderWidth, style.borderColor, CircleShape)
-                },
+                // Drawn in **both** modes; only the shape changes. The widget's
+                // `CellDecoration.TODAY_RING` makes the same circle→rectangle swap, because a cell
+                // inside a ruled grid is a rectangle and a round ring would inscribe a token in it —
+                // the "badge laid on the grid" look the background above avoids. A selected cell's
+                // border is the same colour as its fill, so it stays invisible either way.
+                Modifier.border(
+                    width = style.borderWidth,
+                    color = style.borderColor,
+                    shape = if (cellHasDividers) RectangleShape else CircleShape,
+                ),
             )
             .clickableIfEnabled(
                 enabled = style.enabled,
