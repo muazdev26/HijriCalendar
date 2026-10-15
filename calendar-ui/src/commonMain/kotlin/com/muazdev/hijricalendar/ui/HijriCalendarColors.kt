@@ -62,7 +62,12 @@ public data class HijriCalendarColors(
     /** Tint of the navigation arrows, dimmed automatically when their month is not navigable. */
     val navigationIconColor: Color,
 
-    /** Content of the weekday column labels. */
+    /**
+     * Content of the weekday column labels.
+     *
+     * Defaults to the same tone as [dayContentColor]: the labels are `Bold` and the weight alone was
+     * not enough to stop them reading as muted captions.
+     */
     val dayOfWeekLabelColor: Color,
 
     /** Content of a leading or trailing cell belonging to the adjacent month. */

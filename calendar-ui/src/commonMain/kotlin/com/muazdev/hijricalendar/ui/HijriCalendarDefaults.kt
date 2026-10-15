@@ -61,6 +61,12 @@ public object HijriCalendarDefaults {
      * [HijriCalendarColors] has no public constructor: 16 values restated at each call site is how a
      * palette drifts away from the theme it claims to follow. Note the one derived default,
      * , documented on that field.
+     *
+     * [dayOfWeekLabelColor] is `onSurface` rather than the `onSurfaceVariant` it used to be. The
+     * weekday row is already `Bold` (`dayOfWeekLabelStyle`), and round-2 feedback still reported the
+     * day names as not bold — the *tone* was doing the muting, not the weight. The labels name the
+     * column each day sits in, so they take the same tone as the day numbers they label; the same
+     * change was made to the widgets' weekday row.
      */
     @Composable
     public fun colors(
@@ -70,12 +76,12 @@ public object HijriCalendarDefaults {
         todayBorderWidth: Dp = TodayBorderWidth,
         disabledDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
         weekendDayContentColor: Color = MaterialTheme.colorScheme.error,
-        cellBorderColor: Color = MaterialTheme.colorScheme.outlineVariant,
+        cellBorderColor: Color = MaterialTheme.colorScheme.primary,
         dayContentColor: Color = MaterialTheme.colorScheme.onSurface,
         dayBackgroundColor: Color = Color.Transparent,
         headerContentColor: Color = MaterialTheme.colorScheme.onSurface,
         navigationIconColor: Color = MaterialTheme.colorScheme.onSurface,
-        dayOfWeekLabelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+        dayOfWeekLabelColor: Color = MaterialTheme.colorScheme.onSurface,
         outsideMonthDayContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
         gregorianDayContentColor: Color = dayContentColor.copy(alpha = 0.6f),
         gregorianHeaderColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -214,10 +214,11 @@ private fun DayOfWeekLabels(
                 text = labels.weekdayShortName(WeekDay.entries[index]),
                 // **Bold, and unconditionally.** The weight is a rendering choice with no access to
                 // the name's script, so it cannot be "bold for Urdu" — and the Urdu weekday names
-                // (`جمعرات`, `بدھ`) are exactly the ones that read as weak at `labelSmall`, where
-                // a longer word at a lighter weight disappears into the row above it. Weight is
-                // applied on the copy rather than by swapping to a heavier Material style, because a
-                // `typography` change would also alter the size, which is not what was asked for.
+                // (`جمعرات`, `بدھ`) are exactly the ones that read as weak. Weight is applied on the
+                // copy rather than by swapping to a heavier Material style, because a `typography`
+                // change would also alter the size, which is not what was asked for. Round-2 feedback
+                // reported the names as still not bold, so the *tone* — which, not the weight, was
+                // what muted them — moved to `onSurface` in `HijriCalendarDefaults.colors`.
                 style = dayOfWeekLabelStyle(),
                 color = colors.dayOfWeekLabelColor,
                 textAlign = TextAlign.Center,
