@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+// The version the gate is checking, handed in by `check-consumer-resolution.sh` from
+// `hijri.publish`. Kept out of this file so a release bump cannot leave the consumer pinned to the
+// previous version — a literal here resolves the *old* artifact's POM, or nothing at all.
+val libraryVersion = providers.gradleProperty("libraryVersion").orNull
+    ?: error("pass -PlibraryVersion=<the version hijri.publish stamps>")
+
 android {
     namespace = "com.muazdev.hijricalendar.consumercheck"
     compileSdk = 37
@@ -25,5 +31,5 @@ dependencies {
     // `hijri-calendar-widget-data` and `hijri-calendar-core` are deliberately NOT listed. They
     // must arrive transitively through the widget-glance POM — which is also what the gate checks,
     // since a missing transitive `compile` entry shows up here as an unresolved import.
-    implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:2.1.1")
+    implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:$libraryVersion")
 }
