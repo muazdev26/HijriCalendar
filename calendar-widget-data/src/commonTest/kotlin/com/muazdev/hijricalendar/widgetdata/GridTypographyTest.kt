@@ -123,12 +123,16 @@ class GridTypographyTest {
      * Pins the constant so a change to it is deliberate: the calibration is what makes the numbers
      * *larger* than the 13sp/8sp they replace at a typical widget size, and silently moving the
      * reference would undo that without any test noticing.
+     *
+     * The Hijri figure at the reference is **15sp**, the redesign's floor: the calibration is
+     * deliberately at the bottom of the scaled range so that any wider widget scales the figure up,
+     * which is the "larger, bolder days" half of the brief. It sits two sp above the 13sp it replaces.
      */
     @Test
     fun theReferenceCellProducesTheExpectedNumbers() {
         assertTrue(
-            GridTypography.hijriSizeSp(GridTypography.REFERENCE_CELL_SIZE_DP) == 13f,
-            "the Hijri figure at the reference cell should be 13sp — the size it replaces",
+            GridTypography.hijriSizeSp(GridTypography.REFERENCE_CELL_SIZE_DP) == 15f,
+            "the Hijri figure at the reference cell should be 15sp — the redesign's floor",
         )
         assertTrue(
             GridTypography.gregorianSizeSp(GridTypography.REFERENCE_CELL_SIZE_DP) == 9f,
@@ -139,18 +143,23 @@ class GridTypographyTest {
     /**
      * A widget the user resized larger genuinely reads better.
      *
-     * The user-visible claim, stated as an assertion so it cannot quietly stop being true: a small
-     * widget gets bigger text than the fixed sizes it used to have, and a large one gets more again.
+     * The user-visible claim, stated as an assertion so it cannot quietly stop being true: the
+     * smallest cell the widget will draw gets the redesigned floor, which is bigger than the fixed
+     * 13sp it replaces, and a large cell gets more again.
      */
     @Test
     fun aResizedWidgetGivesLargerTextThanItUsedTo() {
-        val compact = GridTypography.hijriSizeSp(26f)
+        val compact = GridTypography.hijriSizeSp(GridTypography.MINIMUM_CELL_SIZE_DP)
         val roomy = GridTypography.hijriSizeSp(56f)
 
-        assertTrue(compact >= 13f, "a 26dp cell should beat the old fixed 13sp, got $compact")
         assertTrue(
-            roomy > 14f,
-            "a 56dp cell should be comfortably larger than the old fixed 13sp, got $roomy",
+            compact >= 15f,
+            "the smallest supported cell should clear the redesigned 15sp floor, got $compact",
+        )
+        assertTrue(compact > 13f, "and beat the old fixed 13sp, got $compact")
+        assertTrue(
+            roomy > 15f,
+            "a 56dp cell should be larger than the redesigned floor, got $roomy",
         )
         assertTrue(
             roomy > compact,

@@ -182,6 +182,84 @@ class GregorianHeaderAgreementTest {
     }
 
     /**
+     * The narrow header's short title names the Gregorian month the month **mostly** occupies.
+     *
+     * The second line of the redesigned two-line header has to fit beside the two nav arrows and the
+     * two header icons on a phone-width widget, which the full range does not. So a narrow widget drops
+     * the range for the dominant month — and the assertion worth having is that it is genuinely the
+     * dominant one, derived here from the cells' own day counts rather than copied from the
+     * implementation.
+     *
+     * It also must not carry the range separator: a short title that still read `July - August 2026`
+     * would have kept the width problem it exists to solve.
+     */
+    @Test
+    fun theShortTitleNamesTheDominantGregorianMonthWithoutTheRange() {
+        var straddling = 0
+        for (year in 1440..1450) {
+            for (month in 1..12) {
+                val data = assertNotNull(
+                    buildHijriMonthWidgetData(
+                        hijriYear = year,
+                        hijriMonth = month,
+                        adjustmentDays = 0,
+                        localizedGregorianMonthNames = CalendarNames.englishGregorianMonths,
+                    ),
+                    "no projection for $year-$month",
+                )
+                val own = data.days.filter { it.isCurrentMonth }
+                val first = LocalDate.fromEpochDays(own.first().gregorianEpochDay)
+                val last = LocalDate.fromEpochDays(own.last().gregorianEpochDay)
+
+                // Count the month's own days per Gregorian month; ties go to the earlier month, which
+                // is the documented behaviour for a month that begins in one and ends in the next.
+                val counts = linkedMapOf<Pair<Int, Int>, Int>()
+                for (cell in own) {
+                    val date = LocalDate.fromEpochDays(cell.gregorianEpochDay)
+                    val key = date.year to date.month.ordinal
+                    counts[key] = (counts[key] ?: 0) + 1
+                }
+                val dominant = counts.maxByOrNull { it.value }!!.key
+                assertEquals(
+                    "${CalendarNames.englishGregorianMonths[dominant.second]} ${dominant.first}",
+                    data.gregorianShortTitle,
+                    "$year-$month",
+                )
+                assertTrue(
+                    " - " !in data.gregorianShortTitle,
+                    "$year-$month short title still carries a range: '${data.gregorianShortTitle}'",
+                )
+                if (first.month != last.month) straddling++
+            }
+        }
+        assertTrue(straddling > 0, "no month straddled two Gregorian months; fixture is not exercising it")
+    }
+
+    /** The short title follows the month-name language, like the full one. */
+    @Test
+    fun theShortTitleFollowsTheMonthNameLanguage() {
+        val englishNames = WidgetOptions(
+            language = WidgetLanguage.URDU,
+            monthNameLanguage = WidgetLanguage.ENGLISH,
+            weekStart = WeekStart.SATURDAY,
+        )
+        val urduNames = englishNames.copy(monthNameLanguage = WidgetLanguage.URDU)
+
+        val withEnglish = assertNotNull(buildHijriMonthWidgetData(1447, 11, englishNames))
+        val withUrdu = assertNotNull(buildHijriMonthWidgetData(1447, 11, urduNames))
+
+        assertTrue(
+            withEnglish.gregorianShortTitle.all { it.code < 0x80 },
+            "an English-named widget must write an English short title, got " +
+                "'${withEnglish.gregorianShortTitle}'",
+        )
+        assertTrue(
+            withUrdu.gregorianShortTitle.any { it.code > 0x7F },
+            "an Urdu-named widget must write an Urdu short title, got '${withUrdu.gregorianShortTitle}'",
+        )
+    }
+
+    /**
      * The widget's header agrees with the in-app calendar's for the same month.
      *
      * The whole point of the ticket. `calendar-ui`'s `defaultGregorianMonthRangeLabel` is the

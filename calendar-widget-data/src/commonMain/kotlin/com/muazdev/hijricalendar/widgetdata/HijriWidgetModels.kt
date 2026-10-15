@@ -103,7 +103,7 @@ public data class HijriDayWidgetData(
 
 /**
  * One rendered Hijri month in widget form: a 6x7 grid plus the header data the native
- * renderers need (Hijri + Gregorian month titles on one line, weekday headers).
+ * renderers need (the Hijri and Gregorian month titles for the header's two lines, weekday headers).
  *
  * [gregorianMonthTitle] is the one field with no single-month invariant: it can read
  * "December 2026 - January 2027" when a Hijri month straddles two Gregorian ones, because a Hijri
@@ -125,8 +125,9 @@ public data class HijriMonthWidgetData(
     val hijriMonth: Int,
     val hijriMonthName: String,
     /**
-     * The month's Gregorian extent, era-marked, for the header's other half —
-     * `hijriMonthName hijriYearText · gregorianMonthTitle`, e.g. `محرم ۱۴۴۸ ھ · August - September 2026 AD`.
+     * The month's Gregorian extent, era-marked, for the header's **second line** — the redesigned
+     * header stacks `hijriMonthName hijriYearText` over this, e.g. `محرم ۱۴۴۸ ھ` above
+     * `August - September 2026 AD`.
      *
      * A **range**, not the first in-month Gregorian month (FD-06). Roughly half of all Hijri months
      * straddle two Gregorian ones, and the header used to name only the first — so for those months it
@@ -137,6 +138,27 @@ public data class HijriMonthWidgetData(
      * The truncated field is gone.
      */
     val gregorianMonthTitle: String,
+    /**
+     * The **short** form of [gregorianMonthTitle] for a narrow header: the Gregorian month the Hijri
+     * month mostly occupies, with the era dropped — `August 2026` rather than
+     * `July - August 2026 AD`.
+     *
+     * Two narrowings at once. The era marker (`AD` / `ء`) is the smallest, so it goes first; and a
+     * straddling month names only its **dominant** Gregorian month instead of both ends of the range.
+     * That is what makes the second header line fit a phone-width widget beside the two nav arrows and
+     * the two header icons, where the full range does not.
+     *
+     * Built in the projection rather than by the renderer (WG-12), for the same reason
+     * [hijriYearText] is: "which Gregorian month does this Hijri month mostly fall in" is a fact about
+     * the calendar, and the era marker belongs to the widget's language, which a renderer cannot
+     * answer for. iOS reads the same string with no Swift edit.
+     *
+     * **Additive and defaulted, so it is source-compatible** — a caller constructing
+     * `HijriMonthWidgetData` still compiles — **but it changes the ABI**, which is why the golden
+     * files carry it. The default is [gregorianMonthTitle], so a caller that builds a projection by
+     * hand keeps a usable narrow title rather than an empty one.
+     */
+    val gregorianShortTitle: String = gregorianMonthTitle,
     val weekdayHeaders: List<String>,
     /**
      * The month's **padded** day cells — always [com.muazdev.hijricalendar.core.CalendarMonth.TOTAL_DAYS]
