@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.0.0")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.2.0")
 }
 ```
 
@@ -54,7 +54,7 @@ dependencies {
 <dependency>
     <groupId>com.github.muazdev26.HijriCalendar</groupId>
     <artifactId>hijri-calendar-compose</artifactId>
-    <version>2.0.0</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
@@ -385,7 +385,7 @@ built-in English output, so passing nothing changes nothing:
 val urduLabels = HijriCalendarLabels(
     hijriMonthName = { _, month ->
         listOf(
-            "محرم", "صفر", "ربیع الاول", "ربیع الثانی", "جمادی الاول", "جمادی الثانی",
+            "محرم", "صفر", "ربیع الاول", "ربیع الثانی", "جمادى الأولى", "جمادی الآخِرۃ",
             "رجب", "شعبان", "رمضان", "شوال", "ذی القعدہ", "ذی الحجہ",
         )[month - 1]
     },
@@ -528,7 +528,7 @@ The demo configuration screen is in `sample-android-app`; the iOS widget's confi
 ### Adding the Android widget to your app
 
 `calendar-widget-glance` is a published JitPack artifact containing everything for a working
-home-screen widget: the grid, "today" strip and the two 1x1 date tiles, the
+home-screen widget: the grid, "today" strip and the three 1x1 date tiles, the
 midnight/system-broadcast refresh pipeline (`HijriWidgetRefreshScheduler`,
 `HijriWidgetRefresher`, foreground gate, WorkManager backstop), the live previews, and a public
 settings API (`HijriWidgetConfig`, `widgetOptionsSaver()`, `WidgetOptions` with
@@ -542,11 +542,11 @@ the widgets run on their defaults. Your app wires the receivers + the app-onCrea
 
 ```kotlin
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.0.0")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.2.0")
 }
 ```
 
-2. **Nothing to declare.** The library's manifest declares all four widget `<receiver>` elements
+2. **Nothing to declare.** The library's manifest declares all five widget `<receiver>` elements
    with their `APPWIDGET_UPDATE` filters and provider meta-data, so the widgets appear in the picker
    as soon as the dependency is added. The widget-info XMLs also ship without `android:configure`,
    so they work out of the box on defaults.
@@ -571,6 +571,14 @@ class MyApp : Application() {
 }
 ```
 
+`schedule` **reconciles** the refresh machinery to widget placement: it arms the exact midnight
+alarm and the daily WorkManager backstop only while at least one widget is on a home screen, and
+cancels both when none is, so an app that ships the widget but is never configured leaves no pending
+exact alarm (the status-bar / **Settings > Alarms & reminders** indicator). The library's five
+receivers call the same reconciliation from `onEnabled`/`onDisabled`, so adding or removing a widget
+is followed without an app restart — ideally call `schedule` from `onCreate` *and* let the receivers
+handle placement; you do not need to call anything on widget add/remove yourself.
+
 4. Handle the tap-through deep link so a widget tap opens your calendar: the widgets open
    `hijricalendar://today` (constant [`HIJRI_DEEP_LINK_TODAY`](calendar-widget-glance/src/main/java/com/muazdev/hijricalendar/widget/glance/HijriCalendarWidget.kt)). Add an
    `intent-filter` for that scheme/host on your root activity and jump to today when it fires.
@@ -590,8 +598,9 @@ class MyApp : Application() {
    `sample-android-app/src/main/res/xml/hijri_calendar_widget_info.xml`.
 
 The library manifest already declares `RECEIVE_BOOT_COMPLETED` and `USE_EXACT_ALARM`, the
-system-broadcast receiver, and the midnight alarm receiver. The widget itself re-arms the
-midnight alarm whenever the host `onCreate` runs, so boot-time refresh is handled end to end.
+system-broadcast receiver, and the midnight alarm receiver. The midnight receiver re-arms the alarm
+from a `finally` and the daily worker re-arms it too, so boot-time refresh is handled end to end —
+and both re-arms are skipped once no widget is left on a home screen (see step 3).
 
 ## Underlying Library
 
