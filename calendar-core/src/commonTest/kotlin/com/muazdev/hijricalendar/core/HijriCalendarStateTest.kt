@@ -3,9 +3,11 @@ package com.muazdev.hijricalendar.core
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
+import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -567,13 +569,13 @@ class HijriCalendarStateTest {
             pakistanDates = true,
         )
         val grid = state.calendarMonth.days
-        assertTrue(grid.any { it.pakistanDate == PakistanHijriDate(1448, 3, 30) })
-        assertNull(grid.first { it.pakistanDate == PakistanHijriDate(1448, 3, 30) }.hijrahDate)
+        assertTrue(grid.any { it.pakistanDate == pakistanDate(1448, 3, 30) })
+        assertNull(grid.first { it.pakistanDate == pakistanDate(1448, 3, 30) }.hijrahDate)
     }
 
     @Test
     fun pakistanMode_selectDay_selectsPakistanDate() {
-        val selected = PakistanHijriDate(1448, 3, 30)
+        val selected = pakistanDate(1448, 3, 30)
         val state = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 3),
             pakistanDates = true,
@@ -613,5 +615,80 @@ class HijriCalendarStateTest {
         state.setPakistanDates(false)
         assertEquals(HijrahDate(1448, 3, 15).toLocalDate(), state.selectedDate?.toLocalDate())
         assertFalse(state.pakistanDates)
+    }
+
+    // ── Construction in an alternate space mirrors the initial selection ──
+
+    @Test
+    fun pakistanMode_constructionDerivesSelectionFromInitialSelectedDate() {
+        // Reproduces the sample's cold-start report: a state constructed in Pakistan mode with only
+        // an Umm al-Qura `initialSelectedDate` (today) left `selectedPakistanDate` null, so the grid
+        // ringed today but selected nothing and the summary card named the Umm al-Qura date — one day
+        // high once 1448-04 was forced to 29 (card said 4 Jumada al-ula while Pakistan today was 3).
+        val table = HijriMonthLengths().apply { setMonthLength(1448, 4, 29) }
+        val seed = LocalDate(2026, 10, 15).toHijrahDate()
+
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(seed.year, seed.month.number),
+            initialSelectedDate = seed,
+            pakistanDates = true,
+            monthLengths = table,
+        )
+
+        val selected = assertNotNull(state.selectedPakistanDate)
+        assertEquals(1448, selected.year)
+        assertEquals(5, selected.month)
+        assertEquals(3, selected.day)
+        assertEquals(LocalDate(2026, 10, 15), selected.localDate)
+
+        val todayCell = state.calendarMonth.days.first { it.localDate == LocalDate(2026, 10, 15) }
+        assertTrue(todayCell.isToday)
+        assertTrue(todayCell.isSelected, "the derived selection must fill today, not just ring it")
+    }
+
+    @Test
+    fun pakistanMode_constructionKeepsExplicitSelection() {
+        val table = HijriMonthLengths().apply { setMonthLength(1448, 4, 29) }
+        val explicit = pakistanDate(1448, 5, 10, table)
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 5),
+            initialSelectedDate = LocalDate(2026, 10, 15).toHijrahDate(),
+            pakistanDates = true,
+            initialSelectedPakistanDate = explicit,
+            monthLengths = table,
+        )
+        assertEquals(explicit, state.selectedPakistanDate)
+        assertEquals(explicit.localDate, state.selectedPakistanDate?.localDate)
+    }
+
+    @Test
+    fun observedMode_constructionDerivesSelectionFromInitialSelectedDate() {
+        val table = HijriMonthLengths().apply { setMonthLength(1448, 4, 29) }
+        val seed = LocalDate(2026, 10, 15).toHijrahDate()
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(seed.year, seed.month.number),
+            initialSelectedDate = seed,
+            monthLengths = table,
+        )
+        val selected = assertNotNull(state.selectedObservedDate)
+        assertEquals(LocalDate(2026, 10, 15), selected.localDate)
+
+        val todayCell = state.calendarMonth.days.first { it.localDate == LocalDate(2026, 10, 15) }
+        assertTrue(todayCell.isSelected)
+    }
+
+    @Test
+    fun pakistanMode_constructionDoesNotDeriveObservedSelection() {
+        // The summary card reads observed space before Pakistan, so deriving an observed selection
+        // here would make a Pakistan-mode card name the observed day instead.
+        val table = HijriMonthLengths().apply { setMonthLength(1448, 4, 29) }
+        val state = HijriCalendarState(
+            initialMonth = HijrahYearMonth(1448, 5),
+            initialSelectedDate = LocalDate(2026, 10, 15).toHijrahDate(),
+            pakistanDates = true,
+            monthLengths = table,
+        )
+        assertNull(state.selectedObservedDate)
+        assertNotNull(state.selectedPakistanDate)
     }
 }

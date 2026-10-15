@@ -309,7 +309,7 @@ final class com.muazdev.hijricalendar.core/HijriMonthLengths { // com.muazdev.hi
 }
 
 final class com.muazdev.hijricalendar.core/ObservedHijriDate : kotlin/Comparable<com.muazdev.hijricalendar.core/ObservedHijriDate> { // com.muazdev.hijricalendar.core/ObservedHijriDate|null[0]
-    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int, kotlin/Int, kotlinx.datetime/LocalDate = ...) // com.muazdev.hijricalendar.core/ObservedHijriDate.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Int;kotlinx.datetime.LocalDate){}[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int, kotlin/Int, kotlinx.datetime/LocalDate) // com.muazdev.hijricalendar.core/ObservedHijriDate.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Int;kotlinx.datetime.LocalDate){}[0]
 
     final val day // com.muazdev.hijricalendar.core/ObservedHijriDate.day|{}day[0]
         final fun <get-day>(): kotlin/Int // com.muazdev.hijricalendar.core/ObservedHijriDate.day.<get-day>|<get-day>(){}[0]
@@ -348,7 +348,7 @@ final class com.muazdev.hijricalendar.core/ObservedHijriDate : kotlin/Comparable
 }
 
 final class com.muazdev.hijricalendar.core/PakistanHijriDate : kotlin/Comparable<com.muazdev.hijricalendar.core/PakistanHijriDate> { // com.muazdev.hijricalendar.core/PakistanHijriDate|null[0]
-    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int) // com.muazdev.hijricalendar.core/PakistanHijriDate.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int, kotlinx.datetime/LocalDate) // com.muazdev.hijricalendar.core/PakistanHijriDate.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int;kotlinx.datetime.LocalDate){}[0]
 
     final val day // com.muazdev.hijricalendar.core/PakistanHijriDate.day|{}day[0]
         final fun <get-day>(): kotlin/Int // com.muazdev.hijricalendar.core/PakistanHijriDate.day.<get-day>|<get-day>(){}[0]
@@ -363,7 +363,8 @@ final class com.muazdev.hijricalendar.core/PakistanHijriDate : kotlin/Comparable
     final fun component1(): kotlin/Int // com.muazdev.hijricalendar.core/PakistanHijriDate.component1|component1(){}[0]
     final fun component2(): kotlin/Int // com.muazdev.hijricalendar.core/PakistanHijriDate.component2|component2(){}[0]
     final fun component3(): kotlin/Int // com.muazdev.hijricalendar.core/PakistanHijriDate.component3|component3(){}[0]
-    final fun copy(kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ...): com.muazdev.hijricalendar.core/PakistanHijriDate // com.muazdev.hijricalendar.core/PakistanHijriDate.copy|copy(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+    final fun component4(): kotlinx.datetime/LocalDate // com.muazdev.hijricalendar.core/PakistanHijriDate.component4|component4(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ..., kotlinx.datetime/LocalDate = ...): com.muazdev.hijricalendar.core/PakistanHijriDate // com.muazdev.hijricalendar.core/PakistanHijriDate.copy|copy(kotlin.Int;kotlin.Int;kotlin.Int;kotlinx.datetime.LocalDate){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.core/PakistanHijriDate.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.core/PakistanHijriDate.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.muazdev.hijricalendar.core/PakistanHijriDate.toString|toString(){}[0]

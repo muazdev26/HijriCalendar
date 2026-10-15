@@ -36,13 +36,42 @@ public data class PakistanHijriDate(
     val year: Int,
     val month: Int,
     val day: Int,
+    /**
+     * The real-world Gregorian day this Pakistani date falls on, resolved at construction
+     * against the override table that produced it.
+     *
+     * **Stored rather than derived.** The derivation needs a [HijriMonthLengths] table, and this
+     * is a value type that travels without one. Deriving it on demand from the process-global
+     * [HijriMonthOverrides.current] made a date produced under a *scoped* table report the
+     * Gregorian day of a different calendar: the grid widget is built from a per-widget
+     * `WidgetOptions.overridesTable()`, but its cells' Gregorian labels were recomputed against a
+     * global that is empty in a widget-only process, so a forced month length never reached the
+     * label and every Gregorian digit after the override came out one day high. The in-app
+     * calendar only looked right because its process happens to have the global set.
+     *
+     * Build instances through [PakistanHijriCalendar.gregorianToHijri] (which knows the table) or
+     * through the state's own table ([HijriCalendarState]), never by reading the global here.
+     */
+    val localDate: LocalDate,
 ) : Comparable<PakistanHijriDate> {
-
-    /** The real-world Gregorian day of this date. */
-    val localDate: LocalDate get() = PakistanHijriCalendar.hijriToGregorian(year, month, day)
 
     override fun compareTo(other: PakistanHijriDate): Int =
         compareValuesBy(this, other, { it.year }, { it.month }, { it.day })
+
+    /**
+     * Equality is by Hijri coordinates only, **not** [localDate].
+     *
+     * The same `(year, month, day)` is the same date whichever override table resolved its
+     * Gregorian day — two calendars in one process can disagree about that day without disagreeing
+     * about the date. Selection highlighting compares a grid cell's date against a stored selection
+     * (`converted == selectedDate`), and either may have been produced under a different table (a
+     * restore against the global, a cell against a scoped table), so including [localDate] would
+     * silently clear the highlight. This keeps the pre-existing Hijri-field equality.
+     */
+    override fun equals(other: Any?): Boolean =
+        other is PakistanHijriDate && year == other.year && month == other.month && day == other.day
+
+    override fun hashCode(): Int = (year * 31 + month) * 31 + day
 
     override fun toString(): String = "$year-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}"
 }
@@ -328,7 +357,8 @@ public object PakistanHijriCalendar {
         val start = anchor.second.startEpochDays
         if (target < start) return walkBackFrom(anchor, target, overrides)
         if (target < start + lengthOfMonth(year, month, overrides)) {
-            return PakistanHijriDate(year, month, (target - start + 1).toInt())
+            val day = (target - start + 1).toInt()
+            return PakistanHijriDate(year, month, day, LocalDate.fromEpochDays(start + (day - 1)))
         }
         var steps = 0
         while (steps++ < MAX_WALK_STEPS) {
@@ -341,7 +371,8 @@ public object PakistanHijriCalendar {
             if (target < nextStart) return walkBackFromMonth(year, month, nextStart, target, overrides)
             val length = lengthOfMonth(year, month, overrides)
             if (target < nextStart + length) {
-                return PakistanHijriDate(year, month, (target - nextStart + 1).toInt())
+                val day = (target - nextStart + 1).toInt()
+                return PakistanHijriDate(year, month, day, LocalDate.fromEpochDays(nextStart + (day - 1)))
             }
         }
         CalendarLog.e(LOG_TAG, "forward walk exhausted its $MAX_WALK_STEPS-step budget at $year-$month")
@@ -366,7 +397,12 @@ public object PakistanHijriCalendar {
                     (target - previousStart + 1),
                     lengthOfMonth(previousYear, previousMonth, overrides).toLong(),
                 ).toInt()
-                return PakistanHijriDate(previousYear, previousMonth, day)
+                return PakistanHijriDate(
+                    previousYear,
+                    previousMonth,
+                    day,
+                    LocalDate.fromEpochDays(previousStart + (day - 1)),
+                )
             }
             year = previousYear
             month = previousMonth
@@ -395,7 +431,12 @@ public object PakistanHijriCalendar {
                     (target - previousStart + 1),
                     lengthOfMonth(previousYear, previousMonth, overrides).toLong(),
                 ).toInt()
-                return PakistanHijriDate(previousYear, previousMonth, day)
+                return PakistanHijriDate(
+                    previousYear,
+                    previousMonth,
+                    day,
+                    LocalDate.fromEpochDays(previousStart + (day - 1)),
+                )
             }
             y = previousYear
             m = previousMonth

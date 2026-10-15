@@ -19,7 +19,7 @@ public object UrduCalendarNames {
     /** The twelve Hijri month names, 1-indexed (Muharram .. Dhul-Hijjah). */
     public val hijriMonths: List<String> = listOf(
         "محرم", "صفر", "ربیع الاول", "ربیع الثانی",
-        "جمادی الاول", "جمادی الثانی", "رجب", "شعبان",
+        "جمادى الأولى", "جمادی الآخِرۃ", "رجب", "شعبان",
         "رمضان", "شوال", "ذی القعدہ", "ذی الحجہ",
     )
 

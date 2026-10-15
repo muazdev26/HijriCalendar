@@ -27,11 +27,12 @@ public data class ObservedHijriDate(
      * table report the Gregorian day of a different calendar — silently wrong by the cumulative
      * drift of the two tables, which grows the further from the override you are.
      *
-     * The default exists for callers constructing an instance directly (selection restore,
-     * tests) and is correct only for the process-default table. To build a value under a scoped
-     * table, go through [ObservedHijriCalendar.observedDateAt], which fills this in.
+     * There is deliberately **no default**: a caller must name the Gregorian day, so it cannot
+     * silently fall back to the process-global table. To build a value under a scoped table, go
+     * through [ObservedHijriCalendar.observedDateAt] or [ObservedHijriCalendar.observedToGregorian],
+     * both of which take the table.
      */
-    val localDate: LocalDate = ObservedHijriCalendar.observedToGregorian(year, month, day),
+    val localDate: LocalDate,
 ) : Comparable<ObservedHijriDate> {
 
     override fun compareTo(other: ObservedHijriDate): Int =
