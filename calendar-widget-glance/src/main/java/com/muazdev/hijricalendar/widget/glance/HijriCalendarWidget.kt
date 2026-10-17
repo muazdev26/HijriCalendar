@@ -139,7 +139,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.decodeOptions(
             getAppWidgetState(context, HijriWidgetConfig.PREFS, id),
-        ) ?: HijriWidgetConfig.DEFAULTS
+        ) ?: HijriWidgetConfig.loadFamily(context)
         if (peeked.source.pakistan) {
             // A render can race the app's warm-up coroutine (process restart on a widget tap);
             // join it instead of building the century table inline on this composition.
@@ -154,7 +154,12 @@ public class HijriCalendarWidget : GlanceAppWidget() {
             // Reactive read: recomposes whenever Glance observes a state change for this widget,
             // so a tap that lands on an open session still renders the newest month.
             val prefs = currentState<Preferences>()
-            val options = HijriWidgetConfig.decodeOptions(prefs) ?: HijriWidgetConfig.DEFAULTS
+            // Per-instance options when the widget has been configured, else the consumer's app-wide
+            // family mirror — the same fallback the tiles use. `DEFAULTS` here would render the
+            // library's built-in English on a freshly placed grid until the host app's settings
+            // mirror happens to run, which in a cold render process it may never do.
+            val options = HijriWidgetConfig.decodeOptions(prefs)
+                ?: HijriWidgetConfig.loadFamily(context)
             // Resolved from the *reactive* options, not the peek above: a theme change is a settings
             // write like any other, and a palette picked once outside this block would go on painting
             // the previous one until something else happened to re-invalidate the widget.

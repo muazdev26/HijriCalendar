@@ -2,6 +2,17 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## 2.2.1 - 2026-10-17
+
+### Fixed
+
+- The month grid widget now falls back to the consumer's app-wide family mirror
+  (`HijriWidgetConfig.loadFamily`) when it has no per-instance options — the fallback every tile
+  widget already used — instead of the library's built-in `WidgetOptions.DEFAULTS`. A grid placed
+  from the launcher rendered the English default until the host app's settings mirror happened to
+  run, which in the cold process that renders it may never happen, and corrected itself only once
+  the app was opened. No API change.
+
 ## 2.2.0 - 2026-10-15
 
 ### Breaking
