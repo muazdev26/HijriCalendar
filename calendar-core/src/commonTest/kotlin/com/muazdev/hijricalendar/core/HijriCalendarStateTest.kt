@@ -641,9 +641,11 @@ class HijriCalendarStateTest {
         assertEquals(3, selected.day)
         assertEquals(LocalDate(2026, 10, 15), selected.localDate)
 
-        val todayCell = state.calendarMonth.days.first { it.localDate == LocalDate(2026, 10, 15) }
-        assertTrue(todayCell.isToday)
-        assertTrue(todayCell.isSelected, "the derived selection must fill today, not just ring it")
+        // `isToday` is intentionally not asserted here: it compares against the real clock, so it
+        // would only hold while the host's date happened to be the seeded 2026-10-15. The regression
+        // this covers is the *selection* — the derived Pakistan day must fill the seed day's cell.
+        val seedCell = state.calendarMonth.days.first { it.localDate == LocalDate(2026, 10, 15) }
+        assertTrue(seedCell.isSelected, "the derived selection must fill today, not just ring it")
     }
 
     @Test
@@ -673,8 +675,8 @@ class HijriCalendarStateTest {
         val selected = assertNotNull(state.selectedObservedDate)
         assertEquals(LocalDate(2026, 10, 15), selected.localDate)
 
-        val todayCell = state.calendarMonth.days.first { it.localDate == LocalDate(2026, 10, 15) }
-        assertTrue(todayCell.isSelected)
+        val seedCell = state.calendarMonth.days.first { it.localDate == LocalDate(2026, 10, 15) }
+        assertTrue(seedCell.isSelected)
     }
 
     @Test
