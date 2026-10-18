@@ -19,12 +19,13 @@
          centre-aligned and that centring is what splits the leftover height between the two margins
          (see DualDateTileRoot).
 
-     Every size is read from DualDateTileTypography, which in turn reads them from DateTileTypography —
-     the SAME object HijriDateWidget and GregorianDateWidget size themselves with. The day is 30sp (the
-     sibling tiles' 36sp less a sixth), the band's weekday and the Hijri month name are that tile's own rule
-     at CAPTION_RATIO, and the Gregorian line is this tile's 16sp. A static XML cannot follow the granted
-     *width*, so this is a snapshot at DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP, exactly as the
-     sibling tiles' mirrors are snapshots at theirs. -->
+     Every size is read from DualDateTileTypography, which in turn reads the family's numbers from
+     DateTileTypography — the SAME object HijriDateWidget and GregorianDateWidget size themselves with. The
+     day figure is this tile's own reference (DualDateTileTypography.daySize), and the band's weekday and the
+     Hijri month name are the family's reference caption at CAPTION_RATIO, so all four widgets widen
+     together. A static XML cannot follow the granted *width*, so this is a snapshot at
+     DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP, exactly as the sibling tiles' mirrors are
+     snapshots at theirs. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"

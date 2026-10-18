@@ -115,6 +115,7 @@ public final class com/muazdev/hijricalendar/core/CalendarMonthExtKt {
 public final class com/muazdev/hijricalendar/core/CalendarNames {
 	public static final field $stable I
 	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/CalendarNames;
+	public final fun getEnglishGregorianMonthAbbreviations ()Ljava/util/List;
 	public final fun getEnglishGregorianMonths ()Ljava/util/List;
 	public final fun getEnglishHijriMonths ()Ljava/util/List;
 	public final fun getEnglishWeekdayShortNames ()Ljava/util/List;

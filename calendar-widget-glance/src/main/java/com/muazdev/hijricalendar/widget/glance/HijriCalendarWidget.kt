@@ -47,7 +47,6 @@ import androidx.glance.layout.width
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
@@ -94,6 +93,29 @@ private const val LOADING_BAR_HEIGHT_DP = 7
  * a toolkit that has no border modifier.
  */
 private const val TODAY_RING_WIDTH_DP = 2
+
+/**
+ * The grid root's padding, in dp — the inset every row of the widget shares.
+ *
+ * A named constant because it is read by two different budgets, not one: [HijriWidgetRoot] spends it
+ * as padding, and the weekday header subtracts it to work out how wide one of its seven columns
+ * really is. As a literal at the root and a literal in the header the two could drift, and the
+ * failure would be a weekday name sized for a row wider than the one it is in.
+ */
+private const val GRID_PADDING_DP = 10
+
+/**
+ * The grid root's **vertical** inset, in dp — deliberately smaller than [GRID_PADDING_DP].
+ *
+ * The two axes are not the same budget. Horizontally the inset is a margin a cell needs: it keeps the
+ * seven columns off the widget's edge and is part of the arithmetic that decides how wide a cell is
+ * ([GRID_PADDING_DP] is subtracted in [WeekdayHeaderRow]). Vertically it is height taken straight from
+ * the six weighted day rows, and those rows are the widget's entire content — on a 4-row Urdu grid the
+ * two-line cells came to 26.9 dp against the 29.3 dp their two lines need, which is a Gregorian digit
+ * resting on the cell border. 6 dp still reads as margin at the surface's top and bottom; the 4 dp
+ * difference is a third of a dp of clearance per row, and it costs nothing the grid was using.
+ */
+private const val GRID_PADDING_VERTICAL_DP = 6
 
 /**
  * The Hijri home-screen widget family.
@@ -683,6 +705,15 @@ internal class WidgetColors(
     /** The hairline between cells, when `showCellBorders` is on (FD-04). */
     val cellBorder: ColorProvider,
     /**
+     * The vertical rule between the weekday header's columns, when `showCellBorders` is on (round 3).
+     *
+     * Its own member rather than a second use of [cellBorder], because the two are drawn on different
+     * fills: `cellBorder` is the accent at 40% over the widget background, and the weekday row's fill
+     * *is* the accent — so it would composite to the band's own colour and disappear. This is the
+     * band's content colour at 40% instead, which is the same relationship in the other direction.
+     */
+    val bandDivider: ColorProvider,
+    /**
      * The fill on the day the widget presents as chosen (FD-09).
      *
      * A full block, matching the in-app selected day: the redesign replaced the corner ring with the
@@ -719,6 +750,7 @@ internal class WidgetColors(
             eventDayBackground = ColorProvider(R.color.widget_event_day_background),
             onEventDayText = ColorProvider(R.color.widget_on_event_day),
             cellBorder = ColorProvider(R.color.widget_cell_border),
+            bandDivider = ColorProvider(R.color.widget_band_divider),
             selectedBackground = ColorProvider(R.color.widget_selected_day),
             arrowDimmed = ColorProvider(R.color.widget_arrow_dimmed),
         )
@@ -765,6 +797,7 @@ private val LIGHT: WidgetColors = WidgetColors(
     eventDayBackground = ColorProvider(R.color.widget_light_event_day_background),
     onEventDayText = ColorProvider(R.color.widget_light_on_event_day),
     cellBorder = ColorProvider(R.color.widget_light_cell_border),
+    bandDivider = ColorProvider(R.color.widget_light_band_divider),
     selectedBackground = ColorProvider(R.color.widget_light_selected_day),
     arrowDimmed = ColorProvider(R.color.widget_light_arrow_dimmed),
 )
@@ -783,6 +816,7 @@ private val DARK: WidgetColors = WidgetColors(
     eventDayBackground = ColorProvider(R.color.widget_dark_event_day_background),
     onEventDayText = ColorProvider(R.color.widget_dark_on_event_day),
     cellBorder = ColorProvider(R.color.widget_dark_cell_border),
+    bandDivider = ColorProvider(R.color.widget_dark_band_divider),
     selectedBackground = ColorProvider(R.color.widget_dark_selected_day),
     arrowDimmed = ColorProvider(R.color.widget_dark_arrow_dimmed),
 )
@@ -879,7 +913,7 @@ internal fun HijriWidgetRoot(
             .fillMaxSize()
             .background(colors.background)
             .clickableWhen(liveActions.open)
-            .padding(10.dp),
+            .padding(horizontal = GRID_PADDING_DP.dp, vertical = GRID_PADDING_VERTICAL_DP.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
         if (useCompact || monthData == null) {
@@ -911,12 +945,15 @@ private fun TodayCard(
 ) {
     val fonts = HijriWidgetFonts.default
     if (today == null) {
-        Text(
+        WidgetText(
             // Not `getString(R.string.hijri_widget_unavailable)`: that resolves against the
             // *device* locale, so an Urdu widget on an English phone showed an English fallback.
             // Every other string this widget renders is resolved from `options.language`, and this
             // was the one that was not.
             text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
+            // A sentence, not a label: it wraps, and wrapping is the one thing the bundled face's
+            // rasteriser cannot do — so this slot stays on Glance's `Text` deliberately.
+            maxLines = Int.MAX_VALUE,
             style = TextStyle(color = colors.secondaryText, fontSize = 12.sp),
         )
         return
@@ -933,7 +970,7 @@ private fun TodayCard(
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
-        Text(
+        WidgetText(
             text = today.hijriDayText,
             style = TextStyle(
                 color = colors.accent,
@@ -944,7 +981,7 @@ private fun TodayCard(
             ),
             maxLines = 1,
         )
-        Text(
+        WidgetText(
             text = "${today.hijriMonthName} ${today.hijriYear}",
             style = TextStyle(
                 color = colors.primaryText,
@@ -955,7 +992,7 @@ private fun TodayCard(
             ),
             maxLines = 1,
         )
-        Text(
+        WidgetText(
             text = today.gregorianDate,
             style = TextStyle(
                 color = colors.secondaryText,
@@ -1005,17 +1042,26 @@ private fun MonthHeader(
     val nextAvailable = headerStepAvailable(actions.next, month, HijriWidgetNavigation.STEP_NEXT)
 
     // One size tier for the whole header, read from the widget's own width: the arrows, the two action
-    // icons, the title sizes and which Gregorian title line is drawn all move together, so the row can
-    // never be sized for a width it does not have. See [GridHeaderTypography] for why the tier exists.
+    // icons and the title size all move together, so the row can never be sized for a width it does not
+    // have. See [GridHeaderTypography] for why the tier exists.
     val widthDp = LocalSize.current.width.value
-    val narrow = GridHeaderTypography.isNarrow(widthDp)
     val arrowIcon = GridHeaderTypography.arrowIconDp(widthDp).dp
     val actionIcon = GridHeaderTypography.actionIconDp(widthDp).dp
-    val hijriTitleSize = GridHeaderTypography.hijriTitleSp(widthDp).sp
-    val gregorianTitleSize = GridHeaderTypography.gregorianTitleSp(widthDp).sp
-    // The narrow tier drops the Gregorian *range* for the dominant month, which is what lets the second
-    // line fit beside the chrome on a phone-width widget. See `HijriMonthWidgetData.gregorianShortTitle`.
-    val gregorianTitle = if (narrow) month.gregorianShortTitle else month.gregorianMonthTitle
+    // One size for both title lines (round 3) — see [MonthTitle].
+    val titleSize = GridHeaderTypography.titleSp(widthDp).sp
+    // What the two title lines actually have to fit in: the widget, less both arrow targets and both
+    // in-title action icons, each of which is its icon plus 4dp of padding a side. Handed to the title
+    // rather than read there, because only this call site knows the tier.
+    val titleMaxWidthDp = (
+        widthDp -
+            (arrowIcon.value + 8f) * 2f -
+            (actionIcon.value + 8f) * 2f
+        ).toInt().coerceAtLeast(24)
+    // Show both Gregorian months the Hijri month spans: a Hijri month commonly straddles two Gregorian
+    // ones, and naming only the dominant month described half the grid. `gregorianMonthTitle` is the
+    // full range; the narrow tier's chrome is already at its minimum, so a long range may truncate on
+    // the smallest widgets rather than silently dropping a month.
+    val gregorianTitle = month.gregorianMonthTitle
 
     Row(
         modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp),
@@ -1037,10 +1083,10 @@ private fun MonthHeader(
                 resetAction = actions.reset,
                 colors = colors,
                 language = language,
-                hijriSize = hijriTitleSize,
-                gregorianSize = gregorianTitleSize,
+                titleSize = titleSize,
                 hijriTitle = "${month.hijriMonthName} ${month.hijriYearText}",
                 gregorianText = gregorianTitle,
+                maxWidthDp = titleMaxWidthDp,
             )
             NavigationArrow(
                 resId = R.drawable.ic_arrow_right,
@@ -1065,10 +1111,10 @@ private fun MonthHeader(
                 resetAction = actions.reset,
                 colors = colors,
                 language = language,
-                hijriSize = hijriTitleSize,
-                gregorianSize = gregorianTitleSize,
+                titleSize = titleSize,
                 hijriTitle = "${month.hijriMonthName} ${month.hijriYearText}",
                 gregorianText = gregorianTitle,
+                maxWidthDp = titleMaxWidthDp,
             )
             NavigationArrow(
                 resId = R.drawable.ic_arrow_right,
@@ -1228,8 +1274,18 @@ private fun MonthGrid(
             // The tapped day's observance when there is one, else the month-next one — so the line
             // says something before the first tap, not only after it. Resolved here rather than in
             // `EventFooter` because the fallback needs the month projection, which only this frame has.
-            eventName = selectedEventName
-                ?: nextEventName(month, todayEpochDay, language),
+            //
+            // When neither applies the line says **"No event"** rather than rendering empty: an empty
+            // line is indistinguishable from a footer that failed to load, and the reserved line
+            // (FD-08) is only useful if the user can tell it is empty on purpose. A selection in a
+            // *different* month than the one shown is treated as no selection here, exactly as
+            // `isSelectedCell` does for the cells — the footer must describe the month on screen.
+            eventName = if (selectedDay != null && selectedDay.isInMonth(month.hijriYear, month.hijriMonth)) {
+                selectedEventName ?: WidgetLocalization.ChromeLabels.noEvent(language)
+            } else {
+                nextEventName(month, todayEpochDay, language)
+                    ?: WidgetLocalization.ChromeLabels.noEvent(language)
+            },
             colors = colors,
         )
     }
@@ -1262,6 +1318,125 @@ private fun LoadingBar(colors: WidgetColors) {
 }
 
 /**
+ * The grid's weekday row: the seven names, one weighted column each.
+ *
+ * Its own composable, and not only to keep [MonthDays] under the method-length ceiling: this is the
+ * one slot whose rendering contract is easy to lose. [WidgetText] rasterises the bundled Urdu face
+ * only for a **single line**, and this call once passed no `maxLines` — so the weekday row alone
+ * rendered in the system face while every other Urdu slot on the widget drew Nastaliq. The
+ * `maxLines = 1` below is therefore load-bearing rather than decoration, and [WidgetText] no longer
+ * defaults it, so the omission cannot compile again.
+ *
+ * The width budget is passed for a reason of its own: it is dead on the Glance path and read only by
+ * the rasteriser, so its presence *is* the intent. The seven names sit in **the same seven slots the
+ * day rows use** — one `defaultWeight` column each, with the cell's own inset and its rule *inside*
+ * the column — which is what makes one column's width exact rather than estimated, and what lines
+ * these rules up with the day rows' rules instead of merely dividing the row seven ways.
+ *
+ * The vertical rules are round-3 feedback ("add vertical lines b/w day names in grid header too and
+ * make sure they are not cutted") and they follow `showCellBorders` like the grid's own rules, so a
+ * widget with the rule setting off does not grow a header full of them. They are drawn in
+ * [WidgetColors.bandDivider] rather than [WidgetColors.cellBorder], because `cellBorder` *is* the
+ * accent at 40% and composites to nothing on the accent band — see [CellDivider].
+ *
+ * **Bold, and unconditionally.** The weight is a rendering choice with no access to the name's script,
+ * so it cannot be "bold for Urdu" — and the Urdu weekday names (`جمعرات`, `بدھ`) are exactly the ones
+ * that read as weak. Round-2 feedback reported the day names as still not bold, and on Android that is
+ * structural rather than an oversight: Glance applies `fontWeight` as a `TextAppearanceSpan`, and its
+ * `FontWeight` is a three-value set whose `Medium` and `Bold` resolve to the same style — there is no
+ * weight left above `Bold` to reach for (see [GridCellWeights]). What does exist is the pair of levers
+ * round 1 already used for the 1x1 tiles' weekday line ([CaptionBand]): tone and size. So the row takes
+ * `onTodayText` rather than a muted colour, because the weekday names label the days instead of being a
+ * caption beneath them.
+ *
+ * **The row keeps only the ink it paints.** Its labels and rules are chrome above six weighted day rows,
+ * and a bundled Nastaliq line's declared box is more than twice the height of the glyph it carries, so
+ * the row renders its labels through [WidgetText] with `trimScriptLeading` and takes its rule height
+ * from [HijriWidgetFonts.scriptInkBandRatio] instead of [HijriWidgetFonts.scriptLineRatio]. A row of
+ * labels is exactly the case that makes the trim delicate, which is why the row and every column in it
+ * bottom-align (see the comment at the `Row`): every trimmed label ends at `baseline + descent`, so
+ * aligning bottoms is what keeps one baseline.
+ */
+@Composable
+private fun WeekdayHeaderRow(
+    month: HijriMonthWidgetData,
+    weekdaySize: TextUnit,
+    showCellBorders: Boolean,
+    colors: WidgetColors,
+) {
+    val fonts = HijriWidgetFonts.default
+    // One column of the row, as the rasteriser's width budget for a weekday name. Derived the way the
+    // cell is: the widget less the root's 10dp either side, divided seven ways, less this cell's own
+    // chrome (the 1dp/1.5dp inset and the 1dp rule [DayCell] uses). Nastaliq is markedly wider than
+    // the system face at the same size and seven names in one row is the tightest text budget in the
+    // module, so an over-estimate here is a name that runs into its neighbour.
+    val cellWidthDp = (
+        (LocalSize.current.width.value - GRID_PADDING_DP * 2) / 7f -
+            WEEKDAY_CELL_CHROME_DP
+        ).toInt().coerceAtLeast(1)
+
+    // The rules' height: what a trimmed script label actually occupies — its ink plus the face's
+    // descent — from the same size the names are drawn at. **A stated height, not `fillMaxHeight`** —
+    // this row is content-sized (one line of text), so a `match_parent` child is measured against the
+    // height the row was *offered*, which inside the widget's weighted root is the whole widget; see
+    // [CellDivider]. Spanning exactly the labels also means a rule can never make the row taller than
+    // the names it divides, and reading the *trimmed* band rather than the declared line box is what
+    // keeps that true now that the labels no longer carry their leading ([fonts.scriptInkBandRatio]).
+    val ruleHeightDp = weekdaySize.value * fonts.scriptInkBandRatio()
+
+    Row(
+        modifier = GlanceModifier
+            .background(colors.accent)
+            .fillMaxWidth()
+            .padding(vertical = 1.dp),
+        // Bottom, not centre, and the same inside each column below: a trimmed raster's *bottom* edge
+        // is `baseline + descent` for every label at a given size, so aligning the bottoms is what puts
+        // the row on one baseline now that the equal-height line boxes are gone. See
+        // [WidgetText]'s `trimScriptLeading`.
+        verticalAlignment = Alignment.Vertical.Bottom,
+    ) {
+        month.weekdayHeaders.forEachIndexed { column, name ->
+            val dividerAfter = showCellBorders && column < month.weekdayHeaders.lastIndex
+            Row(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .padding(start = 1.dp, end = if (dividerAfter) 1.5.dp else 1.dp),
+                verticalAlignment = Alignment.Vertical.Bottom,
+            ) {
+                WidgetText(
+                    text = name,
+                    modifier = GlanceModifier.defaultWeight(),
+                    // A single line, and the budget the rasteriser shrinks the run to meet. Stating the
+                    // line count is what puts this row on the bundled face; see the KDoc above.
+                    maxLines = 1,
+                    maxWidthDp = cellWidthDp,
+                    // The row is chrome above six weighted day rows, so its empty leading is height the
+                    // cells do not get. This is the trim's narrowest call site: seven labels in one row,
+                    // each with its own ink extent, which is why the row and every column in it
+                    // bottom-aligns instead of centring.
+                    trimScriptLeading = true,
+                    style = TextStyle(
+                        color = colors.onTodayText,
+                        fontSize = weekdaySize,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = fonts.weekday.toGlanceFontFamily(),
+                        textAlign = TextAlign.Center,
+                    ),
+                )
+                if (dividerAfter) CellDivider(colors.bandDivider, heightDp = ruleHeightDp)
+            }
+        }
+    }
+}
+
+/**
+ * The width a weekday cell spends on its own inset and its rule: 1dp of leading inset, 1dp of rule and
+ * 1.5dp of trailing inset — the same arithmetic [DayCell] applies, rounded up so the rasteriser's
+ * budget is never larger than the box the label is given.
+ */
+private const val WEEKDAY_CELL_CHROME_DP = 4f
+
+/**
  * The month grid itself: the weekday header row and the weighted day rows.
  *
  * Its own composable because it is a third of a screen of weighted layout arithmetic, and a reader
@@ -1291,50 +1466,17 @@ private fun MonthDays(
     colors: WidgetColors,
     actions: WidgetActions,
 ) {
-    val fonts = HijriWidgetFonts.default
-
     // A Column for the same reason the outer grid has one: `defaultWeight` is a `ColumnScope`
     // extension, so the rows below can only divide its height if they are its children. Flattening
     // this back out is what would silently give every row its full intrinsic height. The root
     // modifier comes from the call site — weighted there, so the footer below keeps its line.
     Column(modifier = modifier) {
-        Row(
-            modifier = GlanceModifier
-                .background(colors.accent)
-                .fillMaxWidth()
-                .padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
-        ) {
-            month.weekdayHeaders.forEach { name ->
-                Text(
-                    text = name,
-                    modifier = GlanceModifier.defaultWeight(),
-                    // **Bold, and unconditionally.** The weight is a rendering choice with no access
-                    // to the name's script, so it cannot be "bold for Urdu" — and the Urdu weekday
-                    // names (`جمعرات`, `بدھ`) are exactly the ones that read as weak.
-                    //
-                    // Round-2 feedback reported the day names as still not bold, and on Android that
-                    // is structural rather than an oversight: Glance applies `fontWeight` as a
-                    // `TextAppearanceSpan`, and its `FontWeight` is a three-value set whose `Medium`
-                    // and `Bold` resolve to the same style — there is no weight left above `Bold` to
-                    // reach for (see [GridCellWeights]). Round 1 already leaned on the two levers that
-                    // do exist for the 1x1 tiles' weekday line ([CaptionBand]): tone, and size. This
-                    // row gets the same treatment, and for the same reason — `primaryText` rather than
-                    // `secondaryText`, because the weekday labels the days rather than being a caption
-                    // under them, and 11sp rather than 10sp, which puts it above the narrow tier's
-                    // Gregorian title line (10sp) so the row stops being the faintest thing in the
-                    // header. The row grows by ~2px; the week rows below it are weighted, so they give
-                    // that up instead of the header overflowing.
-                    style = TextStyle(
-                        color = colors.onTodayText,
-                        fontSize = weekdaySize,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = fonts.weekday.toGlanceFontFamily(),
-                        textAlign = TextAlign.Center,
-                    ),
-                )
-            }
-        }
+        WeekdayHeaderRow(
+            month = month,
+            weekdaySize = weekdaySize,
+            showCellBorders = showCellBorders,
+            colors = colors,
+        )
 
         // [HijriMonthWidgetData.weeksToRender] and [HijriMonthWidgetData.paintsDay] are the shared
         // definition of the grid's shape, so this composable, calendar-ui's MonthGrid and the Swift
@@ -1413,15 +1555,17 @@ private fun MonthDays(
 }
 
 /**
- * One line naming an observance: the tapped day's, or the month-next one when nothing is tapped.
+ * One line naming an observance: the tapped day's, the month-next one when nothing is tapped, or an
+ * explicit "No event" when neither applies.
  *
  * ## Why the line is always laid out
  *
- * The footer is laid out for **every** month grid, whether or not a day is selected, and renders empty
- * when there is nothing to name. A grid whose height changes depending on *which day you tapped* is
- * unusable — the thing you are aiming at moves under your finger — and the same argument applies to the
- * untapped state: a widget that grows a strip the moment it is touched is one whose layout the user
- * cannot predict. So the height is a constant of "this is a month grid" and only the text varies.
+ * The footer is laid out for **every** month grid, whether or not a day is selected, and says
+ * "No event" when there is nothing to name. A grid whose height changes depending on *which day you
+ * tapped* is unusable — the thing you are aiming at moves under your finger — and the same argument
+ * applies to the untapped state: a widget that grows a strip the moment it is touched is one whose
+ * layout the user cannot predict. So the height is a constant of "this is a month grid" and only the
+ * text varies.
  *
  * It used to be laid out only on a selection, on the reasoning that a permanently-reserved blank strip
  * is a cost every user pays for a feature most taps never use. That was the wrong trade once the grid
@@ -1437,7 +1581,7 @@ private fun MonthDays(
  */
 @Composable
 private fun EventFooter(
-    eventName: String?,
+    eventName: String,
     colors: WidgetColors,
 ) {
     Row(
@@ -1447,9 +1591,8 @@ private fun EventFooter(
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
-        Text(
-            // Empty rather than absent when there is nothing to name — see the KDoc.
-            text = eventName.orEmpty(),
+        WidgetText(
+            text = eventName,
             style = TextStyle(
                 color = colors.accent,
                 fontSize = 11.sp,
@@ -1457,6 +1600,10 @@ private fun EventFooter(
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
+            // The footer is a reserved line (FD-08) under six weighted day rows, so its leading is
+            // height taken from the cells like the header's. Its trim is the simplest of the three:
+            // one line, in a row of its own, with nothing to align against.
+            trimScriptLeading = true,
         )
     }
 }
@@ -1525,10 +1672,16 @@ internal fun eventLanguage(language: WidgetLanguage): HijriEventLanguage = when 
  *
  * Two lines rather than one because a single line carrying both months has to fit in what is left of a
  * phone-width widget after the two arrows and the two action icons, which is narrower than any month
- * name; stacking the halves lets each take the full title width. The Hijri line is `primaryText` Bold
- * and the Gregorian one `secondaryText` Medium in **every** display mode, so "which calendar is the big
- * number?" is answered by the header the same way in all three. Kept as a `RowScope` extension so it
- * can take the header row's remaining width.
+ * name; stacking the halves lets each take the full title width.
+ *
+ * **Both lines are drawn identically** (round 3): one size ([GridHeaderTypography.titleSp]), one weight
+ * ([GridHeaderTypography.TITLE_WEIGHT]) and one colour ([titleColor]). They were a hierarchy before —
+ * Hijri 13sp `primaryText` Bold over Gregorian 10sp `secondaryText` Medium — and on a device that read
+ * as a caption beneath a title rather than as the same month named in the other calendar, which is what
+ * the feedback reported. There is no contrast worth having between two four-digit years that two lines
+ * apart say the same thing: the era suffix the projection appends to the Hijri year is the
+ * disambiguator, and it is content rather than typography. Kept as a `RowScope` extension so it can
+ * take the header row's remaining width.
  */
 @Composable
 @Suppress("LongParameterList")
@@ -1536,12 +1689,15 @@ private fun RowScope.MonthTitle(
     resetAction: Action?,
     colors: WidgetColors,
     language: WidgetLanguage,
-    hijriSize: TextUnit,
-    gregorianSize: TextUnit,
+    titleSize: TextUnit,
     hijriTitle: String,
     gregorianText: String,
+    /** The two title lines' width budget; see the call site in [MonthHeader]. */
+    maxWidthDp: Int,
 ) {
     val fonts = HijriWidgetFonts.default
+    // One colour, read once, so the two lines cannot drift apart again.
+    val color = titleColor(colors)
     Box(
         modifier = GlanceModifier
             .defaultWeight()
@@ -1550,35 +1706,45 @@ private fun RowScope.MonthTitle(
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
-            Text(
+            WidgetText(
                 // Era-appended by the projection (FD-05): a Hijri year is four digits that look
                 // exactly like a Gregorian one, and `1447 ھ` alone leaves a reader guessing which
                 // calendar the number belongs to.
                 text = hijriTitle,
                 style = TextStyle(
-                    color = colors.primaryText,
-                    fontSize = hijriSize,
-                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    fontSize = titleSize,
+                    fontWeight = GridHeaderTypography.TITLE_WEIGHT,
                     fontFamily = fonts.monthTitle.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
+                maxWidthDp = maxWidthDp,
+                // The header's two lines are chrome over a weighted grid, so their leading is height the
+                // cells do not get — see [GridHeaderTypography.titleSp] for why that matters now that
+                // both lines are one size. Stacked, not rowed: each line's bottom stays `baseline +
+                // descent`, so the gap the two lines keep is the face's own descent rather than the box
+                // the leading was in.
+                trimScriptLeading = true,
             )
-            Text(
-                // Which Gregorian title — the full range or the dominant month — is chosen by
-                // [MonthHeader] from the widget's width. Both are pre-built in the projection, so the
+            WidgetText(
+                // The full Gregorian range, chosen by [MonthHeader]: both months the Hijri month
+                // spans, because a Hijri month regularly straddles two Gregorian ones and naming
+                // only the dominant one described half the grid. Pre-built in the projection, so the
                 // renderer never formats a month name itself.
                 text = gregorianText,
                 style = TextStyle(
-                    // `secondaryText`, making the Gregorian half subordinate to the Hijri one so the
-                    // two lines read as a hierarchy rather than as two competing titles.
-                    color = colors.secondaryText,
-                    fontSize = gregorianSize,
-                    fontWeight = FontWeight.Medium,
+                    color = color,
+                    fontSize = titleSize,
+                    fontWeight = GridHeaderTypography.TITLE_WEIGHT,
                     fontFamily = fonts.gregorianTitle.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
+                maxWidthDp = maxWidthDp,
+                // Same trim as the line above, and it matters more here: this line carries the year as
+                // well as a month name, so its ink sits higher in its box than the Hijri line's does.
+                trimScriptLeading = true,
             )
         }
     }
@@ -1629,8 +1795,20 @@ private fun NavigationArrow(
  * icons. The arrows and icons are fixed-size, and the title takes what is left (it is the only
  * `defaultWeight` child). At the full 48dp/32dp chrome that is ~160dp of a phone-width widget, which
  * leaves the title roughly 80dp — narrower than any month name, in either language. So on a narrow
- * widget the chrome shrinks *and* the title shrinks, and the Gregorian line switches to
- * [com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData.gregorianShortTitle].
+ * widget the chrome shrinks *and* the title shrinks. The Gregorian line is the full range at every
+ * width: naming both months the Hijri month spans is worth more than the width the short form saves,
+ * and a narrow widget ellipsizes the range rather than dropping a month.
+ *
+ * ## One size, one weight, one colour, for both lines (round 3)
+ *
+ * Both lines name **the same month**, one calendar apart, so they are drawn identically — the size
+ * comes from [GridHeaderTypography.titleSp], the weight from
+ * [GridHeaderTypography.TITLE_WEIGHT], and the colour from [titleColor]. They used to be a hierarchy
+ * (Hijri 13sp `primaryText` Bold over Gregorian 10sp `secondaryText` Medium), and on a device that
+ * read as a caption on a title rather than as a second name for the same month. What distinguishes
+ * the two lines now is content, and the only content difference the renderer can rely on is on the
+ * Hijri side: the era suffix the projection appends, so two four-digit years are never left to be
+ * told apart by eye.
  *
  * ## Why these are functions and not constants at the call sites
  *
@@ -1640,7 +1818,7 @@ private fun NavigationArrow(
 internal object GridHeaderTypography {
 
     /**
-     * Below this widget width the header uses its compact chrome and the short Gregorian title.
+     * Below this widget width the header uses its compact chrome.
      *
      * Chosen so the common `260×280` grid widget — the large tier in `HijriCalendarWidget.sizeMode` —
      * gets the compact treatment, because that is the size nearly every placed grid is granted. A
@@ -1657,29 +1835,70 @@ internal object GridHeaderTypography {
     /** The today/refresh icon size, in dp. */
     fun actionIconDp(widthDp: Float): Float = if (isNarrow(widthDp)) 20f else 24f
 
-    /** The Hijri title line's size, in sp. */
-    fun hijriTitleSp(widthDp: Float): Float = if (isNarrow(widthDp)) 13f else 15f
+    /**
+     * The size of **both** title lines, in sp.
+     *
+     * One size for both lines since round 3. The Gregorian line used to be a step down — 10sp against
+     * the Hijri line's 13 — on the theory that the Hijri line is the header's hero. On a device the
+     * pair read as two different facts rather than as one month named twice, which is what the
+     * feedback reported: the Gregorian month and year looked like a caption to the Hijri one. They
+     * are the same month in the same header, one calendar apart, so they take one size, one weight
+     * ([TITLE_WEIGHT]) and one colour (`titleColor`), and the *content* is what distinguishes them:
+     * the Hijri line carries the era suffix the projection appends (FD-05), the Gregorian one the
+     * month the widget spans.
+     *
+     * The height is the cost, and it is deliberate: two lines at 13sp ask ~7dp more of the header
+     * than two at 13/10 did. The week rows below are weighted, so they give that up — the header does
+     * not overflow. Both lines trim their leading (`WidgetText(trimScriptLeading = true)`), which
+     * gives most of that back under the bundled face: a Nastaliq title line's declared box is 2.5 em
+     * while its ink measured 1.08 em above the baseline on a device, so without the trim two lines at
+     * 13sp ask 65 dp of a 4-row widget and the cells pay for all of it.
+     *
+     * A narrower *fit* is the other risk, and it is the reason the header names both Gregorian months
+     * rather than the dominant one: on a phone-width grid the two-line range is ~135dp against a
+     * ~124dp budget, so the narrowest widgets ellipsize the range rather than dropping a month. That
+     * is the deliberate trade — a truncated second month name still says the month changed; a missing
+     * one says it did not. The title also keeps `maxLines = 1`, so it truncates rather than wraps into
+     * a third line the header has not budgeted for.
+     */
+    fun titleSp(widthDp: Float): Float = if (isNarrow(widthDp)) 13f else 15f
 
-    /** The Gregorian title line's size, in sp. */
-    fun gregorianTitleSp(widthDp: Float): Float = if (isNarrow(widthDp)) 10f else 12f
+    /**
+     * The weight both title lines are drawn at.
+     *
+     * A named constant rather than a literal at the two `Text` calls for the same reason
+     * [GridCellWeights] exists: `MonthTitle` is a `@Composable` and cannot be called from a JVM unit
+     * test, so the seam a test can hold is the constant. [GridCellWeights] deliberately starts *below*
+     * this weight, and `MonthTitle` deliberately uses this one for both lines.
+     */
+    val TITLE_WEIGHT: FontWeight = FontWeight.Bold
 
     /**
      * The weekday header row's size, in sp.
      *
-     * A step above [gregorianTitleSp] rather than the 10sp it shipped with. Round-2 feedback reported
-     * the day names as not bold, and on Android that can no longer be fixed with weight: Glance applies
-     * `fontWeight` as a `TextAppearanceSpan`, its `FontWeight` is a three-value set, and `Medium` and
-     * `Bold` resolve to the same style — so the two levers left are tone and size (see
-     * [GridCellWeights] for the same conclusion about the day figures, and `CaptionBand` for the 1x1
-     * tiles' weekday line, which took the tone one first). The row was the smallest text on the widget
-     * *and* the muted tone, which is why it read as a caption.
+     * A step below [titleSp]: the month title is the header's hero, and a row of seven labels must not
+     * out-shout it. These are stated as relationships in `GridHeaderTest` rather than as equalities so
+     * a future tier cannot break the order quietly.
      *
-     * It stays below [hijriTitleSp] in both tiers: the month title is the header's hero, and a row of
-     * seven labels must not out-shout it. These are stated as relationships in `GridHeaderTest` rather
-     * than as equalities so a future tier cannot break the order quietly.
+     * Round-2 feedback reported the day names as not bold, and on Android that can no longer be fixed
+     * with weight: Glance applies `fontWeight` as a `TextAppearanceSpan`, its `FontWeight` is a
+     * three-value set, and `Medium` and `Bold` resolve to the same style — so the two levers left are
+     * tone and size (see [GridCellWeights] for the same conclusion about the day figures, and
+     * `CaptionBand` for the 1x1 tiles' weekday line, which took the tone one first). The row was the
+     * smallest text on the widget *and* the muted tone, which is why it read as a caption.
      */
     fun weekdaySp(widthDp: Float): Float = if (isNarrow(widthDp)) 11f else 12f
 }
+
+/**
+ * The colour of both title lines (round 3).
+ *
+ * A function rather than `colors.primaryText` written at each `Text`, because `MonthTitle` cannot be
+ * called from a JVM unit test: this is the seam `GridHeaderTest` holds so the Gregorian line cannot
+ * quietly go back to `secondaryText` — the change that made it read as a caption rather than as the
+ * same month in the other calendar.
+ */
+internal fun titleColor(colors: WidgetColors): ColorProvider = colors.primaryText
 
 /**
  * The two weights a day cell's own text is drawn at.
@@ -1873,7 +2092,7 @@ internal fun cellDecoration(tone: DayCellTone): CellDecoration = when (tone) {
 private fun RowScope.BlankCell(dividerAfter: Boolean, colors: WidgetColors) {
     Row(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
         Box(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {}
-        if (dividerAfter) CellDivider(colors)
+        if (dividerAfter) CellDivider(colors.cellBorder)
     }
 }
 
@@ -1951,7 +2170,7 @@ private fun DayFigures(
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
-        Text(
+        WidgetText(
             text = figures.main,
             style = TextStyle(
                 color = hijriColor,
@@ -1963,7 +2182,7 @@ private fun DayFigures(
             maxLines = 1,
         )
         figures.gregorianSub?.let { sub ->
-            Text(
+            WidgetText(
                 text = sub,
                 style = TextStyle(
                     color = gregorianColor,
@@ -2112,7 +2331,7 @@ private fun RowScope.DayCell(
                 DayFigures(cell, hijriColor, gregorianColor, hijriSize, gregorianSize, dateDisplayMode)
             }
         }
-        if (dividerAfter) CellDivider(colors)
+        if (dividerAfter) CellDivider(colors.cellBorder)
     }
 }
 
@@ -2142,13 +2361,27 @@ private fun RowDivider(colors: WidgetColors) {
  * `RemoteViews` with 42 extra `Box`es is a heavier thing for the launcher to bind than the month needs
  * to be. Visually identical, and it is why the option is a render-time flag rather than something the
  * projection had to carry per cell.
+ *
+ * [color] is the caller's, because the rule is drawn on whatever fill its row carries: the day cells
+ * pass [WidgetColors.cellBorder] over the widget background, the weekday header passes
+ * [WidgetColors.bandDivider] over the accent band. `cellBorder` *is* the accent at 40%, so drawing it
+ * on the accent composites it to itself and the rule disappears — which is why the band needs a
+ * member of its own rather than reusing this one.
+ *
+ * ## Why [heightDp] exists
+ *
+ * A rule in a row that already has a height of its own — a day row, which is a weighted child of the
+ * grid's `Column` — can `fillMaxHeight` and will be exactly that row's height. A rule in a
+ * **content-sized** row cannot: `fillMaxHeight` becomes `match_parent` against the height the parent
+ * was *offered*, which inside the widget's weighted root is the whole widget. The weekday header is
+ * content-sized (it is one line of text), so its rules state their height instead. That is not
+ * defensive: with `fillMaxHeight` the header's seven rules each matched the full grid height, the row
+ * became the whole widget, and every day figure was pushed off it.
  */
 @Composable
-private fun RowScope.CellDivider(colors: WidgetColors) {
+private fun RowScope.CellDivider(color: ColorProvider, heightDp: Float? = null) {
+    val rule = GlanceModifier.width(1.dp).background(color)
     Box(
-        modifier = GlanceModifier
-            .width(1.dp)
-            .fillMaxHeight()
-            .background(colors.cellBorder),
+        modifier = if (heightDp == null) rule.fillMaxHeight() else rule.height(heightDp.dp),
     ) {}
 }

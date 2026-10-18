@@ -10,7 +10,7 @@
     <ID>ArgumentListWrapping:HijriWidgetSettingsActivity.kt$HijriWidgetSettingsActivity$(this@HijriWidgetSettingsActivity, id, options, caller = "settings-apply")</ID>
     <ID>ArgumentListWrapping:HijriWidgetSettingsActivity.kt$HijriWidgetSettingsActivity$(this@HijriWidgetSettingsActivity, options, caller = "settings-apply")</ID>
     <ID>ArgumentListWrapping:MainActivity.kt$MainActivity$(viewModel.state.adjustmentDays, viewModel.state.pakistanDates, viewModel.state.monthLengths)</ID>
-    <ID>CyclomaticComplexMethod:HijriWidgetSettingsScreen.kt$@Composable internal fun HijriWidgetSettingsScreen( kind: WidgetKind, initial: WidgetOptions, onApply: (WidgetOptions) -&gt; Unit, onRefreshNow: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:HijriWidgetSettingsScreen.kt$@Composable internal fun HijriWidgetSettingsScreen( kind: WidgetKind, initial: WidgetOptions, onApply: (WidgetOptions) -&gt; Unit, onRefreshNow: () -&gt; Unit, /** Whether the library's bundled Nastaliq face draws the Arabic-script slots; see `WidgetTypography`. */ bundledUrduFont: Boolean, onBundledUrduFontChange: (Boolean) -&gt; Unit, onDone: () -&gt; Unit, )</ID>
     <ID>FinalNewline:HijriCalendarApp.kt$com.muazdev.hijricalendar.sample.HijriCalendarApp.kt</ID>
     <ID>FinalNewline:HijriWidgetSettingsActivity.kt$com.muazdev.hijricalendar.sample.HijriWidgetSettingsActivity.kt</ID>
     <ID>FinalNewline:HijriWidgetSettingsScreen.kt$com.muazdev.hijricalendar.sample.HijriWidgetSettingsScreen.kt</ID>
@@ -23,7 +23,7 @@
     <ID>Indentation:CalendarViewModel.kt$CalendarViewModel$ </ID>
     <ID>Indentation:HijriWidgetSettingsScreen.kt$ </ID>
     <ID>Indentation:WidgetCatalogActivity.kt$ </ID>
-    <ID>LongMethod:HijriWidgetSettingsScreen.kt$@Composable internal fun HijriWidgetSettingsScreen( kind: WidgetKind, initial: WidgetOptions, onApply: (WidgetOptions) -&gt; Unit, onRefreshNow: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
+    <ID>LongMethod:HijriWidgetSettingsScreen.kt$@Composable internal fun HijriWidgetSettingsScreen( kind: WidgetKind, initial: WidgetOptions, onApply: (WidgetOptions) -&gt; Unit, onRefreshNow: () -&gt; Unit, /** Whether the library's bundled Nastaliq face draws the Arabic-script slots; see `WidgetTypography`. */ bundledUrduFont: Boolean, onBundledUrduFontChange: (Boolean) -&gt; Unit, onDone: () -&gt; Unit, )</ID>
     <ID>MatchingDeclarationName:HijriWidgetSettingsScreen.kt$WidgetKind</ID>
     <ID>MaxLineLength:CalendarScreenDeviceUiTest.kt$CalendarScreenDeviceUiTest$compose.onNodeWithContentDescription("\u0627\u06af\u0644\u0627 \u0645\u06c1\u06cc\u0646\u06c1").performScrollTo().assertIsDisplayed()</ID>
     <ID>MaxLineLength:CalendarScreenDeviceUiTest.kt$CalendarScreenDeviceUiTest$compose.onNodeWithContentDescription("\u067e\u0686\u06be\u0644\u0627 \u0645\u06c1\u06cc\u0646\u06c1").performScrollTo().assertIsDisplayed()</ID>

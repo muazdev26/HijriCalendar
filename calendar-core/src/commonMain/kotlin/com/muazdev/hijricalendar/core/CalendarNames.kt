@@ -51,6 +51,24 @@ public object CalendarNames {
     )
 
     /**
+     * The twelve English Gregorian month names in their three-letter form, 1-indexed
+     * (Jan .. Dec).
+     *
+     * The abbreviation a **1x1 tile** renders, where the full name clips in every numeral style:
+     * `Oct` answers "which month?" at the width one cell has. Positional and in the same order as
+     * [englishGregorianMonths], because both are indexed by `month - 1` at the call site and a
+     * mismatch there is a wrong month name rather than a compile error.
+     *
+     * English only by design — Urdu month names have no three-letter form and keep their full
+     * spelling (they are longer words in a different script, and trimming Arabic script cuts the
+     * word's root rather than its suffix).
+     */
+    public val englishGregorianMonthAbbreviations: List<String> = listOf(
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    )
+
+    /**
      * English weekday short names, as a 7-entry list in [WeekDay] enum order (Saturday first).
      *
      * Identical to each entry's [WeekDay.shortName]; exposed as a list because both consumers

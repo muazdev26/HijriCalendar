@@ -21,12 +21,12 @@ import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
@@ -94,9 +94,13 @@ public class HijriDateWidget : GlanceAppWidget() {
                 options = options,
                 todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
             )
+            // The 1x1 tile's caption is one line at 40dp, where the full month name clips. `Oct` and
+            // `Rabi' I` are what the projection built for exactly this slot (see
+            // TodayHijriWidgetData.gregorianMonthShortName / hijriMonthShortName) — English month
+            // names only: Urdu month names are never shortened, so an Urdu tile renders in full.
             DateTileRoot(
                 dayText = today?.hijriDayText,
-                monthText = today?.hijriMonthName,
+                monthText = today?.hijriMonthShortName,
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = openAction,
@@ -124,7 +128,7 @@ public class HijriDateWidget : GlanceAppWidget() {
             val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
             DateTileRoot(
                 dayText = data.todayHijri?.hijriDayText,
-                monthText = data.todayHijri?.hijriMonthName,
+                monthText = data.todayHijri?.hijriMonthShortName,
                 weekdayText = data.todayHijri?.weekdayName,
                 colors = colors,
                 openAction = null,
@@ -173,7 +177,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
             )
             DateTileRoot(
                 dayText = today?.gregorianDayText,
-                monthText = today?.gregorianMonthName,
+                monthText = today?.gregorianMonthShortName,
                 weekdayText = today?.weekdayName,
                 colors = colors,
                 openAction = openAction,
@@ -201,7 +205,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
             val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
             DateTileRoot(
                 dayText = data.todayHijri?.gregorianDayText,
-                monthText = data.todayHijri?.gregorianMonthName,
+                monthText = data.todayHijri?.gregorianMonthShortName,
                 weekdayText = data.todayHijri?.weekdayName,
                 colors = colors,
                 openAction = null,
@@ -230,22 +234,31 @@ public class GregorianDateWidget : GlanceAppWidget() {
  *
  * Point 7 changed *which* cell that is: [HijriDateWidget.sizeMode] is `Exact`, so `LocalSize` is the
  * size the launcher granted rather than the declared minimum, and the ceilings were raised
- * (16/30 → 22/44) so a stretched tile has somewhere to grow. The caption tracks the granted width,
- * the figure stays twice the caption, and both are capped.
+ * (16/30 → 22/44) so a stretched tile has somewhere to grow.
+ *
+ * **Every line is now derived from one scale** (see [widgetTypeScale]) rather than from per-line
+ * width and height rules: the caption is the scale times [DateTileTypography.weekdaySizeAtReference]
+ * and the figure is exactly twice it, so a cell that grows tall but not wide (or the reverse) moves
+ * all three lines together and cannot push one off the bottom. The band the weekday sits in is part
+ * of that stack, which is why [DateTileTypography.REFERENCE_STACK_HEIGHT_DP] counts its padding.
  */
 internal data class DateTileSizes(
     val captionSize: TextUnit,
     val daySize: TextUnit,
-)
+) {
+    /**
+     * The height these three lines plus the weekday band ask for, in dp: both captions at
+     * [scriptRatio], the figure at [DIGIT_LINE_RATIO], and the band's own padding. What a caller
+     * asserts against the height the launcher granted.
+     */
+    fun requestedHeightDp(scriptRatio: Float = TEXT_LINE_RATIO): Float =
+        captionSize.value * scriptRatio +
+            daySize.value * DIGIT_LINE_RATIO +
+            captionSize.value * scriptRatio +
+            WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP
+}
 
 internal object DateTileTypography {
-
-    fun weekdaySizeFor(availableWidth: Dp): TextUnit = weekdaySizeFor(availableWidth.value)
-
-    fun weekdaySizeFor(availableWidth: Float): TextUnit {
-        val scaled = weekdaySizeAtReference.value * availableWidth / WEEKDAY_REFERENCE_WIDTH_DP
-        return scaled.coerceIn(weekdaySizeFloor.value, weekdaySizeCeiling.value).sp
-    }
 
     const val WEEKDAY_REFERENCE_WIDTH_DP: Float = 72f
     const val REFERENCE_HEIGHT_DP: Float = 72f
@@ -257,45 +270,82 @@ internal object DateTileTypography {
      */
     val REFERENCE_CELL = DpSize(WEEKDAY_REFERENCE_WIDTH_DP.dp, REFERENCE_HEIGHT_DP.dp)
 
-    /**
-     * A `Text` line box as a multiple of its font size. Glance boxes every `Text` at ascent +
-     * descent (there is no `lineHeight` on `TextStyle`), so the three lines claim
-     * `(caption + day + caption) * LINE_HEIGHT_RATIO` and no layout nudge can reclaim it.
-     */
-    const val LINE_HEIGHT_RATIO: Float = 1.2f
-
     val weekdaySizeAtReference = 13.sp
-    val weekdaySizeFloor = 10.sp
 
     /** The caption's ceiling at a large cell. The figure is twice it; see [sizesFor]. */
     val weekdaySizeCeiling = 22.sp
 
     val daySize = 26.sp
-    val daySizeFloor = 18.sp
     val daySizeCeiling = 44.sp
 
     const val PADDING_DP = 6
-    const val VERTICAL_PADDING_DP = 2
 
     const val TILE_MIN_HEIGHT_DP = 40
     const val TILE_MIN_WIDTH_DP = 40
 
-    fun sizesFor(availableWidthDp: Float, availableHeightDp: Float): DateTileSizes {
-        val widthCaption = weekdaySizeFor(availableWidthDp).value
-        // Three lines, the figure twice a caption: `caption + 2*caption + caption` = four captions
-        // of line box. The old `4.68` under-counted the row count, so a tall cell could be asked
-        // for ~3% more height than it had; `4 * LINE_HEIGHT_RATIO` is exactly the three line boxes.
-        val heightMaxCaption = availableHeightDp / (4f * LINE_HEIGHT_RATIO)
-        val caption = minOf(widthCaption, heightMaxCaption)
-            .coerceIn(weekdaySizeFloor.value, weekdaySizeCeiling.value)
-            .sp
+    /** The figure is always exactly twice the caption, so a single ceiling governs both. */
+    private val MAX_SCALE: Float = daySizeCeiling.value / daySize.value
 
-        val day = (caption.value * 2.0f)
-            .coerceIn(daySizeFloor.value, daySizeCeiling.value)
-            .sp
+    /**
+     * The height the three lines plus the weekday band ask for at scale 1 — the yardstick
+     * [widgetTypeScale] measures the granted cell against. The two captions are script text and the
+     * figure is digits, so they are counted at [scriptRatio] and [DIGIT_LINE_RATIO] respectively.
+     */
+    fun referenceTextHeightDp(scriptRatio: Float): Float =
+        weekdaySizeAtReference.value * scriptRatio +
+            daySize.value * DIGIT_LINE_RATIO +
+            weekdaySizeAtReference.value * scriptRatio
 
-        return DateTileSizes(captionSize = caption, daySize = day)
-    }
+    /** [referenceTextHeightDp] at the system script ratio; the static mirror and the tests read this. */
+    val REFERENCE_TEXT_HEIGHT_DP: Float = referenceTextHeightDp(TEXT_LINE_RATIO)
+
+    /** The non-scaling part of the stack: the band's own padding. */
+    val FIXED_HEIGHT_DP: Float = (WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP).toFloat()
+
+    /** The whole stack at scale 1 — the lines plus the chrome; what [requestedHeightDp] returns there. */
+    val REFERENCE_STACK_HEIGHT_DP: Float = REFERENCE_TEXT_HEIGHT_DP + FIXED_HEIGHT_DP
+
+    /**
+     * Both axes, because this tile is resizable on both: see `DateTileRoot`.
+     *
+     * [scriptRatio] is the line-box ratio the widget's script lines will actually render at — see
+     * [HijriWidgetFonts.scriptLineRatio]. It is a parameter rather than a constant because the
+     * bundled Nastaliq face needs a taller box than the system fallback, and a stack measured with
+     * the wrong one overflows the cell it was supposed to fit.
+     */
+    fun sizesFor(
+        availableWidthDp: Float,
+        availableHeightDp: Float,
+        scriptRatio: Float = TEXT_LINE_RATIO,
+    ): DateTileSizes = sizesAtScale(
+        widgetTypeScale(
+            availableWidthDp = availableWidthDp,
+            referenceWidthDp = WEEKDAY_REFERENCE_WIDTH_DP,
+            availableHeightDp = availableHeightDp,
+            fixedHeightDp = FIXED_HEIGHT_DP,
+            referenceTextHeightDp = referenceTextHeightDp(scriptRatio),
+            maxScale = MAX_SCALE,
+        ),
+    )
+
+    /**
+     * Width alone. This is the projection the Android 12-14 `previewLayout` mirror is held to, and
+     * the one the static mirror can state: a launch-time preview has no granted height of its own.
+     * The live tile goes through the two-axis overload.
+     */
+    fun sizesFor(availableWidthDp: Float): DateTileSizes = sizesAtScale(
+        (availableWidthDp / WEEKDAY_REFERENCE_WIDTH_DP).coerceIn(MIN_TYPE_SCALE, MAX_SCALE),
+    )
+
+    /** The caption size at [availableWidth]; the preview mirror and the tests read this. */
+    fun weekdaySizeFor(availableWidth: Float): TextUnit = sizesFor(availableWidth).captionSize
+
+    fun weekdaySizeFor(availableWidth: Dp): TextUnit = weekdaySizeFor(availableWidth.value)
+
+    private fun sizesAtScale(scale: Float): DateTileSizes = DateTileSizes(
+        captionSize = (weekdaySizeAtReference.value * scale).sp,
+        daySize = (daySize.value * scale).sp,
+    )
 }
 
 /**
@@ -344,68 +394,88 @@ internal fun DateTileRoot(
     val modifier = GlanceModifier.fillMaxSize().background(colors.background)
     val clickableModifier = if (openAction != null) modifier.clickable(openAction) else modifier
 
-    // Sized to both width and height granted by launcher so text fits cleanly without clipping.
+    // One scale from both granted axes, so every line grows and shrinks together; see
+    // [DateTileTypography]. The script ratio is the widget's own, because the bundled Nastaliq face
+    // measures taller than the system fallback the default assumes.
     val availableWidth = cell.width - DateTileTypography.PADDING_DP.dp * 2
-    val availableHeight = cell.height - DateTileTypography.VERTICAL_PADDING_DP.dp * 2
-    val sizes = DateTileTypography.sizesFor(availableWidth.value, availableHeight.value)
+    val sizes = DateTileTypography.sizesFor(
+        availableWidthDp = availableWidth.value,
+        availableHeightDp = cell.height.value,
+        scriptRatio = fonts.scriptLineRatio(),
+    )
 
     Column(
-        modifier = clickableModifier.padding(
-            horizontal = DateTileTypography.PADDING_DP.dp,
-            vertical = DateTileTypography.VERTICAL_PADDING_DP.dp,
-        ),
-        verticalAlignment = Alignment.Vertical.CenterVertically,
+        modifier = clickableModifier,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
         if (dayText == null) {
-            Text(
-                // Resolved from the widget's own language, not the device locale (WG-12) — see
-                // [WidgetLocalization.ChromeLabels].
-                text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
-                style = TextStyle(
-                    color = colors.secondaryText,
-                    fontSize = sizes.captionSize,
-                    textAlign = TextAlign.Center,
-                ),
-                maxLines = 1,
-            )
+            Box(
+                modifier = GlanceModifier.defaultWeight()
+                    .padding(horizontal = DateTileTypography.PADDING_DP.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                WidgetText(
+                    // Resolved from the widget's own language, not the device locale (WG-12) — see
+                    // [WidgetLocalization.ChromeLabels].
+                    text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
+                    style = TextStyle(
+                        color = colors.secondaryText,
+                        fontSize = sizes.captionSize,
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 1,
+                )
+            }
             return@Column
         }
-        CaptionBand(
+        // The weekday name, in the same accent band the dual-date tile and the Today strip draw it
+        // in. Flush to the tile's edges — the band's own horizontal padding is the clear space its
+        // text needs — so the three tiles are the same object whether they carry one date or two.
+        WeekdayBand(
             text = weekdayText.orEmpty(),
             fontSize = sizes.captionSize,
+            colors = colors,
             fontFamily = fonts.weekday.toGlanceFontFamily(),
-            color = colors.primaryText,
         )
-        Text(
-            text = dayText,
-            style = TextStyle(
-                color = colors.accent,
-                fontSize = sizes.daySize,
-                fontWeight = FontWeight.Bold,
-                fontFamily = fonts.dayNumber.toGlanceFontFamily(),
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-        )
-        CaptionBand(
-            text = monthText.orEmpty(),
-            fontSize = sizes.captionSize,
-            // The Hijri tile shows a Hijri month name, the Gregorian one a Gregorian one; the caller
-            // says which by naming the field it passes in.
-            fontFamily = fonts.forMonthTitle(gregorian).toGlanceFontFamily(),
-            color = colors.primaryText,
-        )
+        // The figure and the month name centre in whatever the band left; the band is flush to the
+        // top, so this is the only weighted slot. The horizontal padding is the tile's clear space,
+        // kept here rather than on the root because the band must stay flush to the tile's edges.
+        Box(
+            modifier = GlanceModifier.defaultWeight()
+                .padding(horizontal = DateTileTypography.PADDING_DP.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
+                WidgetText(
+                    text = dayText,
+                    style = TextStyle(
+                        color = colors.accent,
+                        fontSize = sizes.daySize,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = fonts.dayNumber.toGlanceFontFamily(),
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 1,
+                )
+                CaptionBand(
+                    text = monthText.orEmpty(),
+                    fontSize = sizes.captionSize,
+                    // The Hijri tile shows a Hijri month name, the Gregorian one a Gregorian one; the
+                    // caller says which by naming the field it passes in.
+                    fontFamily = fonts.forMonthTitle(gregorian).toGlanceFontFamily(),
+                    color = colors.primaryText,
+                )
+            }
+        }
     }
 }
 
 /**
- * One caption line in its own band, centred.
+ * The tile's month line, centred and bold.
  *
- * The weekday and the month name are the same line twice over: same band, same size, same weight, same
- * colour, same single-line clamp. They were duplicated inline and that duplication is why they were
- * styled as a pair once and could drift apart later — the weekday went bold and the month stayed
- * Medium for a while. One function makes them unable to.
+ * This was the weekday line too until the weekday moved into an accent band; the band is now
+ * [WeekdayBand] and this is the one line under the figure. It stays a function so the tile has a
+ * single place that says what its caption looks like.
  */
 @Composable
 private fun CaptionBand(
@@ -414,12 +484,12 @@ private fun CaptionBand(
     fontFamily: FontFamily?,
     color: ColorProvider,
 ) {
-    Text(
+    WidgetText(
         text = text,
         style = TextStyle(
-            // `primaryText`, not `secondaryText`: the weekday is part of the date, not a caption
-            // under it, and the secondary tone is what made it read as one. The month name is bold for
-            // the same reason it was raised — a glance is most often after *which month*.
+            // `primaryText`, not `secondaryText`: the month name is part of the date, not a caption
+            // under it, and the secondary tone is what made it read as one. Bold for the same reason
+            // — a glance is most often after *which month*.
             color = color,
             fontSize = fontSize,
             fontWeight = FontWeight.Bold,

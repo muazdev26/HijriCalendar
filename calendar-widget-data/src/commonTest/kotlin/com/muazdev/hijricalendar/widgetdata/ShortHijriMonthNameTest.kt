@@ -1,5 +1,6 @@
 package com.muazdev.hijricalendar.widgetdata
 
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -7,24 +8,35 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-10: `TodayHijriWidgetData.hijriMonthShortName` — the abbreviated Hijri month name the dual-date
- * tile puts in its header band.
+ * `TodayHijriWidgetData.hijriMonthShortName` — the month name a 1x1 tile prints where a full one
+ * would clip (FD-10).
  *
- * The band is narrow, and the long form of `ربیع الثانی` or `Jumada al-akhirah` does not fit it at a
- * readable size. The rule is deliberately small: **four** months get a short form, because those four
- * are the ones whose name does not distinguish them from a sibling. The other eight render their
- * ordinary name, unchanged.
+ * The rule is small and deliberately **asymmetric by language**:
  *
- * Three properties are asserted here, and each is a way the rule can go quietly wrong:
+ * 1. **English shortens.** The four months whose name does not distinguish them from a sibling
+ *    carry a Roman ordinal — `Rabi' I`, `Rabi' II`, `Jumada I`, `Jumada II` — and the other eight
+ *    are the ordinary name, byte for byte.
+ * 2. **Urdu never shortens.** For a non-English month-name language the value *is* the full month
+ *    name: `ربیع الاول` in full, never `ربیع ١` — the same rule `gregorianMonthShortName`
+ *    follows, and the host's decision restated in the field's own KDoc.
+ * 3. **The projection decides, not the renderer** (WG-12): the month-name language is a
+ *    `WidgetOptions` field, so iOS reads the same string with no Swift edit and no renderer can
+ *    pick a language on its own.
  *
- * 1. **All twelve months, in both languages.** A rule that only shortens months 3-6 by accident
- *    shortens others too — and a widget showing `رمضان ۱` because the code appended an ordinal to
- *    everything looks like a localization decision rather than a bug.
- * 2. **The base name is the *shared* one, not the full name.** `ربیع الثانی ٢` is not a short form of
- *    anything, and it is exactly the string the band is too narrow for.
- * 3. **The ordinal follows the widget's [NumeralStyle], not the device** — the same rule every other
- *    numeral in the projection obeys, and the reason the digit is formatted by the projection at all
- *    rather than by [WidgetLocalization], which has no numeral style to hand.
+ * Each of those is a way the rule can go quietly wrong, so each has a test:
+ *
+ * 1. **All twelve months, in both languages.** A rule that appends an ordinal to everything looks
+ *    like a localization decision rather than a bug — a widget showing `رمضان` with a `١` glued on
+ *    still reads as a month name at a glance.
+ * 2. **Urdu equals the full name exactly** (in a paired month, under both numeral styles) — the
+ *    four paired months are precisely where "shorten the ambiguous four" overreaches into a
+ *    language that was never asked for shortening.
+ * 3. **The English ordinal is Roman and ignores [NumeralStyle]** — `Rabi' 1` beside English month
+ *    names reads as "the first Rabi' in a list" rather than as the month's name, and a numeral
+ *    style is figures while `I`/`II` are letters.
+ *
+ * And [theOrdinalIsTakenVerbatimFromTheCaller] pins *why* the ordinal choice belongs to the
+ * projection: the primitive itself appends whatever it is handed, nothing more.
  *
  * **Note on argument order.** `kotlin.test` takes the message *last*; JUnit's `assertTrue` takes it
  * first. Several tests in this module use the latter — see [EraMarkersTest] for the convention being
@@ -37,17 +49,19 @@ class ShortHijriMonthNameTest {
      *
      * Asserting against `WidgetLocalization.englishHijriMonthNames` would prove only that the short
      * form is a substring of the long one, which is not the property that matters. These are written
-     * out so a change to a name list, or to the short-form rule, cannot quietly alter the other.
+     * out so a change to a name list, or to the short-form rule, cannot quietly alter the other —
+     * and they are read off the **projection**, not off a restatement of the rule, so the wiring and
+     * the rule are under test at once for every month.
      */
     @Test
     fun allTwelveMonthsRenderTheExpectedShortFormInBothLanguages() {
         val expectedUrdu = listOf(
             "محرم", // 1  Muharram
             "صفر", // 2  Safar
-            "ربیع ۱", // 3  Rabi' I    — paired
-            "ربیع ۲", // 4  Rabi' II   — paired
-            "جمادی ۱", // 5  Jumada I   — paired
-            "جمادی ۲", // 6  Jumada II  — paired
+            "ربیع الاول", // 3  Rabi' al-awwal  — paired, still full: Urdu never shortens
+            "ربیع الثانی", // 4  Rabi' al-thani   — paired, still full
+            "جمادى الأولى", // 5  Jumada al-ula     — paired, still full
+            "جمادی الآخِرۃ", // 6  Jumada al-akhirah — paired, still full
             "رجب", // 7  Rajab
             "شعبان", // 8  Sha'ban
             "رمضان", // 9  Ramadan
@@ -58,10 +72,10 @@ class ShortHijriMonthNameTest {
         val expectedEnglish = listOf(
             "Muharram",
             "Safar",
-            "Rabi' 1", // paired
-            "Rabi' 2", // paired
-            "Jumada 1", // paired
-            "Jumada 2", // paired
+            "Rabi' I", // paired
+            "Rabi' II", // paired
+            "Jumada I", // paired
+            "Jumada II", // paired
             "Rajab",
             "Sha'ban",
             "Ramadan",
@@ -70,18 +84,26 @@ class ShortHijriMonthNameTest {
             "Dhu al-Hijjah",
         )
 
-        for ((index, expected) in expectedUrdu.withIndex()) {
-            assertEquals(
-                shortName(index + 1, WidgetLanguage.URDU, NumeralStyle.ARABIC_INDIC),
-                expected,
-                "Urdu short month name for month ${index + 1}",
+        for (month in 1..12) {
+            val anchor = anchorFor(month)
+            val english = assertNotNull(
+                todayHijriWidgetData(anchorEpochDay = anchor, options = englishOptions),
+                "the projection produced no today record for month $month",
             )
-        }
-        for ((index, expected) in expectedEnglish.withIndex()) {
             assertEquals(
-                shortName(index + 1, WidgetLanguage.ENGLISH, NumeralStyle.WESTERN),
-                expected,
-                "English short month name for month ${index + 1}",
+                expectedEnglish[month - 1],
+                english.hijriMonthShortName,
+                "English short month name for month $month",
+            )
+
+            val urdu = assertNotNull(
+                todayHijriWidgetData(anchorEpochDay = anchor, options = urduOptions(NumeralStyle.ARABIC_INDIC)),
+                "the projection produced no today record for month $month",
+            )
+            assertEquals(
+                expectedUrdu[month - 1],
+                urdu.hijriMonthShortName,
+                "Urdu short month name for month $month — Urdu month names are never shortened",
             )
         }
     }
@@ -91,7 +113,8 @@ class ShortHijriMonthNameTest {
      *
      * Asserted separately from the table above, because this is the half of the rule that has no
      * visible failure: a month that gained a stray ordinal still reads as a month name, so only an
-     * equality check catches it.
+     * equality check catches it — and here it is checked against the shipped list itself rather
+     * than against a second copy of it.
      */
     @Test
     fun theEightUnpairedMonthsAreUntouched() {
@@ -105,7 +128,10 @@ class ShortHijriMonthNameTest {
 
         for (month in 1..12) {
             val long = monthName(month, WidgetLanguage.ENGLISH)
-            val short = shortName(month, WidgetLanguage.ENGLISH, NumeralStyle.WESTERN)
+            val short = assertNotNull(
+                todayHijriWidgetData(anchorEpochDay = anchorFor(month), options = englishOptions),
+                "the projection produced no today record for month $month",
+            ).hijriMonthShortName
             if (month in paired) {
                 assertFalse(
                     short == long,
@@ -122,102 +148,135 @@ class ShortHijriMonthNameTest {
     }
 
     /**
-     * A paired month is the **shared base** plus a digit — never the full name with a digit appended.
+     * In English, a paired month is the **shared base** plus a Roman numeral — never the full name
+     * with anything appended.
      *
-     * The failure this pins is `ربیع الثانی ٢` / `Jumada al-akhirah 2`: long enough to defeat the
-     * point of the short form, and looking entirely plausible in a header band until it is measured.
+     * The failure this pins is `Jumada al-akhirah I`: long enough to defeat the point of the short
+     * form, and looking entirely plausible in a tile caption until it is measured. Urdu is
+     * deliberately *not* looped here — its paired months equal the full name by design, which is
+     * what [theProjectionNeverShortensUrduMonthNames] asserts.
      */
     @Test
     fun aPairedMonthNeverCarriesItsLongName() {
         for (month in WidgetLocalization.pairedHijriMonths) {
-            for (language in WidgetLanguage.entries) {
-                val style = styleFor(language)
-                val long = monthName(month, language)
-                val short = shortName(month, language, style)
+            val data = assertNotNull(
+                todayHijriWidgetData(anchorEpochDay = anchorFor(month), options = englishOptions),
+                "the projection produced no today record for month $month",
+            )
+            val long = monthName(month, WidgetLanguage.ENGLISH)
+            val short = data.hijriMonthShortName
 
-                assertFalse(
-                    short.contains(long),
-                    "month $month in $language: the short form '$short' still contains the long " +
-                        "name '$long'",
+            assertFalse(
+                short.contains(long),
+                "month $month: the short form '$short' still contains the long name '$long'",
+            )
+            val base = WidgetLocalization.pairedHijriMonthBase(month, WidgetLanguage.ENGLISH)
+            assertNotNull(base, "month $month should have a shared base name")
+            assertTrue(
+                short.startsWith(base),
+                "month $month: the short form '$short' should start with the shared base name '$base'",
+            )
+        }
+    }
+
+    /**
+     * **Urdu month names are never shortened** — not for the paired four, not under either numeral
+     * style.
+     *
+     * This is the host's decision, stated in [TodayHijriWidgetData.hijriMonthShortName]'s KDoc, and
+     * the paired months are where the old rule overreached: `ربیع ١` was a code built for the Latin
+     * spelling's ambiguity, and a reader of Urdu reads `ربیع الاول` in full. Both numeral styles are
+     * looped because the value must be byte-identical to the full name regardless — a shortening
+     * that only appeared under one style would be a stranger bug, still.
+     */
+    @Test
+    fun theProjectionNeverShortensUrduMonthNames() {
+        for (month in WidgetLocalization.pairedHijriMonths) {
+            for (style in NumeralStyle.entries) {
+                val data = assertNotNull(
+                    todayHijriWidgetData(
+                        anchorEpochDay = anchorFor(month),
+                        options = urduOptions(style),
+                    ),
+                    "the projection produced no today record for month $month",
                 )
-                val base = WidgetLocalization.pairedHijriMonthBase(month, language)
-                assertNotNull(base, "month $month in $language should have a shared base name")
-                assertTrue(
-                    short.startsWith(base),
-                    "month $month in $language: the short form '$short' should start with the " +
-                        "shared base name '$base'",
+                val full = monthName(month, WidgetLanguage.URDU)
+                assertEquals(
+                    full,
+                    data.hijriMonthName,
+                    "setup: month $month must resolve to its full Urdu name",
+                )
+                assertEquals(
+                    full,
+                    data.hijriMonthShortName,
+                    "month $month with $style: an Urdu month name must never be shortened — got " +
+                        "'${data.hijriMonthShortName}'",
                 )
             }
         }
     }
 
     /**
-     * The ordinal is a **number in the widget's numeral style**, not a literal `1`/`2`.
+     * The English ordinal is **Roman**, and [NumeralStyle] cannot change it.
      *
-     * A Western-digit Urdu widget showing `ربیع 2` beside `۲۱` is internally inconsistent in a way
-     * that reads as a font problem rather than a data problem, which is why this is asserted rather
-     * than left to a screenshot.
+     * The style is looped because it is the *only* widget option that could plausibly leak into
+     * this string: every other numeral in the projection obeys it, and this one must not — `Rabi' 1`
+     * beside English month names reads as "the first Rabi' in a list" rather than as the month's
+     * name, while `I`/`II` are Latin letters that neither digit system translates.
      */
     @Test
-    fun theOrdinalFollowsTheWidgetsNumeralStyle() {
-        // Months 4 and 6 are the only paired months whose ordinal is `2`, so they are the ones that
-        // distinguish the two digit systems.
-        assertEquals(
-            "ربیع ۲",
-            shortName(4, WidgetLanguage.URDU, NumeralStyle.ARABIC_INDIC),
-            "Rabi' II with Eastern digits",
+    fun theProjectionSpellsTheEnglishOrdinalAsARomanNumeral() {
+        val expected = mapOf(
+            3 to "Rabi' I",
+            4 to "Rabi' II",
+            5 to "Jumada I",
+            6 to "Jumada II",
         )
-        assertEquals(
-            "ربیع 2",
-            shortName(4, WidgetLanguage.URDU, NumeralStyle.WESTERN),
-            "Rabi' II with Western digits",
-        )
-        assertEquals(
-            "جمادی ۱",
-            shortName(5, WidgetLanguage.URDU, NumeralStyle.ARABIC_INDIC),
-            "Jumada I with Eastern digits",
-        )
-        assertEquals(
-            "جمادی 1",
-            shortName(5, WidgetLanguage.URDU, NumeralStyle.WESTERN),
-            "Jumada I with Western digits",
-        )
-
-        // And the unpaired months are unaffected by the style, since they carry no digit at all.
-        assertEquals(
-            "رمضان",
-            shortName(9, WidgetLanguage.URDU, NumeralStyle.WESTERN),
-            "Ramadan has no ordinal, so its numeral style cannot change it",
-        )
+        for (month in WidgetLocalization.pairedHijriMonths) {
+            for (style in NumeralStyle.entries) {
+                val data = assertNotNull(
+                    todayHijriWidgetData(
+                        anchorEpochDay = anchorFor(month),
+                        options = createWidgetOptions(
+                            language = WidgetLanguage.ENGLISH,
+                            monthNameLanguage = WidgetLanguage.ENGLISH,
+                            numeralStyle = style,
+                        ),
+                    ),
+                    "the projection produced no today record for month $month",
+                )
+                assertEquals(
+                    expected.getValue(month),
+                    data.hijriMonthShortName,
+                    "month $month with $style must still spell its ordinal as a Roman numeral",
+                )
+            }
+        }
     }
 
     /**
      * The short form follows `monthNameLanguage`, which is **not** `language`.
      *
      * They are separate options, and a widget is explicitly allowed to pair Urdu weekday names and
-     * digits with English month names. Reading `language` here would put `ربیع ۱` in the band of a
-     * widget that asked for English months — the same defect FD-05 fixed for era markers, where using
-     * `language` produced "April - May 2026 ء".
+     * digits with English month names. Reading `language` here would put the Urdu full name
+     * `ربیع الثانی` in the caption of a widget that asked for English months — the same defect FD-05
+     * fixed for era markers, where using `language` produced "April - May 2026 ء".
      */
     @Test
     fun theShortFormFollowsTheMonthNameLanguageNotTheWidgetsLanguage() {
-        // Language = Urdu (Eastern digits, RTL), month names = English. The band must read English,
-        // and the band is the one place the distinction is visible at a glance.
+        // Language = Urdu (Eastern digits, RTL), month names = English. The caption must read English.
         val englishNamesInAnUrduWidget = createWidgetOptions(
             language = WidgetLanguage.URDU,
             monthNameLanguage = WidgetLanguage.ENGLISH,
             numeralStyle = NumeralStyle.ARABIC_INDIC,
         )
-        val data = todayHijriWidgetData(anchorEpochDay = ANCHOR, options = englishNamesInAnUrduWidget)
-
-        assertNotNull(data, "the projection produced no today record")
-        val shortNameInEnglish = shortName(
-            data.hijriMonth,
-            WidgetLanguage.ENGLISH,
-            NumeralStyle.ARABIC_INDIC,
+        val data = assertNotNull(
+            todayHijriWidgetData(anchorEpochDay = ANCHOR, options = englishNamesInAnUrduWidget),
+            "the projection produced no today record",
         )
+
         assertEquals(
-            shortNameInEnglish,
+            englishShortName(data.hijriMonth, monthName(data.hijriMonth, WidgetLanguage.ENGLISH)),
             data.hijriMonthShortName,
             "the short name for month ${data.hijriMonth} must follow monthNameLanguage, not language",
         )
@@ -226,51 +285,58 @@ class ShortHijriMonthNameTest {
     /**
      * A month with no name at all has no short form either.
      *
-     * A band reading just `۲` is a number with nothing saying which month it belongs to, which is
-     * worse than an empty band: it looks populated. Reached through the public seam with a blank
-     * [WidgetOptions.hijriMonthName] name — the projection normalises a short list back to the
-     * built-in names (WD-04), so this branch is not reachable from a `null` or truncated list.
+     * A caption reading just `٢` is a number with nothing saying which month it belongs to, which
+     * is worse than an empty caption: it looks populated. Reached through the public seam with a
+     * full-length list of blank names — the projection discards lists that are *shorter* than
+     * twelve (WD-04), so a `null` or truncated list falls back to the built-in names, but an
+     * all-blank one of full length passes through.
      */
     @Test
     fun aMonthWithNoNameHasNoShortFormEither() {
+        val data = assertNotNull(
+            todayHijriWidgetData(
+                anchorEpochDay = ANCHOR,
+                adjustmentDays = 0,
+                localizedHijriMonthNames = List(12) { "" },
+                monthNameLanguage = WidgetLanguage.ENGLISH,
+            ),
+            "the projection produced no today record",
+        )
+
         assertEquals(
             "",
-            shortName(4, WidgetLanguage.ENGLISH, NumeralStyle.WESTERN, monthNameOverride = ""),
-            "a blank month name must not gain an ordinal",
+            data.hijriMonthName,
+            "setup: the blank list must have been used as given, not replaced by the defaults",
         )
         assertEquals(
             "",
-            shortName(3, WidgetLanguage.URDU, NumeralStyle.ARABIC_INDIC, monthNameOverride = ""),
-            "a blank month name must not gain an ordinal in Urdu either",
+            data.hijriMonthShortName,
+            "a blank month name must not gain an ordinal",
         )
     }
 
     /**
-     * The projection is what populates the field, for a real anchor.
+     * The projection is what populates the field, for a real anchor in a paired month.
      *
-     * The rest of this file tests the rule directly, which leaves the wiring unproven: a field the
-     * builder forgets to set still satisfies every other test here, because they all call
-     * [WidgetLocalization.hijriMonthShortName] themselves. This is the assertion that the value
-     * actually arrives on [TodayHijriWidgetData].
+     * The table above pins *what* the strings are; this pins *where they come from*: the short form
+     * is derived from the same month number the long name resolved to, computed through a
+     * restatement of the English rule — a builder that forgot the field, or filled it from a second
+     * lookup, fails here while every literal table still passes.
      */
     @Test
     fun theProjectionPopulatesTheShortNameFromTheMonthsOwnName() {
-        val urdu = todayHijriWidgetData(
-            anchorEpochDay = ANCHOR,
-            options = createWidgetOptions(
-                language = WidgetLanguage.URDU,
-                numeralStyle = NumeralStyle.ARABIC_INDIC,
-            ),
+        val data = assertNotNull(
+            todayHijriWidgetData(anchorEpochDay = anchorFor(3), options = englishOptions),
+            "the projection produced no today record",
         )
 
-        assertNotNull(urdu, "the projection produced no today record")
         assertTrue(
-            urdu.hijriMonthShortName.isNotBlank(),
+            data.hijriMonthShortName.isNotBlank(),
             "the short name must not be blank for a resolvable month",
         )
         assertEquals(
-            shortName(urdu.hijriMonth, WidgetLanguage.URDU, NumeralStyle.ARABIC_INDIC),
-            urdu.hijriMonthShortName,
+            englishShortName(data.hijriMonth, monthName(data.hijriMonth, WidgetLanguage.ENGLISH)),
+            data.hijriMonthShortName,
             "the short form must be derived from the long form's month, not from a second lookup",
         )
     }
@@ -278,21 +344,24 @@ class ShortHijriMonthNameTest {
     /**
      * The long name survives alongside the short one.
      *
-     * Additive, not replacing: the two other 1x1 tiles and the grid header still show
-     * [TodayHijriWidgetData.hijriMonthName], and the short form is only shorter for four months in
-     * two languages. A change that made the short form overwrite the long one would silently shorten
-     * every other tile's month line.
+     * Additive, not replacing: the grid header and the today strip's wider rungs still show
+     * [TodayHijriWidgetData.hijriMonthName], and the short form is shorter for four months, and
+     * only in English. A change that made the short form overwrite the long one would silently
+     * shorten every other slot's month line.
      */
     @Test
     fun theLongNameIsStillThereAndIsADifferentStringForAPairedMonth() {
-        val data = todayHijriWidgetData(anchorEpochDay = ANCHOR, options = createWidgetOptions())
+        val data = assertNotNull(
+            todayHijriWidgetData(anchorEpochDay = ANCHOR, options = createWidgetOptions()),
+            "the projection produced no today record",
+        )
 
-        assertNotNull(data, "the projection produced no today record")
         assertTrue(data.hijriMonthName.isNotBlank(), "the long month name must survive")
         if (data.hijriMonth in WidgetLocalization.pairedHijriMonths) {
             assertFalse(
                 data.hijriMonthShortName == data.hijriMonthName,
-                "a paired month's short form must differ from its long name '${data.hijriMonthName}'",
+                "a paired month's English short form must differ from its long name " +
+                    "'${data.hijriMonthName}'",
             )
         } else {
             assertEquals(
@@ -301,6 +370,50 @@ class ShortHijriMonthNameTest {
                 "an unpaired month's short form is its long name",
             )
         }
+    }
+
+    /**
+     * The primitive appends **exactly** what it is given — it never derives, formats or translates
+     * an ordinal, and an unpaired month ignores the ordinal entirely.
+     *
+     * This is *why* the choice of ordinal lives in the projection rather than here: the projection
+     * picks Roman for English and hands Urdu nothing at all (Urdu month names are never shortened),
+     * while this function's whole contract is base + caller's ordinal. A primitive that started
+     * formatting its own digits would silently re-import the device's locale question (WG-12) and
+     * undo the asymmetry the tests above pin.
+     */
+    @Test
+    fun theOrdinalIsTakenVerbatimFromTheCaller() {
+        assertEquals(
+            "Rabi' 42",
+            WidgetLocalization.hijriMonthShortName(
+                month = 3,
+                monthName = "Rabi' al-awwal",
+                ordinal = "42",
+                language = WidgetLanguage.ENGLISH,
+            ),
+            "the primitive appends the caller's ordinal verbatim",
+        )
+        assertEquals(
+            "ربیع ۴۲",
+            WidgetLocalization.hijriMonthShortName(
+                month = 4,
+                monthName = "ربیع الثانی",
+                ordinal = "۴۲",
+                language = WidgetLanguage.URDU,
+            ),
+            "the primitive does not inspect the script it is handed either",
+        )
+        assertEquals(
+            "رمضان",
+            WidgetLocalization.hijriMonthShortName(
+                month = 9,
+                monthName = "رمضان",
+                ordinal = "٩",
+                language = WidgetLanguage.URDU,
+            ),
+            "an unpaired month ignores the ordinal entirely",
+        )
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -313,49 +426,70 @@ class ShortHijriMonthNameTest {
     }
 
     /**
-     * The short form for [month], through the same two steps the projection takes: the base-name
-     * lookup in [WidgetLocalization], and an ordinal rendered in [style].
+     * The projection's **English** rule restated: shared base plus the Roman ordinal.
      *
-     * The ordinal is rebuilt here rather than read off a production value so the *rule* is under
-     * test; [theProjectionPopulatesTheShortNameFromTheMonthsOwnName] covers the wiring.
+     * Restated rather than read off production so a test can assert against a second
+     * implementation instead of the value under test; the literal tables pin the strings
+     * themselves, and [theProjectionPopulatesTheShortNameFromTheMonthsOwnName] uses this to
+     * prove the wiring.
      */
-    private fun shortName(
-        month: Int,
-        language: WidgetLanguage,
-        style: NumeralStyle,
-        monthNameOverride: String? = null,
-    ): String {
-        val name = monthNameOverride ?: monthName(month, language)
-        if (name.isEmpty()) return ""
-        // Only the second month of each pair carries a `2`.
+    private fun englishShortName(month: Int, monthName: String): String {
+        if (monthName.isEmpty()) return ""
+        // Only the second month of each pair carries a `II`.
         val second = month == WidgetLocalization.RABI_AL_THANI || month == WidgetLocalization.JUMADA_AL_AKHIRAH
         return WidgetLocalization.hijriMonthShortName(
             month = month,
-            monthName = name,
-            ordinal = ordinal(second, style),
-            language = language,
+            monthName = monthName,
+            ordinal = if (second) "II" else "I",
+            language = WidgetLanguage.ENGLISH,
         )
     }
 
-    /** A digit in [style] — the same two values the projection's own `formatNumber` produces. */
-    private fun ordinal(second: Boolean, style: NumeralStyle): String {
-        val index = if (second) 2 else 1
-        return if (style == NumeralStyle.ARABIC_INDIC) {
-            EASTERN_DIGITS[index].toString()
-        } else {
-            index.toString()
-        }
-    }
-
-    /** A language's own default numerals, so a test reads the way the widget would be configured. */
-    private fun styleFor(language: WidgetLanguage): NumeralStyle =
-        WidgetLocalization.defaultNumeralStyle(language)
+    private fun urduOptions(style: NumeralStyle): WidgetOptions = createWidgetOptions(
+        language = WidgetLanguage.URDU,
+        monthNameLanguage = WidgetLanguage.URDU,
+        numeralStyle = style,
+    )
 
     private companion object {
         /** 2024-03-15, comfortably inside the supported Umm al-Qura window. */
         const val ANCHOR = 19_830L
 
-        /** `۰۱۲۳۴۵۶۷۸۹` — restated so the test does not depend on the projection's private copy. */
-        const val EASTERN_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
+        /** English month names — the only language the short form exists for. */
+        val englishOptions: WidgetOptions = createWidgetOptions(
+            language = WidgetLanguage.ENGLISH,
+            monthNameLanguage = WidgetLanguage.ENGLISH,
+        )
+
+        /**
+         * One epoch day per Hijri month (1..12), found by asking the projection itself rather than
+         * by writing dates down: which Gregorian day a Hijri month starts on is the calendar's own
+         * arithmetic — and the default source is Pakistan, not Umm al-Qura — so a literal date
+         * pinned here would fail on a calendar correction rather than on a rule change.
+         *
+         * Scanned once per class ([lazy] lives on the companion, while JUnit creates an instance
+         * per test method). The window is longer than a lunar year, so every month must appear.
+         */
+        val monthAnchors: Map<Int, Long> by lazy {
+            val start = LocalDate(2024, 8, 25).toEpochDays()
+            val found = linkedMapOf<Int, Long>()
+            var offset = 0
+            while (found.size < 12 && offset < 400) {
+                val epoch = start + offset
+                val month = todayHijriWidgetData(
+                    anchorEpochDay = epoch,
+                    options = createWidgetOptions(),
+                )?.hijriMonth
+                if (month != null && month !in found) {
+                    found[month] = epoch
+                }
+                offset++
+            }
+            found
+        }
+
+        /** An epoch day inside [month], or a loud failure — a missing month means the scan broke. */
+        fun anchorFor(month: Int): Long =
+            monthAnchors[month] ?: error("no day inside Hijri month $month in the scan window")
     }
 }

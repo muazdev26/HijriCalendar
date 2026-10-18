@@ -48,6 +48,15 @@
     -->
     <color name="widget_cell_border">#662E7D32</color>
     <!--
+        The vertical rule between the weekday header's columns (round 3): `widget_on_today` at 40%,
+        i.e. the accent band's own content colour, faded.
+
+        **Not `widget_cell_border`**, which would be invisible here: that colour *is* the accent at
+        40% and the band it would be drawn on *is* the accent, so the two composite to the band's own
+        value in every palette. A rule on the band has to take the band's content colour instead.
+    -->
+    <color name="widget_band_divider">#66FFFFFF</color>
+    <!--
         The fill of the chosen day (FD-09, redesigned). A full accent **block**, where this used to be
         a corner ring: a ring could not carry the accent without an alpha (which a `ColorProvider`
         cannot express) and read as decoration laid over the grid rather than as the chosen day. Today

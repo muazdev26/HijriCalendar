@@ -272,7 +272,7 @@ final class com.muazdev.hijricalendar.widgetdata/HijriYearMonth { // com.muazdev
 }
 
 final class com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData { // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData|null[0]
-    constructor <init>(kotlin/Int, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String = ..., kotlin/String, kotlin/String = ..., kotlin/String, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String, kotlin/Int, kotlin/String, kotlin/Int, kotlin/String = ...) // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.<init>|<init>(kotlin.Int;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String){}[0]
+    constructor <init>(kotlin/Int, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String = ..., kotlin/String, kotlin/String = ..., kotlin/String, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String, kotlin/Int, kotlin/String, kotlin/Int, kotlin/String = ..., kotlin/String = ...) // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.<init>|<init>(kotlin.Int;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.String){}[0]
 
     final val adjustmentDays // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.adjustmentDays|{}adjustmentDays[0]
         final fun <get-adjustmentDays>(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.adjustmentDays.<get-adjustmentDays>|<get-adjustmentDays>(){}[0]
@@ -286,6 +286,8 @@ final class com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData { // com.m
         final fun <get-gregorianMonth>(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianMonth.<get-gregorianMonth>|<get-gregorianMonth>(){}[0]
     final val gregorianMonthName // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianMonthName|{}gregorianMonthName[0]
         final fun <get-gregorianMonthName>(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianMonthName.<get-gregorianMonthName>|<get-gregorianMonthName>(){}[0]
+    final val gregorianMonthShortName // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianMonthShortName|{}gregorianMonthShortName[0]
+        final fun <get-gregorianMonthShortName>(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianMonthShortName.<get-gregorianMonthShortName>|<get-gregorianMonthShortName>(){}[0]
     final val gregorianYear // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianYear|{}gregorianYear[0]
         final fun <get-gregorianYear>(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianYear.<get-gregorianYear>|<get-gregorianYear>(){}[0]
     final val gregorianYearText // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.gregorianYearText|{}gregorianYearText[0]
@@ -315,6 +317,7 @@ final class com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData { // com.m
     final fun component14(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component14|component14(){}[0]
     final fun component15(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component15|component15(){}[0]
     final fun component16(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component16|component16(){}[0]
+    final fun component17(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component17|component17(){}[0]
     final fun component2(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component2|component2(){}[0]
     final fun component3(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component3|component3(){}[0]
     final fun component4(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component4|component4(){}[0]
@@ -323,7 +326,7 @@ final class com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData { // com.m
     final fun component7(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component7|component7(){}[0]
     final fun component8(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component8|component8(){}[0]
     final fun component9(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.component9|component9(){}[0]
-    final fun copy(kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/String = ...): com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.copy|copy(kotlin.Int;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin/String = ...): com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.copy|copy(kotlin.Int;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.String){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.toString|toString(){}[0]
@@ -495,6 +498,7 @@ final object com.muazdev.hijricalendar.widgetdata/WidgetLocalization { // com.mu
         final fun hijriEra(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.hijriEra|hijriEra(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun monthUnavailable(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.monthUnavailable|monthUnavailable(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun nextMonth(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.nextMonth|nextMonth(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
+        final fun noEvent(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.noEvent|noEvent(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun previousMonth(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.previousMonth|previousMonth(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun refreshWidget(com.muazdev.hijricalendar.widgetdata/WidgetLanguage): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.refreshWidget|refreshWidget(com.muazdev.hijricalendar.widgetdata.WidgetLanguage){}[0]
         final fun yearWithEra(kotlin/Int, com.muazdev.hijricalendar.widgetdata/WidgetLanguage, kotlin/Boolean): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetLocalization.ChromeLabels.yearWithEra|yearWithEra(kotlin.Int;com.muazdev.hijricalendar.widgetdata.WidgetLanguage;kotlin.Boolean){}[0]
