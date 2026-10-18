@@ -10,8 +10,8 @@ import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToInt
 
 /**
- * The "today" strip's weekday line and hairline divider: the vertical budget they add, and the three
- * hand-maintained places that have to agree with them.
+ * The "today" strip's weekday band, its one-scale typography, and the hand-maintained widget-info
+ * XMLs that have to agree with both.
  *
  * **Why this needs a gate.** The weekday line turned a two-line widget into a three-line one, and a
  * three-line widget does not fit the 40dp minimum its widget-info declared — so the declared minimum
@@ -19,16 +19,16 @@ import kotlin.math.roundToInt
  * sample) that nothing checks. A widget that clips its own caption is a silent, plausible-looking
  * failure: the widget still renders, it just stops saying what it is.
  *
- * Two things are asserted, both from constants rather than literals so they cannot drift from the
- * composition:
+ * This round replaced the "the figure grows into whatever the other two lines leave" rule with **one
+ * scale for all three lines** ([TodayStripTypography.sizesFor]) and switched `sizeMode` to `Exact`
+ * so the composition actually sees the granted height. Both are asserted here, because both are
+ * exactly the kind of change that is invisible until it is on a device: a scale that is not monotonic
+ * renders a *smaller* figure on a *taller* strip, and a stack that does not fit the granted height
+ * clips whichever line is last.
  *
- * 1. **The budget.** The declared minimum must actually hold three lines at the sizes
- *    [TodayStripTypography] asks for, at the line-box ratio Glance gives each `Text`.
- * 2. **The mirror and the infos.** The Android 12-14 `previewLayout` must carry the same three lines at
- *    the same sizes, and every qualifier of the widget-info must declare the same minimum.
- *
- * The rendering half is asserted this way rather than by composing it because Glance composition has
- * no JVM host in this module — the same reason `DateTilePreviewLayoutTest` parses the tile previews.
+ * Three things are asserted, from constants rather than literals: the three lines at the reference
+ * height (the strip's mirror), the scale's monotonicity and bounds, and the fit at the declared
+ * minimum.
  *
  * **Note on argument order.** JUnit's `assertTrue`/`assertEquals` take the message *first*. Several
  * other tests in this repo use `kotlin.test`, whose order is the opposite.
@@ -76,30 +76,31 @@ class TodayStripPreviewLayoutTest {
             size!!.removeSuffix("sp").toInt()
         }
 
-    /** The day figure at a given granted height, in whole sp. Int because JUnit's equals is not for Floats. */
-    private fun daySpAt(height: Float): Int =
-        TodayStripTypography.daySizeFor(height).value.toInt()
+    /** The sizes the live strip renders at the mirror's reference height. */
+    private fun previewSizes() =
+        TodayStripTypography.sizesFor(TodayStripTypography.DAY_HEIGHT_REFERENCE_DP)
 
     /**
      * The preview carries the live strip's five lines at the live sizes, in the live order: the
      * centred weekday first, then each half's day figure over its caption.
      *
-     * The day figures are rendered at [TodayStripTypography.DAY_HEIGHT_REFERENCE_DP] — the declared
-     * minimum — because the live figures are *derived* from the granted height and a static XML
-     * snapshot has only one height to render. This is the same concession
-     * `DateTilePreviewLayoutTest` makes for the tiles' width-scaled weekday, and it is why the
-     * scaling rule itself is tested separately below rather than here.
+     * The sizes are rendered at [TodayStripTypography.DAY_HEIGHT_REFERENCE_DP] — the declared
+     * minimum, since a static XML has only one height to render and the minimum is the smallest a
+     * placed strip can be. This is the same concession `DateTilePreviewLayoutTest` makes for the
+     * tiles' width-scaled lines, and it is why the scaling rule itself is tested separately below
+     * rather than here.
      */
     @Test
     fun theStripPreviewCarriesTheLiveLinesAtTheLiveSizes() {
+        val sizes = previewSizes()
         assertEquals(
             "the strip preview must carry a weekday, then a day figure and caption per half",
             listOf(
-                TodayStripTypography.weekdaySize.value.toInt(),
-                daySpAt(TodayStripTypography.DAY_HEIGHT_REFERENCE_DP),
-                TodayStripTypography.captionSize.value.toInt(),
-                daySpAt(TodayStripTypography.DAY_HEIGHT_REFERENCE_DP),
-                TodayStripTypography.captionSize.value.toInt(),
+                sizes.weekdaySize.value.roundToInt(),
+                sizes.daySize.value.roundToInt(),
+                sizes.captionSize.value.roundToInt(),
+                sizes.daySize.value.roundToInt(),
+                sizes.captionSize.value.roundToInt(),
             ),
             stripPreview.textSizesSp(),
         )
@@ -109,15 +110,15 @@ class TodayStripPreviewLayoutTest {
      * The day figure grows with the granted height, and never shrinks.
      *
      * The whole point of deriving it: the strip is vertically resizable, so the height is the one
-     * dimension the host genuinely varies. A rule that was not monotonic would render a *smaller* figure
-     * on a *taller* widget at some height — which is both wrong and exactly the kind of thing a single
-     * visual check never catches. Swept, not sampled, for the same reason the tiles' rule is.
+     * dimension the host genuinely varies. A rule that was not monotonic would render a *smaller*
+     * figure on a *taller* widget at some height — which is both wrong and exactly the kind of thing a
+     * single visual check never catches. Swept, not sampled, for the same reason the tiles' rule is.
      */
     @Test
     fun theDayFigureNeverShrinksAsTheStripGetsTaller() {
         var previous = 0
         for (height in 1..400) {
-            val size = daySpAt(height.toFloat())
+            val size = TodayStripTypography.daySizeFor(height.toFloat()).value.roundToInt()
             assertTrue(
                 "at ${height}dp tall the day figure dropped to ${size}sp from ${previous}sp",
                 size >= previous,
@@ -127,20 +128,26 @@ class TodayStripPreviewLayoutTest {
     }
 
     /**
-     * It is clamped at both ends.
+     * Every line is bounded by the same two guards: a legibility floor and the widget's own ceiling.
      *
-     * The ceiling is "a strip should still read as a strip". The floor is the one that matters: it sits
-     * *below* what the declared minimum can hold, so a launcher that grants less than the minimum —
-     * `minResizeHeight` allows 4dp less — still cannot shrink the figure into a clipped month line.
+     * The floor is [MIN_TYPE_SCALE] rather than a per-line size, because a single scale is the whole
+     * design: the figures cannot be at their floor while the caption is not. The ceiling keeps a strip
+     * stretched across several launcher cells reading as a strip and not as a clock.
      */
     @Test
-    fun theDayFigureIsClampedToItsFloorAndCeiling() {
-        val floor = TodayStripTypography.daySizeFloor.value.toInt()
-        val ceiling = TodayStripTypography.daySizeCeiling.value.toInt()
+    fun everyLineIsBoundedByTheMinScaleAndTheDayCeiling() {
+        val minDay = TodayStripTypography.daySize.value * MIN_TYPE_SCALE
+        val maxDay = TodayStripTypography.daySizeCeiling.value
         for (height in 1..400) {
-            val size = daySpAt(height.toFloat())
-            assertTrue("at ${height}dp tall the day figure fell below its floor", size >= floor)
-            assertTrue("at ${height}dp tall the day figure passed its ceiling", size <= ceiling)
+            val sizes = TodayStripTypography.sizesFor(height.toFloat())
+            assertTrue(
+                "at ${height}dp tall the day figure (${sizes.daySize}) fell below the min scale",
+                sizes.daySize.value >= minDay - 0.001f,
+            )
+            assertTrue(
+                "at ${height}dp tall the day figure (${sizes.daySize}) passed its ceiling",
+                sizes.daySize.value <= maxDay + 0.001f,
+            )
         }
     }
 
@@ -154,26 +161,28 @@ class TodayStripPreviewLayoutTest {
      */
     @Test
     fun aTallerStripGetsABiggerDayFigure() {
-        val atMinimum = daySpAt(TodayStripTypography.DAY_HEIGHT_REFERENCE_DP)
-        val tall = daySpAt(200f)
+        val atMinimum =
+            TodayStripTypography.daySizeFor(TodayStripTypography.DAY_HEIGHT_REFERENCE_DP).value
+        val tall = TodayStripTypography.daySizeFor(200f).value
 
         assertTrue(
             "a 200dp strip must render a larger day figure than one at the " +
-                "${TodayStripTypography.DAY_HEIGHT_REFERENCE_DP}dp declared minimum; got $tall against " +
-                "$atMinimum",
+                "${TodayStripTypography.DAY_HEIGHT_REFERENCE_DP}dp declared minimum; got $tall " +
+                "against $atMinimum",
             tall > atMinimum,
         )
     }
 
     /**
-     * The weekday line is styled as part of the date, not as a caption under it.
+     * The weekday line is drawn in the family's accent band, not as bare text.
      *
-     * Same reasoning, and the same styling, as the 1x1 tiles' weekday line (FD-01): drawn in the muted
-     * caption tone it reads as small print above two numbers rather than as the answer to "what day is
-     * it?", which is the whole reason the line was added.
+     * It shipped as plain `widget_text_primary` text while every 1x1 tile put the same weekday on the
+     * accent — four widgets rendering one line two ways, which is the divergence this band exists to
+     * remove. The colour is `widget_on_today` because the text sits *on* the accent; the fill is
+     * `widget_accent` for the same reason the tiles' band is.
      */
     @Test
-    fun theWeekdayLineIsBoldAndInThePrimaryTextColour() {
+    fun theWeekdayLineIsInTheAccentBand() {
         val weekday = stripPreview.children().first { it.tagName == "TextView" }
 
         assertEquals(
@@ -182,8 +191,13 @@ class TodayStripPreviewLayoutTest {
             weekday.attr("android:textStyle"),
         )
         assertEquals(
-            "the strip's weekday line must use the primary text colour, not the muted caption one",
-            "@color/widget_text_primary",
+            "the strip's weekday must sit on the accent band, like the tiles'",
+            "@color/widget_accent",
+            weekday.attr("android:background"),
+        )
+        assertEquals(
+            "text drawn on the accent must use the on-accent token",
+            "@color/widget_on_today",
             weekday.attr("android:textColor"),
         )
     }
@@ -211,25 +225,32 @@ class TodayStripPreviewLayoutTest {
     }
 
     /**
-     * The content is centred vertically, not pinned to the top.
+     * The date row centres in the height the band left, rather than the whole strip being pinned.
      *
-     * The live root `Column` is `Alignment.Vertical.CenterVertically`; `gravity="center_vertical"` is
-     * the framework's name for the same thing, which is why the hand-maintained mirror can express it.
-     *
-     * **Why it is not cosmetic.** A top-pinned column renders its content first and dumps every dp of
-     * slack in one place — under the day figures, as the dead leading inside their line boxes, because
-     * Glance boxes each `Text` at ascent + descent and that gap is neither padding nor removable
-     * (`PaddingModifier` is non-negative; Glance 1.2's `TextStyle` has no `lineHeight`). On a strip
-     * granted more height than its type needs, that reads as the numbers hanging in space with the
-     * caption crammed underneath. Centring splits the slack instead.
+     * The live root `Column` stacks a flush band over a weighted `Box` that centres its content, and
+     * that centring is what splits the leftover height between the space above the figures and the
+     * space below the captions. A top-pinned column instead renders its content first and dumps every
+     * dp of slack in one place — under the day figures, as the dead leading inside their line boxes,
+     * because Glance boxes each `Text` at ascent + descent and that gap is neither padding nor
+     * removable (`PaddingModifier` is non-negative; Glance 1.2's `TextStyle` has no `lineHeight`).
      */
     @Test
-    fun theContentIsCentredVerticallyRatherThanPinnedToTheTop() {
+    fun theDateRowCentresInTheHeightTheBandLeft() {
+        val row = stripPreview.children().first { it.tagName == "LinearLayout" }
         assertEquals(
-            "the strip's root must centre its content vertically; see " +
-                "TodayStripTypography.VERTICAL_PADDING_DP",
+            "the date row must take the height the band did not",
+            "0dp",
+            row.attr("android:layout_height"),
+        )
+        assertEquals(
+            "the date row must be the weighted slot under the band",
+            "1",
+            row.attr("android:layout_weight"),
+        )
+        assertEquals(
+            "the date row must centre its content vertically; see TodayStripTypography.sizesFor",
             "center_vertical",
-            stripPreview.attr("android:gravity"),
+            row.attr("android:gravity"),
         )
     }
 
@@ -240,31 +261,34 @@ class TodayStripPreviewLayoutTest {
      * non-figure size is raised, without the widget-info being raised with it — which is precisely how
      * this widget ended up declaring a height its own content did not fit.
      *
-     * The day figure is part of [requestedHeightDp] through [daySpAt] rather than through a constant,
-     * because it is derived from the height in the first place: sizing it independently here would
-     * assert the arithmetic against a number the live render does not use.
+     * The figure is part of the request through [TodayStripTypography.sizesFor] rather than through a
+     * constant, because it is derived from the height in the first place: sizing it independently here
+     * would assert the arithmetic against a number the live render does not use.
      */
     @Test
     fun theThreeLinesFitInsideTheDeclaredMinimumHeight() {
-        val requestedDp = requestedHeightDp()
+        val granted = TodayStripTypography.STRIP_MIN_HEIGHT_DP.toFloat()
+        val requested = TodayStripTypography.requestedHeightDp(TodayStripTypography.sizesFor(granted))
 
         assertTrue(
-            "the strip's three lines ask for ~${requestedDp}dp but its widget-info declares a " +
+            "the strip's three lines ask for ~${requested}dp but its widget-info declares a " +
                 "${TodayStripTypography.STRIP_MIN_HEIGHT_DP}dp minimum, so the caption is clipped. " +
                 "Raise the minimum, or take a line off",
-            requestedDp <= TodayStripTypography.STRIP_MIN_HEIGHT_DP,
+            requested <= granted + 0.01f,
         )
     }
 
     /**
-     * …and the resize floor is not *above* it, which would make the widget unresizable in practice.
+     * …and the resize floor is not *below* the point where the stack still fits, which would let a
+     * launcher clip the caption for no reason.
      *
-     * Asserted as an ordering rather than a fit: the floor exists so a launcher that does grant the
-     * minimum still has somewhere to shrink to, and it is allowed to clip a little there.
+     * Asserted as a fit rather than an ordering: the strip scales to whatever height it is granted, so
+     * the floor is safe exactly while the type still fits there.
      */
     @Test
-    fun theResizeFloorSitsBelowTheMinimumButAtTheLinesOwnHeight() {
-        val requestedDp = requestedHeightDp()
+    fun theResizeFloorStillHoldsTheLines() {
+        val floor = TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP.toFloat()
+        val requested = TodayStripTypography.requestedHeightDp(TodayStripTypography.sizesFor(floor))
 
         assertTrue(
             "minResizeHeight (${TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP}dp) must be at or " +
@@ -273,9 +297,46 @@ class TodayStripPreviewLayoutTest {
             TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP <= TodayStripTypography.STRIP_MIN_HEIGHT_DP,
         )
         assertTrue(
-            "minResizeHeight (${TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP}dp) is above the " +
-                "lines' own ~${requestedDp}dp, so shrinking to it would clip for no reason",
-            TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP <= requestedDp,
+            "minResizeHeight (${TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP}dp) is below the " +
+                "lines' own ~${requested}dp request, so shrinking to it would clip for no reason",
+            requested <= floor + 0.01f,
+        )
+    }
+
+    /**
+     * …and the same two fits with the **bundled Nastaliq** face drawing the script lines.
+     *
+     * Nastaliq's box is 2.5 em against the system fallback's 1.7 ([NASTALIQ_LINE_RATIO]). The strip is
+     * the widget where that matters most: its scale comes from the granted height alone, so a stack
+     * measured at the wrong ratio is the whole stack shrunk in the wrong proportion, and at the
+     * declared 72dp minimum the difference is the difference between fitting and losing the caption.
+     *
+     * This is also the price of the feature, stated: the strip's type is *smaller* with Nastaliq at the
+     * same height, because the box it needs is taller.
+     */
+    @Test
+    fun theBundledNastaliqStackFitsTheDeclaredHeightsToo() {
+        for (granted in listOf(
+            TodayStripTypography.STRIP_MIN_RESIZE_HEIGHT_DP.toFloat(),
+            TodayStripTypography.STRIP_MIN_HEIGHT_DP.toFloat(),
+            96f,
+            140f,
+        )) {
+            val sizes = TodayStripTypography.sizesFor(granted, NASTALIQ_LINE_RATIO)
+            val requested = TodayStripTypography.requestedHeightDp(sizes, NASTALIQ_LINE_RATIO)
+            assertTrue(
+                "at ${granted}dp the Nastaliq stack asks for ${requested}dp, which does not fit",
+                requested <= granted + 0.01f,
+            )
+        }
+
+        val height = TodayStripTypography.STRIP_MIN_HEIGHT_DP.toFloat()
+        val system = TodayStripTypography.sizesFor(height, TEXT_LINE_RATIO)
+        val nastaliq = TodayStripTypography.sizesFor(height, NASTALIQ_LINE_RATIO)
+        assertTrue(
+            "Nastaliq's taller box must shrink the strip's type at a fixed height; got " +
+                "${nastaliq.daySize} against ${system.daySize}",
+            nastaliq.daySize.value < system.daySize.value,
         )
     }
 
@@ -284,7 +345,7 @@ class TodayStripPreviewLayoutTest {
      *
      * Three files, edited by hand, with the app-side overrides in the sample app a fourth through
      * sixth — and the sample's are outside this module's `src/main/res`, so nothing here can see them.
-     * These three are asserted because they are the ones this change edited.
+     * These three are asserted because they are the ones this module owns.
      */
     @Test
     fun everyWidgetInfoQualifierDeclaresTheSameMinimum() {
@@ -304,23 +365,6 @@ class TodayStripPreviewLayoutTest {
                 info.attr("android:minResizeHeight"),
             )
         }
-    }
-
-    /**
-     * The height the three lines ask for, in whole dp: each line's box at the font's own ascent plus
-     * descent, plus the gaps between them and the strip's vertical padding.
-     *
-     * The day figure is read back from [daySpAt] at the declared minimum, which is the size the live
-     * render itself derives there.
-     */
-    private fun requestedHeightDp(): Int {
-        val lineSp = TodayStripTypography.weekdaySize.value +
-            daySpAt(TodayStripTypography.DAY_HEIGHT_REFERENCE_DP) +
-            TodayStripTypography.captionSize.value
-        // Rounded, because `LINE_HEIGHT_RATIO` is a `Float` and the product is not a whole number.
-        return (lineSp * TodayStripTypography.LINE_HEIGHT_RATIO).roundToInt() +
-            TodayStripTypography.lineGap.value.toInt() * 2 +
-            TodayStripTypography.VERTICAL_PADDING_DP * 2
     }
 
     private companion object {

@@ -31,7 +31,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
@@ -54,21 +53,25 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 public class HijriTodayWidget : GlanceAppWidget() {
 
     /**
-     * Deliberately `Single`, **not** `Exact`, while [TodayStripTypography.daySizeFor] is not yet safe
-     * to activate.
+     * `SizeMode.Exact`, so the strip's composition sees the cell the launcher actually granted.
      *
-     * Point 7's investigation found that the strip's height-derived figure cannot work under `Single`
-     * — `AppWidgetUtils.kt` builds `SizeMode.Single`'s `LocalSize` from the provider's declared
-     * *minimum*, so `daySizeFor` sees a constant and the design's "a tall placement renders a bigger
-     * figure" has never been true on a device. `Exact` fixes that, and was tried here: on a Pixel 6a
-     * (strip 218x97dp) the figure jumped from the 26sp it has always rendered to the 40sp ceiling, and
-     * **the month caption was clipped off the bottom of the cell** — `daySizeFor`'s reserve models a
-     * line box as 1.17em, while the real boxes (Urdu Nastaliq in particular: an 11sp caption measured
-     * 31px of ink at 420dpi) are taller. The figure is restored to 26sp via
-     * [TodayStripTypography.daySizeFloor] and `Exact` is left off until the reserve is derived from
-     * measured boxes rather than a ratio. Recorded in `docs/FEEDBACK-TODOS-2.md`.
+     * `Single` builds `LocalSize` from the provider's declared *minimum*
+     * (`AppWidgetUtils.kt` → `SizeMode.Single -> listOf(minSize)`), so the design's "a tall placement
+     * renders a bigger figure" was never true on a device: the strip rendered one size no matter how
+     * far it was resized, and a *short* grant clipped its caption.
+     *
+     * `Exact` was tried once before and reverted: on a Pixel 6a (strip 218x97dp) the figure jumped to
+     * the 40sp ceiling and **the month caption was clipped off the bottom**, because the old rule grew
+     * only the figure and modelled a line box as 1.17em while the real Urdu Nastaliq boxes are taller.
+     * The fix is not to keep `Single` but to make the whole stack scale together from the granted
+     * height ([TodayStripTypography.sizesFor]): the caption can then never be the line that overflows,
+     * because it is sized from the same scale as the figure.
+     *
+     * `Exact` is safe for this widget the same way it is for the tiles: the strip's only interaction is
+     * one `actionStartActivity`, a `PendingIntent` on the `RemoteViews`, so composing per size cannot
+     * double-launch the app.
      */
-    override val sizeMode: SizeMode = SizeMode.Single
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     /**
      * Picker previews are composed at a realistic placed strip size instead of the widget's own
@@ -154,100 +157,203 @@ public class HijriTodayWidget : GlanceAppWidget() {
  * whole strip, **not repeated on each side** — both halves are the same physical day, so a second copy
  * would say nothing the first did not.
  *
- * The day figure is what the strip exists to show, so it is not traded away for the other two lines:
- * [daySizeFor] floors it at 26sp, the size the strip has always rendered, and the third line is paid
- * for in height (see [STRIP_MIN_HEIGHT_DP]) instead. Note that [daySizeFor] is currently a constant
- * on a device because [HijriTodayWidget.sizeMode] is `Single` — see that property for why.
+ * The day figure is what the strip exists to show, so it is not traded away for the other two lines.
+ * Every line takes one scale from the granted height ([sizesFor]), so the figure grows whenever the
+ * strip does, and the round-3 rebalance below moves size *between* the band and the captions rather
+ * than taking it from the figure. A taller placement really is a taller figure because
+ * [HijriTodayWidget.sizeMode] is `SizeMode.Exact` — see that property for why the declared minimum is
+ * not the only cell the type has to fit.
  */
 internal object TodayStripTypography {
 
     /**
-     * The weekday name, centred above both dates.
+     * The weekday name, centred above both dates, at the reference height.
      *
-     * Bold and in the primary text colour, matching the tiles' weekday line rather than this strip's
-     * own caption styling — it is part of the date, not a caption under it.
+     * Drawn in the family's shared accent band ([WeekdayBand]) now, so it matches the tiles' weekday
+     * exactly rather than being a lookalike: same fill, same on-accent text, same weight. It was the
+     * only bare-text weekday left in the family.
      *
-     * **Sized for the emphasis the tiles' line gets, not for the strip's caption.** `FontWeight.Bold`
-     * is the heaviest weight Glance has (700 — there is nothing above it), so with the tiles using the
-     * same weight the only thing that made their weekday look heavier was that it is far larger. It
-     * first shipped a point above the caption and read as the weakest line on a widget whose top line
-     * is nothing but the weekday.
-     *
-     * It is still well under [daySize], so the day figure stays the loudest thing.
+     * **A step smaller than it shipped** (17sp → 13sp, round 3). At a placed strip's height the band
+     * was taking ~43% of the widget and leaving the month captions under it ~9.4sp, which is exactly
+     * what the feedback reported: the weekday line "taking a large portion of day name ... which
+     * shortens the month names which are almost un readable". The band is one full-width word with the
+     * whole row to itself, so it carries a size the captions cannot; 13sp puts it at ~33% of the same
+     * height and lifts the captions by ~30% with no change to the grant. It stays well under
+     * [daySize], so the figure is still the loudest thing on the strip.
      */
-    val weekdaySize = 17.sp
+    val weekdaySize = 13.sp
 
     /**
-     * The day figure in each half, sized to the height the launcher granted rather than fixed.
+     * The day figure at the reference height: 28sp.
      *
-     * This is the same move as `DateTileTypography.weekdaySizeFor(availableWidth)`, on the other axis:
-     * the strip is vertically resizable, so the height is the one dimension the host genuinely varies,
-     * and a fixed figure either wastes a tall placement or overflows a short one. Deriving it from
-     * [LocalSize] is what lets the figure **take the available height** — it grows into whatever space
-     * the weekday line and the month line have not already claimed, which is exactly the dead leading
-     * above the digit that cannot be removed any other way.
-     *
-     * [grantedHeightDp] is the **whole** widget height the launcher granted, as `LocalSize` reports it;
-     * the padding and the two other lines are subtracted here rather than by the caller, so a caller
-     * cannot get it wrong by forgetting one of them.
-     *
-     * Linear in height, then clamped at both ends:
-     *
-     * - **A floor**, because [DAY_HEIGHT_REFERENCE_DP] is a *minimum*: a launcher is free to grant
-     *   less than it (down to `minResizeHeight`), and a figure that kept shrinking below the size the
-     *   declared minimum can hold would clip the month line off the bottom — the failure this whole
-     *   layout is arranged to avoid.
-     * - **A ceiling**, because a strip stretched across four launcher cells should still read as a
-     *   strip and not as a clock.
-     *
-     * Pure and Dp-free so it can be asserted without a `Context` or a composition.
+     * Every line on the strip is now `reference * scale`, where the scale comes from the granted
+     * height (see [sizesFor]). This replaces a rule that grew the figure into the space the other two
+     * lines had not claimed: that rule modelled a line box as 1.17em, the real Urdu Nastaliq boxes are
+     * taller, and on a device the *month caption* — not the figure — was the line it clipped. A single
+     * scale with all three lines in it cannot clip a later line at the expense of an earlier one.
      */
-    fun daySizeFor(grantedHeightDp: Float): TextUnit {
-        val scaled = ((grantedHeightDp - VERTICAL_PADDING_DP * 2 - nonDayHeightDp()) / LINE_HEIGHT_RATIO)
-            .coerceIn(daySizeFloor.value, daySizeCeiling.value)
-        return scaled.sp
+    val daySize = 28.sp
+
+    /** Never larger than this, however tall: a strip should still read as a strip. */
+    val daySizeCeiling = 40.sp
+
+    /**
+     * The month + year (and era) caption under each day figure — the bottom line of each column.
+     *
+     * **A step larger than it shipped** (11sp → 14sp, round 3): this is the line the strip's feedback
+     * is about. It was the smallest text in the family — ~9.4sp at a placed strip's height, against a
+     * 16sp weekday band and a 24sp figure — while carrying the month and year a reader needs in order
+     * to know *when* the date is. The band above it gave the height up ([weekdaySize]), so this costs
+     * no height, and [captionFor] still trims the string for a half too narrow for it.
+     */
+    val captionSize = 14.sp
+
+    /** The largest scale any line renders at, set by [daySizeCeiling]. */
+    private val MAX_SCALE: Float = daySizeCeiling.value / daySize.value
+
+    /** Gap under the weekday line, and under each day figure. */
+    val lineGap = 1.dp
+
+    /**
+     * The declared minimum height, in dp.
+     *
+     * **Sized against the height a *placed* strip has, not against whatever would be comfortable.**
+     * That is the whole lesson of this layout: an already-placed widget keeps the size the launcher
+     * granted it, and raising `minHeight` in the XML does **not** resize it. Growing the type without
+     * this figure moving with it is what pushed the month caption off the bottom of a strip whose
+     * numbers had been enlarged — the widget stayed its old height, the content outgrew it, and the
+     * last line was what got clipped.
+     *
+     * Since the type now scales to fit whatever height it is granted, this is a floor the launcher
+     * cannot go below, not a height the type is tuned against; `TodayStripPreviewLayoutTest`
+     * recomputes the three lines' request from these constants in every widget-info qualifier.
+     */
+    const val STRIP_MIN_HEIGHT_DP = 72
+
+    /**
+     * The height at which the static Android 12-14 `previewLayout` mirror renders: the declared
+     * minimum, since that is the smallest height a placed strip can have and the one a static XML can
+     * state.
+     */
+    val DAY_HEIGHT_REFERENCE_DP: Float = STRIP_MIN_HEIGHT_DP.toFloat()
+
+    /** The floor for a vertical resize — just below the natural height of the three lines. */
+    const val STRIP_MIN_RESIZE_HEIGHT_DP = 68
+
+    /** Horizontal padding either side of the date row. The weekday band stays flush to the edges. */
+    const val HORIZONTAL_PADDING_DP = 12
+
+    /**
+     * The scalable part at scale 1: the weekday and the caption are script text and the figure is digits,
+     * so they are counted at [scriptRatio] and [DIGIT_LINE_RATIO].
+     */
+    fun referenceTextHeightDp(scriptRatio: Float): Float =
+        weekdaySize.value * scriptRatio +
+            daySize.value * DIGIT_LINE_RATIO +
+            captionSize.value * scriptRatio
+
+    /** [referenceTextHeightDp] at the system script ratio; the static mirror and the tests read this. */
+    val REFERENCE_TEXT_HEIGHT_DP: Float = referenceTextHeightDp(TEXT_LINE_RATIO)
+
+    /** The non-scaling part of the stack: the band's padding and the gap under it. */
+    val FIXED_HEIGHT_DP: Float =
+        (WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP).toFloat() + lineGap.value
+
+    /**
+     * The height the three lines plus the band's padding and the gap under it ask for at scale 1 — the
+     * yardstick [widgetTypeScale] measures a granted height against.
+     */
+    val REFERENCE_STACK_HEIGHT_DP: Float = REFERENCE_TEXT_HEIGHT_DP + FIXED_HEIGHT_DP
+
+    /**
+     * The strip's three type sizes for a granted height: **one scale**, so the weekday, the day figure
+     * and the caption grow and shrink together and the stack always fits the cell.
+     *
+     * Only the height is consulted. The width is not a constraint the type has to satisfy: the strip
+     * spans whatever the launcher grants, and the one horizontally tight line — the caption — chooses
+     * its own string for the width it sees ([captionFor]) rather than shrinking the whole strip. The
+     * height is the axis a launcher genuinely varies for a strip, and the axis whose overflow past the
+     * declared minimum used to clip the caption.
+     */
+    fun sizesFor(grantedHeightDp: Float, scriptRatio: Float = TEXT_LINE_RATIO): TodayStripSizes {
+        // Height only: the width is not a constraint the strip's type has to satisfy (see the KDoc), so
+        // this is the height axis of [widgetTypeScale] with the width term dropped.
+        val scale = ((grantedHeightDp - FIXED_HEIGHT_DP) / referenceTextHeightDp(scriptRatio))
+            .coerceIn(MIN_TYPE_SCALE, MAX_SCALE)
+        return TodayStripSizes(
+            weekdaySize = (weekdaySize.value * scale).sp,
+            daySize = (daySize.value * scale).sp,
+            captionSize = (captionSize.value * scale).sp,
+        )
     }
 
     /**
-     * The height the two non-figure lines ask for: the weekday line, its gap, the month line and its
-     * gap. What [daySizeFor] subtracts from the granted height to get the room the figure has left.
+     * The day figure for a granted height — [sizesFor]'s figure. Kept as a named function because it
+     * is the strip's headline number and the tests sweep it.
      */
-    fun nonDayHeightDp(): Float =
-        (weekdaySize.value + captionSize.value) * LINE_HEIGHT_RATIO + lineGap.value * 2
+    fun daySizeFor(grantedHeightDp: Float): TextUnit = sizesFor(grantedHeightDp).daySize
 
     /**
-     * One half's caption: the month + year, with the era kept only when the half can hold it.
+     * The height the three lines ask for at [TodayStripSizes] — used by tests and the mirror.
+     */
+    fun requestedHeightDp(sizes: TodayStripSizes, scriptRatio: Float = TEXT_LINE_RATIO): Float =
+        sizes.weekdaySize.value * scriptRatio +
+            sizes.daySize.value * DIGIT_LINE_RATIO +
+            sizes.captionSize.value * scriptRatio +
+            WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP +
+            lineGap.value
+
+    /**
+     * One half's caption: the month + year, abbreviated in that order when the half is too narrow.
      *
      * Round-2 feedback, point 9. The caption is a single `Text` with `maxLines = 1`, and Glance clips
      * rather than ellipsising — and because the line is centred, an over-long caption loses characters
      * off **both** ends, which is why the year was disappearing from the squeezed two-date strip even
-     * though it is the part worth keeping. So the string is chosen here instead, before it is measured:
-     * the month and the year always render, and the era marker (`ھ` / `AH`) is what is given up.
+     * though it is the part worth keeping. So the string is chosen here instead, before it is measured.
+     *
+     * Three candidates, in the order they are given up: **era, then the month's spelling, never the
+     * year.** English: `Jumada al-ula 1448 ھ` → `Jumada al-ula 1448` → `Jumada I 1448`, and
+     * `October 2026` → `Oct 2026`. Urdu has only two rungs — **Urdu month names are never
+     * shortened**, so [abbrevMonthName] equals [monthName] there and the last rung degrades to the
+     * second: `جمادى الأولى 1448 ھ` → `جمادى الأولى 1448`. The abbreviation rung is what a squeezed
+     * half reaches when the full spelling will not fit: `Oct` still answers "which month?" where an
+     * ellipsised `Octo…` only says that something was there. [abbrevMonthName] is what the
+     * projection built for that slot ([TodayHijriWidgetData.gregorianMonthShortName] /
+     * [TodayHijriWidgetData.hijriMonthShortName]), and whenever the projection did not abbreviate —
+     * Urdu, or a month with no short form — it equals [monthName] rather than being blank.
      *
      * [yearText] is the projection's era-appended year (`1448 ھ`, `2026 AH`) — the bare year is its
      * first space-separated part, so no extra projection field is needed and the era keeps the spelling
      * the projection chose for the widget's language (WG-12). When the projection appended no era the
-     * two candidates are the same string and nothing is dropped.
+     * first two candidates are the same string and the era rung is skipped.
      *
      * The width is *estimated* (see [estimatedCaptionWidthDp]); both wrong answers are benign, and the
-     * estimate errs towards the era going early rather than the year being cut.
+     * estimate errs towards giving something up early rather than the year being cut.
      */
     fun captionFor(
         monthName: String,
+        abbrevMonthName: String,
         yearText: String,
         halfWidthDp: Float,
         language: WidgetLanguage,
+        captionSizeSp: Float = captionSize.value,
     ): String {
         val full = "$monthName $yearText"
-        // `halfWidthDp` reaches us from `LocalSize.current.width`, which under `SizeMode.Single`
-        // reports Glance's *minimum-size* cell for this strip (40dp, rounded down to ~25dp after
-        // the dp/px round-trip documented under 7b) instead of the width the launcher actually
-        // granted. The strip is painted from ~218dp of real width upward, so any value below 20 dp
-        // is the artefact rather than the placement. Dropping the era on an artefact is what hid the
-        // era marker even on full-screen strips. Keep the era whenever the width we see is clearly
-        // not real, and otherwise apply the heuristic unchanged.
-        if (halfWidthDp < 20f || estimatedCaptionWidthDp(full, language) <= halfWidthDp) return full
-        return "$monthName ${yearText.substringBeforeLast(' ')}"
+        val bareYear = yearText.substringBeforeLast(' ')
+        val noEra = "$monthName $bareYear"
+        fun fits(text: String): Boolean =
+            estimatedCaptionWidthDp(text, language, captionSizeSp) <= halfWidthDp
+
+        // `halfWidthDp` reaches us from `LocalSize.current.width`, which under `SizeMode.Exact` is the
+        // width the launcher actually granted. A composition can still be handed a tiny width — a
+        // picker preview, or a host mid-placement — and dropping content on an artefact rather than a
+        // real placement is what once hid the era marker even on full-screen strips, so nothing is
+        // given up whenever the width we see is clearly not real.
+        return when {
+            halfWidthDp < 20f || fits(full) -> full
+            noEra != full && fits(noEra) -> noEra
+            else -> "$abbrevMonthName $bareYear"
+        }
     }
 
     /**
@@ -261,8 +367,11 @@ internal object TodayStripTypography {
      * constant. Nastaliq's joined forms are narrower than the Latin faces' advance, so one constant
      * would either drop the Urdu era far too early or keep the Latin one long past the clip.
      */
-    fun estimatedCaptionWidthDp(text: String, language: WidgetLanguage): Float =
-        text.length * advanceEmFor(language) * captionSize.value
+    fun estimatedCaptionWidthDp(
+        text: String,
+        language: WidgetLanguage,
+        captionSizeSp: Float = captionSize.value,
+    ): Float = text.length * advanceEmFor(language) * captionSizeSp
 
     /** The width one date half has for its caption: half of the strip less its padding and divider. */
     fun captionHalfWidthDp(grantedWidthDp: Float): Float =
@@ -281,80 +390,16 @@ internal object TodayStripTypography {
 
     /** The divider line's own width, so [captionHalfWidthDp] subtracts what the row actually spends. */
     const val DIVIDER_WIDTH_DP = 1
-
-    /**
-     * Never smaller than this, however short the strip — below it the month line would be clipped.
-     *
-     * 26sp is the figure the strip has always rendered, and it is the floor because `Single` reports
-     * the declared minimum, so this is the value the strip draws on a device today (see
-     * [HijriTodayWidget.sizeMode]). Lowering it to the old 20sp would shrink a placed strip for no
-     * gain; raising the ceiling path is the reserved work, not the floor.
-     */
-    val daySizeFloor = 26.sp
-
-    /** Never larger than this, however tall: a strip should still read as a strip. */
-    val daySizeCeiling = 40.sp
-
-    /** The month + year (and era) caption under each day figure — the bottom line of each column. */
-    val captionSize = 11.sp
-
-    /** Gap under the weekday line, and under each day figure. */
-    val lineGap = 1.dp
-
-    /**
-     * The declared minimum height, in dp.
-     *
-     * **Sized against the height a *placed* strip has, not against whatever would be comfortable.**
-     * That is the whole lesson of this layout: an already-placed widget keeps the size the launcher
-     * granted it, and raising `minHeight` in the XML does **not** resize it. Growing the type without
-     * this figure moving with it is what pushed the month caption off the bottom of a strip whose
-     * numbers had been enlarged — the widget stayed its old height, the content outgrew it, and the
-     * last line was what got clipped.
-     *
-     * So the type here is set to fill this, and the figure is the three lines at [LINE_HEIGHT_RATIO]
-     * each plus the two gaps and the vertical padding, which `TodayStripPreviewLayoutTest` recomputes
-     * from these constants so the widget-info XMLs and the composition cannot drift apart.
-     */
-    const val STRIP_MIN_HEIGHT_DP = 72
-
-    /**
-     * The height at which [daySizeFor] has room for the whole of the three lines — the widget-info's
-     * declared minimum. The one dimension the host *cannot* vary downwards past, so it is what a static
-     * `previewLayout` mirror has to render, for the same reason the tiles' mirror renders the weekday
-     * at `DateTileTypography.WEEKDAY_REFERENCE_WIDTH_DP`.
-     */
-    val DAY_HEIGHT_REFERENCE_DP: Float = STRIP_MIN_HEIGHT_DP.toFloat()
-
-    /** The floor for a vertical resize — just below the natural height of the three lines. */
-    const val STRIP_MIN_RESIZE_HEIGHT_DP = 68
-
-    /** Horizontal padding either side of the whole strip. */
-    const val HORIZONTAL_PADDING_DP = 12
-
-    /**
-     * Vertical padding above and below the three lines.
-     *
-     * Down from 4dp, because every dp here comes out of the budget the type has to fit in. The root
-     * column is centre-aligned rather than pinned to the top, and that is what lets the leftover
-     * height land somewhere it reads as intentional: a top-pinned column renders its content first and
-     * shows all the slack in one place — under the day figures, as the dead leading inside their line
-     * boxes. Centring splits it between the top and the bottom instead.
-     *
-     * That leading is not padding and cannot be removed: Glance boxes every `Text` at the font's
-     * ascent plus descent, `PaddingModifier` is non-negative, and Glance 1.2's `TextStyle` has no
-     * `lineHeight`.
-     */
-    const val VERTICAL_PADDING_DP = 2
-
-    /**
-     * A `Text`'s rendered line box as a multiple of its font size.
-     *
-     * Glance gives each `Text` a box of the font's natural ascent plus descent; the strip's height
-     * arithmetic cannot ignore it. `TodayStripPreviewLayoutTest` uses this to check that the declared
-     * minimum actually holds the three lines.
-     */
-    const val LINE_HEIGHT_RATIO = 1.17f
 }
+
+/**
+ * The three type sizes the Today strip renders at, as one value so a single scale drives all of them.
+ */
+internal data class TodayStripSizes(
+    val weekdaySize: TextUnit,
+    val daySize: TextUnit,
+    val captionSize: TextUnit,
+)
 
 /**
  * The strip's layout: the weekday name centred across the top, then the Gregorian and Hijri dates
@@ -379,95 +424,120 @@ internal fun HijriTodayRoot(
     val modifier = GlanceModifier.fillMaxSize().background(colors.background)
     val clickableModifier = if (openAction != null) modifier.clickable(openAction) else modifier
 
-    // The day figures take whatever height the launcher granted, once the weekday line, the month line,
-    // the gaps and the padding have had theirs — so a tall placement renders a bigger figure and a short
-    // one a smaller figure, and neither clips the month line. See [TodayStripTypography.daySizeFor].
-    val daySize = TodayStripTypography.daySizeFor(cell.height.value)
+    // One scale from the granted height drives every line — a taller strip renders every line
+    // larger — and the stack always fits, so the caption can never be the line that overflows.
+    val sizes = TodayStripTypography.sizesFor(cell.height.value, fonts.scriptLineRatio())
 
     Column(
-        modifier = clickableModifier.padding(
-            horizontal = TodayStripTypography.HORIZONTAL_PADDING_DP.dp,
-            vertical = TodayStripTypography.VERTICAL_PADDING_DP.dp,
-        ),
-        // Centred, not top-pinned — see [TodayStripTypography.VERTICAL_PADDING_DP]. A top-pinned column
-        // renders its content first and dumps every dp of slack in one place, under the day figures.
-        verticalAlignment = Alignment.Vertical.CenterVertically,
+        modifier = clickableModifier,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
         if (today == null) {
-            StripUnavailable(colors = colors, language = language)
+            Box(modifier = GlanceModifier.defaultWeight(), contentAlignment = Alignment.Center) {
+                StripUnavailable(colors = colors, language = language)
+            }
             return@Column
         }
         // The weekday both halves share: `TodayHijriWidgetData.weekdayName`, projected in the widget's
         // own language (WG-12) since the projection was written, and rendered by iOS and by every 1x1
-        // tile. This strip was the one place it was dropped.
-        Text(
+        // tile. This strip was the one place it was dropped — and the one bare-text weekday left in the
+        // family, now drawn in the same accent band ([WeekdayBand]) the tiles use.
+        WeekdayBand(
             text = today.weekdayName,
+            fontSize = sizes.weekdaySize,
+            colors = colors,
+            fontFamily = fonts.weekday.toGlanceFontFamily(),
             modifier = GlanceModifier.padding(bottom = TodayStripTypography.lineGap),
-            style = TextStyle(
-                color = colors.primaryText,
-                fontSize = TodayStripTypography.weekdaySize,
-                fontWeight = FontWeight.Bold,
-                fontFamily = fonts.weekday.toGlanceFontFamily(),
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
         )
-        Row(
-            // `fillMaxWidth` is what makes the two halves *spread*: `defaultWeight` splits whatever
-            // width the Row is given, and a Row that sizes to its content in a centred Column would
-            // instead leave both dates bunched in the middle with the widget's spare width as margins.
-            // Stating it here rather than relying on the weight to stretch the Row makes the halves'
-            // share of the width independent of how the platform measures an unconstrained Row.
-            modifier = GlanceModifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
+        // The dates centre in whatever height the band left; the band is flush to the strip's edges.
+        Box(
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+            contentAlignment = Alignment.Center,
         ) {
-            val halfWidthDp = TodayStripTypography.captionHalfWidthDp(cell.width.value)
-            val hijri = @Composable {
-                DateSide(
-                    dayText = today.hijriDayText,
-                    // Era-appended by the projection (FD-05); a renderer must not format the era
-                    // itself, because the marker follows the widget's language, not the device (WG-12).
-                    // `captionFor` keeps the year and drops the era when this half cannot hold both
-                    // (round-2 point 9) — the strip is the only widget whose caption has two halves
-                    // to share a narrow width.
-                    caption = TodayStripTypography.captionFor(
-                        monthName = today.hijriMonthName,
-                        yearText = today.hijriYearText,
+            Row(
+                // `fillMaxWidth` is what makes the two halves *spread*: `defaultWeight` splits only the
+                // width a Row is given, so a content-sized Row in a centred Column would bunch both dates
+                // in the middle. Stated here so the halves' share is independent of how the platform
+                // measures an unconstrained Row.
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .padding(horizontal = TodayStripTypography.HORIZONTAL_PADDING_DP.dp),
+                verticalAlignment = Alignment.Vertical.CenterVertically,
+            ) {
+                val halfWidthDp = TodayStripTypography.captionHalfWidthDp(cell.width.value)
+                val hijri = @Composable {
+                    DateHalf(
+                        today = today,
+                        gregorian = false,
+                        sizes = sizes,
                         halfWidthDp = halfWidthDp,
                         language = language,
-                    ),
-                    daySize = daySize,
-                    colors = colors,
-                    gregorian = false,
-                )
-            }
-            val gregorian = @Composable {
-                DateSide(
-                    dayText = today.gregorianDayText,
-                    caption = TodayStripTypography.captionFor(
-                        monthName = today.gregorianMonthName,
-                        yearText = today.gregorianYearText,
+                        colors = colors,
+                    )
+                }
+                val gregorian = @Composable {
+                    DateHalf(
+                        today = today,
+                        gregorian = true,
+                        sizes = sizes,
                         halfWidthDp = halfWidthDp,
                         language = language,
-                    ),
-                    daySize = daySize,
-                    colors = colors,
-                    gregorian = true,
-                )
-            }
-            // Order so the Hijri side lands on the right in either reading direction.
-            if (layoutRtl) {
-                hijri()
-                DateDivider(colors)
-                gregorian()
-            } else {
-                gregorian()
-                DateDivider(colors)
-                hijri()
+                        colors = colors,
+                    )
+                }
+                // Order so the Hijri side lands on the right in either reading direction.
+                if (layoutRtl) {
+                    hijri()
+                    DateDivider(colors)
+                    gregorian()
+                } else {
+                    gregorian()
+                    DateDivider(colors)
+                    hijri()
+                }
             }
         }
     }
+}
+
+/**
+ * One side of the strip, built from the projection's own fields.
+ *
+ * The caption comes from [TodayStripTypography.captionFor] — the rung ladder that gives up the era
+ * first, then the month's spelling, and never the year — and the projection's `*YearText` is
+ * era-appended (`1448 ھ`, `2026 AH`), whose bare part is its first space-separated piece, so no extra
+ * projection field is needed and the era keeps the spelling the projection chose for the widget's
+ * language (WG-12, FD-05). Both halves go through here so that ladder is stated once rather than
+ * twice.
+ */
+@Composable
+private fun RowScope.DateHalf(
+    today: TodayHijriWidgetData,
+    gregorian: Boolean,
+    sizes: TodayStripSizes,
+    halfWidthDp: Float,
+    language: WidgetLanguage,
+    colors: WidgetColors,
+) {
+    DateSide(
+        dayText = if (gregorian) today.gregorianDayText else today.hijriDayText,
+        caption = TodayStripTypography.captionFor(
+            monthName = if (gregorian) today.gregorianMonthName else today.hijriMonthName,
+            abbrevMonthName = if (gregorian) {
+                today.gregorianMonthShortName
+            } else {
+                today.hijriMonthShortName
+            },
+            yearText = if (gregorian) today.gregorianYearText else today.hijriYearText,
+            halfWidthDp = halfWidthDp,
+            language = language,
+            captionSizeSp = sizes.captionSize.value,
+        ),
+        daySize = sizes.daySize,
+        captionSize = sizes.captionSize,
+        colors = colors,
+        gregorian = gregorian,
+    )
 }
 
 /**
@@ -480,8 +550,11 @@ internal fun HijriTodayRoot(
  */
 @Composable
 private fun StripUnavailable(colors: WidgetColors, language: WidgetLanguage) {
-    Text(
+    WidgetText(
         text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
+        // A sentence, not a label: it wraps, and wrapping is the one thing the bundled face's
+        // rasteriser cannot do — so this slot stays on Glance's `Text` deliberately.
+        maxLines = Int.MAX_VALUE,
         style = TextStyle(
             color = colors.secondaryText,
             fontSize = 12.sp,
@@ -525,8 +598,10 @@ private const val DIVIDER_GAP_DP = 5
 private fun RowScope.DateSide(
     dayText: String,
     caption: String,
-    /** Derived from the granted height by the caller — see [TodayStripTypography.daySizeFor]. */
+    /** Derived from the granted height by the caller — see [TodayStripTypography.sizesFor]. */
     daySize: TextUnit,
+    /** The caption size from the same scale, so the two lines cannot drift apart. */
+    captionSize: TextUnit,
     colors: WidgetColors,
     /**
      * Which calendar this half shows. The strip renders both through this one composable, so the caption's
@@ -540,12 +615,17 @@ private fun RowScope.DateSide(
 ) {
     val fonts = HijriWidgetFonts.default
     val dayColor = if (gregorian) colors.primaryText else colors.accent
+    // The caption's own half of the strip, as the rasteriser's ellipsis budget. The bundled Nastaliq
+    // face is wider than the system fallback at the same size, so a caption the width estimator
+    // accepted for the fallback can still be too wide for the half it sits in; without this it would
+    // overflow into its sibling rather than being trimmed.
+    val captionMaxWidthDp = (LocalSize.current.width.value / 2f).toInt()
     Column(
         modifier = GlanceModifier.defaultWeight(),
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
-        Text(
+        WidgetText(
             text = dayText,
             style = TextStyle(
                 color = dayColor,
@@ -556,17 +636,18 @@ private fun RowScope.DateSide(
             ),
             maxLines = 1,
         )
-        Text(
+        WidgetText(
             text = caption,
             modifier = GlanceModifier.padding(top = TodayStripTypography.lineGap),
             style = TextStyle(
                 color = colors.primaryText,
-                fontSize = TodayStripTypography.captionSize,
-                fontWeight = FontWeight.Medium,
+                fontSize = captionSize,
+                fontWeight = FontWeight.Bold,
                 fontFamily = fonts.forMonthTitle(gregorian).toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
+            maxWidthDp = captionMaxWidthDp,
         )
     }
 }

@@ -1,42 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Static preview shown in the Android 12-14 widget picker for the "today" strip widget.
-     Mirrors the live strip: the weekday name centred across the top, then the Gregorian date
-     (bold day over month+year) on the left and the Hijri date (bold accent day over month+year)
-     on the right, separated by a hairline, whatever the reading direction. The root is
-     gravity="center_vertical" because the live root Column is centre-aligned, not pinned to the
-     top — see TodayStripTypography.VERTICAL_PADDING_DP for why that matters. -->
+     Mirrors the live strip: the weekday name centred in the family's accent band across the top,
+     then the Gregorian date (bold day over month+year) on the left and the Hijri date (bold accent
+     day over month+year) on the right, separated by a hairline, whatever the reading direction.
+
+     Two structural points are load-bearing and a flattened preview would misrepresent the widget:
+
+       * the band is flush to the strip's edges (the date row below it, not the root, carries the
+         12dp horizontal padding), exactly as the live WeekdayBand is;
+       * the date row centres in the height the band left, matching the live weighted Box, which is
+         what splits the leftover height instead of pooling it under the figures.
+
+     Every size is read from TodayStripTypography and is the value at
+     TodayStripTypography.DAY_HEIGHT_REFERENCE_DP — the declared minimum, since a static XML has
+     only one height to render and the minimum is the smallest a placed strip can be. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/widget_background"
-    android:gravity="center_vertical"
     android:orientation="vertical"
-    android:paddingLeft="12dp"
-    android:paddingTop="2dp"
-    android:paddingRight="12dp"
-    android:paddingBottom="2dp"
     tools:ignore="UnusedAttribute">
 
-    <!-- The weekday both halves share: centred over the whole strip, not repeated per side. -->
+    <!-- The weekday both halves share: one centred line in the accent band, not repeated per side.
+         Padding is WidgetBand's: 6dp horizontal, 2dp above the line box, 3dp below. -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="1dp"
+        android:background="@color/widget_accent"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:maxLines="1"
+        android:paddingLeft="6dp"
+        android:paddingTop="2dp"
+        android:paddingRight="6dp"
+        android:paddingBottom="3dp"
         android:text="بدھ"
-        android:textColor="@color/widget_text_primary"
-        android:textSize="17sp"
+        android:textColor="@color/widget_on_today"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
-    <!-- The two date halves, with the divider between them. -->
+    <!-- The two date halves, with the divider between them, centred in the height the band left. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp">
 
         <!-- Gregorian half -->
         <LinearLayout
@@ -54,7 +68,7 @@
                 android:maxLines="1"
                 android:text="18"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="28sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -99,7 +113,7 @@
                 android:maxLines="1"
                 android:text="۲۱"
                 android:textColor="@color/widget_accent"
-                android:textSize="28sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
             <TextView

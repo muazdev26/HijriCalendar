@@ -20,25 +20,25 @@ import kotlin.math.roundToInt
  *
  * ## What this file is really about
  *
- * Two earlier versions of this tile's sizing failed on-device as **unreadable text**, and both failures
- * were the tile not following the family:
+ * Three earlier versions of this tile's sizing failed, and each failure was the tile not following the
+ * family:
  *
  * 1. Every zone sized as a *fraction of the granted height*, which rendered a **6sp weekday** on a real
  *    72dp cell.
- * 2. The remedy for that — a uniform shrink-to-fit — made it worse in a way nobody could see: raising the
- *    caption sizes moved the shrink's pivot up, so 20/20/23sp requested rendered a **12.9sp** header,
- *    smaller than the 15sp it replaced.
+ * 2. The remedy for that — a width-only rule **with a floor**, clipping whatever did not fit — fixed the
+ *    unreadable-weekday case and reintroduced the failure the family is now arranged to prevent: on a
+ *    short cell some lines grew while others were clipped, and on a device the *Hijri month name* was the
+ *    line pushed off the bottom.
+ * 3. The shrink-to-fit that followed made it worse in a way nobody could see: raising the caption sizes
+ *    moved the shrink's pivot up, so 20/20/23sp requested rendered a **12.9sp** header, smaller than the
+ *    15sp it replaced.
  *
- * The sibling tiles show the correct posture, and it is the one this file holds this tile to: **fixed,
- * generous sizes sized for the cell a launcher actually grants, with clipping below that accepted and
- * recorded rather than designed away.** `HijriDateWidget` and `GregorianDateWidget` ask for ~107–122dp of
- * line box in a cell whose declared minimum is 40dp, and
- * `DateTilePreviewLayoutTest.theThreeLinesStayWithinTheAcceptedVerticalBudget` asserts only that the figure
- * has not grown *past what was accepted*.
- *
- * So the strongest assertions here are **equality with [DateTileTypography]** — the tile must share the
- * sibling tiles' numbers rather than a parallel set — plus a recorded budget, exactly as the family records
- * its own.
+ * What the tile does now is what the sibling tiles and the Today strip do: **one scale from both granted
+ * axes** ([widgetTypeScale]), so every zone is `reference * scale`, the four lines always fit the granted
+ * height, and none can be pushed off the bottom. The strongest assertions here are therefore **equality
+ * with [DateTileTypography]** — the tile shares the family's reference caption rather than a parallel
+ * set — plus a **fit** claim at every plausible cell, which replaces the old "recorded budget" test: a
+ * clamped budget was the right claim while the tile clipped, and is the wrong one now that it fits.
  *
  * The composable is not unit-testable in this module (a Glance composition has no JVM host), so what is
  * asserted is the **data** the layout is built from plus the **XML** that mirrors it, the same division of
@@ -99,11 +99,11 @@ class DualDateTilePreviewLayoutTest {
         )
         for (width in 1..400) {
             val day = DualDateTileTypography.sizesFor(width.toFloat()).daySize.value
+            val floor = DualDateTileTypography.daySize.value * MIN_TYPE_SCALE
             assertTrue(
-                "at ${width}dp the day (${day}sp) must sit between " +
-                    "${DualDateTileTypography.daySizeFloor.value}sp and " +
+                "at ${width}dp the day (${day}sp) must sit between ${floor}sp and " +
                     "${DualDateTileTypography.daySizeCeiling.value}sp",
-                day >= DualDateTileTypography.daySizeFloor.value - 0.001f &&
+                day >= floor - 0.001f &&
                     day <= DualDateTileTypography.daySizeCeiling.value + 0.001f,
             )
         }
@@ -116,31 +116,27 @@ class DualDateTilePreviewLayoutTest {
     }
 
     /**
-     * The captions scale the sibling tiles' own rule — borrowed whole, dialled back.
+     * The captions are the tile's own reference caption scaled with the cell, and stay under the day.
      *
-     * `CAPTION_RATIO` is a **scale** rather than a constant, so the band weekday and the Hijri month name
-     * still widen with the granted width the way the sibling tiles' names do. It is also what keeps the
-     * weekday under the day figure: unscaled, the sibling rule would make a weekday larger than the Hijri
-     * day. The clamp is against the figure **the same cell renders** (`sizes.daySize`), not the reference
-     * one, so the two cannot drift apart as the tile grows (point 7).
+     * `CAPTION_RATIO` dials the family's reference caption back so a weekday can never outrank the
+     * Hijri day; the single scale then moves the caption with the cell, so the weekday and the month
+     * name widen together as the sibling tiles' names do. The clamp is against the figure the **same**
+     * cell renders (`sizes.daySize`), not the reference one, so the two cannot drift apart as the tile
+     * grows.
      */
     @Test
-    fun theCaptionsScaleTheSiblingTilesOwnRule() {
+    fun theCaptionsScaleWithTheCellAndStayUnderTheDay() {
+        val maxScale = DualDateTileTypography.daySizeCeiling.value / DualDateTileTypography.daySize.value
         for (width in 1..400) {
-            val sibling = DateTileTypography.weekdaySizeFor(width.toFloat()).value
             val sizes = DualDateTileTypography.sizesFor(width.toFloat())
-
-            // The relationship: the sibling rule, scaled, then clamped at both ends.
-            val ceiling = minOf(
-                DualDateTileTypography.monthSizeCeiling.value,
-                sizes.daySize.value * DualDateTileTypography.CAPTION_MAX_SHARE,
-            )
-            val expected = (sibling * DualDateTileTypography.CAPTION_RATIO)
-                .coerceIn(DateTileTypography.weekdaySizeFloor.value, ceiling)
+            val scale = (width / DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP)
+                .coerceIn(MIN_TYPE_SCALE, maxScale)
+            val expected = (DualDateTileTypography.captionAtReference.value * scale)
+                .coerceAtMost(DualDateTileTypography.monthSizeCeiling.value)
 
             assertEquals(
-                "the band's weekday at ${width}dp: the sibling rule returns $sibling, scaled and clamped " +
-                    "it should be $expected",
+                "the band's weekday at ${width}dp: the reference caption is " +
+                    "${DualDateTileTypography.captionAtReference.value}, scaled it should be $expected",
                 expected.toDouble(),
                 sizes.weekdaySize.value.toDouble(),
                 0.01,
@@ -181,63 +177,77 @@ class DualDateTilePreviewLayoutTest {
     }
 
     /**
-     * No line on this tile is smaller than the smallest line on the sibling tiles.
+     * No line ever vanishes as the tile shrinks, and no caption exceeds the figure.
      *
-     * The legibility floor expressed as a relationship, so it cannot drift: the Gregorian date is held to
-     * [DateTileTypography.weekdaySizeFloor], the floor those tiles hold their own captions to. A 1×1 tile
-     * in this family must never hold the smallest text in the family.
+     * The old form of this test held every line above the sibling tiles' caption **floor**. A floor is
+     * exactly what this round removed from the family: a per-line floor is what pushes the last line
+     * off a short cell, because it keeps a line at a size the cell can no longer hold. What survives is
+     * the property the floor was standing in for — every line is still rendered at the narrowest tile,
+     * and no caption ever outgrows the figure.
      */
     @Test
-    fun noLineIsSmallerThanTheSiblingTilesFloor() {
+    fun everyLineSurvivesTheNarrowestTileAndStaysUnderTheDay() {
         for (width in 1..200) {
             val sizes = DualDateTileTypography.sizesFor(width.toFloat())
             for ((name, size) in sizes.namedLabels()) {
                 assertTrue(
-                    "at ${width}dp the $name is ${size.value}sp, below the sibling tiles' " +
-                        "${DateTileTypography.weekdaySizeFloor.value}sp caption floor",
-                    size.value >= DateTileTypography.weekdaySizeFloor.value - 0.001f,
+                    "at ${width}dp the $name is ${size.value}sp; every line must still be rendered",
+                    size.value > 0f,
+                )
+                assertTrue(
+                    "at ${width}dp the $name (${size.value}sp) must not exceed the day " +
+                        "(${sizes.daySize.value}sp)",
+                    size.value <= sizes.daySize.value + 0.001f,
                 )
             }
         }
     }
 
     /**
-     * The Gregorian date never out-weighs the month name above it, and never collapses.
+     * The Gregorian date never out-weighs the month name above it, and never vanishes.
      *
-     * The one size this tile picks for itself, so it needs both bounds: a floor so it cannot vanish on a
-     * narrow tile, and a ceiling so it stays a caption beside a heading rather than competing with it.
+     * The one size this tile picks for itself, so it needs both bounds: it is held under the month name
+     * (so the tile has one heading, not two competing ones) and above zero at the narrowest cell. The
+     * old form of this test also pinned a *floor* equal to the sibling tiles' caption floor; that floor
+     * is gone with the family's other floors, for the same reason — a floor is what keeps a line at a
+     * size the granted cell can no longer hold.
      */
     @Test
-    fun theGregorianDateIsFlooredAndSubordinate() {
-        assertEquals(
-            "the Gregorian date's floor must be the sibling tiles' caption floor, not a number of its own",
-            DateTileTypography.weekdaySizeFloor,
-            DualDateTileTypography.subRowSizeFloor,
-        )
-        val narrowest = DualDateTileTypography.sizesFor(1f)
-        assertTrue(
-            "on the narrowest tile the Gregorian date is ${narrowest.subRowSize.value}sp",
-            narrowest.subRowSize.value >= DateTileTypography.weekdaySizeFloor.value,
-        )
+    fun theGregorianDateIsSubordinateToTheMonthName() {
         for (width in 1..200) {
             val sizes = DualDateTileTypography.sizesFor(width.toFloat())
             assertTrue(
                 "at ${width}dp the Gregorian date (${sizes.subRowSize.value}sp) must not exceed the " +
                     "month name (${sizes.monthSize.value}sp)",
-                sizes.subRowSize.value <= sizes.monthSize.value,
+                sizes.subRowSize.value <= sizes.monthSize.value + 0.001f,
+            )
+            assertTrue(
+                "at ${width}dp the Gregorian date (${sizes.subRowSize.value}sp) must still be rendered",
+                sizes.subRowSize.value > 0f,
             )
         }
+        assertEquals(
+            "the Gregorian date has a ceiling of this tile's own, so a large tile keeps it a caption",
+            DualDateTileTypography.subRowSizeCeiling.value.toDouble(),
+            DualDateTileTypography.sizesFor(400f).subRowSize.value.toDouble(),
+            0.01,
+        )
     }
 
     /**
-     * The sizes depend on **width only** — there is no height term anywhere.
+     * The width-only projection — the one the static mirror states — is monotonic in width.
      *
-     * The failure this pins. A height term is what made this tile's text tiny: it shrank the names
-     * whenever the cell was short, and a four-line 1×1 is always short. A fixed 1×1 varies along width and
-     * not height in any way worth reacting to, and the sibling tiles size on width for that reason.
+     * The mirror has no granted height of its own, so it calls `sizesFor(width)`; a rule that was not
+     * monotonic would render a smaller caption on a wider tile at some width, which a single visual
+     * check never catches.
+     *
+     * **The live tile takes both axes** (`sizesFor(width, height)`). The old form of this test asserted
+     * there was no height term anywhere, which was correct while this tile clipped rather than fit —
+     * and is exactly the behaviour a resize report removed. The height-bounded behaviour is asserted by
+     * [theFourZonesFitTheHeightTheyAreGranted].
      */
     @Test
-    fun theSizesAreWidthDriven() {
+    fun theWidthOnlyProjectionIsMonotonic() {
         var previous = 0f
         for (width in 1..400) {
             val caption = DualDateTileTypography.sizesFor(width.toFloat()).weekdaySize.value
@@ -274,54 +284,69 @@ class DualDateTilePreviewLayoutTest {
     // ── The vertical budget, recorded rather than met ─────────────────────────
 
     /**
-     * The vertical budget, held to the figure accepted for this layout.
+     * The four zones fit the height the tile is granted — all of them, at every plausible cell.
      *
-     * **This is the sibling tiles' test, deliberately.** `DateTilePreviewLayoutTest` asserts that its
-     * tile's lines ask for no more than ~129dp — past which the tile clips its last line — and explicitly
-     * *not* that the tile fits its declared 40dp minimum, because it does not and cannot.
-     *
-     * The assertion is that the figure has not grown *past what was accepted*, so a future size increase
-     * is visible instead of absorbed. **The number is not a target**: it is what this tile costs with the
-     * family's sizes, and reducing it means choosing smaller text — the exact change that made this tile
-     * unreadable.
+     * **This replaces the recorded-budget test, and the replacement is the point.** The tile used to
+     * size on width alone and *accept* that a short cell clipped its last zone; the cost was quoted as
+     * [ACCEPTED_MAX_REQUESTED_DP] so a size increase was visible instead of absorbed. Now the whole
+     * stack scales with the granted height, so the honest claim is not "it asks for ~Ndp" but "it fits
+     * what it was given" — which is falsifiable at every cell rather than at one, and is the behaviour a
+     * resize report asked for.
      */
     @Test
-    fun theFourZonesStayWithinTheAcceptedVerticalBudget() {
-        val requested = DualDateTileTypography.verticalBudgetDp(
-            DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP,
-        ).roundToInt()
-
+    fun theFourZonesFitTheHeightTheyAreGranted() {
+        for (height in listOf(48f, 60f, 84f, 120f, 200f)) {
+            val requested = DualDateTileTypography.verticalBudgetDp(
+                DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP,
+                height,
+            )
+            assertTrue(
+                "at ${height}dp the four zones ask for ${requested}dp; the tile must fit the height " +
+                    "it was given or its last zone is clipped",
+                requested <= height + 0.01f,
+            )
+        }
+        // The reference height is exactly the stack's own request, which is what keeps a preview and a
+        // placed tile in agreement.
         assertEquals(
-            "the four zones ask for ~${requested}dp at the reference width, past the ~" +
-                "$ACCEPTED_MAX_REQUESTED_DP dp accepted for this layout. Raising it is not free: the tile " +
-                "already clips on a shorter cell, and the shrink-to-fit that avoided that is what made " +
-                "the text unreadable",
-            ACCEPTED_MAX_REQUESTED_DP,
-            requested,
+            "the reference height must be the stack's own request",
+            DualDateTileTypography.REFERENCE_STACK_HEIGHT_DP.toDouble(),
+            DualDateTileTypography.verticalBudgetDp(
+                DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP,
+                DualDateTileTypography.REFERENCE_STACK_HEIGHT_DP,
+            ).toDouble(),
+            0.01,
         )
     }
 
     /**
-     * The budget does **not** exceed the sibling tiles' own worst case.
+     * The same fit with the **bundled Nastaliq** face drawing the three script lines.
      *
-     * Four lines across three zones is shorter than the siblings' three zones with a full-width figure, so
-     * the fourth zone costs *less* height here rather than more. A future change that gave the day its own
-     * full-width zone again, or dropped a caption, would push the figure past this and fail — which is the
-     * point, since that is the arrangement that could not fit.
+     * The ratio is threaded through `sizesFor`/`requestedHeightDp` for the reason
+     * [NASTALIQ_LINE_RATIO] gives: Nastaliq's box is 2.5 em against the fallback's 1.7, so a stack
+     * measured at the wrong one overflows the cell by ~47% of its script lines' height — and this tile
+     * is a strict 1x1, so there is nowhere for the overflow to go.
      */
     @Test
-    fun theBudgetDoesNotExceedTheSiblingTilesOwn() {
-        val siblingSum = DateTileTypography.weekdaySizeCeiling.value * 2 + DateTileTypography.daySize.value
-        val siblingWorstCase = siblingSum * DualDateTileTypography.LINE_HEIGHT_RATIO +
-            DateTileTypography.VERTICAL_PADDING_DP * 2
-        val ours = DualDateTileTypography.verticalBudgetDp(
-            DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP,
-        )
+    fun theNastaliqZonesFitTheHeightTheyAreGrantedToo() {
+        for (height in listOf(40f, 48f, 60f, 84f, 120f, 200f)) {
+            val requested = DualDateTileTypography.verticalBudgetDp(
+                DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP,
+                height,
+                NASTALIQ_LINE_RATIO,
+            )
+            assertTrue(
+                "at ${height}dp the Nastaliq zones ask for ${requested}dp, which does not fit",
+                requested <= height + 0.01f,
+            )
+        }
 
+        val system = DualDateTileTypography.sizesFor(84f, 84f, TEXT_LINE_RATIO)
+        val nastaliq = DualDateTileTypography.sizesFor(84f, 84f, NASTALIQ_LINE_RATIO)
         assertTrue(
-            "this tile asks for ~${ours.toInt()}dp against the sibling tiles' worst case of ~" +
-                "${siblingWorstCase.toInt()}dp",
-            ours <= siblingWorstCase,
+            "Nastaliq's taller box must shrink the tile's type at a fixed cell; got " +
+                "${nastaliq.daySize} against ${system.daySize}",
+            nastaliq.daySize.value < system.daySize.value,
         )
     }
 
@@ -416,12 +441,14 @@ class DualDateTilePreviewLayoutTest {
     }
 
     /**
-     * The mirror's Hijri month name is the **complete** one, not the abbreviated `ربیع ٢` form.
+     * The mirror's Hijri month name is the **complete** one, `ربیع الثانی`.
      *
-     * The abbreviated [com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData.hijriMonthShortName] only
-     * ever existed because the band was too narrow for the long name. With the month moved into the body
-     * there is room for it in full, and showing `ربیع الثانی` is both correct and clearer. Asserted because
-     * the short form is still on the projection for iOS, so nothing else would stop it creeping back here.
+     * The mirror's sample content is Urdu, and **Urdu month names are never shortened** — the
+     * projection returns [com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData.hijriMonthShortName]
+     * byte-identical to [com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData.hijriMonthName]
+     * for Urdu, so the live dual tile renders exactly this string too. (An English widget renders
+     * `Rabi' II` there instead — pinned on the projection in `ShortHijriMonthNameTest`.) Asserted
+     * so a change to either side, mirror or rule, cannot quietly diverge from the other.
      */
     @Test
     fun theMirrorShowsTheCompleteHijriMonthName() {
@@ -596,7 +623,7 @@ class DualDateTilePreviewLayoutTest {
 
         // The live side: the band includes top and bottom padding around its line box.
         val sizes = DualDateTileTypography.sizesFor(DualDateTileTypography.TILE_REFERENCE_TEXT_WIDTH_DP)
-        val expected = sizes.weekdaySize.value * DualDateTileTypography.LINE_HEIGHT_RATIO +
+        val expected = sizes.weekdaySize.value * TEXT_LINE_RATIO +
             DualDateTileTypography.BAND_TOP_PADDING_DP +
             DualDateTileTypography.BAND_PADDING_DP
         assertEquals(
@@ -847,26 +874,23 @@ class DualDateTilePreviewLayoutTest {
 
     /** The live band's height in dp — its text's line box, plus top and bottom padding. */
     private fun bandHeightDp(sizes: DualDateTileSizes): Float =
-        sizes.weekdaySize.value * DualDateTileTypography.LINE_HEIGHT_RATIO +
+        sizes.weekdaySize.value * TEXT_LINE_RATIO +
             DualDateTileTypography.BAND_TOP_PADDING_DP +
             DualDateTileTypography.BAND_PADDING_DP
 
     private companion object {
         /**
-         * The most vertical space the four zones are accepted to ask for, in dp, at the reference width.
-         */
-        const val ACCEPTED_MAX_REQUESTED_DP = 69
-
-        /**
          * How much leading may sit between a line box and its glyphs before the "equal by construction,
          * residual bounded" claim stops being honest.
          *
-         * **It scales with the type size**, because it is leading: the residual is a share of a 1.17 line
-         * box, so borrowing the sibling tiles' larger names makes it bigger than it was when this tile drew
-         * 13sp text. That is the honest direction — readable type brings more font leading with it — and the
-         * number is quoted so the trade is visible rather than discovered as an asymmetry on a device.
+         * **It scales with the type size and the modelled line ratio**, because it *is* leading: the
+         * residual is a share of a [TEXT_LINE_RATIO] line box. That ratio is now the family's
+         * worst-case model rather than a Latin face's measured metric, so the bound moved up with it —
+         * the honest direction, since a readable Nastaliq setting brings more font leading with it, and
+         * the number is quoted so the trade is visible rather than discovered as an asymmetry on a
+         * device.
          */
-        const val MAX_ACCEPTED_RESIDUAL_DP = 3f
+        const val MAX_ACCEPTED_RESIDUAL_DP = 5f
 
         /** The preview XML attribute every text size lives in. */
         const val TEXT_SIZE = "android:textSize"

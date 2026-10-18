@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Static preview shown in the Android 12-14 widget picker for the Hijri
-     1x1 date tile: the weekday name on top, a big accent day figure in the middle, the month name
-     at the bottom — mirroring the live tile. Every size here is a hand-maintained mirror of
-     DateTileTypography and must move with it; DateTilePreviewLayoutTest asserts they do.
+     1x1 date tile: the weekday name in the family's accent band, a big accent day figure in the
+     middle, the month name at the bottom — mirroring the live tile. Every size here is a
+     hand-maintained mirror of DateTileTypography and must move with it; DateTilePreviewLayoutTest
+     asserts they do.
 
      The weekday size here is a snapshot at DateTileTypography's reference width. The live tile
-     scales that line with the width the launcher grants, so this static preview cannot follow it
+     scales every line with the granted cell, so this static preview cannot follow it
      exactly - it shows the mid-range value.
 
-     includeFontPadding="false" on all three lines is what removes the strip of empty space above
+     The band is a `match_parent` TextView carrying the accent fill, exactly as the dual-date tile's
+     mirror does and as the live WeekdayBand draws it: one composable, so the four widgets that show
+     a weekday cannot drift apart. Its text colour is `widget_on_today`, the token for text drawn
+     *on* the accent.
+
+     includeFontPadding="false" on every line is what removes the strip of empty space above
      and below each glyph: a TextView reserves room for the font's full ascent and descent, and on
      these small sizes that reserved space is most of the visible line. It is the XML-only lever for
      the gap - see the note in DateTileTypography.WEEKDAY sizing. NOTE this makes the picker preview
@@ -19,44 +25,60 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/widget_background"
-    android:gravity="center"
     android:orientation="vertical"
-    android:padding="2dp"
     tools:ignore="UnusedAttribute">
 
+    <!-- The weekday band, flush to the tile's edges like the live WeekdayBand. Padding is
+         WidgetBand's: 6dp horizontal, 2dp above the line box, 3dp below. -->
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/widget_accent"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
         android:includeFontPadding="false"
         android:maxLines="1"
+        android:paddingLeft="6dp"
+        android:paddingTop="2dp"
+        android:paddingRight="6dp"
+        android:paddingBottom="3dp"
         android:text="جمعرات"
-        android:textColor="@color/widget_text_primary"
+        android:textColor="@color/widget_on_today"
         android:textSize="13sp"
         android:textStyle="bold" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-medium"
+    <!-- The body centres in the height the band left, matching the live weighted Box. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:gravity="center"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="٢١"
-        android:textColor="@color/widget_accent"
-        android:textSize="26sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-medium"
-        android:gravity="center"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="محرم"
-        android:textColor="@color/widget_text_primary"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="٢١"
+            android:textColor="@color/widget_accent"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="محرم"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </LinearLayout>
