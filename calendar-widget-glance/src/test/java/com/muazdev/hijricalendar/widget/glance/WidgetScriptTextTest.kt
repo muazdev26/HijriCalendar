@@ -248,6 +248,69 @@ class WidgetScriptTextTest {
         assertNull("nothing painted anywhere", inkColumnRange(width = 4, height = 2, pixels = IntArray(8)))
     }
 
+    /**
+     * The other half of the same crop: the **leading band** above a raster's ink.
+     *
+     * A bundled Nastaliq line's declared box is 2.5 em while its ink is far shorter, and the grid's
+     * chrome — its two title lines, its weekday row and its footer — is a fixed cost against six
+     * weighted day rows, so that empty band is height the cells never get. `trimScriptLeading` drops
+     * the rows above the first that painted and keeps the bottom at the layout's descent, which is a
+     * constant offset below the baseline and therefore what still aligns a bottom-aligned row of
+     * labels. `Bitmap.getPixels` fills row-major, so this scans row by row where [inkColumnRange]
+     * scans column by column.
+     */
+    @Test
+    fun theLeadingBandAboveTheInkIsFoundRowWise() {
+        val width = 4
+        val height = 6
+        val pixels = IntArray(width * height)
+        // Ink in two non-adjacent rows: a scan that stopped at the first painted row would answer
+        // `3..3` and a later crop to `first..last` would then cut the second one off.
+        pixels[3 * width + 0] = OPAQUE
+        pixels[5 * width + 3] = OPAQUE
+
+        assertEquals("ink from every row, not just the first", 3..5, inkRowRange(width, height, pixels))
+        assertEquals("and the trim starts where the ink does", 3, inkRowRange(width, height, pixels)!!.first)
+    }
+
+    @Test
+    fun aRowWithNoInkIsNullRatherThanAnEmptyRange() {
+        assertNull("nothing painted anywhere", inkRowRange(width = 4, height = 6, pixels = IntArray(24)))
+        // Transparent white is not ink: alpha alone decides here too.
+        assertNull("transparent every row", inkRowRange(2, 2, intArrayOf(0x00FFFFFF, 0x00FFFFFF, 0, 0)))
+    }
+
+    /**
+     * The trimmed band is *shorter* than the declared box under Nastaliq and identical to it otherwise.
+     *
+     * The two functions differ only where a raster exists: with the bundled face off a slot is Glance's
+     * own `Text` and there is no band to drop, so the row's rule must keep the ratio it always had.
+     * Pinned because a scan that used the ink band ratio on the Glance path would shrink the rule on
+     * every English widget, and the failure would be a rule that no longer spans its labels.
+     */
+    @Test
+    fun theInkBandRatioBracketsTheDeclaredLineBox() {
+        val system = HijriWidgetFonts()
+        val bundled = HijriWidgetFonts(bundledUrduFont = true)
+
+        assertEquals(
+            "with no raster there is no band to drop, so the rule keeps the ratio it always had",
+            system.scriptLineRatio().toDouble(),
+            system.scriptInkBandRatio().toDouble(),
+            0.0001,
+        )
+        assertTrue(
+            "under Nastaliq the ink band is shorter than the declared box (${bundled.scriptInkBandRatio()} " +
+                "vs ${bundled.scriptLineRatio()})",
+            bundled.scriptInkBandRatio() < bundled.scriptLineRatio(),
+        )
+        assertTrue(
+            "and it still reserves more than the ink of the tallest measured label (" +
+                "1.5 em of ink + 0.596 em of descent)",
+            bundled.scriptInkBandRatio() > 2f,
+        )
+    }
+
     private companion object {
         /** Opaque black: an interlaced ARGB the scan reads as painted. */
         const val OPAQUE = 0xFF000000.toInt()

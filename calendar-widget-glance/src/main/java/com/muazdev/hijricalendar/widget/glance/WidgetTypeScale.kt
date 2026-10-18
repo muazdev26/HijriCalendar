@@ -101,3 +101,24 @@ internal const val DIGIT_LINE_RATIO: Float = 1.3f
  * Nastaliq is a poor fit for a dense grid.
  */
 internal const val NASTALIQ_LINE_RATIO: Float = 2.5f
+
+/**
+ * The height a script line's raster actually paints in — its ink above the baseline plus the face's
+ * descent — as a multiple of its font size, for the bundled Nastaliq face.
+ *
+ * [NASTALIQ_LINE_RATIO] is the *declared* box, and it is the right number for a stack that is fitted to
+ * a granted height: the ratio is the arithmetic that stack reserves with. It is the wrong number for a
+ * slot whose height is a **fixed cost against weighted siblings** — the grid's chrome, where a Nastaliq
+ * grid on a 4-row widget was spending 131 dp of 312 dp on chrome and leaving its two-line cells 26.9 dp
+ * against the 29.3 dp they need.
+ *
+ * The declared box is mostly empty band. Measured from the rendered rasters on a Pixel 6a: the grid's
+ * seven weekday names carried 12-43 px of empty band above their ink inside a 72 px box, and a title
+ * line 8-28 px inside an 85 px box. Combining the font's own numbers, `baseline + descent` is
+ * `0.596 em` below the baseline, so a slot trimmed to its ink (see `trimScriptLeading`) measures
+ * `inkAbove + 0.596 em`, and the tallest of those weekday names came to `2.08 em` — this constant,
+ * rounded up so the rule a weekday row draws spans the labels rather than falling short of them. The
+ * callers that trim their leading are the ones that use it; a slot that keeps the full box, and every
+ * fitted typography, still measures with [NASTALIQ_LINE_RATIO].
+ */
+internal const val NASTALIQ_INK_BAND_RATIO: Float = 2.1f

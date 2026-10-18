@@ -105,6 +105,19 @@ private const val TODAY_RING_WIDTH_DP = 2
 private const val GRID_PADDING_DP = 10
 
 /**
+ * The grid root's **vertical** inset, in dp — deliberately smaller than [GRID_PADDING_DP].
+ *
+ * The two axes are not the same budget. Horizontally the inset is a margin a cell needs: it keeps the
+ * seven columns off the widget's edge and is part of the arithmetic that decides how wide a cell is
+ * ([GRID_PADDING_DP] is subtracted in [WeekdayHeaderRow]). Vertically it is height taken straight from
+ * the six weighted day rows, and those rows are the widget's entire content — on a 4-row Urdu grid the
+ * two-line cells came to 26.9 dp against the 29.3 dp their two lines need, which is a Gregorian digit
+ * resting on the cell border. 6 dp still reads as margin at the surface's top and bottom; the 4 dp
+ * difference is a third of a dp of clearance per row, and it costs nothing the grid was using.
+ */
+private const val GRID_PADDING_VERTICAL_DP = 6
+
+/**
  * The Hijri home-screen widget family.
  *
  * Large sizes render the full 42-day Hijri month grid of the currently viewed month. Header
@@ -900,7 +913,7 @@ internal fun HijriWidgetRoot(
             .fillMaxSize()
             .background(colors.background)
             .clickableWhen(liveActions.open)
-            .padding(GRID_PADDING_DP.dp),
+            .padding(horizontal = GRID_PADDING_DP.dp, vertical = GRID_PADDING_VERTICAL_DP.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
         if (useCompact || monthData == null) {
@@ -1334,8 +1347,15 @@ private fun LoadingBar(colors: WidgetColors) {
  * weight left above `Bold` to reach for (see [GridCellWeights]). What does exist is the pair of levers
  * round 1 already used for the 1x1 tiles' weekday line ([CaptionBand]): tone and size. So the row takes
  * `onTodayText` rather than a muted colour, because the weekday names label the days instead of being a
- * caption beneath them. The row grows by ~2px; the week rows below it are weighted, so they give that
- * up instead of the header overflowing.
+ * caption beneath them.
+ *
+ * **The row keeps only the ink it paints.** Its labels and rules are chrome above six weighted day rows,
+ * and a bundled Nastaliq line's declared box is more than twice the height of the glyph it carries, so
+ * the row renders its labels through [WidgetText] with `trimScriptLeading` and takes its rule height
+ * from [HijriWidgetFonts.scriptInkBandRatio] instead of [HijriWidgetFonts.scriptLineRatio]. A row of
+ * labels is exactly the case that makes the trim delicate, which is why the row and every column in it
+ * bottom-align (see the comment at the `Row`): every trimmed label ends at `baseline + descent`, so
+ * aligning bottoms is what keeps one baseline.
  */
 @Composable
 private fun WeekdayHeaderRow(
@@ -1355,20 +1375,25 @@ private fun WeekdayHeaderRow(
             WEEKDAY_CELL_CHROME_DP
         ).toInt().coerceAtLeast(1)
 
-    // The rules' height: the weekday line's own box, from the same size the names are drawn at and the
-    // ratio the fitted typographies reserve for the face in use. **A stated height, not
-    // `fillMaxHeight`** — this row is content-sized (one line of text), so a `match_parent` child is
-    // measured against the height the row was *offered*, which inside the widget's weighted root is
-    // the whole widget; see [CellDivider]. Spanning exactly the line also means a rule can never make
-    // the row taller than the names it divides.
-    val ruleHeightDp = weekdaySize.value * fonts.scriptLineRatio()
+    // The rules' height: what a trimmed script label actually occupies — its ink plus the face's
+    // descent — from the same size the names are drawn at. **A stated height, not `fillMaxHeight`** —
+    // this row is content-sized (one line of text), so a `match_parent` child is measured against the
+    // height the row was *offered*, which inside the widget's weighted root is the whole widget; see
+    // [CellDivider]. Spanning exactly the labels also means a rule can never make the row taller than
+    // the names it divides, and reading the *trimmed* band rather than the declared line box is what
+    // keeps that true now that the labels no longer carry their leading ([fonts.scriptInkBandRatio]).
+    val ruleHeightDp = weekdaySize.value * fonts.scriptInkBandRatio()
 
     Row(
         modifier = GlanceModifier
             .background(colors.accent)
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        verticalAlignment = Alignment.Vertical.CenterVertically,
+            .padding(vertical = 1.dp),
+        // Bottom, not centre, and the same inside each column below: a trimmed raster's *bottom* edge
+        // is `baseline + descent` for every label at a given size, so aligning the bottoms is what puts
+        // the row on one baseline now that the equal-height line boxes are gone. See
+        // [WidgetText]'s `trimScriptLeading`.
+        verticalAlignment = Alignment.Vertical.Bottom,
     ) {
         month.weekdayHeaders.forEachIndexed { column, name ->
             val dividerAfter = showCellBorders && column < month.weekdayHeaders.lastIndex
@@ -1376,7 +1401,7 @@ private fun WeekdayHeaderRow(
                 modifier = GlanceModifier
                     .defaultWeight()
                     .padding(start = 1.dp, end = if (dividerAfter) 1.5.dp else 1.dp),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
+                verticalAlignment = Alignment.Vertical.Bottom,
             ) {
                 WidgetText(
                     text = name,
@@ -1385,6 +1410,11 @@ private fun WeekdayHeaderRow(
                     // line count is what puts this row on the bundled face; see the KDoc above.
                     maxLines = 1,
                     maxWidthDp = cellWidthDp,
+                    // The row is chrome above six weighted day rows, so its empty leading is height the
+                    // cells do not get. This is the trim's narrowest call site: seven labels in one row,
+                    // each with its own ink extent, which is why the row and every column in it
+                    // bottom-aligns instead of centring.
+                    trimScriptLeading = true,
                     style = TextStyle(
                         color = colors.onTodayText,
                         fontSize = weekdaySize,
@@ -1570,6 +1600,10 @@ private fun EventFooter(
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
+            // The footer is a reserved line (FD-08) under six weighted day rows, so its leading is
+            // height taken from the cells like the header's. Its trim is the simplest of the three:
+            // one line, in a row of its own, with nothing to align against.
+            trimScriptLeading = true,
         )
     }
 }
@@ -1686,6 +1720,12 @@ private fun RowScope.MonthTitle(
                 ),
                 maxLines = 1,
                 maxWidthDp = maxWidthDp,
+                // The header's two lines are chrome over a weighted grid, so their leading is height the
+                // cells do not get — see [GridHeaderTypography.titleSp] for why that matters now that
+                // both lines are one size. Stacked, not rowed: each line's bottom stays `baseline +
+                // descent`, so the gap the two lines keep is the face's own descent rather than the box
+                // the leading was in.
+                trimScriptLeading = true,
             )
             WidgetText(
                 // The full Gregorian range, chosen by [MonthHeader]: both months the Hijri month
@@ -1702,6 +1742,9 @@ private fun RowScope.MonthTitle(
                 ),
                 maxLines = 1,
                 maxWidthDp = maxWidthDp,
+                // Same trim as the line above, and it matters more here: this line carries the year as
+                // well as a month name, so its ink sits higher in its box than the Hijri line's does.
+                trimScriptLeading = true,
             )
         }
     }
@@ -1806,7 +1849,10 @@ internal object GridHeaderTypography {
      *
      * The height is the cost, and it is deliberate: two lines at 13sp ask ~7dp more of the header
      * than two at 13/10 did. The week rows below are weighted, so they give that up — the header does
-     * not overflow.
+     * not overflow. Both lines trim their leading (`WidgetText(trimScriptLeading = true)`), which
+     * gives most of that back under the bundled face: a Nastaliq title line's declared box is 2.5 em
+     * while its ink measured 1.08 em above the baseline on a device, so without the trim two lines at
+     * 13sp ask 65 dp of a 4-row widget and the cells pay for all of it.
      *
      * A narrower *fit* is the other risk, and it is the reason the header names both Gregorian months
      * rather than the dominant one: on a phone-width grid the two-line range is ~135dp against a

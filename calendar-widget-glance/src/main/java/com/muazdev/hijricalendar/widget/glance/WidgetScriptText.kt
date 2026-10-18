@@ -62,6 +62,12 @@ internal fun WidgetText(
     style: TextStyle? = null,
     maxLines: Int,
     maxWidthDp: Int? = null,
+    /**
+     * Whether the raster drops the empty band **above** its ink, i.e. whether the slot's height is its
+     * ink plus the face's descent rather than the face's whole line box. See [trimScriptLeading]: the
+     * grid's chrome opts in, the fitted typographies do not.
+     */
+    trimScriptLeading: Boolean = false,
 ) {
     val fonts = HijriWidgetFonts.default
     val resolved = style ?: TextStyle()
@@ -81,7 +87,7 @@ internal fun WidgetText(
     val maxWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, availableDp, metrics)
         .coerceAtLeast(1f)
 
-    val bitmap = remember(text, colorArgb, sizePx, resolved.fontWeight, maxWidthPx) {
+    val bitmap = remember(text, colorArgb, sizePx, resolved.fontWeight, maxWidthPx, trimScriptLeading) {
         rasterizeScriptText(
             context = context,
             text = text,
@@ -89,6 +95,7 @@ internal fun WidgetText(
             colorArgb = colorArgb,
             bold = resolved.fontWeight == FontWeight.Bold,
             maxWidthPx = maxWidthPx,
+            trimLeading = trimScriptLeading,
         )
     }
 
@@ -265,8 +272,33 @@ private class SystemFaceSpan(
  *
  * So the line is drawn into a scratch bitmap padded by one em either side (one em is well past any
  * overhang the face produces) and the result is cropped to the columns that actually painted —
- * [inkColumnRange]. The crop is horizontal only: a bitmap's *height* is what puts a row of labels on
- * one baseline, so it stays the line box however little ink the string carries.
+ * [inkColumnRange].
+ *
+ * ## The crop is horizontal always, and vertical when the caller asks
+ *
+ * The **width** is cropped for every slot. The height is the full line box by default, because a
+ * bitmap's declared height is what puts a row of labels on one baseline: every label in a row shares
+ * the face's ascent and descent, so equal boxes mean equal baselines. That is the right default for
+ * the *fitted* typographies (the 1x1 tiles, the dual tile, the Today strip), whose stacks are sized
+ * against `scriptLineRatio()` — the ratio *is* the arithmetic those layouts reserve with.
+ *
+ * It is the wrong answer for the **grid's chrome**, and [trimLeading] is the way out. The face's
+ * declared line box is 2.5 em while a Nastaliq line's ink is usually far shorter — measured on a
+ * device, the grid's Hijri title raster carried 28 px of empty band above its ink inside an 85 px box,
+ * the Gregorian line 8 px, and the weekday names 12-43 px. Nothing in the grid is fitted to a ratio:
+ * the rows are weighted, so every px of that empty band is a px the six day rows do not get, and on a
+ * 4-row Urdu widget the chrome was taking 131 dp of 312 dp — 42% — leaving the two-line cells 26.9 dp
+ * against the 29.3 dp they need. With the band kept, a Nastaliq grid cannot show a two-line month
+ * title, a weekday row, a footer *and* a legible two-line cell at once.
+ *
+ * So [trimLeading] crops the bitmap's top to the first row that painted and leaves the bottom at the
+ * layout's own descent. The bottom is the part that matters: `baseline + descent` is a *constant*
+ * offset below the baseline for a given size, so every trimmed slot keeps its baseline at the same
+ * distance from its own bottom edge. A row of labels that bottom-aligns therefore still shares one
+ * baseline — the alignment moves from `CenterVertically` to `Alignment.Vertical.Bottom` at the call
+ * site — while a stack of lines (the two title lines) simply comes together by the leading that was
+ * removed. Nothing is clipped: the crop is computed from the pixels, so the ink is kept whatever its
+ * extent.
  */
 private fun rasterizeScriptText(
     context: Context,
@@ -275,6 +307,7 @@ private fun rasterizeScriptText(
     colorArgb: Int,
     bold: Boolean,
     maxWidthPx: Float,
+    trimLeading: Boolean,
 ): Bitmap {
     val metrics = context.resources.displayMetrics
     val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {
@@ -342,7 +375,11 @@ private fun rasterizeScriptText(
     // load could) falls back to the advance box rather than to a 0-wide bitmap.
     val ink = inkColumnRange(scratch.width, scratch.height, pixels)
         ?: return Bitmap.createBitmap(scratch, margin, 0, advanceWidth, height)
-    return Bitmap.createBitmap(scratch, ink.first, 0, ink.last - ink.first + 1, height)
+    // See the KDoc: the leading band above the ink is dropped only where the caller asked for it, and
+    // the bottom stays the layout's own descent so every trimmed slot keeps its baseline at the same
+    // distance from its own bottom edge.
+    val top = if (trimLeading) inkRowRange(scratch.width, scratch.height, pixels)?.first ?: 0 else 0
+    return Bitmap.createBitmap(scratch, ink.first, top, ink.last - ink.first + 1, height - top)
 }
 
 /**
@@ -367,6 +404,35 @@ internal fun inkColumnRange(width: Int, height: Int, pixels: IntArray): IntRange
         if (painted) {
             if (first < 0) first = x
             last = x
+        }
+    }
+    return if (first < 0) null else first..last
+}
+
+/**
+ * The rows of a [width]×[height] `pixels` buffer (`Bitmap.getPixels` order, i.e. row-major) that carry
+ * at least one non-transparent pixel, or `null` when nothing painted.
+ *
+ * The same seam as [inkColumnRange] on the other axis, and the same decision rule — alpha alone, so an
+ * anti-aliased edge counts and the colour does not. Only `first` is used by [rasterizeScriptText]'s
+ * leading trim (the band *above* the ink is what is dropped), but the whole range is returned because
+ * "what did this string actually paint" is the fact worth pinning, and a test that could only see the
+ * top row would not notice a scan that stopped at the first painted row.
+ */
+internal fun inkRowRange(width: Int, height: Int, pixels: IntArray): IntRange? {
+    var first = -1
+    var last = -1
+    for (y in 0 until height) {
+        var painted = false
+        for (x in 0 until width) {
+            if (pixels[y * width + x] ushr 24 != 0) {
+                painted = true
+                break
+            }
+        }
+        if (painted) {
+            if (first < 0) first = y
+            last = y
         }
     }
     return if (first < 0) null else first..last

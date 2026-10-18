@@ -164,3 +164,15 @@ internal fun HijriWidgetFonts.forMonthTitle(gregorian: Boolean): String? =
  */
 internal fun HijriWidgetFonts.scriptLineRatio(): Float =
     if (bundledUrduFont) NASTALIQ_LINE_RATIO else TEXT_LINE_RATIO
+
+/**
+ * The height a script slot actually occupies once its empty leading band is dropped, given which face
+ * will draw it — the companion of [scriptLineRatio] for the slots that trim.
+ *
+ * [NASTALIQ_INK_BAND_RATIO] when [HijriWidgetFonts.bundledUrduFont] is on. When it is off there is no
+ * raster and no trim — the slot is Glance's own `Text` — so the answer is [TEXT_LINE_RATIO], the same
+ * ratio [scriptLineRatio] gives and the same one the row's rule has always been drawn at. The two
+ * functions differ only under Nastaliq, which is the only case where a box and its ink are far apart.
+ */
+internal fun HijriWidgetFonts.scriptInkBandRatio(): Float =
+    if (bundledUrduFont) NASTALIQ_INK_BAND_RATIO else TEXT_LINE_RATIO
