@@ -42,17 +42,25 @@ internal object HijriWidgetNavigation {
 }
 
 /**
- * The header's refresh icon: re-render this widget family now.
+ * The header's refresh icon: re-render this widget family now, and drop the tapped day.
  *
  * Both bypass flags, because this is a user pressing a button and the whole point is that something
  * happens: the foreground gate exists to stop *background* work stalling the Glance session worker,
  * and the same-day marker exists to stop background triggers doing duplicate busywork. Neither
- * describes a deliberate tap. A refresh does not change the viewed month or the selection — it
- * redraws what is already there against the current clock, which is what a user watching a stale
- * widget wants.
+ * describes a deliberate tap.
+ *
+ * The **selection is cleared first**, while the viewed month is kept. A user taps refresh because the
+ * widget looks stale, and the most common reason it looks stale is that a day tapped days ago is still
+ * carrying the selection block — so today's own block never comes back and the widget appears frozen in
+ * a past month even as the dates roll over. Clearing the selection is what puts today back; keeping the
+ * viewed month is what keeps refresh from being a second "go to today" button (that is the month
+ * title's job). The write precedes the render for the same reason a cell tap writes before it renders:
+ * the composition reads the store through `currentState<Preferences>()`, so the render that follows
+ * always sees the cleared value.
  */
 public class HijriWidgetRefreshCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        HijriWidgetConfig.clearSelectedDay(context, glanceId)
         HijriWidgetRefresher.refreshAllAsync(
             context = context,
             reason = "widget-refresh-button",
