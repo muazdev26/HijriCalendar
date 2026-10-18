@@ -46,6 +46,7 @@ class ForcedPaletteTest {
         "event_day_background" to "widget_event_day_background",
         "on_event_day" to "widget_on_event_day",
         "cell_border" to "widget_cell_border",
+        "band_divider" to "widget_band_divider",
         "selected_day" to "widget_selected_day",
         "arrow_dimmed" to "widget_arrow_dimmed",
     )

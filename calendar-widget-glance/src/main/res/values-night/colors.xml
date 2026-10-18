@@ -22,6 +22,10 @@
     <!-- The cell divider (FD-04), night variant: `widget_accent` (#81C784) at 40% over the dark
          surface. See `values/colors.xml` for why it is the accent and not a grey hairline. -->
     <color name="widget_cell_border">#6681C784</color>
+    <!-- The weekday header's column rule (round 3), night variant: `widget_on_today` (#1C1B1F) at 40%
+         over the band, the accent's own content colour faded. See `values/colors.xml` for why it is
+         not `widget_cell_border`. -->
+    <color name="widget_band_divider">#661C1B1F</color>
     <!-- The fill of the tapped day (FD-09, redesigned), night variant: a full accent block, not the
          corner ring this used to draw. See `values/colors.xml`. -->
     <color name="widget_selected_day">#81C784</color>

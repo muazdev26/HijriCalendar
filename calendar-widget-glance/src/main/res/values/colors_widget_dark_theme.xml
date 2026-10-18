@@ -33,6 +33,8 @@
     <color name="widget_dark_on_event_day">#E6E1E5</color>
     <!-- `widget_cell_border` -->
     <color name="widget_dark_cell_border">#6681C784</color>
+    <!-- `widget_band_divider` -->
+    <color name="widget_dark_band_divider">#661C1B1F</color>
     <!-- `widget_selected_day` -->
     <color name="widget_dark_selected_day">#81C784</color>
     <!-- `widget_arrow_dimmed` -->

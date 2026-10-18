@@ -72,6 +72,10 @@ class WidgetPaletteNightTest {
         // old token — only the static preview drawable and the pre-Android-12 vector do, which is why
         // the colour resource survives.
         "widget_cell_border",
+        // The weekday header's column rule (round 3). A member of its own rather than a second use of
+        // `widget_cell_border`, because that colour *is* the accent at 40% and would composite to the
+        // band's own value on the accent band it would be drawn on.
+        "widget_band_divider",
         "widget_selected_day",
         // The observance fill (FD-08): two resources, because a ColorProvider cannot carry an alpha
         // and the content colour has to change with its own container.
@@ -185,9 +189,10 @@ class WidgetPaletteNightTest {
     @Test
     fun everyPaletteMemberIsAColorProvider() {
         val expected = listOf(
-            "accent", "arrowDimmed", "background", "cellBorder", "eventDayBackground", "gregorianDay",
-            "onEventDayText", "onTodayText", "outOfMonthDay", "outOfMonthGregorianDay", "primaryText",
-            "secondaryText", "selectedBackground", "weekendText",
+            "accent", "arrowDimmed", "background", "bandDivider", "cellBorder", "eventDayBackground",
+            "gregorianDay", "onEventDayText", "onTodayText", "outOfMonthDay",
+            "outOfMonthGregorianDay", "primaryText", "secondaryText", "selectedBackground",
+            "weekendText",
         )
         // Compose adds $stable and the companion's Companion/DEFAULT are static, not per-instance.
         val actual = WidgetColors::class.java.declaredFields

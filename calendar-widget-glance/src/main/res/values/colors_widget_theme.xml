@@ -50,6 +50,8 @@
     <color name="widget_light_on_event_day">#1C1B1F</color>
     <!-- `widget_cell_border` — the accent at 40%, the same hairline the system-derived palette uses -->
     <color name="widget_light_cell_border">#662E7D32</color>
+    <!-- `widget_band_divider` — `widget_on_today` at 40%, the rule the accent band carries -->
+    <color name="widget_light_band_divider">#66FFFFFF</color>
     <!-- `widget_selected_day` -->
     <color name="widget_light_selected_day">#2E7D32</color>
     <!-- `widget_arrow_dimmed` -->
