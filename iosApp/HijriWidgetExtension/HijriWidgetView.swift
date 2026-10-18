@@ -385,7 +385,11 @@ struct HijriDateTileEntryView: View {
 
     private var caption: String? {
         guard let today = entry.today else { return nil }
-        return "\(today.hijriMonthName) \(today.hijriYearText)"
+        // The projection's short form, not the full name: a 1x1 tile has one cell's width and the
+        // full name clips in every numeral style. English shortens (`Rabi' II`), Urdu does not —
+        // that decision lives in `TodayHijriWidgetData.hijriMonthShortName`, so this view only
+        // picks the field.
+        return "\(today.hijriMonthShortName) \(today.hijriYearText)"
     }
 }
 
@@ -400,7 +404,9 @@ struct GregorianDateTileEntryView: View {
 
     private var caption: String? {
         guard let today = entry.today else { return nil }
-        return "\(today.gregorianMonthName) \(today.gregorianYear)"
+        // `gregorianMonthShortName` is `Oct` in English and the full name in Urdu, from the same
+        // projection rule as the Hijri tile above.
+        return "\(today.gregorianMonthShortName) \(today.gregorianYear)"
     }
 }
 

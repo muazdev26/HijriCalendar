@@ -395,6 +395,8 @@ final object com.muazdev.hijricalendar.core/CalendarLog { // com.muazdev.hijrica
 }
 
 final object com.muazdev.hijricalendar.core/CalendarNames { // com.muazdev.hijricalendar.core/CalendarNames|null[0]
+    final val englishGregorianMonthAbbreviations // com.muazdev.hijricalendar.core/CalendarNames.englishGregorianMonthAbbreviations|{}englishGregorianMonthAbbreviations[0]
+        final fun <get-englishGregorianMonthAbbreviations>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/CalendarNames.englishGregorianMonthAbbreviations.<get-englishGregorianMonthAbbreviations>|<get-englishGregorianMonthAbbreviations>(){}[0]
     final val englishGregorianMonths // com.muazdev.hijricalendar.core/CalendarNames.englishGregorianMonths|{}englishGregorianMonths[0]
         final fun <get-englishGregorianMonths>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/CalendarNames.englishGregorianMonths.<get-englishGregorianMonths>|<get-englishGregorianMonths>(){}[0]
     final val englishHijriMonths // com.muazdev.hijricalendar.core/CalendarNames.englishHijriMonths|{}englishHijriMonths[0]

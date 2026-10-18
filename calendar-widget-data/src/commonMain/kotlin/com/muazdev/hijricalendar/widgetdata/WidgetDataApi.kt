@@ -114,6 +114,20 @@ public object WidgetLocalization {
         }
 
         /**
+         * The grid footer's line when there is no observance to name.
+         *
+         * The footer reserves a line for **every** month grid so the layout does not move under a
+         * finger (FD-08), and that line used to render empty when nothing was to be named. An empty
+         * line is indistinguishable from a footer that failed to load, so the line now says so
+         * explicitly — and, like every other string on a widget, in the widget's own language rather
+         * than the device's (WG-12).
+         */
+        public fun noEvent(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "کوئی تاریخی واقعہ نہیں"
+            WidgetLanguage.ENGLISH -> "No event"
+        }
+
+        /**
          * The Hijri era marker, appended to a Hijri year: `1447 AH` / `١٤٤٧ ھ`.
          *
          * **Why this is here rather than in `res/values`.** A widget's language is a
@@ -265,14 +279,15 @@ public object WidgetLocalization {
     }
 
     /**
-     * [month]'s name in the form a narrow header band can hold: the shared base plus an ordinal digit
-     * for the four [pairedHijriMonths], and the ordinary name for the other eight.
+     * [month]'s name in the form a narrow slot can hold: the shared base plus [ordinal] for the four
+     * [pairedHijriMonths], and the ordinary name for the other eight.
      *
-     * [ordinal] is the digit the caller renders in **its own** numeral style rather than one this
-     * function produces — see [WidgetDataApi.todayHijriWidgetData], which formats it through the
-     * projection's [NumeralStyle] so a Western-digit widget never sees an Arabic-Indic `٢` and vice
-     * versa. [monthName] is what a caller passes for a month with no short form, so a language with no
-     * entry for a month still renders rather than rendering nothing.
+     * [ordinal] is what the caller appends after the base — this function never invents one. The
+     * projection supplies the Roman numeral `I`/`II` for the English spelling of the four paired
+     * months (a letter part of the month's name, not a counted number), and does not reach here for
+     * Urdu at all: **Urdu month names are never shortened**, so an Urdu tile's full name passes
+     * through the projection untouched. [monthName] is what a caller passes for a month with no short
+     * form, so a language with no entry for a month still renders rather than rendering nothing.
      *
      * **A renderer must not implement this** (WG-12), for the same reason it must not call [hijriEra]:
      * a month name is text in the widget's own language, which is a [WidgetOptions] field and not a
@@ -634,7 +649,6 @@ public fun todayHijriWidgetData(
         hijriMonthShortName = shortHijriMonthName(
             month = hMonth,
             monthName = hijriMonthName,
-            numeralStyle = numeralStyle,
             language = monthNameLanguage,
         ),
         gregorianDate = "${formatNumber(anchor.day, numeralStyle)} " +
@@ -646,6 +660,11 @@ public fun todayHijriWidgetData(
         gregorianDayText = formatNumber(anchor.day, numeralStyle),
         gregorianMonth = anchor.month.ordinal + 1,
         gregorianMonthName = gregorianMonthNames[anchor.month.ordinal],
+        gregorianMonthShortName = gregorianMonthShortName(
+            monthNameLanguage = monthNameLanguage,
+            gregorianMonthName = gregorianMonthNames[anchor.month.ordinal],
+            monthIndex = anchor.month.ordinal,
+        ),
         gregorianYear = anchor.year,
         gregorianYearText = withEra(formatNumber(anchor.year, numeralStyle), gregorianEra),
     )
@@ -654,9 +673,18 @@ public fun todayHijriWidgetData(
 /**
  * [TodayHijriWidgetData.hijriMonthShortName] for the month the projection resolved (FD-10).
  *
- * The ordinal is produced here rather than inside [WidgetLocalization.hijriMonthShortName] because it
- * is a **number**, and a number in a widget is the projection's business for the same reason the day
- * figures are: it has to be in [numeralStyle], which belongs to the widget and not to the device.
+ * **Only English month names are ever shortened.** English: the four months whose name does not
+ * distinguish them from a sibling carry a Roman ordinal — `Rabi' I` / `Jumada II`, the convention an
+ * English calendar actually shows — and the other eight are [monthName] unchanged. Every other
+ * month-name language — Urdu — returns [monthName] byte for byte: **Urdu month names are not
+ * shortened**, the same rule [gregorianMonthShortName] follows, so a 1x1 tile renders `ربیع الاول`
+ * in full rather than `ربیع ١`.
+ *
+ * The Roman ordinal ignores the widget's [NumeralStyle] on purpose: it is a letter part of the
+ * month's English name, not a counted quantity, and `I`/`II` are Latin letters no numeral style
+ * translates — a `Rabi' 1` beside English month names reads as "the first Rabi' in a list" rather
+ * than as the month's name. (Urdu, which would have wanted the figure in its own numeral style, no
+ * longer receives an ordinal at all.)
  *
  * Empty in, empty out — a month with no name yields no short form, because a header band reading
  * just `٢` is a number with nothing saying which month it is.
@@ -664,21 +692,59 @@ public fun todayHijriWidgetData(
 private fun shortHijriMonthName(
     month: Int,
     monthName: String,
-    numeralStyle: NumeralStyle,
     language: WidgetLanguage?,
 ): String {
-    if (monthName.isEmpty()) return ""
     // `ENGLISH` rather than anything derived: `null` means the caller passed no localized list, which
     // `orDefault` has already turned into the built-in English names. Guessing from the *strings*
     // would mean inspecting codepoints to infer a language, which is exactly the kind of guess that
     // puts a Latin base name in an Urdu band.
-    return WidgetLocalization.hijriMonthShortName(
-        month = month,
-        monthName = monthName,
-        ordinal = formatNumber(pairedMonthOrdinal(month), numeralStyle),
-        language = language ?: WidgetLanguage.ENGLISH,
-    )
+    // Only English shortens: an Urdu month name is handed back byte for byte, so `ربیع الاول` reaches
+    // a 1x1 tile in full rather than as `ربیع ١`.
+    val effectiveLanguage = language ?: WidgetLanguage.ENGLISH
+    return when {
+        monthName.isEmpty() -> ""
+        effectiveLanguage != WidgetLanguage.ENGLISH -> monthName
+        else -> WidgetLocalization.hijriMonthShortName(
+            month = month,
+            monthName = monthName,
+            ordinal = pairedMonthRomanOrdinal(month),
+            language = effectiveLanguage,
+        )
+    }
 }
+
+/**
+ * [TodayHijriWidgetData.gregorianMonthShortName] for the month the projection resolved.
+ *
+ * The three-letter English abbreviation when the month names render in English, and the full name
+ * when they render in Urdu — the host's decision was "English abbreviates, Urdu stays full", because
+ * Arabic script has no three-letter `اکتوبر`: trimming it cuts the word rather than abbreviating it.
+ *
+ * `monthIndex` is the 0-based month the anchor resolved to, indexed against
+ * [CalendarNames.englishGregorianMonthAbbreviations] positionally. The `null` language means the
+ * caller passed no localized list, which `orDefault` has already turned into the built-in English
+ * names — so `null` is English here, for the same reason [shortHijriMonthName] reads it that way.
+ */
+private fun gregorianMonthShortName(
+    monthNameLanguage: WidgetLanguage?,
+    gregorianMonthName: String,
+    monthIndex: Int,
+): String {
+    val isEnglish = monthNameLanguage == null || monthNameLanguage == WidgetLanguage.ENGLISH
+    if (!isEnglish) return gregorianMonthName
+    return CalendarNames.englishGregorianMonthAbbreviations.getOrNull(monthIndex) ?: gregorianMonthName
+}
+
+/**
+ * [month]'s member of its pair as the Roman numeral English spells it with — `I` for Rabi'
+ * al-awwal and Jumada al-ula, `II` for the seconds.
+ *
+ * Roman regardless of [NumeralStyle]: it is the letter part of the month's English name, not a
+ * counted quantity, and `I`/`II` are Latin letters that neither numeral style translates. The only
+ * caller is [shortHijriMonthName], and the only month-name language that reaches it is English —
+ * Urdu month names are never shortened, so they are handed back whole and never get an ordinal.
+ */
+private fun pairedMonthRomanOrdinal(month: Int): String = if (pairedMonthOrdinal(month) == 2) "II" else "I"
 
 /**
  * Which member of its pair [month] (1-12) is: `1` for Rabi' I and Jumada I, `2` for the seconds.

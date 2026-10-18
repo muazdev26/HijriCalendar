@@ -248,9 +248,15 @@ public data class TodayHijriWidgetData(
     val hijriYearText: String = hijriYear.toString(),
     val hijriMonthName: String,
     /**
-     * [hijriMonthName] in the **short** form a narrow header band can hold (FD-10): the four months
-     * whose name does not distinguish them from a sibling carry their ordinal — `ربيع ١`, `ربيع ٢`,
-     * `جمادى ١`, `جمادى ٢` — and the other eight are [hijriMonthName] unchanged.
+     * [hijriMonthName] in the **short** form a narrow slot can hold (FD-10) — for **English** month
+     * names: the four months whose name does not distinguish them from a sibling carry a Roman
+     * ordinal, `Rabi' I`, `Rabi' II`, `Jumada I`, `Jumada II`, and the other eight are
+     * [hijriMonthName] unchanged.
+     *
+     * **Urdu month names are never shortened**: for any non-English month-name language this value
+     * *is* [hijriMonthName], so a 1x1 tile renders `ربیع الاول` in full — the same rule
+     * [gregorianMonthShortName] follows, and the honest answer for a script whose words are not
+     * spelled as a stem plus a Latin suffix a trim could remove.
      *
      * Built in the projection rather than by the renderer (WG-12), because a month name is text in
      * the widget's own language: the language belongs to a `WidgetOptions` field and not to the
@@ -292,4 +298,20 @@ public data class TodayHijriWidgetData(
      * language rather than to the device's resources (WG-12).
      */
     val gregorianYearText: String = gregorianYear.toString(),
+    /**
+     * [gregorianMonthName] in the form a **1x1 tile** can hold (the counterpart of
+     * [hijriMonthShortName]): the three-letter English abbreviation — `Oct`, `Jan` — when the month
+     * names render in English, and [gregorianMonthName] unchanged when they render in Urdu.
+     *
+     * English-only by design: Arabic script has no three-letter `اکتوبر` that is still `اکتوبر`, so
+     * an Urdu tile keeps its full month name rather than a trim that would cut the word's root off.
+     * Built here for the same reasons as [hijriMonthShortName] (WG-12): the month-name language is a
+     * `WidgetOptions` field the renderer cannot answer for, and building it in the projection is
+     * what lets iOS read the same string with no Swift edit.
+     *
+     * **Additive and defaulted, so it is source-compatible** — a caller constructing
+     * `TodayHijriWidgetData` still compiles, positionally included, because it is the last parameter
+     * — **but it changes the ABI**, which is why the golden files carry it.
+     */
+    val gregorianMonthShortName: String = "",
 )
