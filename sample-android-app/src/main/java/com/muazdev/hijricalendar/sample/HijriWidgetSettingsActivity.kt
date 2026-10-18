@@ -74,6 +74,12 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
                     LaunchedEffect(appWidgetId) {
                         loaded = resolveInitial()
                     }
+                    // Sample-local, not part of the stored options: the bundled face is a host-level
+                    // rendering choice (see `WidgetTypography`), so it is read from its own preference
+                    // and held here only so the previews recompose when it flips.
+                    var bundledUrduFont by remember {
+                        mutableStateOf(WidgetTypography.isBundledUrduEnabled(this@HijriWidgetSettingsActivity))
+                    }
                     loaded?.let { initial ->
                         HijriWidgetSettingsScreen(
                             kind = kind,
@@ -83,6 +89,22 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
                                 HijriWidgetRefresher.refreshAllAsync(
                                     this@HijriWidgetSettingsActivity,
                                     reason = "settings-refresh-now",
+                                    bypassGate = true,
+                                    bypassDedupe = true,
+                                )
+                            },
+                            bundledUrduFont = bundledUrduFont,
+                            onBundledUrduFontChange = { enabled ->
+                                bundledUrduFont = enabled
+                                WidgetTypography.setBundledUrduEnabled(
+                                    this@HijriWidgetSettingsActivity,
+                                    enabled,
+                                )
+                                // Every widget's next composition reads the new value; ask them to
+                                // recompose now rather than at the next midnight.
+                                HijriWidgetRefresher.refreshAllAsync(
+                                    this@HijriWidgetSettingsActivity,
+                                    reason = "settings-font",
                                     bypassGate = true,
                                     bypassDedupe = true,
                                 )

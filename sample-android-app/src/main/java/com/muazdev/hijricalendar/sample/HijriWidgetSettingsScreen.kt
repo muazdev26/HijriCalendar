@@ -21,6 +21,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -114,6 +115,9 @@ internal fun HijriWidgetSettingsScreen(
     initial: WidgetOptions,
     onApply: (WidgetOptions) -> Unit,
     onRefreshNow: () -> Unit,
+    /** Whether the library's bundled Nastaliq face draws the Arabic-script slots; see `WidgetTypography`. */
+    bundledUrduFont: Boolean,
+    onBundledUrduFontChange: (Boolean) -> Unit,
     onDone: () -> Unit,
 ) {
     var options by rememberSaveable(stateSaver = HijriWidgetConfig.widgetOptionsSaver()) { mutableStateOf(initial) }
@@ -243,6 +247,31 @@ internal fun HijriWidgetSettingsScreen(
         )
 
         HorizontalDivider()
+
+        // ── Font ──────────────────────────────────────────────────────────────
+        //
+        // Not a `WidgetOptions` field, and it is the only control on this screen that is not: the font
+        // is a host-level, Android-only rendering choice, and the options schema is shared with the
+        // iOS widget, which cannot use an Android font resource. Hence a plain toggle beside the
+        // per-widget ones.
+        SectionTitle("Urdu font")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Use the bundled Nastaliq face",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Switch(checked = bundledUrduFont, onCheckedChange = onBundledUrduFontChange)
+        }
+        Text(
+            text = "On sets Urdu month names and weekdays in Noto Nastaliq Urdu — the script Urdu is " +
+                "actually written in, bundled with the library. Off leaves them in the system's Naskh " +
+                "fallback. Applies to Arabic-script slots only; the figures keep the system face.",
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         // ── Language ──────────────────────────────────────────────────────────
         SectionTitle("Language")

@@ -42,8 +42,14 @@ class HijriCalendarApp : Application() {
         // lost until the next midnight.
         registerActivityLifecycleCallbacks(HijriWidgetForegroundWatcher(this))
 
-        // Gives the widgets a system font of the host's choosing (point 8). Set here, before any
-        // widget can be composed, because the font is read at render time.
-        WidgetTypography.install()
+        // Gives the widgets a system font of the host's choosing (point 8) *and* the library's
+        // bundled Urdu Nastaliq face for the Arabic-script slots. Both are read at render time, so
+        // this single assignment is the whole wiring — but it has to happen before any widget can be
+        // composed, which is here.
+        WidgetTypography.install(this)
+
+        // The sample's widget defaults: Urdu, Urdu month names, Western figures. Seeded rather than
+        // forced — see [WidgetDefaults] for why the family mirror is the right place for it.
+        WidgetDefaults.seedIfNeeded(this)
     }
 }
