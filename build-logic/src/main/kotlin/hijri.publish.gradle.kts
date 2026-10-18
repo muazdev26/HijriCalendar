@@ -7,7 +7,7 @@ plugins {
 
 val publishGroup = project.findProperty("publishing.group") as? String ?: "com.muazdev.hijricalendar"
 val publishArtifact = project.findProperty("publishing.artifact") as? String ?: project.name
-val publishVersion = project.findProperty("publishing.version") as? String ?: "2.2.1"
+val publishVersion = project.findProperty("publishing.version") as? String ?: "2.3.0"
 
 val hasSigningCredentials = listOf(
     project.findProperty("signing.gnupg.keyName"),
