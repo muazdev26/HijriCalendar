@@ -1044,15 +1044,11 @@ private fun MonthHeader(
             (arrowIcon.value + 8f) * 2f -
             (actionIcon.value + 8f) * 2f
         ).toInt().coerceAtLeast(24)
-    // The Gregorian title is the full straddling range on a wide widget and the dominant month on a
-    // narrow one: the range is the honest answer, but at the compact tier's title budget it would
-    // truncate, and a truncated range names one month and a half. Both strings are pre-built in the
-    // projection, so the renderer never formats a month name itself.
-    val gregorianTitle = if (GridHeaderTypography.isNarrow(widthDp)) {
-        month.gregorianShortTitle
-    } else {
-        month.gregorianMonthTitle
-    }
+    // Show both Gregorian months the Hijri month spans: a Hijri month commonly straddles two Gregorian
+    // ones, and naming only the dominant month described half the grid. `gregorianMonthTitle` is the
+    // full range; the narrow tier's chrome is already at its minimum, so a long range may truncate on
+    // the smallest widgets rather than silently dropping a month.
+    val gregorianTitle = month.gregorianMonthTitle
 
     Row(
         modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp),
@@ -1692,8 +1688,9 @@ private fun RowScope.MonthTitle(
                 maxWidthDp = maxWidthDp,
             )
             WidgetText(
-                // Which Gregorian title — the full range or the dominant month — is chosen by
-                // [MonthHeader] from the widget's width. Both are pre-built in the projection, so the
+                // The full Gregorian range, chosen by [MonthHeader]: both months the Hijri month
+                // spans, because a Hijri month regularly straddles two Gregorian ones and naming
+                // only the dominant one described half the grid. Pre-built in the projection, so the
                 // renderer never formats a month name itself.
                 text = gregorianText,
                 style = TextStyle(
@@ -1778,7 +1775,7 @@ private fun NavigationArrow(
 internal object GridHeaderTypography {
 
     /**
-     * Below this widget width the header uses its compact chrome and the short Gregorian title.
+     * Below this widget width the header uses its compact chrome.
      *
      * Chosen so the common `260×280` grid widget — the large tier in `HijriCalendarWidget.sizeMode` —
      * gets the compact treatment, because that is the size nearly every placed grid is granted. A
@@ -1809,8 +1806,14 @@ internal object GridHeaderTypography {
      *
      * The height is the cost, and it is deliberate: two lines at 13sp ask ~7dp more of the header
      * than two at 13/10 did. The week rows below are weighted, so they give that up — the header does
-     * not overflow. A narrower *fit* is not the risk either: the short Gregorian title is ~51dp wide
-     * at 10sp on a phone-width grid, so at 13sp it is ~66dp against a title budget of ~120dp.
+     * not overflow.
+     *
+     * A narrower *fit* is the other risk, and it is the reason the header names both Gregorian months
+     * rather than the dominant one: on a phone-width grid the two-line range is ~135dp against a
+     * ~124dp budget, so the narrowest widgets ellipsize the range rather than dropping a month. That
+     * is the deliberate trade — a truncated second month name still says the month changed; a missing
+     * one says it did not. The title also keeps `maxLines = 1`, so it truncates rather than wraps into
+     * a third line the header has not budgeted for.
      */
     fun titleSp(widthDp: Float): Float = if (isNarrow(widthDp)) 13f else 15f
 
