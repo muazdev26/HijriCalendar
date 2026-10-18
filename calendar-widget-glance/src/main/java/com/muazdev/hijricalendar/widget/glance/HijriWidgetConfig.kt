@@ -205,14 +205,35 @@ public object HijriWidgetConfig {
     // ── Per-widget state (Glance preferences store) ─────────────────────────
 
     /**
-     * Reads the stored options, porting any legacy SharedPreferences config for this widget on the
-     * first access after an upgrade. A widget that never stored options follows [DEFAULTS].
+     * The options this widget stored for **itself**, or `null` when it has never stored any — in
+     * which case it renders with the family mirror instead ([loadFamily]).
+     *
+     * [load] is this same read with that fallback applied, and is what a settings screen or a
+     * renderer wants. This read exists for callers that must tell the two cases apart: a sync that
+     * mirrors an in-app setting onto the placed widgets has to *skip* the widgets that follow the
+     * mirror, because writing one of them a copy converts it into a per-widget configuration that
+     * stops following the mirror for good.
      */
-    public suspend fun load(context: Context, glanceId: GlanceId): WidgetOptions {
+    public suspend fun loadOwn(context: Context, glanceId: GlanceId): WidgetOptions? {
         migrateLegacyIfNeeded(context, glanceId)
         val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
-        return decodeOptions(prefs) ?: DEFAULTS
+        return decodeOptions(prefs)
     }
+
+    /**
+     * Reads the stored options, porting any legacy SharedPreferences config for this widget on the
+     * first access after an upgrade. A widget that never stored options follows the **family
+     * mirror** ([loadFamily]) — which is what it renders with, the same read the composable and the
+     * settings screen make — and not [DEFAULTS].
+     *
+     * The distinction is not cosmetic. `DEFAULTS` is English with the Pakistan source, so a
+     * fallback to it reports every mirror-following widget as English: a settings screen opened on
+     * one showed English controls for an Urdu widget, on-widget navigation resolved the month with
+     * the wrong source and adjustment days, and a caller that read-then-wrote the value back
+     * ([loadOwn]'s KDoc) froze every widget it touched into that English configuration.
+     */
+    public suspend fun load(context: Context, glanceId: GlanceId): WidgetOptions =
+        loadOwn(context, glanceId) ?: loadFamily(context)
 
     public suspend fun saveWidgetOptions(
         context: Context,

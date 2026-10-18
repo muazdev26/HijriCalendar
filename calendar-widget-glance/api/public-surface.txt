@@ -99,6 +99,7 @@ HIJRI_DEEP_LINK_TODAY
 HijriWidgetConfig
 HijriWidgetConfig.DEFAULTS
 HijriWidgetConfig.load
+HijriWidgetConfig.loadOwn
 HijriWidgetConfig.save
 HijriWidgetConfig.saveWidgetOptions
 HijriWidgetConfig.saveFamily
