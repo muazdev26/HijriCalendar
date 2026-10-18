@@ -34,6 +34,7 @@ internal class WidgetSettingsSync(private val context: Context) {
 
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val gridAppWidgetIds = appWidgetManager?.getAppWidgetIds(ComponentName(context, HijriCalendarWidgetReceiver::class.java)) ?: intArrayOf()
+            var synced = 0
 
             HijriWidgetRefreshLog.d(
                 "sync:start",
@@ -55,17 +56,20 @@ internal class WidgetSettingsSync(private val context: Context) {
                         val glanceId = runCatching { GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId) }.getOrNull()
                             ?: continue
                         runCatching {
-                            val stored = HijriWidgetConfig.load(context, glanceId)
+                            // Skip widgets with no stored options: they follow the family mirror
+                            // (already updated above). Writing them a copy would pin them.
+                            val own = HijriWidgetConfig.loadOwn(context, glanceId) ?: return@runCatching
                             HijriWidgetConfig.saveWidgetOptions(
                                 context = context,
                                 glanceId = glanceId,
-                                options = stored.copy(
+                                options = own.copy(
                                     adjustmentDays = adjustmentDays,
                                     source = source,
                                     monthLengthOverrides = overrideTable,
                                 ),
                                 caller = "sync",
                             )
+                            synced++
                         }
                     }
                 }
@@ -73,7 +77,7 @@ internal class WidgetSettingsSync(private val context: Context) {
 
             HijriWidgetRefreshLog.d(
                 "sync:end",
-                "familyLanguage=${updatedFamily.language} familyOverrides=${updatedFamily.monthLengthOverrides.size}",
+                "familyLanguage=${updatedFamily.language} familyOverrides=${updatedFamily.monthLengthOverrides.size} synced=$synced",
             )
 
             HijriWidgetRefresher.refreshAllAsync(
