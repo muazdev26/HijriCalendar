@@ -124,7 +124,16 @@ class WidgetEventFooterTest {
         assertEquals("Ashura", nextEventName(muharram, longAfter, WidgetLanguage.ENGLISH))
     }
 
-    /** A month with no observance at all renders an empty line — nothing to name is not a crash. */
+    /**
+     * A month with no observance at all has nothing to name — and `nextEventName` says so by returning
+     * `null` rather than a placeholder.
+     *
+     * The placeholder belongs at the call site, not here: `MonthGrid` renders
+     * `WidgetLocalization.ChromeLabels.noEvent(language)` for a `null`, so the *footer* is never empty
+     * (FD-08 reserves the line for every month so the layout does not move under a finger, and an empty
+     * line reads as a footer that failed to load), while this function stays a pure lookup. Asserting
+     * `null` here and the label there keeps the one fact in one place.
+     */
     @Test
     fun aMonthWithNoObservanceNamesNothing() {
         val safar = month(2)

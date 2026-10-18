@@ -24,7 +24,13 @@ import kotlin.test.assertTrue
 class WidgetChromeLabelsTest {
 
     private fun labels(language: WidgetLanguage): List<String> = with(WidgetLocalization.ChromeLabels) {
-        listOf(nextMonth(language), previousMonth(language), goToCurrentMonth(language), monthUnavailable(language))
+        listOf(
+            nextMonth(language),
+            previousMonth(language),
+            goToCurrentMonth(language),
+            monthUnavailable(language),
+            noEvent(language),
+        )
     }
 
     @Test

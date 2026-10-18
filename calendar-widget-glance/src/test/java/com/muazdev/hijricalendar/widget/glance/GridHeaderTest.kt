@@ -1,7 +1,10 @@
 package com.muazdev.hijricalendar.widget.glance
 
+import androidx.glance.text.FontWeight
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -74,12 +77,8 @@ class GridHeaderTest {
             GridHeaderTypography.actionIconDp(wide) > GridHeaderTypography.actionIconDp(narrow),
         )
         assertTrue(
-            "the Hijri title must grow when wide",
-            GridHeaderTypography.hijriTitleSp(wide) > GridHeaderTypography.hijriTitleSp(narrow),
-        )
-        assertTrue(
-            "the Gregorian title must grow when wide",
-            GridHeaderTypography.gregorianTitleSp(wide) > GridHeaderTypography.gregorianTitleSp(narrow),
+            "the title must grow when wide",
+            GridHeaderTypography.titleSp(wide) > GridHeaderTypography.titleSp(narrow),
         )
     }
 
@@ -111,45 +110,61 @@ class GridHeaderTest {
         val narrow = GridHeaderTypography.NARROW_WIDTH_DP - 1f
         assertEquals(32f, GridHeaderTypography.arrowIconDp(narrow))
         assertEquals(20f, GridHeaderTypography.actionIconDp(narrow))
-        assertEquals(13f, GridHeaderTypography.hijriTitleSp(narrow))
-        assertEquals(10f, GridHeaderTypography.gregorianTitleSp(narrow))
-    }
-
-    /** The Hijri title line is always the larger of the two, so the hierarchy survives both tiers. */
-    @Test
-    fun theHijriTitleOutranksTheGregorianOneInBothTiers() {
-        for (width in listOf(GridHeaderTypography.NARROW_WIDTH_DP - 1f, GridHeaderTypography.NARROW_WIDTH_DP)) {
-            assertTrue(
-                "at ${width}dp the Hijri line must be larger than the Gregorian one",
-                GridHeaderTypography.hijriTitleSp(width) > GridHeaderTypography.gregorianTitleSp(width),
-            )
-        }
+        assertEquals(13f, GridHeaderTypography.titleSp(narrow))
     }
 
     /**
-     * The weekday row sits *between* the two title lines in size, in both tiers.
+     * Both title lines share one size, one weight and one colour (round 3).
+     *
+     * The header used to carry a hierarchy — the Gregorian line a step down in size *and* in tone, at
+     * `secondaryText` Medium — and on a device that read as a caption under a title rather than as the
+     * same month named in the other calendar, which is what the feedback reported. There is now no
+     * second size for the renderer to reach for at all ([titleSp] is the only one), so what this pins
+     * is the *absence* of one: the two seams `MonthTitle`'s two `Text` calls share are
+     * [GridHeaderTypography.TITLE_WEIGHT] and [titleColor], and both are held here. A future edit that
+     * gives the Gregorian line a tone or weight of its own has to reintroduce a second seam to do it,
+     * and this test is the reason that shows up in CI rather than on a home screen.
+     */
+    @Test
+    fun bothTitleLinesShareOneSizeOneWeightAndOneColour() {
+        assertEquals(
+            "both title lines are Bold — Glance's `FontWeight` has nothing heavier to reach for",
+            FontWeight.Bold,
+            GridHeaderTypography.TITLE_WEIGHT,
+        )
+        assertSame(
+            "both title lines take the palette's primary text; `secondaryText` is what made the " +
+                "Gregorian line read as a caption beneath the Hijri one",
+            WidgetColors.DEFAULT.primaryText,
+            titleColor(WidgetColors.DEFAULT),
+        )
+        assertNotSame(
+            "the title's colour must not be the muted one",
+            WidgetColors.DEFAULT.secondaryText,
+            titleColor(WidgetColors.DEFAULT),
+        )
+    }
+
+    /**
+     * The weekday row stays *below* the month title in size, in both tiers.
      *
      * This is the round-2 fix for "the day names are not bold": the weight was already `Bold`, and on
      * Android it cannot be raised further because Glance's `Medium` and `Bold` resolve to the same
-     * style, so the row had to move on size and tone instead. Two failures are possible and both are
-     * caught here — dropping back to (or below) the Gregorian title's 10sp-12sp, which is what made
-     * the row the faintest thing in the header, and overshooting past the Hijri month title, which
-     * would put a row of seven labels above the header's hero.
+     * style, so the row had to move on size and tone instead. The failure this catches is overshooting
+     * past the month title, which would put a row of seven labels above the header's hero — the lower
+     * bound it used to be held to was the Gregorian line's size, and round 3 removed that line's own
+     * size by making it the title's.
      *
-     * A relationship rather than two equalities, so the tiers stay free to move together.
+     * A relationship rather than an equality, so the tiers stay free to move together.
      */
     @Test
-    fun theWeekdayRowSitsBetweenTheTwoTitleLines() {
+    fun theWeekdayRowStaysBelowTheMonthTitle() {
         for (width in listOf(GridHeaderTypography.NARROW_WIDTH_DP - 1f, GridHeaderTypography.NARROW_WIDTH_DP)) {
             val weekday = GridHeaderTypography.weekdaySp(width)
             assertTrue(
-                "at ${width}dp the weekday row (${weekday}sp) must not be the fainter line of the " +
-                    "header (Gregorian at ${GridHeaderTypography.gregorianTitleSp(width)}sp)",
-                weekday >= GridHeaderTypography.gregorianTitleSp(width),
-            )
-            assertTrue(
-                "at ${width}dp the weekday row must stay below the month title",
-                weekday < GridHeaderTypography.hijriTitleSp(width),
+                "at ${width}dp the weekday row (${weekday}sp) must stay below the month title " +
+                    "(${GridHeaderTypography.titleSp(width)}sp)",
+                weekday < GridHeaderTypography.titleSp(width),
             )
         }
     }
