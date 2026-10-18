@@ -33,7 +33,9 @@ import androidx.glance.text.FontFamily
  *   bundled font is an app-private resource; the system font manager has never seen it, so the
  *   `TypefaceSpan` falls back to the default and the widget silently renders in the system face. That
  *   includes a font shipped through Compose Multiplatform's `composeResources` — on Android it
- *   compiles to an ordinary bundled `res/font` entry, which is the case this API cannot serve.
+ *   compiles to an ordinary bundled `res/font` entry, which is the case this API cannot serve. That
+ *   is a statement about *naming* a bundled family here; [HijriWidgetFonts.bundledUrduFont] is the
+ *   route to actually *use* one, and it does not go through this mechanism at all.
  * - **Downloadable fonts (the Google Fonts provider / `FontRequest`) do NOT work either** — this was
  *   long believed to be the workaround for the paragraph above, and it is not one. The request
  *   succeeds and the provider hands back a `Typeface`, but the family stays private to the requesting
@@ -80,6 +82,39 @@ public data class HijriWidgetFonts(
     val gregorianTitle: String? = null,
     val weekday: String? = null,
     val dayNumber: String? = null,
+    /**
+     * Draw Arabic-script text with the library's **bundled** Noto Nastaliq Urdu face, instead of the
+     * family the host named above.
+     *
+     * This is the one way to get a font the *system* does not have onto a widget — see the "Why a
+     * family name and not a font resource" section above, which is the long version of why naming a
+     * bundled family never works. The mechanism is different in kind: a slot whose text carries
+     * Arabic **letters** is rasterised into a `Bitmap` with `Typeface` loaded from the library's own
+     * `res/font`, and the widget draws that bitmap through Glance's `Image`. The drawing happens in
+     * *this* app's process, where the bundled font is visible, and only the finished bitmap crosses
+     * into the launcher — so the system font map is never consulted.
+     *
+     * ## What it applies to, and what it deliberately does not
+     *
+     * A slot is drawn with the bundled face when its text contains Arabic-script **letters**
+     * (see `hasArabicLetters`). That excludes a slot holding only digits, whatever numeral style is
+     * chosen: figures keep the system face, which is the right face for them and keeps the grid's
+     * cell geometry — whose type is derived from width and is not fitted — exactly as it was.
+     * Latin text (the Gregorian month, an English month name) is untouched for the same reason.
+     *
+     * ## Why this is not the `monthTitle`/`weekday` mechanism
+     *
+     * Those fields name a family for *one* slot each. This one is a switch rather than a name
+     * because there is nothing to name: the library ships exactly one face, the family it was
+     * designed around, and a host either wants it or does not. `false` — the default — leaves every
+     * widget exactly as it rendered before this field existed.
+     *
+     * ## What the static picker previews show
+     *
+     * Nothing: the Android 12-14 `previewLayout` mirrors are XML and cannot rasterise. Only the live
+     * widgets and the Android 15+ `providePreview` trees, which compose for real, honour this.
+     */
+    val bundledUrduFont: Boolean = false,
 ) {
     public companion object {
         /**
@@ -114,3 +149,18 @@ internal fun String?.toGlanceFontFamily(): FontFamily? = this?.let { familyName 
  */
 internal fun HijriWidgetFonts.forMonthTitle(gregorian: Boolean): String? =
     if (gregorian) gregorianTitle else monthTitle
+
+/**
+ * The line-box ratio a widget's stack is measured with, given which face will draw its script lines.
+ *
+ * [NASTALIQ_LINE_RATIO] when [HijriWidgetFonts.bundledUrduFont] is on, [TEXT_LINE_RATIO] otherwise —
+ * the two numbers are measurements of the two faces (see each), and a stack sized against the wrong
+ * one is a stack that clips.
+ *
+ * It is one value for the whole stack rather than one per line, and that is deliberately the
+ * conservative direction: a stack can hold an Urdu weekday beside an English month name, and sizing
+ * the English line at Nastaliq's ratio over-reserves its height. Over-reserving costs a little empty
+ * space; under-reserving clips a line, which is the bug this whole file's ratios exist to prevent.
+ */
+internal fun HijriWidgetFonts.scriptLineRatio(): Float =
+    if (bundledUrduFont) NASTALIQ_LINE_RATIO else TEXT_LINE_RATIO
