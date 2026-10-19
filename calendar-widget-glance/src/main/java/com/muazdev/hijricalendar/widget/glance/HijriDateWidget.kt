@@ -374,12 +374,12 @@ internal object DateTileTypography {
  * The shared 1x1 tile layout: the localized weekday name on top, a big centred day figure in the
  * middle, the month name at the bottom. Tapping anywhere opens the app.
  *
- * The weekday name comes from `TodayHijriWidgetData.weekdayTileName`, the projection's **tile-only**
- * weekday name, which the shared projection populates from the widget's own [WidgetLanguage] and which
- * iOS has always rendered — the Android tiles and the strip were the only places it was dropped. So it is
- * localized per widget, not per device (WG-12), and this ticket adds no field to the options schema. It is
- * the tile variant rather than `weekdayName` because a 1x1 spells Urdu Monday its own way
- * (`سوموار`) — the projection owns that choice, so this composable just prints the field.
+ * The weekday name comes from `TodayHijriWidgetData.weekdayTileName`, the projection's **at-a-glance**
+ * weekday name for a widget that names one single day — the three 1x1 tiles and the Today strip —
+ * populated from the widget's own [WidgetLanguage], so it is localized per widget, not per device
+ * (WG-12); the ticket adds no field to the options schema. It is the at-a-glance variant rather than
+ * `weekdayName` because these widgets spell Urdu Monday its own way (`سوموار`) — the projection owns
+ * that choice, so this composable just prints the field.
  *
  * The weekday line is omitted when there is no readable date, in which case the tile says so via
  * [WidgetLocalization.ChromeLabels.monthUnavailable] instead of showing an empty line above a

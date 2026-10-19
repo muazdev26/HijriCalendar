@@ -2,6 +2,17 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## 2.3.2 - 2026-10-19
+
+### Changed
+
+- **The Today strip names the weekday the way the 1x1 tiles do.** It printed
+  `TodayHijriWidgetData.weekdayName` — Urdu Monday `پیر` — while the tiles printed `weekdayTileName`
+  (`سوموار`), so two small widgets sitting side by side disagreed about the same day. The strip now
+  reads `weekdayTileName` too. No API change: the field and both lists already exist, and a caller
+  that passes no list still gets `weekdayName`. The grid's weekday *column heading* and the in-app
+  weekday header keep `پیر`, because there the word heads a column rather than naming one day.
+
 ## 2.3.1 - 2026-10-19
 
 ### Added

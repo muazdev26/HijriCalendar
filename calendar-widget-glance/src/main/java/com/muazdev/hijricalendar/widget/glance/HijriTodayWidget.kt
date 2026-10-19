@@ -438,12 +438,12 @@ internal fun HijriTodayRoot(
             }
             return@Column
         }
-        // The weekday both halves share: `TodayHijriWidgetData.weekdayName`, projected in the widget's
-        // own language (WG-12) since the projection was written, and rendered by iOS and by every 1x1
-        // tile. This strip was the one place it was dropped — and the one bare-text weekday left in the
-        // family, now drawn in the same accent band ([WeekdayBand]) the tiles use.
+        // The weekday both halves share: `TodayHijriWidgetData.weekdayTileName`, the projection's
+        // at-a-glance weekday spelling (Urdu Monday `سوموار`) — the same name every 1x1 tile prints,
+        // so a single day reads identically on any small widget. The grid keeps `weekdayName` (`پیر`)
+        // because there the word heads a *column*, not a day. Drawn in the family's band ([WeekdayBand]).
         WeekdayBand(
-            text = today.weekdayName,
+            text = today.weekdayTileName,
             fontSize = sizes.weekdaySize,
             colors = colors,
             fontFamily = fonts.weekday.toGlanceFontFamily(),

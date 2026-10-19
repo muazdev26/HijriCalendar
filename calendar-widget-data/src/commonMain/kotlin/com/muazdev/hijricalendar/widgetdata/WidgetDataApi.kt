@@ -35,15 +35,15 @@ public object WidgetLocalization {
     public val urduWeekdayNames: List<String> = UrduCalendarNames.weekdayShortNames
 
     /**
-     * The Urdu weekday names as the **1x1 tiles** render them: [urduWeekdayNames] with Monday written
-     * `سوموار` instead of `پیر`.
+     * The Urdu weekday names as the **small widgets** render them — the three 1x1 tiles and the Today
+     * strip: [urduWeekdayNames] with Monday written `سوموار` instead of `پیر`.
      *
-     * Both are correct Urdu for Monday and the family uses both on purpose — `پیر` everywhere a name
-     * sits in a row (the grid's weekday header, the Today strip, the in-app calendar) and `سوموار` on
-     * the three one-cell tiles. It is a **tile-only** list rather than a change to
-     * [UrduCalendarNames.weekdays] because the two are not a correction of one another: `پیر` is the
-     * name Urdu calendars print in a column heading, and changing the shared list would move it under
-     * the in-app grid and the widget header too.
+     * Both are correct Urdu for Monday and the family uses both on purpose — `پیر` wherever the name
+     * sits in a column or row of names (the grid's weekday header, the in-app calendar) and `سوموار`
+     * where a widget names one single day (the three one-cell tiles, the Today strip). It is a
+     * **small-widget-only** list rather than a change to [UrduCalendarNames.weekdays] because the two
+     * are not a correction of one another: `پیر` is the name Urdu calendars print in a column heading,
+     * and changing the shared list would move it under the in-app grid and the widget header too.
      *
      * **Only Monday differs.** The other six names are [urduWeekdayNames] unchanged — reusing them is
      * what keeps a tile from spelling a weekday in a way the grid above it would not, and it means a
@@ -220,11 +220,11 @@ public object WidgetLocalization {
     }
 
     /**
-     * The **1x1 tiles'** weekday names for [language] — see [urduWeekdayTileNames] — or `null` for
-     * [WidgetLanguage.ENGLISH], where a tile and the rest of the family print the same name and the
-     * builder's English defaults are already right.
+     * The **small widgets'** weekday names for [language] — see [urduWeekdayTileNames] — or `null` for
+     * [WidgetLanguage.ENGLISH], where a small widget and the rest of the family print the same name and
+     * the builder's English defaults are already right.
      *
-     * A renderer must pick this up only for the three one-cell tiles; the strip and the grid keep
+     * A renderer picks this up for the three one-cell tiles and the Today strip; the grid keeps
      * [weekdayNames]. Building both in the projection is what lets a caller hand each widget the right
      * list without either side re-implementing the Monday override.
      */
@@ -617,14 +617,14 @@ private fun formatGregorianShortTitle(days: List<CalendarDay>, names: List<Strin
  * [WidgetOptions.effectiveMonthNameLanguage] for the value to pass, never [WidgetOptions.language] —
  * the names follow their own option.
  *
- * [localizedWeekdayTileNames] is the same idea for the one name the 1x1 tiles spell differently:
+ * [localizedWeekdayTileNames] is the same idea for the one name the small widgets spell differently:
  * it feeds [TodayHijriWidgetData.weekdayTileName] and falls back to the already-normalised
- * [localizedWeekdayNames] when absent, so a caller that does not localize it gets a tile that agrees
- * with the strip rather than an English name. Read [WidgetLocalization.weekdayTileNames] for the value
- * to pass — never hand-roll the Monday override in a renderer (WG-12). It is the **last** parameter so
- * that adding it cannot shift a positional call. It is deliberately a separate list rather than a
- * language flag: the projection does not know [WidgetOptions.language] here (only the month-name
- * language crosses this boundary), and a flag would make it guess.
+ * [localizedWeekdayNames] when absent, so a caller that does not localize it gets a small widget that
+ * agrees with the grid rather than an English name. Read [WidgetLocalization.weekdayTileNames] for the
+ * value to pass — never hand-roll the Monday override in a renderer (WG-12). It is the **last**
+ * parameter so that adding it cannot shift a positional call. It is deliberately a separate list
+ * rather than a language flag: the projection does not know [WidgetOptions.language] here (only the
+ * month-name language crosses this boundary), and a flag would make it guess.
  */
 @Suppress("ReturnCount")
 public fun todayHijriWidgetData(

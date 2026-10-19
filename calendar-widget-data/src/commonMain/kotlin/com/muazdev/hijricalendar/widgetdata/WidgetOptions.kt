@@ -309,9 +309,9 @@ public data class WidgetOptions(
         get() = WidgetLocalization.weekdayNames(language)
 
     /**
-     * The **1x1 tiles'** weekday names for [language], or `null` when the family's names are already
-     * right (English). Fed to the projection as `localizedWeekdayTileNames`; only the three one-cell
-     * tiles read the resulting [TodayHijriWidgetData.weekdayTileName]. See
+     * The **small widgets'** weekday names for [language], or `null` when the family's names are
+     * already right (English). Fed to the projection as `localizedWeekdayTileNames`; the three 1x1
+     * tiles and the Today strip read the resulting [TodayHijriWidgetData.weekdayTileName]. See
      * [WidgetLocalization.weekdayTileNames] for why Monday is the one name that differs.
      */
     val localizedWeekdayTileNames: List<String>?
@@ -648,7 +648,8 @@ public fun todayHijriWidgetData(
     // (English only — Urdu month names are never shortened), so a caller cannot localize the names
     // one way and pick the short base names another.
     monthNameLanguage = options.effectiveMonthNameLanguage,
-    // The 1x1 tiles' weekday names — and only theirs: the strip and the grid read `weekdayName`, which
-    // is `localizedWeekdayNames`. Urdu Monday is `پیر` in a column heading and `سوموار` on a tile.
+    // The small widgets' weekday names: the three 1x1 tiles and the Today strip read the resulting
+    // `weekdayTileName`; the grid reads `weekdayName` (`localizedWeekdayNames`) because there the word
+    // heads a column. Urdu Monday is `پیر` in a column heading and `سوموار` at a glance.
     localizedWeekdayTileNames = options.localizedWeekdayTileNames,
 )

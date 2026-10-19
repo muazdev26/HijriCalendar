@@ -426,6 +426,49 @@ class DateTilePreviewLayoutTest {
         }
     }
 
+    /**
+     * The two single-date tiles' widget-info XMLs are **resizable 1x1** widgets: a 40dp floor on both
+     * axes, and `android:resizeMode` on both axes.
+     *
+     * **Why this needs a gate.** A tile that declares `resizeMode="none"` renders perfectly — it just
+     * cannot be resized, and nothing in the renderer can tell the difference. These infos really did
+     * say `none` until 2.2.0, and a host that copied them to add its own `android:configure` (which it
+     * must: the library ships no configure activity) kept the stale value and silently lost resizing.
+     * That is a report we have already had once, and the copy lives in the consumer's APK where no
+     * test here can see it — so this pins the library's own XMLs and makes a future edit that flips a
+     * tile back to `none` fail in CI instead of on a home screen. The dual tile's twin assertion is in
+     * `DualDateTilePreviewLayoutTest`; this covers the two single-date tiles it does not.
+     */
+    @Test
+    fun theSingleDateTileInfosAreResizableSingleCellWidgets() {
+        for (name in listOf("hijri_date", "gregorian_date")) {
+            val file = File("src/main/res/xml/${name}_widget_info.xml")
+            assertTrue(
+                "widget-info not found at ${file.absolutePath}; if the res directory moved, fix " +
+                    "this path rather than deleting this test",
+                file.isFile,
+            )
+            val root = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = false }
+                .newDocumentBuilder().parse(file).documentElement
+
+            assertEquals("$name widget-info root", "appwidget-provider", root.tagName)
+            assertEquals(
+                "$name must be resizable on both axes, or its type can never grow with the cell",
+                "horizontal|vertical",
+                root.attr("android:resizeMode"),
+            )
+            assertEquals("$name targets one cell", "1", root.attr("android:targetCellWidth"))
+            assertEquals("$name targets one cell", "1", root.attr("android:targetCellHeight"))
+            assertEquals(
+                "$name's declared minimum must stay at the tiles' 40dp: on launchers before Android 12 " +
+                    "the cell count is derived from minWidth/minHeight, so a larger value makes it a " +
+                    "two-cell widget there",
+                "${DateTileTypography.TILE_MIN_HEIGHT_DP}dp",
+                root.attr("android:minHeight"),
+            )
+        }
+    }
+
     private fun urduOptions() = createWidgetOptions(
         language = WidgetLanguage.URDU,
         numeralStyle = NumeralStyle.ARABIC_INDIC,
