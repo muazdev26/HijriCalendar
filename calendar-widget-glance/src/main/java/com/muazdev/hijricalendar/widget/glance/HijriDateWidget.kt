@@ -101,7 +101,7 @@ public class HijriDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = today?.hijriDayText,
                 monthText = today?.hijriMonthShortName,
-                weekdayText = today?.weekdayName,
+                weekdayText = today?.weekdayTileName,
                 colors = colors,
                 openAction = openAction,
                 language = options.language,
@@ -129,7 +129,7 @@ public class HijriDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = data.todayHijri?.hijriDayText,
                 monthText = data.todayHijri?.hijriMonthShortName,
-                weekdayText = data.todayHijri?.weekdayName,
+                weekdayText = data.todayHijri?.weekdayTileName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
@@ -178,7 +178,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = today?.gregorianDayText,
                 monthText = today?.gregorianMonthShortName,
-                weekdayText = today?.weekdayName,
+                weekdayText = today?.weekdayTileName,
                 colors = colors,
                 openAction = openAction,
                 language = options.language,
@@ -206,7 +206,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
             DateTileRoot(
                 dayText = data.todayHijri?.gregorianDayText,
                 monthText = data.todayHijri?.gregorianMonthShortName,
-                weekdayText = data.todayHijri?.weekdayName,
+                weekdayText = data.todayHijri?.weekdayTileName,
                 colors = colors,
                 openAction = null,
                 language = options.language,
@@ -235,6 +235,16 @@ public class GregorianDateWidget : GlanceAppWidget() {
  * Point 7 changed *which* cell that is: [HijriDateWidget.sizeMode] is `Exact`, so `LocalSize` is the
  * size the launcher granted rather than the declared minimum, and the ceilings were raised
  * (16/30 → 22/44) so a stretched tile has somewhere to grow.
+ *
+ * **Raised again, 22/44 → 32/64, because the first raise was still inside the range a launcher hands
+ * out.** Measured on a Pixel 6a with the bundled Nastaliq face, a 3-column tile reached `MAX_SCALE`
+ * (1.69) on both axes, and every further resize — a tile grown to four rows kept the *same* 140×56 px
+ * weekday and 118×85 px figure — changed nothing. That is the "the weekday never grows when I resize
+ * it" report; it was this constant, not the renderer. 32/64 puts the ceiling at a ~189dp-wide /
+ * ~248dp-tall cell, i.e. a ~3×3 tile, so the whole range a 1x1 is actually resized into scales, and
+ * only a tile far larger than its own reading distance saturates. Growing the ceiling cannot clip: the
+ * *height* axis already bounds the scale at exactly the height the stack asks for, so a raised ceiling
+ * only lets a cell that is genuinely bigger render genuinely bigger.
  *
  * **Every line is now derived from one scale** (see [widgetTypeScale]) rather than from per-line
  * width and height rules: the caption is the scale times [DateTileTypography.weekdaySizeAtReference]
@@ -273,10 +283,22 @@ internal object DateTileTypography {
     val weekdaySizeAtReference = 13.sp
 
     /** The caption's ceiling at a large cell. The figure is twice it; see [sizesFor]. */
-    val weekdaySizeCeiling = 22.sp
+    val weekdaySizeCeiling = 32.sp
 
     val daySize = 26.sp
-    val daySizeCeiling = 44.sp
+
+    /**
+     * The figure's ceiling at a large cell, and the constant `MAX_SCALE` is read off.
+     *
+     * Kept at exactly twice [weekdaySizeCeiling] (and so exactly `MAX_SCALE` times [daySize]), because
+     * that ratio *is* the single scale: `sizesFor` multiplies both lines by one factor, so the two
+     * ceilings are one number stated twice. Move one without the other and the weekday and the figure
+     * stop being the same multiple of their reference sizes.
+     *
+     * Raised 44 → 64 with [weekdaySizeCeiling]; see [DateTileSizes]' KDoc for the device measurement
+     * that forced it.
+     */
+    val daySizeCeiling = 64.sp
 
     const val PADDING_DP = 6
 
@@ -352,10 +374,12 @@ internal object DateTileTypography {
  * The shared 1x1 tile layout: the localized weekday name on top, a big centred day figure in the
  * middle, the month name at the bottom. Tapping anywhere opens the app.
  *
- * The weekday name comes from `TodayHijriWidgetData.weekdayName`, which the shared projection has
- * always populated from the widget's own [WidgetLanguage] and which iOS has always rendered — the
- * Android tiles and the strip were the only places it was dropped. So it is localized per widget, not per
- * device (WG-12), and this ticket adds no field to the options schema.
+ * The weekday name comes from `TodayHijriWidgetData.weekdayTileName`, the projection's **tile-only**
+ * weekday name, which the shared projection populates from the widget's own [WidgetLanguage] and which
+ * iOS has always rendered — the Android tiles and the strip were the only places it was dropped. So it is
+ * localized per widget, not per device (WG-12), and this ticket adds no field to the options schema. It is
+ * the tile variant rather than `weekdayName` because a 1x1 spells Urdu Monday its own way
+ * (`سوموار`) — the projection owns that choice, so this composable just prints the field.
  *
  * The weekday line is omitted when there is no readable date, in which case the tile says so via
  * [WidgetLocalization.ChromeLabels.monthUnavailable] instead of showing an empty line above a

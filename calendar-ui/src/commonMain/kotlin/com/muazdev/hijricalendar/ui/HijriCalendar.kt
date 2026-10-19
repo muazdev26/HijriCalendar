@@ -227,9 +227,6 @@ public fun HijriCalendar(
             labels = labels,
             canGoToPreviousMonth = state.canGoToPreviousMonth,
             canGoToNextMonth = state.canGoToNextMonth,
-            eventText = selectedEvent
-                ?.let { labels.eventBanner(it, selectionIsToday) }
-                ?.takeIf { it.isNotEmpty() },
         )
     }
 
@@ -246,15 +243,28 @@ public fun HijriCalendar(
         )
     }
 
+    // The observance on the selected day, below the grid rather than in the header (FD-08 feedback).
+    // Resolved once here so the banner and the cell that carries the selection cannot name different
+    // events; `selectedEvent` is already gated on the selection living in `currentMonth`.
+    val eventBannerText = remember(selectedEvent, selectionIsToday, labels) {
+        selectedEvent?.let { labels.eventBanner(it, selectionIsToday) }?.takeIf { it.isNotEmpty() }
+    }
+
+    val eventBanner: @Composable () -> Unit = {
+        eventBannerText?.let { HijriCalendarEventBanner(text = it, colors = colors) }
+    }
+
     Column(modifier = modifier) {
         if (ignoreFontScale) {
             CompositionLocalProvider(LocalDensity provides unscaledDensity) {
                 if (header != null) header() else defaultHeader()
                 grid()
+                eventBanner()
             }
         } else {
             if (header != null) header() else defaultHeader()
             CompositionLocalProvider(LocalDensity provides cappedDensity) { grid() }
+            eventBanner()
         }
     }
 }

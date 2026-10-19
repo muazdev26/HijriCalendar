@@ -1437,6 +1437,16 @@ private fun WeekdayHeaderRow(
 private const val WEEKDAY_CELL_CHROME_DP = 4f
 
 /**
+ * The event footer's chip: corner radius and the padding the accent wash carries around its text.
+ *
+ * The padding is what turns the footer from a bare line into a pill; it costs the weighted grid twice
+ * the vertical value, which is small next to the fixed 11sp line it already reserved.
+ */
+private const val EVENT_FOOTER_CORNER_RADIUS_DP = 8
+private const val EVENT_FOOTER_HORIZONTAL_PADDING_DP = 10
+private const val EVENT_FOOTER_VERTICAL_PADDING_DP = 3
+
+/**
  * The month grid itself: the weekday header row and the weighted day rows.
  *
  * Its own composable because it is a third of a screen of weighted layout arithmetic, and a reader
@@ -1578,6 +1588,16 @@ private fun MonthDays(
  * `HijriWidgetRoot` picks the today card below 180dp wide, and there are no cells to tap there, so
  * there is nothing for a footer to describe. Adding a third size tier for it would be more machinery
  * than the feature is worth.
+ *
+ * ## Why it is a chip now
+ *
+ * It was a bare accent-coloured line in `Medium`. A line of coloured text under the grid reads as more
+ * chrome, indistinct from the weekday row; the grid already fills an observance cell with a container
+ * wash, so the footer takes that same wash as its background and reads as a statement about a day
+ * rather than as another caption. The text is **not** bold for the same reason the filled cell is not:
+ * the fill is the marker. The wash is `widget_event_day_background` (the accent at ~14%) with its night
+ * and forced-theme variants, so it follows a night-mode switch like every other colour — a
+ * `ColorProvider` cannot carry an alpha.
  */
 @Composable
 private fun EventFooter(
@@ -1591,20 +1611,33 @@ private fun EventFooter(
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
-        WidgetText(
-            text = eventName,
-            style = TextStyle(
-                color = colors.accent,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-            // The footer is a reserved line (FD-08) under six weighted day rows, so its leading is
-            // height taken from the cells like the header's. Its trim is the simplest of the three:
-            // one line, in a row of its own, with nothing to align against.
-            trimScriptLeading = true,
-        )
+        Row(
+            modifier = GlanceModifier
+                .background(colors.eventDayBackground)
+                .cornerRadius(EVENT_FOOTER_CORNER_RADIUS_DP.dp)
+                .padding(
+                    horizontal = EVENT_FOOTER_HORIZONTAL_PADDING_DP.dp,
+                    vertical = EVENT_FOOTER_VERTICAL_PADDING_DP.dp,
+                ),
+            horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+            verticalAlignment = Alignment.Vertical.CenterVertically,
+        ) {
+            WidgetText(
+                text = eventName,
+                style = TextStyle(
+                    color = colors.onEventDayText,
+                    fontSize = 11.sp,
+                    // Normal, not Medium: the accent wash is the marker. See the KDoc.
+                    fontWeight = FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+                // The footer is a reserved line (FD-08) under six weighted day rows, so its leading is
+                // height taken from the cells like the header's. Its trim is the simplest of the three:
+                // one line, in a row of its own, with nothing to align against.
+                trimScriptLeading = true,
+            )
+        }
     }
 }
 

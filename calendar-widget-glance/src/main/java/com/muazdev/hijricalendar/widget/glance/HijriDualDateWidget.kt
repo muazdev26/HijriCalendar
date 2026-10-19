@@ -236,8 +236,17 @@ internal object DualDateTileTypography {
      * missing the month, and the figure above it sat at its full size inside the space the month had
      * needed. The tile now fits **every** zone, scaling the whole stack with the cell; see
      * [widgetTypeScale] and [daySizeFloor] for the width rule that still applies to previews.
+     *
+     * **Raised 20 → 24 with [CAPTION_RATIO] dropped 0.85 → 0.78**, which is the whole of the
+     * "enlarge the figure" change and is deliberately a *rebalance* rather than a size increase. The
+     * scalable stack at the reference is `3 · caption · scriptRatio + day · DIGIT_LINE_RATIO`; moving
+     * two of its constants in opposite directions keeps that total inside the 40dp floor's budget
+     * (it went 108.9 → 107.3dp at [NASTALIQ_LINE_RATIO], so the stack still fits the smallest cell the
+     * widget-info permits) while giving the figure a larger *share* of it. Raising [daySize] alone would
+     * have grown the request past `(40 − fixed) / MIN_TYPE_SCALE` and clipped the month off the floor
+     * cell — the failure the tile already carries two redesigns about.
      */
-    val daySize = 20.sp
+    val daySize = 24.sp
 
     /**
      * The floor the *width* rule holds the figure to, so a narrow tile does not render a smaller
@@ -252,7 +261,12 @@ internal object DualDateTileTypography {
      */
     val daySizeCeiling = 40.sp
 
-    const val CAPTION_RATIO = 0.85f
+    /**
+     * The caption at scale 1 as a share of the family's reference weekday. Dialled back from 0.85 when
+     * [daySize] went up: the two constants are one budget, and the captions give the figure its extra
+     * share rather than the stack growing tall enough to lose the month at 40dp. See [daySize].
+     */
+    const val CAPTION_RATIO = 0.78f
     internal const val CAPTION_MAX_SHARE = 0.8f
 
     val subRowSize = 10.5.sp
@@ -453,7 +467,7 @@ internal fun DualDateTileRoot(
         // glance asks. The band is sized from [DualDateTileTypography.weekdaySize] rather than the
         // length of the word it holds, so the tile's vertical rhythm does not depend on the day.
         WeekdayBand(
-            text = today.weekdayName,
+            text = today.weekdayTileName,
             fontSize = sizes.weekdaySize,
             colors = colors,
             fontFamily = fonts.weekday.toGlanceFontFamily(),

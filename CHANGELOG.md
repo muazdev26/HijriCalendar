@@ -2,6 +2,40 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## 2.3.1 - 2026-10-19
+
+### Added
+
+- `TodayHijriWidgetData.weekdayTileName`, `WidgetLocalization.urduWeekdayTileNames` /
+  `weekdayTileNames(language)`, `WidgetOptions.localizedWeekdayTileNames`, and a trailing
+  `weekdayTileNames` parameter on `todayHijriWidgetData(...)`. A **1x1 tile** spells Urdu Monday its
+  own way (`سوموار`), where the grid, the Today strip and the in-app weekday header keep `پیر`. The
+  projection owns the choice, so every renderer just prints the field; `weekdayName` is unchanged and
+  still what the non-tile widgets read. Additive with defaults, but the new constructor parameter
+  moves `TodayHijriWidgetData`'s `copy`/`componentN` ABI — recompile consumers.
+
+### Changed
+
+- **The 1x1 tiles' type ceiling is raised (weekday 22 → 32sp, figure 44 → 64sp).** The previous
+  ceilings were reached at ~2 columns / ~2 rows, so every further resize rendered the *same* weekday
+  and figure and the tile looked like it had stopped responding to a resize. The ceiling now sits at
+  a ~3x3 cell, so the whole range a 1x1 is actually resized into scales. Growing a ceiling cannot
+  clip: the height axis bounds the scale at exactly the height the stack asks for.
+- **The dual-date tile's figure is larger** (20 → 24sp) with a matching caption ratio (0.85 → 0.78),
+  keeping the three lines inside the declared 40dp minimum.
+- **The in-app observance moves below the grid** and becomes an accent banner at 50% opacity with
+  **non-bold** text, instead of a coloured line under the header. `HijriCalendarHeader.eventText`
+  stays public; the built-in `HijriCalendar` no longer passes it. The widget's grid event footer takes
+  the same treatment: an accent chip on `eventDayBackground` with `onEventDayText`, not bold.
+- The in-app cell **vertical** rule is now 1dp. It was drawn at `1f` — one *device pixel*, ~0.36dp at
+  a 2.75x density — so the columns came out far fainter than the 1dp horizontal rules and rounded away
+  at some columns: "the cell borders vanish". The widget's `CellDivider` was already 1dp.
+- **The script rasteriser no longer ellipsizes.** It laid the line out at the width budget, so a run
+  the minimum-shrink floor could not fit was trimmed by `TruncateAt.END` — which ate the final `ت`
+  of an Urdu Thursday (`جمعرات`) on the bordered grid widget. The layout is now built at the run's
+  own natural width and a run that overhangs is drawn whole; the parent's `fitCenter` scales it back
+  down, which shrinks a word rather than amputating a letter from it.
+
 ## 2.3.0 - 2026-10-18
 
 ### Added

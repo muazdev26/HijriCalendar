@@ -211,8 +211,11 @@ private fun scriptTypeface(context: Context): Typeface =
  * and some slots are cells, not full-width lines — the grid's seven weekday labels are the case that
  * forces the issue. A tighter budget than the ukase of a width estimator, and shrinking text is
  * always better than letting two neighbouring weekday names run into each other. The floor stops a
- * pathological budget from shrinking a word into an illegible smudge; past it, ellipsis is the honest
- * answer, because a trimmed word still says which word it was.
+ * pathological budget from shrinking a word into an illegible smudge. Past it the run is drawn at the
+ * floor and allowed to overhang the budget: [rasterizeScriptText] lays the line out at its natural
+ * width precisely so nothing is trimmed, and the parent's `fitCenter` scales the overhang back down.
+ * That is the right failure — a slightly smaller word still says which word it was, while a word with
+ * its last letter ellipsized (an Urdu Thursday is `جمعرات`) does not.
  */
 private const val MIN_RASTER_SCALE: Float = 0.55f
 
@@ -257,8 +260,10 @@ private class SystemFaceSpan(
  * line box stay with the platform, where they are already correct.
  *
  * The run is measured before it is laid out and scaled down to meet [maxWidthPx] (to
- * [MIN_RASTER_SCALE]), so a slot narrower than its text is shrunk or, at the floor, trimmed rather
- * than allowed to overflow into whatever is beside it.
+ * [MIN_RASTER_SCALE]). A slot narrower than its text is therefore shrunk, and one the floor cannot
+ * shrink far enough is drawn **whole** and left to overhang its budget: the layout is built at the
+ * run's natural width so `TruncateAt.END` has nothing to trim, and the parent scales the overhang with
+ * `fitCenter`. Trimming a letter off a word is the one outcome this must never produce.
  *
  * ## The bitmap is cropped to the ink, not to the advance box
  *
@@ -340,8 +345,20 @@ private fun rasterizeScriptText(
         )
     }
 
+    // Laid out at the run's own natural width, **not** at `maxWidthPx`. `TruncateAt.END` then has
+    // nothing to trim, which is deliberate: a run the floor could not shrink to its budget used to be
+    // ellipsized right here, and on the bordered grid widget that silently ate the final `ت` of an
+    // Urdu Thursday (`جمعرات`) — the one weekday whose ink overhangs its advance far enough to need the
+    // floor at all. A run that overhangs is now drawn **whole**, and the parent scales it with
+    // `fitCenter` (see [WidgetText]), which shrinks the word rather than amputating a letter from it.
+    // `maxOf` over the two measurers because the spanned body pins its digit runs to the *narrower*
+    // system face, so the plain `measureText` is the safe upper bound.
+    val layoutWidth = ceil(
+        maxOf(paint.measureText(text), Layout.getDesiredWidth(body, paint)),
+    ).toInt().coerceAtLeast(1)
+
     val layout = StaticLayout.Builder
-        .obtain(body, 0, body.length, paint, maxWidthPx.toInt().coerceAtLeast(1))
+        .obtain(body, 0, body.length, paint, layoutWidth)
         .setAlignment(Layout.Alignment.ALIGN_NORMAL)
         .setLineSpacing(1f, 0f)
         .setIncludePad(false)

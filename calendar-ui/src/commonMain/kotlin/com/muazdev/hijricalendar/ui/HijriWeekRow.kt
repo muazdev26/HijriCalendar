@@ -9,6 +9,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
 
@@ -47,17 +48,18 @@ internal fun HijriWeekRow(
                         if (showCellBorders && !isLastColumn) {
                             Modifier.drawWithContent {
                                 drawContent()
+                                // 1.dp, not `1f`. The horizontal rules are `Box(height(1.dp))` and
+                                // the widget's `CellDivider` is `width(1.dp)`; a raw `1f` here is one
+                                // *device pixel*, which at a 2.75x density is ~0.36dp. The verticals
+                                // came out much fainter than the horizontals and rounded away entirely
+                                // at some columns, which read as "the border is missing there". Same
+                                // unit as every other rule in the family.
+                                val strokePx = 1.dp.toPx()
                                 drawLine(
                                     color = borderColor,
-                                    start = androidx.compose.ui.geometry.Offset(
-                                        size.width - 0.5f,
-                                        0f,
-                                    ),
-                                    end = androidx.compose.ui.geometry.Offset(
-                                        size.width - 0.5f,
-                                        size.height,
-                                    ),
-                                    strokeWidth = 1f,
+                                    start = Offset(size.width - strokePx / 2f, 0f),
+                                    end = Offset(size.width - strokePx / 2f, size.height),
+                                    strokeWidth = strokePx,
                                 )
                             }
                         } else {

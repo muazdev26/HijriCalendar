@@ -314,4 +314,22 @@ public data class TodayHijriWidgetData(
      * — **but it changes the ABI**, which is why the golden files carry it.
      */
     val gregorianMonthShortName: String = "",
+    /**
+     * The weekday name as the **1x1 tiles** render it — [weekdayName], except that Urdu Monday is
+     * `سوموار` where the rest of the family prints `پیر`.
+     *
+     * The three one-cell tiles are read at a glance from arm's length, so they use the everyday Urdu
+     * word for Monday while the grid's column heading, the Today strip and the in-app calendar keep
+     * `پیر`, the form Urdu calendars print in a column. Both are supplied by the projection rather
+     * than chosen by a renderer (WG-12) — see [WidgetLocalization.urduWeekdayTileNames] — and the two
+     * are separate fields rather than one because a widget is either a tile or it is not, and which
+     * one it is decides the name.
+     *
+     * **Defaults to [weekdayName]**, so every construction that predates this field — and every
+     * caller of the builder that passes no tile list — keeps the name it had. `null` never occurs: the
+     * builder falls back to [weekdayName] when it has no tile list, so a renderer may print it
+     * unconditionally. Additive and last, so it is source-compatible but an ABI change; the golden
+     * files carry it.
+     */
+    val weekdayTileName: String = weekdayName,
 )

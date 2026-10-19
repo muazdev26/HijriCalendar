@@ -49,7 +49,7 @@
         android:paddingBottom="3dp"
         android:text="بدھ"
         android:textColor="@color/widget_on_today"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
     <!-- Centred, matching the live weighted Box: this is what splits the leftover height between the
@@ -71,7 +71,7 @@
             android:maxLines="1"
             android:text="۲۴"
             android:textColor="@color/widget_accent"
-            android:textSize="20sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <!-- The Hijri month name in FULL. -->
@@ -85,7 +85,7 @@
             android:maxLines="1"
             android:text="ربیع الثانی"
             android:textColor="@color/widget_text_primary"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
         <!-- The Gregorian date: one compact CENTRED phrase, adjacent rather than spread, with the day on
@@ -109,7 +109,7 @@
                 android:maxLines="1"
                 android:text="ستمبر"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -119,7 +119,7 @@
                 android:maxLines="1"
                 android:text=" - "
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -129,7 +129,7 @@
                 android:maxLines="1"
                 android:text="۳۰"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
