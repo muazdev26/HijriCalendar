@@ -2,7 +2,7 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
-## 2.3.2 - 2026-10-21
+## 2.3.3 - 2026-10-21
 
 ### Added
 
