@@ -5,6 +5,8 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import com.muazdev.hijricalendar.core.HijriMonthLengths
+import com.muazdev.hijricalendar.ui.DateDisplayMode
+import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver
@@ -13,10 +15,53 @@ import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshLog
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefresher
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
+import com.muazdev.hijricalendar.widgetdata.WidgetDateDisplayMode
+import com.muazdev.hijricalendar.widgetdata.WidgetDatePrimary
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.monthLengthsToMap
 import kotlinx.coroutines.runBlocking
 
+/**
+ * Everything the in-app calendar holds that a placed widget can also be told about.
+ *
+ * A data class rather than a parameter list because the set has grown twice already and each sync
+ * call site had to be edited in step: one value means a new option reaches *every* mirror in the app
+ * as soon as it is added to [applyTo]'s copy, and a call site cannot pass the arguments in the wrong
+ * order.
+ *
+ * The in-app enums are carried as-is and translated at the write (`valueOf(name)`), because
+ * `calendar-widget-data` cannot depend on `calendar-ui` and both enums exist only to describe how
+ * *that* surface draws. Their names agree by design, so the translation is a lookup, not a mapping
+ * table that can drift.
+ */
+internal data class WidgetSettings(
+    val adjustmentDays: Int,
+    val pakistanDates: Boolean,
+    val monthLengths: HijriMonthLengths,
+    val weekendPattern: WeekendPattern,
+    val showAdjacentDays: Boolean,
+    val showCellBorders: Boolean,
+    val dateDisplayMode: DateDisplayMode,
+    val primaryDate: PrimaryDate,
+)
+
+/**
+ * Mirrors the in-app calendar's settings onto the placed widgets.
+ *
+ * Every widget reads its options from one of two places: its own per-widget store, or — when it has
+ * never been configured — the family mirror ([HijriWidgetConfig.loadFamily]), which is a single
+ * shared record. A sync therefore writes both: the mirror, so stateless widgets and freshly placed
+ * widgets open on the app's settings, and each widget's own options, so one that *was* configured
+ * follows the app too. That last part is a deliberate override, which is why the caller gates the
+ * whole sync behind a user-visible toggle rather than running it unconditionally.
+ *
+ * Grid-only options (the date-in-cell mode and which of the two figures is primary) are still written
+ * to every widget's options. They are ignored by the strip and the tiles, so the write is inert
+ * there, and writing them uniformly is what keeps the mirror a faithful copy of the app's state —
+ * a per-kind filter here would be a second, silently diverging set of rules.
+ */
 internal class WidgetSettingsSync(private val context: Context) {
 
     private val receivers = listOf(
@@ -27,10 +72,9 @@ internal class WidgetSettingsSync(private val context: Context) {
         HijriDualDateWidgetReceiver::class.java,
     )
 
-    fun sync(adjustmentDays: Int, pakistanDates: Boolean, monthLengths: HijriMonthLengths) {
+    fun sync(settings: WidgetSettings) {
         runBlocking {
-            val overrideTable = monthLengthsToMap(monthLengths)
-            val source = if (pakistanDates) WidgetSource.PAKISTAN else WidgetSource.CALCULATION
+            val overrideTable = monthLengthsToMap(settings.monthLengths)
 
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val gridAppWidgetIds = appWidgetManager?.getAppWidgetIds(ComponentName(context, HijriCalendarWidgetReceiver::class.java)) ?: intArrayOf()
@@ -38,15 +82,13 @@ internal class WidgetSettingsSync(private val context: Context) {
 
             HijriWidgetRefreshLog.d(
                 "sync:start",
-                "inAppOverrides=${overrideTable.size} adjustmentDays=$adjustmentDays pakistan=$pakistanDates grids=${gridAppWidgetIds.size}",
+                "inAppOverrides=${overrideTable.size} adjustmentDays=${settings.adjustmentDays} pakistan=${settings.pakistanDates} " +
+                    "weekend=${settings.weekendPattern} adjacent=${settings.showAdjacentDays} borders=${settings.showCellBorders} " +
+                    "mode=${settings.dateDisplayMode} primary=${settings.primaryDate} grids=${gridAppWidgetIds.size}",
             )
 
             val currentFamily = HijriWidgetConfig.loadFamily(context)
-            val updatedFamily = currentFamily.copy(
-                adjustmentDays = adjustmentDays,
-                source = source,
-                monthLengthOverrides = overrideTable,
-            )
+            val updatedFamily = settings.applyTo(currentFamily)
             HijriWidgetConfig.saveFamilyOptions(context, updatedFamily, caller = "sync")
 
             if (appWidgetManager != null) {
@@ -62,11 +104,7 @@ internal class WidgetSettingsSync(private val context: Context) {
                             HijriWidgetConfig.saveWidgetOptions(
                                 context = context,
                                 glanceId = glanceId,
-                                options = own.copy(
-                                    adjustmentDays = adjustmentDays,
-                                    source = source,
-                                    monthLengthOverrides = overrideTable,
-                                ),
+                                options = settings.applyTo(own),
                                 caller = "sync",
                             )
                             synced++
@@ -90,3 +128,23 @@ internal class WidgetSettingsSync(private val context: Context) {
         }
     }
 }
+
+/**
+ * [settings] written onto [options], leaving every option the in-app calendar has no opinion about
+ * (language, numerals, week start, pin, theme) exactly as it was.
+ *
+ * The enum translation is by **name**, never ordinal, and falls back to the option's current value
+ * for a name the widget schema does not have: a host on a newer `calendar-ui` must not lose the whole
+ * write because one rendering mode has not been mirrored into `calendar-widget-data` yet.
+ */
+private fun WidgetSettings.applyTo(options: WidgetOptions) = options.copy(
+    adjustmentDays = adjustmentDays,
+    source = if (pakistanDates) WidgetSource.PAKISTAN else WidgetSource.CALCULATION,
+    monthLengthOverrides = monthLengthsToMap(monthLengths),
+    weekendPattern = weekendPattern,
+    showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
+    dateDisplayMode = WidgetDateDisplayMode.entries.firstOrNull { it.name == dateDisplayMode.name }
+        ?: options.dateDisplayMode,
+    datePrimary = WidgetDatePrimary.entries.firstOrNull { it.name == primaryDate.name } ?: options.datePrimary,
+)

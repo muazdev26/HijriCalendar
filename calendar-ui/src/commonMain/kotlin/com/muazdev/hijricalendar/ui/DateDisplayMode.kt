@@ -18,6 +18,28 @@ public enum class DateDisplayMode {
     /** Gregorian date only. */
     GREGORIAN_ONLY,
 
-    /** Hijri date as the primary line with the Gregorian date beneath it. */
+    /**
+     * Both dates in one cell, the [PrimaryDate] on top and the other beneath it.
+     */
     BOTH,
+}
+
+/**
+ * Which calendar's date is the **primary** line when [DateDisplayMode.BOTH] draws two.
+ *
+ * The primary line is the top one and is drawn **bold**; the other follows beneath it in the dimmer
+ * secondary style. This is a *reading* preference, not a calendar one: it changes which date answers
+ * "what day is it?" at a glance, never which dates exist or which one a tap selects.
+ *
+ * [DateDisplayMode.HIJRI_ONLY] and [DateDisplayMode.GREGORIAN_ONLY] draw a single figure, so this
+ * value has no effect there — the mode already says which date is primary.
+ *
+ * Persisted **by name** like [DateDisplayMode]; no ordinal is stored anywhere.
+ */
+public enum class PrimaryDate {
+    /** The Hijri figure on top, bold. The library's historical two-line order. */
+    HIJRI,
+
+    /** The Gregorian figure on top, bold, with the Hijri figure beneath it. */
+    GREGORIAN,
 }

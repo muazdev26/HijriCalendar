@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
  * Three things are worth testing here, in increasing order of how much they would hurt to get wrong:
  *
  * 1. **The table resolves** — every entry is findable on its own date, and no date resolves twice.
- * 2. **The Gregorian-fixed flag is honest.** Four of the eight observances are fixed to a *Gregorian*
+ * 2. **The Gregorian-fixed flag is honest.** Six of the ten entries are fixed to a *Gregorian*
  *    date in South Asian practice, so their Hijri date is wrong for the audience most likely to be
  *    looking at it. That is a design limitation, not a bug, and the flag is what says so — so the
  *    assertion is that the flag is set on the ones that need it, which is the only thing that keeps the
@@ -120,10 +120,10 @@ class HijriEventsTest {
     }
 
     /**
-     * Both scripts, and the six that carry the caveat.
+     * Both scripts, and the table's identity.
      *
-     * The list is the ticket's, asserted by name so a rename cannot quietly drop a day that people
-     * observe: Islamic New Year, Ashura and its eve, the Mawlid, Isra and Mi'raj, Shab-e-Barat,
+     * The list is asserted by name so a rename cannot quietly drop a day that people observe: Islamic
+     * New Year, Ashura and its eve, the Mawlid, Isra and Mi'raj, Shab-e-Barat, the first of Ramadan,
      * Eid al-Fitr, Arafah and Eid al-Adha.
      */
     @Test
@@ -137,6 +137,7 @@ class HijriEventsTest {
                 "mawlid",
                 "isra_and_miraj",
                 "shab_e_barat",
+                "ramadan",
                 "eid_al_fitr",
                 "day_of_arafah",
                 "eid_al_adha",
@@ -162,6 +163,7 @@ class HijriEventsTest {
             "mawlid" to true,
             "isra_and_miraj" to false,
             "shab_e_barat" to false,
+            "ramadan" to false,
             "eid_al_fitr" to true,
             "day_of_arafah" to true,
             "eid_al_adha" to true,
@@ -215,10 +217,13 @@ class HijriEventsTest {
         val shawwal = HijriEvents.forMonth(10)
         assertEquals(listOf("eid_al_fitr"), shawwal.map { it.key })
 
-        // And the negative that would have caught it: Ramadan carries nothing.
-        assertTrue(
-            HijriEvents.forMonth(9).isEmpty(),
-            "Ramadan (month 9) carries no observance; Eid al-Fitr is 1 Shawwal, month 10",
+        // The negative that would have caught it: Ramadan carries the month's own first day and
+        // **nothing else** — in particular not Eid, which is 1 Shawwal.
+        assertEquals(listOf("ramadan"), HijriEvents.forMonth(9).map { it.key })
+        assertEquals(
+            listOf(1),
+            HijriEvents.forMonth(9).map { it.day },
+            "Ramadan's only entry is its first day; Eid al-Fitr is 1 Shawwal, month 10",
         )
 
         val muharram = HijriEvents.forMonth(1)
@@ -233,6 +238,7 @@ class HijriEventsTest {
         )
 
         assertTrue(HijriEvents.hasAnyIn(1), "Muharram carries three")
+        assertTrue(HijriEvents.hasAnyIn(9), "Ramadan carries its first day")
         assertTrue(HijriEvents.hasAnyIn(10), "Shawwal carries Eid al-Fitr")
         assertFalse(HijriEvents.hasAnyIn(2), "Safar carries none")
         assertTrue(HijriEvents.forMonth(2).isEmpty())

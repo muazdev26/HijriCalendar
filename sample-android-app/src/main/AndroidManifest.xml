@@ -14,7 +14,7 @@
         android:allowBackup="true"
         android:label="HijriCalendar Sample"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.HijriSample">
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -42,7 +42,7 @@
         <activity
             android:name=".WidgetCatalogActivity"
             android:exported="false"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+            android:theme="@style/Theme.HijriSample" />
 
         <!-- Per-widget configuration activities, owned by the sample and pointed at by the
              res/xml*/widget-info overrides. The library ships no configure activity; each widget
@@ -50,7 +50,7 @@
         <activity
             android:name=".HijriWidgetConfigureActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.HijriSample">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -58,7 +58,7 @@
         <activity
             android:name=".HijriTodayWidgetConfigureActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.HijriSample">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -66,7 +66,7 @@
         <activity
             android:name=".HijriDateWidgetConfigureActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.HijriSample">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -74,7 +74,7 @@
         <activity
             android:name=".GregorianDateWidgetConfigureActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.HijriSample">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -82,7 +82,7 @@
         <activity
             android:name=".HijriDualDateWidgetConfigureActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.HijriSample">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>

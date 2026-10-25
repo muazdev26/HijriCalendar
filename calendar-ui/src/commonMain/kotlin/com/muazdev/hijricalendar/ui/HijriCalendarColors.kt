@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.Dp
  *
  * Obtain one from [HijriCalendarDefaults.colors], which fills every field from
  * [androidx.compose.material3.MaterialTheme]. There is no no-argument constructor on purpose: the
- * 14 values are meant to track a Material colour scheme rather than be restated per call site.
+ * values are meant to track a Material colour scheme rather than be restated per call site.
  *
  * **One field is derived, not independent.** [gregorianDayContentColor] defaults to
  * `dayContentColor.copy(alpha = 0.6f)` (`HijriCalendarDefaults.colors`), so overriding only

@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import com.muazdev.hijricalendar.core.rememberHijriCalendarState
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
+import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.datetime.DateTimeUnit
@@ -57,6 +59,8 @@ fun CalendarScreen(
     ),
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     onDateDisplayModeChange: (DateDisplayMode) -> Unit = {},
+    primaryDate: PrimaryDate = PrimaryDate.HIJRI,
+    onPrimaryDateChange: ((PrimaryDate) -> Unit)? = null,
     onJumpToToday: (() -> Unit)? = null,
     labels: HijriCalendarLabels? = null,
     showAdjustmentSelector: Boolean = false,
@@ -71,9 +75,13 @@ fun CalendarScreen(
     onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
     showCellBordersToggle: Boolean = false,
     onShowCellBordersChange: ((Boolean) -> Unit)? = null,
+    showAutoSyncToggle: Boolean = false,
+    autoSyncToWidget: Boolean = true,
+    onAutoSyncToWidgetChange: ((Boolean) -> Unit)? = null,
+    onSyncNow: (() -> Unit)? = null,
 ) {
     val effectiveLabels = labels ?: HijriCalendarLabels()
-    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, effectiveLabels)
+    val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, primaryDate, effectiveLabels)
 
     Column(
         modifier = modifier
@@ -85,6 +93,7 @@ fun CalendarScreen(
             state = state,
             onDayClick = state.defaultOnDayClick(),
             dateDisplayMode = dateDisplayMode,
+            primaryDate = primaryDate,
             modifier = Modifier.fillMaxWidth(),
             labels = effectiveLabels,
         )
@@ -95,6 +104,16 @@ fun CalendarScreen(
             selectedMode = dateDisplayMode,
             onModeSelected = onDateDisplayModeChange,
         )
+
+        // Only offered under BOTH, and only when the caller wants it: a single-figure mode has
+        // already said which date is primary, so the control would be a setting that does nothing.
+        if (onPrimaryDateChange != null && dateDisplayMode == DateDisplayMode.BOTH) {
+            Spacer(modifier = Modifier.height(16.dp))
+            PrimaryDateSelector(
+                selected = primaryDate,
+                onSelect = onPrimaryDateChange,
+            )
+        }
 
         if (showAdjustmentSelector) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -159,6 +178,15 @@ fun CalendarScreen(
             )
         }
 
+        if (showAutoSyncToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            WidgetSyncSelector(
+                autoSyncToWidget = autoSyncToWidget,
+                onAutoSyncToWidgetChange = onAutoSyncToWidgetChange,
+                onSyncNow = onSyncNow,
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         if (selectedDateText != null) {
@@ -204,6 +232,7 @@ fun CalendarScreen(
 private fun selectedDateSummary(
     state: HijriCalendarState,
     mode: DateDisplayMode,
+    primaryDate: PrimaryDate,
     labels: HijriCalendarLabels,
 ): String? {
     val observed = state.selectedObservedDate
@@ -252,7 +281,14 @@ private fun selectedDateSummary(
     val base = when (mode) {
         DateDisplayMode.HIJRI_ONLY -> hijri
         DateDisplayMode.GREGORIAN_ONLY -> gregorian
-        DateDisplayMode.BOTH -> "$hijri\n$gregorian"
+        // The card follows the cell's reading order, so the summary cannot disagree with the grid
+        // about which date comes first. One `Text`, so "primary" here means order only; the bold
+        // treatment is the cell's.
+        DateDisplayMode.BOTH -> if (primaryDate == PrimaryDate.HIJRI) {
+            "$hijri\n$gregorian"
+        } else {
+            "$gregorian\n$hijri"
+        }
     }
     return if (eventLine == null) base else "$base\n$eventLine"
 }
@@ -277,6 +313,38 @@ private fun DateDisplayModeSelector(
                 label = { Text(labels[index]) },
             )
         }
+    }
+}
+
+/**
+ * Which of the two figures is the top, bold line under "Both".
+ *
+ * The order is a reading preference, not a calendar one: the grid keeps showing the same two dates
+ * and a tap still selects the same day. Two chips rather than a switch so the labels name the
+ * outcome — "Hijri on top" is what the user asked for, not "on/off".
+ */
+@Composable
+private fun PrimaryDateSelector(
+    selected: PrimaryDate,
+    onSelect: (PrimaryDate) -> Unit,
+) {
+    val options = PrimaryDate.entries
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Primary date", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, date ->
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                    onClick = { onSelect(date) },
+                    selected = selected == date,
+                    label = { Text(if (date == PrimaryDate.HIJRI) "Hijri" else "Gregorian") },
+                )
+            }
+        }
+        Text(
+            text = "The primary date is the top, bold line; the other one is drawn under it.",
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
@@ -524,6 +592,7 @@ private fun AdjacentDaysSelector(
 private fun rememberSelectedDateText(
     state: HijriCalendarState,
     dateDisplayMode: DateDisplayMode,
+    primaryDate: PrimaryDate,
     labels: HijriCalendarLabels,
 ): String? = remember(
     labels,
@@ -533,9 +602,10 @@ private fun rememberSelectedDateText(
     state.pakistanDates,
     state.currentMonth,
     dateDisplayMode,
+    primaryDate,
     state.adjustmentDays,
 ) {
-    selectedDateSummary(state, dateDisplayMode, labels)
+    selectedDateSummary(state, dateDisplayMode, primaryDate, labels)
 }
 
 /**
@@ -602,9 +672,67 @@ private fun WeekendPatternSelector(
     }
 }
 
+/**
+ * The weekend chips.
+ *
+ * Short forms throughout, because five of them share one row: `Sun`, not `Sunday`. The widget
+ * settings screen prints the same five, so the two screens cannot disagree about a pattern's name.
+ */
 private fun WeekendPattern.displayLabel(): String = when (this) {
     WeekendPattern.FRIDAY_SATURDAY -> "Fri+Sat"
-    WeekendPattern.SUNDAY -> "Sunday"
-    WeekendPattern.FRIDAY_ONLY -> "Friday"
+    WeekendPattern.FRIDAY_SUNDAY -> "Fri+Sun"
+    WeekendPattern.SUNDAY -> "Sun"
+    WeekendPattern.FRIDAY_ONLY -> "Fri"
     WeekendPattern.NONE -> "None"
+}
+
+/**
+ * Mirrors the in-app settings onto the placed widgets, and says what that means.
+ *
+ * The toggle exists because the mirror **overrides** the same options on a widget the user configured
+ * individually — that is the point of the feature and also the thing worth switching off — so the
+ * caption states it rather than leaving a switch whose side effect appears on the home screen.
+ *
+ * "Sync now" is deliberately ungated: it is the one action whose whole meaning is "do it anyway", so
+ * a user who turned the automatic mirror off can still push this screen's settings once.
+ */
+@Composable
+private fun WidgetSyncSelector(
+    autoSyncToWidget: Boolean,
+    onAutoSyncToWidgetChange: ((Boolean) -> Unit)?,
+    onSyncNow: (() -> Unit)?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Home-screen widgets", style = MaterialTheme.typography.titleSmall)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "Apply these settings to widgets automatically",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = autoSyncToWidget,
+                onCheckedChange = onAutoSyncToWidgetChange,
+                enabled = onAutoSyncToWidgetChange != null,
+            )
+        }
+        Text(
+            text = if (autoSyncToWidget) {
+                "Widgets follow this screen, including ones you configured individually."
+            } else {
+                "Widgets keep their own settings. Use Sync now to copy this screen onto them once."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (onSyncNow != null) {
+            OutlinedButton(onClick = onSyncNow) {
+                Text("Sync now")
+            }
+        }
+    }
 }

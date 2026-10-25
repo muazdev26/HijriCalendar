@@ -365,32 +365,52 @@ class HijriCalendarInteractionTest {
     // ── the observance banner follows the displayed month (FD-08) ─────
 
     /**
-     * A selection made in one month must not keep naming its observance after the user navigates to
-     * a month that does not contain it. The selection itself survives — navigating back names the
-     * observance again — but the header describes the displayed month, so a foreign month's
-     * observance must not appear under it.
+     * The banner answers two different questions, and the test walks the boundary between them.
      *
-     * 1447-01-01 is the Islamic New Year, and `1447-02` carries no observance, which is what makes
-     * the disappearance unambiguous.
+     * **Nothing tapped** — the user is paging — so it lists every observance the month holds: 1447-01
+     * carries three (the New Year, Ashura's eve and Ashura), and `1447-02` carries none, which is what
+     * makes the halves unambiguous.
+     *
+     * **A day with an observance tapped** — it names only that one. The tap is the user asking "which
+     * day?", so the bar answers that day; leaving the month's whole list up after a tap made the tap
+     * look like it had not landed.
+     *
+     * **A day without one tapped** — back to the month's list, because there is nothing to narrow to.
+     *
+     * **Paged away from a tapped day** — the month on screen wins: a selection in a different month is
+     * ignored, exactly as the widget's footer ignores it, so paging to 1447-02 shows *its* empty-month
+     * line rather than a Muharram observance. Paging back with the selection still on the 1st narrows
+     * again, which is why the last assertion is the single name and not the list.
      */
     @Test
-    fun theObservanceBannerHidesWhenTheSelectedDayIsNotInTheDisplayedMonth() = runComposeUiTest {
+    fun theObservanceBannerFollowsTheDisplayedMonthAndNarrowsToATappedObservance() = runComposeUiTest {
         val state = stateFor(year = 1447, month = 1)
         setContent { host(state)() }
         waitForIdle()
 
+        onNodeWithText("Islamic New Year · Ashura (9th Muharram) · Ashura").assertExists()
+
         runOnIdle { state.selectDate(HijrahDate(1447, 1, 1)) }
         waitForIdle()
         onNodeWithText("Islamic New Year").assertExists()
+        onNodeWithText("Ashura (9th Muharram)", substring = true).assertDoesNotExist()
 
+        runOnIdle { state.selectDate(HijrahDate(1447, 1, 2)) }
+        waitForIdle()
+        onNodeWithText("Islamic New Year · Ashura (9th Muharram) · Ashura").assertExists()
+
+        runOnIdle { state.selectDate(HijrahDate(1447, 1, 1)) }
+        waitForIdle()
         runOnIdle { state.goToNextMonth() }
         waitForIdle()
         onNodeWithText(hijriMonthLabel(1447, 2)).assertExists()
-        onNodeWithText("Islamic New Year").assertDoesNotExist()
+        onNodeWithText("Islamic New Year", substring = true).assertDoesNotExist()
+        onNodeWithText("No historical event this month").assertExists()
 
         runOnIdle { state.goToPreviousMonth() }
         waitForIdle()
         onNodeWithText("Islamic New Year").assertExists()
+        onNodeWithText("Ashura (9th Muharram)", substring = true).assertDoesNotExist()
     }
 
     // ── tapping a day ─────────────────────────────────────────────────

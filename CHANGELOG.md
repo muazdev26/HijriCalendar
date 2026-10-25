@@ -2,6 +2,78 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## 2.3.2 - 2026-10-21
+
+### Added
+
+- `PrimaryDate` (`calendar-ui`) and `WidgetDatePrimary` + `WidgetOptions.datePrimary` /
+  `createWidgetOptions(datePrimary = ...)` (`calendar-widget-data`): under `BOTH`, which date is the
+  **top, bold** line. Name-backed and stored by name; additive with a `HIJRI` default, so an existing
+  widget repaints identically.
+- `WeekendPattern.FRIDAY_SUNDAY` — Friday for prayer and Sunday to match the Gregorian working week.
+  New enum entry, so a stored pattern is unaffected; `WeekendPattern.of` now round-trips five patterns.
+- `HijriEvents` gains the **first of Ramadan** (`key = "ramadan"`, "Ramadan" / "رمضان"), so the month's
+  first day is named like Muharram's New Year is. Ten entries now; additive, and the lookup is still
+  `(month, day)`.
+- `HijriCalendarLabels.monthEventBanner` (now `(List<HijriEvent>) -> String`) and
+  `HijriCalendarLabels.noEventBanner`, plus `HijriCalendar(primaryDate = ..., showEventBanner = true)`.
+  Both labels have defaults and `UrduCalendarLabels` supplies Urdu versions.
+
+### Fixed
+
+- **The in-app grid's missing cell rule under RTL.** Each day cell drew its column rule on the
+  *physical* trailing edge, but the reading-last cell is skipped so the grid keeps no outer border —
+  and that cell sits on the **left** in an RTL grid, so the skipped rule landed *inside* the grid and
+  left Thursday|Friday (a Saturday-first week's two leftmost cells) looking like one double-width
+  cell ("grid lines missing on Thursday/Friday, inconsistently").
+  New `GridDividerDirectionTest` renders both directions and fails on the old geometry.
+- **The event banner is permanently present**, and lists **every** observance the displayed month
+  holds, in day order, names only — no day numbers, which the report asked to stop attaching. While
+  the user pages through months it describes the month on screen; tapping a day **that carries an
+  observance** narrows the line to that one name, and tapping a day without one (or paging away from a
+  tapped day) keeps the month's list. It reads the month's **cells**, so it cannot disagree with the
+  filled cells in Pakistan or observed mode, and a month with none falls back to a localizable "no
+  event this month". `showEventBanner = false` restores the old behaviour.
+- **The bold red on a weekday is text, never a fill.** Days in the user's chosen weekend pattern
+  (Sunday, Friday+Sunday, …) keep the red *figure* in the in-app grid (`weekendDayContentColor`, the
+  theme's `error`) and on the grid widget (`widget_weekend_text`); nothing is drawn behind them. A
+  fill was tried in this round and reported back: the grid's one fill has to mean "observance", and a
+  weekend is a day the user does not work rather than a second kind of observance.
+- Observance cells and the event banner are **not red** at all: back to the quiet
+  `secondaryContainer` wash with `onSecondaryContainer` content in-app, and the accent wash
+  (`widget_event_day_background`) on the widget. An observance can fall on a working day, so red there
+  carried no information.
+- The event banner's container is the quiet wash at 50% opacity, matching the observance cell above it.
+
+### Changed
+
+- **A single-date cell's figure is bold.** `HIJRI_ONLY` and `GREGORIAN_ONLY` draw the one date they
+  were asked for at `ExtraBold` (`CellFigureWeight`), the same weight the `BOTH` primary line uses; they
+  had been left at `bodyMedium`'s own weight, so a one-date grid read lighter than the two-line one
+  beside it. Under `BOTH` **only** the primary line is emphasized — the sub-line keeps `labelSmall`'s
+  own weight, because two lines at one weight read as two primary values. Pinned by
+  `DayCellFigureWeightTest`, which measures the painted ink of the cell against a regular and a bold
+  reference: no other test can see a `fontWeight`, since semantics expose a `Text`'s string only.
+- **Under `BOTH`, the primary date is bigger and bolder**: `bodyMedium` at `ExtraBold` instead of
+  `bodySmall` at `Bold`, with stated line boxes (18sp + 14sp) so the two-line stack still totals the
+  32sp the fixed 48dp cell was sized for at `BothModeMaxFontScale`.
+- The grid widget's weekend treatment is unchanged in *meaning* — `widget_weekend_text` on the figure,
+  no fill — and `dayCellTone` still puts an observance above a weekend, so an event on a Friday shows
+  the event wash and is named by the footer.
+- The sample app gains a primary-date selector (`Both` only), a **Fri+Sun** weekend chip, and a
+  persisted **"Apply these settings to widgets automatically"** toggle (default on) with a "Sync now"
+  action that ignores it. The toggle is what makes the mirror's override of individually-configured
+  widgets something the user chose; the settings it writes now include weekend, adjacent days, cell
+  dividers, the date-in-cell mode and the primary date, not only the calendar source.
+- **The sample app renders in light *and* dark**, switchable in the app bar (`System` / `Light` /
+  `Dark`, persisted app-wide). Every screen used to be wrapped in a bare `MaterialTheme { }` — which is
+  Material's light scheme whatever the device says — so `HijriCalendarColors`, all of it derived from
+  `MaterialTheme.colorScheme`, could never be seen in a dark palette on this app. The scheme is the
+  plain `lightColorScheme()`/`darkColorScheme()` pair and **not** dynamic (wallpaper) colour, so two
+  screenshots of the same month stay comparable. The status-bar icons follow the *chosen* mode rather
+  than the device's, and the widget settings form regained the window insets Android 15+ stopped
+  granting it (its title had been drawing under the status bar).
+
 ## 2.3.2 - 2026-10-19
 
 ### Changed

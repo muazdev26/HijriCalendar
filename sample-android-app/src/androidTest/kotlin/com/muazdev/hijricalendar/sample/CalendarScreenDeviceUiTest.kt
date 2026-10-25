@@ -21,13 +21,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
-import com.muazdev.hijricalendar.ui.DateDisplayMode
+import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.todayHijriDate
 import com.muazdev.hijricalendar.shared.CalendarScreen
 import com.muazdev.hijricalendar.shared.UrduCalendarLabels
+import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
 import kotlinx.datetime.DateTimeUnit
@@ -39,16 +40,17 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private val englishHijriMonths = listOf(
-    "Muharram", "Safar", "Rabi al-Awwal", "Rabi al-Thani",
-    "Jumada al-Ula", "Jumada al-Akhirah", "Rajab", "Shaban",
-    "Ramadan", "Shawwal", "Dhu al-Qadah", "Dhu al-Hijjah",
-)
-
-private val englishGregorianMonths = listOf(
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-)
+/**
+ * The month names come from the library, not from a local copy.
+ *
+ * They *were* local copies, and the copy drifted: it spelled `"Jumada al-Ula"` where
+ * [CalendarNames.englishHijriMonths] says `"Jumada al-ula"`, so `jumpToToday…` could only pass in a
+ * month whose spelling happened to match. Reading the same list the header is built from is the
+ * only version of this that cannot rot — it is also why the assertion is a *header* description
+ * rather than a rewritten string.
+ */
+private val englishHijriMonths = CalendarNames.englishHijriMonths
+private val englishGregorianMonths = CalendarNames.englishGregorianMonths
 
 /**
  * On-device (instrumented) UI verification of the full calendar surface the app ships:
@@ -121,7 +123,15 @@ class CalendarScreenDeviceUiTest {
     @Composable
     private fun CalendarApp(labels: HijriCalendarLabels) {
         MaterialTheme {
-            val state = rememberHijriCalendarState(HijrahYearMonth(1447, 9))
+            val state = rememberHijriCalendarState(
+                initialMonth = HijrahYearMonth(1447, 9),
+                // The grid always lays out 6 x 7 slots, but a neighbouring month's slot is drawn
+                // **blank** unless adjacent days are on — and a blank cell carries no content
+                // description, so the 42-cell assertion below could only count the in-month days.
+                // The sample app's own default is off (`HijriCalendarState.showAdjacentDays`), which
+                // is what made this suite look like it was failing on the grid.
+                showAdjacentDays = true,
+            )
             var displayMode by remember { mutableStateOf(DateDisplayMode.HIJRI_ONLY) }
             CalendarScreen(
                 state = state,

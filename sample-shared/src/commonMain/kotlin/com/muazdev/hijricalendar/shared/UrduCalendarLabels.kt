@@ -50,6 +50,16 @@ val UrduCalendarLabels = HijriCalendarLabels(
     // locale's decision.
     eventName = { event -> event.name(HijriEventLanguage.URDU) },
     eventBanner = { event, _ -> event.name(HijriEventLanguage.URDU) },
+    // The month's whole observance set, joined with the Urdu comma (U+060C). The day is no longer
+    // spelled out ("دن 10"): the report asked for the events alone, without the day attached, because
+    // the filled cells already say when. The separator is Urdu punctuation rather than the English
+    // middle dot, and the names stay in Urdu.
+    monthEventBanner = { events ->
+        events.joinToString("، ") { event -> event.name(HijriEventLanguage.URDU) }
+    },
+    // The bar is permanently present, so a month with no observance still needs a line: silence on
+    // most Hijri months is the behaviour this replaced.
+    noEventBanner = "اس ماہ کوئی تاریخی واقعہ نہیں",
 )
 
 /**

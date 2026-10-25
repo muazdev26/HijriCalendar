@@ -19,16 +19,19 @@ import kotlinx.serialization.json.JsonNames
  * A name-backed enum owned by this module cannot have that problem: reordering *these* entries
  * changes nothing, because the wire format stores the name.
  *
- * It is also the right *shape*, not merely the safe one. The realistic conventions are four, and a
+ * It is also the right *shape*, not merely the safe one. The realistic conventions are five, and a
  * `Set<WeekDay>` would permit all 127 subsets — including several nobody wants a calendar to shade.
  *
- * ## Why four and not "any two days"
+ * ## Why five and not "any two days"
  *
  * Every entry below corresponds to a convention with a real audience:
  *
  * - [FRIDAY_SATURDAY] — Pakistan and the Gulf. Also the library's historical behaviour, and the
  *   reason the report this came from read as a bug: it looks like "two red days" next to a Google
  *   Calendar that shows only Sunday. It was never wrong for the audience it was written for.
+ * - [FRIDAY_SUNDAY] — the two weekly holidays many users in the Gulf, Pakistan and South Asia
+ *   actually take: Friday for prayer and Sunday to match the Gregorian working week. Reported as
+ *   "I want Friday and Sunday, not Friday and Saturday".
  * - [SUNDAY] — most of the Christian world, and what a user comparing against Google Calendar expects.
  * - [FRIDAY_ONLY] — the Levant, and a user who works a Friday week-end.
  * - [NONE] — a secular or business calendar with no religious day off.
@@ -45,6 +48,15 @@ public enum class WeekendPattern {
     /** Pakistan and the Gulf. The library's default and its historical behaviour. */
     @JsonNames("FRIDAY_SAT", "ISLAMIC")
     FRIDAY_SATURDAY,
+
+    /**
+     * Friday and Sunday, which is the pair much of the Gulf and South Asia takes in practice.
+     *
+     * Added after `FRIDAY_SATURDAY`, and stored by name like every other entry, so an existing
+     * widget's stored value is unaffected.
+     */
+    @JsonNames("FRI_SUN", "FRIDAY_AND_SUNDAY")
+    FRIDAY_SUNDAY,
 
     /** Most of the Christian world. */
     @JsonNames("SUN")
@@ -69,6 +81,7 @@ public enum class WeekendPattern {
      */
     public fun toWeekDays(): Set<WeekDay> = when (this) {
         FRIDAY_SATURDAY -> WeekDay.WEEKEND_DAYS
+        FRIDAY_SUNDAY -> setOf(WeekDay.FRIDAY, WeekDay.SUNDAY)
         SUNDAY -> setOf(WeekDay.SUNDAY)
         FRIDAY_ONLY -> setOf(WeekDay.FRIDAY)
         NONE -> emptySet()
@@ -84,7 +97,7 @@ public enum class WeekendPattern {
      * about which days matter.
      */
     public companion object {
-        /** The pattern for [days], or `null` when it is not one of the four. */
+        /** The pattern for [days], or `null` when it is not one of the five. */
         public fun of(days: Set<WeekDay>): WeekendPattern? =
             entries.firstOrNull { it.toWeekDays() == days }
     }

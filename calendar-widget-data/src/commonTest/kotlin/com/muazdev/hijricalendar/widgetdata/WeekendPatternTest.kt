@@ -67,13 +67,49 @@ class WeekendPatternTest {
     @Test
     fun eachPatternMapsToTheDaysItNames() {
         assertEquals(setOf(WeekDay.FRIDAY, WeekDay.SATURDAY), WeekendPattern.FRIDAY_SATURDAY.toWeekDays())
+        assertEquals(
+            setOf(WeekDay.FRIDAY, WeekDay.SUNDAY),
+            WeekendPattern.FRIDAY_SUNDAY.toWeekDays(),
+            "the reported pair: Friday for prayer and Sunday to match the Gregorian week",
+        )
         assertEquals(setOf(WeekDay.SUNDAY), WeekendPattern.SUNDAY.toWeekDays())
         assertEquals(setOf(WeekDay.FRIDAY), WeekendPattern.FRIDAY_ONLY.toWeekDays())
         assertTrue(WeekendPattern.NONE.toWeekDays().isEmpty())
     }
 
     /**
-     * The round trip through `WeekendPattern.of` is total for the four patterns and honest about the
+     * Friday+Sunday reaches the projected cells as exactly those two weekdays.
+     *
+     * The pairing is the point: it is not a superset of `FRIDAY_ONLY` plus "some other day", and a
+     * mapping that returned Friday and Saturday would still look plausible in a settings preview.
+     * Anchored on the cells' Gregorian weekday across the whole month, as elsewhere in this file,
+     * because the grid is pre-reversed for RTL.
+     */
+    @Test
+    fun fridayAndSundayShadesExactlyThoseTwoWeekdays() {
+        val options = createWidgetOptions(
+            language = WidgetLanguage.ENGLISH,
+            weekendPattern = WeekendPattern.FRIDAY_SUNDAY,
+        )
+        val month = assertNotNull(
+            buildHijriMonthWidgetData(hijriYear = 1447, hijriMonth = 9, options = options),
+            "no projection for 1447-09",
+        )
+
+        assertEquals(
+            setOf(WeekDay.FRIDAY, WeekDay.SUNDAY),
+            month.days.filter { it.isWeekend }.map { it.gregorianEpochDay.toWeekDay() }.toSet(),
+            "a Friday+Sunday pattern must shade exactly Friday and Sunday",
+        )
+        assertEquals(
+            WeekDay.entries.toSet(),
+            month.days.map { it.gregorianEpochDay.toWeekDay() }.toSet(),
+            "the fixture month must contain every weekday, or the assertion above is vacuous",
+        )
+    }
+
+    /**
+     * The round trip through `WeekendPattern.of` is total for the five patterns and honest about the
      * rest.
      *
      * `of` returns `null` for an unrecognised set rather than falling back to `FRIDAY_SATURDAY`. That
@@ -92,7 +128,7 @@ class WeekendPatternTest {
         }
         assertNull(
             WeekendPattern.of(setOf(WeekDay.SUNDAY, WeekDay.SATURDAY)),
-            "a Saturday-Sunday weekend is deliberately not one of the four; of() must say so rather " +
+            "a Saturday-Sunday weekend is deliberately not one of the five; of() must say so rather " +
                 "than pick a near miss",
         )
         assertNull(WeekendPattern.of(WeekDay.entries.toSet()))

@@ -3,19 +3,18 @@ package com.muazdev.hijricalendar.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
-import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
-import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.WeekDay
-import com.muazdev.hijricalendar.core.todayHijriDate
 import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
 import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
 
@@ -49,6 +48,9 @@ import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as core
  * @param state The state holder. Owns the current month, the selection, the calendar space and the
  *   bounds; see [HijriCalendarState].
  * @param dateDisplayMode How much of a date each cell draws. Does not affect cell size.
+ * @param primaryDate Which of the two dates is the top, **bold** line when [dateDisplayMode] is
+ *   [DateDisplayMode.BOTH]. A single-figure mode already says which date is primary, so this is
+ *   ignored there. See [PrimaryDate].
  * @param dayCellSize The fixed cell size. Defaults to
  *   [HijriCalendarDefaults.SingleLineCellSize] and does not change with the font scale.
  * @param onDayClick Invoked with the tapped cell. The state is **not** updated for you: call
@@ -62,6 +64,12 @@ import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as core
  * @param ignoreFontScale Renders at a flat text size, ignoring the system accessibility font scale.
  *   `false` by default; see the class KDoc for why that default changed.
  * @param labels All user-visible text. Build it once and hold it — it is used as a `remember` key.
+ * @param showEventBanner Whether the observances bar below the grid is drawn. `true` — the default —
+ *   keeps it **permanently present**. It lists **every** observance the shown month holds while the
+ *   user pages through months — names only, no day numbers — and narrows to the tapped day's single
+ *   observance once a day that carries one is selected. With neither it falls back to
+ *   [HijriCalendarLabels.noEventBanner]. Set `false` to draw no bar at all, or supply empty banner
+ *   labels to keep the bar but hide the cases you do not want.
  */
 // Suppressed rather than satisfied: the function's job is to resolve the header's strings from the
 // state and hand them to the header, and every one of those resolutions needs a `remember` keyed on
@@ -75,6 +83,7 @@ public fun HijriCalendar(
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    primaryDate: PrimaryDate = PrimaryDate.HIJRI,
     dayCellSize: Dp? = null,
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
@@ -83,6 +92,7 @@ public fun HijriCalendar(
      */
     header: (@Composable () -> Unit)? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
+    showEventBanner: Boolean = true,
     /**
      * Renders the calendar at a flat text size, ignoring the system accessibility font scale.
      *
@@ -134,59 +144,38 @@ public fun HijriCalendar(
         labels.gregorianMonthRangeLabel(range.first, range.last)
     }
 
-    // Whether the selection is today itself, which is all `isToday` means for a banner. Compared
-    // against the shared `todayHijriDate` rather than by building the month and reading `isToday` off
-    // a cell: a header must not force 42 cells to be built for a string, and `isToday` on a cell is
-    // defined by exactly this comparison.
-    val selectionIsToday = remember(state.selectedDate, state.adjustmentDays) {
-        val selected = state.selectedDate ?: return@remember false
-        todayHijriDate(state.adjustmentDays) == selected
-    }
+    // The month's own cells, which is what the banner below is resolved from — see [monthEvents] for
+    // why the *cells* and not `HijriEvents.forMonth`: they carry the router's answer (Pakistan >
+    // observed > Umm al-Qura), so the bar and the filled cells can never name different days, and a
+    // padded neighbouring-month cell is excluded by `isCurrentMonth`.
+    //
+    // A `derivedStateOf` keyed on `state`, not a `remember` key list. The list would be a
+    // hand-maintained copy of HijriCalendarState's surface — the failure mode UI-01 described — and
+    // this way any snapshot read inside `calendarMonth` re-derives the cells. Reading it here is also
+    // what subscribes this scope to the state's month, which is why the old `monthSubscription`
+    // no-op is gone: the header's own remember keys do not cover an override-table change, and
+    // without a read at this level a month whose length the user edited would keep naming the
+    // previous observance.
+    val bannerDays by remember(state) { derivedStateOf { state.calendarMonth.days } }
 
-    // The observance on the selected day, if any (FD-08).
-    //
-    // Resolved from the *selected* cell rather than from `CalendarDay.event` on the grid, because the
-    // grid builds a month at a time and the selection may live in a month the grid has not built. The
-    // lookup goes through the state's own routing order — Pakistan, then observed, then Umm al-Qura —
-    // so the banner cannot name a different observance than the cell it describes.
-    //
-    // Gated on the selection belonging to the *displayed* month. Navigating away leaves the selection
-    // intact — navigating back still highlights the day — but the header describes `currentMonth`, so
-    // naming another month's observance here reads as though this month carried it.
-    val selectionMonth = state.selectedPakistanDate?.let { HijrahYearMonth(it.year, it.month) }
-        ?: state.selectedObservedDate?.let { HijrahYearMonth(it.year, it.month) }
-        ?: state.selectedDate?.yearMonth
-    val selectedEvent = remember(
-        state.selectedDate,
-        state.selectedPakistanDate,
-        state.selectedObservedDate,
-        state.pakistanDates,
-        currentMonth,
-        labels,
-    ) {
-        val month = state.selectedPakistanDate?.month
-            ?: state.selectedObservedDate?.month
-            ?: state.selectedDate?.month?.number
-        val day = state.selectedPakistanDate?.day
-            ?: state.selectedObservedDate?.day
-            ?: state.selectedDate?.day
-        if (selectionMonth != currentMonth || month == null || day == null) {
-            null
-        } else {
-            HijriEvents.forDate(month, day)
+    // What the bar shows: the month's whole observance list, or — once a day has been tapped and that
+    // day carries one — just that observance. Pure and separately tested (`MonthEventListTest`); this
+    // composable only decides how to phrase the list. See [eventBannerEvents] for why the two states
+    // answer different questions.
+    val bannerEvents = remember(bannerDays) { eventBannerEvents(bannerDays) }
+
+    // The banner is **always** drawn, which is the point of the field: it lists the month's whole
+    // observance set, names only — the filled cells already answer *when* — and the empty-month label
+    // when there are none. It used to render only for a tapped observance, so on most months the
+    // "historical events" line simply was not there; naming a single day then made it read as a
+    // footnote to a tap rather than as the month's description.
+    val eventBannerText = remember(bannerEvents, labels, showEventBanner) {
+        when {
+            !showEventBanner -> null
+            bannerEvents.isEmpty() -> labels.noEventBanner.takeIf { it.isNotEmpty() }
+            else -> labels.monthEventBanner(bannerEvents).takeIf { it.isNotEmpty() }
         }
     }
-
-    // A read whose only job is to subscribe this scope to the state's derived month, which is why it
-    // is a `val` and not a bare expression. HijriCalendarGrid builds each page through
-    // HijriCalendarState.calendarMonthFor — the one definition of how a month becomes cells — and each
-    // page derives its own, so nothing below needs the built month. What this buys is invalidation of
-    // the whole calendar subtree when the current month's identity or its override table changes,
-    // which the header's own remember keys do not fully cover.
-    //
-    // Do not delete it, or this scope stops observing the state. The suppression is for that reason.
-    @Suppress("UNUSED_VARIABLE")
-    val monthSubscription = state.calendarMonth
 
     // ── font scaling ───────────────────────────────────────────────────
     //
@@ -237,21 +226,15 @@ public fun HijriCalendar(
             colors = colors,
             useArabicIndicNumerals = useArabicIndicNumerals,
             dateDisplayMode = dateDisplayMode,
+            primaryDate = primaryDate,
             dayCellSize = dayCellSize,
             dayContent = dayContent,
             labels = labels,
         )
     }
 
-    // The observance on the selected day, below the grid rather than in the header (FD-08 feedback).
-    // Resolved once here so the banner and the cell that carries the selection cannot name different
-    // events; `selectedEvent` is already gated on the selection living in `currentMonth`.
-    val eventBannerText = remember(selectedEvent, selectionIsToday, labels) {
-        selectedEvent?.let { labels.eventBanner(it, selectionIsToday) }?.takeIf { it.isNotEmpty() }
-    }
-
     val eventBanner: @Composable () -> Unit = {
-        eventBannerText?.let { HijriCalendarEventBanner(text = it, colors = colors) }
+        HijriCalendarEventBanner(text = eventBannerText, colors = colors)
     }
 
     Column(modifier = modifier) {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The platform theme is only a window shell: every pixel on screen is drawn by
+         HijriSampleTheme, whose palette is switchable in the app bar. What the platform theme
+         still owns is the window background (the frame before Compose draws) and the status/nav
+         bar colours, both of which are set per chosen mode from MainActivity. -->
+    <style name="Theme.HijriSample" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/sample_window_background</item>
+    </style>
+</resources>

@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 /**
  * One notable date on the Hijri calendar, with its name in the two languages the library ships.
  *
- * ## ⚠️ Six of these nine are wrong for most South Asian Muslims, and deliberately ship anyway
+ * ## ⚠️ Six of these ten are wrong for most South Asian Muslims, and deliberately ship anyway
  *
  * In Pakistan and India, **Eid al-Fitr, Eid al-Adha and both days of Ashura are fixed to a Gregorian
  * date**, not to a Hijri one. Eid al-Adha in 2026 is the 27th of May whatever 10 Dhu al-Hijjah 1447
@@ -28,7 +28,10 @@ import kotlinx.serialization.Serializable
  * the honest expression of that.
  *
  * Islamic New Year, Isra and Mi'raj and Shab-e-Barat are Hijri-fixed everywhere. They are the reason
- * this table exists at all.
+ * this table exists at all. The **first of Ramadan** is here for a related reason: it is not an
+ * observance in the usual sense — there is no act attached to the day — but a month the reader counts
+ * by needs to be named on the day it starts, and a calendar that marked every other month's first day
+ * and not this one looked like it had forgotten Ramadan.
  *
  * @property month the Hijri month, 1-12.
  * @property day the Hijri day of [month].
@@ -79,8 +82,8 @@ public enum class HijriEventLanguage {
  * The curated table of notable Hijri dates, and the lookup a renderer needs.
  *
  * **Static and hand-written on purpose.** `calendar-core` is coroutine-free and dependency-light, and
- * this is a fixed table of nine entries — a resource file, a database or a network fetch would each
- * add a dependency and a failure mode to answer a question with nine strings in it. `HijrahDate` is
+ * this is a fixed table of ten entries — a resource file, a database or a network fetch would each
+ * add a dependency and a failure mode to answer a question with ten strings in it. `HijrahDate` is
  * already serialised by `calendar-core` (see [ObservedHijriDate]), so [HijriEvent] follows it.
  *
  * Matching is on the **Hijri coordinate only**, and the Gregorian-fixed observances are marked
@@ -145,6 +148,19 @@ public object HijriEvents {
             nameUr = "شب برات",
         ),
         HijriEvent(
+            // The first of Ramadan, named after the month itself. It is the one entry here that is a
+            // *period* rather than an act: a reader of the calendar needs to see the month begin, and
+            // the grid's other first days (Muharram's New Year) already answer that question.
+            //
+            // Month **9**, not 10: Eid al-Fitr is the *first of the next month*, and the bug that put
+            // it here is recorded below on that entry.
+            month = 9,
+            day = 1,
+            key = "ramadan",
+            nameEn = "Ramadan",
+            nameUr = "رمضان",
+        ),
+        HijriEvent(
             // Shawwal is month **10**: 9 is Ramadan. This was wrong in the first version of the table,
             // which put Eid al-Fitr on the 1st of Ramadan — and the table is looked up by `(month, day)`
             // alone, so the error was invisible to every test that did not compare against the month
@@ -206,6 +222,7 @@ public object HijriEvents {
         "mawlid" to 3, // Rabi' al-awwal
         "isra_and_miraj" to 7, // Rajab
         "shab_e_barat" to 8, // Sha'ban
+        "ramadan" to 9, // Ramadan — the month's first day, named after the month itself
         "eid_al_fitr" to 10, // Shawwal — **not** 9, which is Ramadan
         "day_of_arafah" to 12, // Dhu al-Hijjah
         "eid_al_adha" to 12, // Dhu al-Hijjah

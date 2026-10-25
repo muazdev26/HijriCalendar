@@ -80,13 +80,54 @@ public data class HijriCalendarLabels(
     val eventName: (HijriEvent) -> String = { it.nameEn },
 
     /**
-     * A suffix for a date that carries an observance — a "Today is Ashura" line under the header.
+     * A suffix for a date that carries an observance — the line under the grid (FD-08).
      *
      * A function rather than a string because the *placement* of it is a locale's business too: Urdu
-     * may want it on its own line under the header and English inline. Returning `""` renders nothing,
-     * which is how a host opts out entirely.
+     * may want it on its own line under the header and English inline. Returning `""` renders nothing.
+     *
+     * **No longer called by [HijriCalendar]'s banner**, which names the month's whole observance list
+     * through [monthEventBanner]. Kept because it is published API and a host's own header or
+     * selected-day card can still phrase a single observance's day this way; a locale that overrides
+     * it for that purpose should override [monthEventBanner] too, since the two now answer different
+     * questions.
      */
     val eventBanner: (HijriEvent, isToday: Boolean) -> String = { event, _ -> eventName(event) },
+
+    /**
+     * The line the banner shows: **every** observance the displayed month holds, in calendar order —
+     * or, once a day that carries an observance has been tapped, that **one** observance.
+     *
+     * Takes the whole list rather than one event because the bar is permanently present: while the
+     * user pages through months it is the calendar's only opportunity to say what the month *is*, and
+     * one nearest event left the rest of the month's history unsaid. The tap narrows it to a list of
+     * one — so an implementation needs no second entry point, and a locale that styles or joins the
+     * names styles the tapped day the same way.
+     *
+     * It no longer attaches the day to the name ("Ashura · Day 10"): the filled cells already answer
+     * *when*, while a day number in a single line made the bar read as a footnote on a date the user
+     * had not asked about.
+     *
+     * The default joins [eventName] with a middle dot, and never returns an empty string for a
+     * non-empty list. [noEventBanner] covers the month that holds none. A locale owns the separator
+     * and any conjunction it wants, which is why this is a lambda rather than a `List` and a constant
+     * glue string.
+     */
+    val monthEventBanner: (List<HijriEvent>) -> String = { events ->
+        events.joinToString(" · ") { eventName(it) }
+    },
+
+    /**
+     * The banner's text for a month that holds no observance at all.
+     *
+     * **Non-empty by default**, which is what makes the bar permanently present: the report asked for
+     * an always-visible historical-events line, and a bar that disappears on most Hijri months is the
+     * thing it was reporting. The line is reserved rather than removed for the same reason the
+     * widget's footer reserves one — a bar that comes and goes moves the calendar under the user's
+     * finger.
+     *
+     * Return `""` to draw nothing when the month is empty.
+     */
+    val noEventBanner: String = "No historical event this month",
 
     /** A Gregorian [year] with its era appended, or bare when [gregorianEra] is empty. */
     val gregorianYearWithEra: (year: Int) -> String = { year ->

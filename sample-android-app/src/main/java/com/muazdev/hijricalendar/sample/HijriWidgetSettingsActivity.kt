@@ -8,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,11 +19,11 @@ import androidx.glance.GlanceId
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetConfig
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefresher
+import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 
 /**
  * Base for every per-widget configuration activity owned by the sample app. The library ships no
@@ -62,11 +61,15 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // The bar icons must match the *chosen* palette, not the device's; the settings screen is a
+        // bare Surface with no Scaffold, so it also takes its own insets (see the screen composable).
+        applySampleSystemBars(SampleThemeStore.read(this))
+
         // A dismiss (back) is a valid completion: settings were already applied on touch.
         onBackPressedDispatcher.addCallback(this) { finishWithResult() }
 
         setContent {
-            MaterialTheme {
+            HijriSampleTheme(SampleThemeStore.read(this)) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // The stored options live in Glance's preferences state store and are read
                     // asynchronously; hold a null "not loaded yet" slot until the config has been read.

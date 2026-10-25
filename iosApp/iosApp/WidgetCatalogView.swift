@@ -63,9 +63,10 @@ struct WidgetCatalogView: View {
     /// `showCellBorders` are round-tripped the same way: `createWidgetOptions` exposes no Kotlin
     /// default arguments to Swift, so they must be passed, and this screen offers no controls for
     /// them (iOS does not yet paint weekends, so a picker would change nothing visible).
-    /// `theme` and `dateDisplayMode` join that list for the same reason — both are Android-renderer
-    /// features the iOS extension does not read yet, and dropping them here would wipe a value an
-    /// Android-oriented build of the shared schema had stored.
+    /// `theme`, `dateDisplayMode` and `datePrimary` join that list for the same reason — all three
+    /// are Android-renderer features the iOS extension does not read yet (it prints the two dates
+    /// in a fixed order), and dropping them here would wipe a value an Android-oriented build of
+    /// the shared schema had stored.
     private var edited: WidgetOptions {
         let stored = HijriShared.loadOptions()
         return WidgetOptionsKt.createWidgetOptions(
@@ -85,7 +86,8 @@ struct WidgetCatalogView: View {
             weekendPattern: stored.weekendPattern,
             showCellBorders: stored.showCellBorders,
             theme: stored.theme,
-            dateDisplayMode: stored.dateDisplayMode
+            dateDisplayMode: stored.dateDisplayMode,
+            datePrimary: stored.datePrimary
         )
     }
 

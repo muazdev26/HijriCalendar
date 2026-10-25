@@ -2,6 +2,7 @@ package com.muazdev.hijricalendar.widget.glance
 
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.WidgetDateDisplayMode
+import com.muazdev.hijricalendar.widgetdata.WidgetDatePrimary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -31,14 +32,14 @@ class DayCellFiguresTest {
     fun bothDrawsTheHijriFigureOverTheGregorianOne() {
         val figures = dayCellFigures(cell, WidgetDateDisplayMode.BOTH)
         assertEquals("13", figures.main)
-        assertEquals("30", figures.gregorianSub)
+        assertEquals("30", figures.sub)
     }
 
     @Test
     fun hijriOnlyDropsTheGregorianLine() {
         val figures = dayCellFigures(cell, WidgetDateDisplayMode.HIJRI_ONLY)
         assertEquals("13", figures.main)
-        assertNull(figures.gregorianSub)
+        assertNull(figures.sub)
     }
 
     @Test
@@ -47,7 +48,34 @@ class DayCellFiguresTest {
         // digit left over from hiding the Hijri one. The size and colour follow from being `main`.
         val figures = dayCellFigures(cell, WidgetDateDisplayMode.GREGORIAN_ONLY)
         assertEquals("30", figures.main)
-        assertNull(figures.gregorianSub)
+        assertNull(figures.sub)
+    }
+
+    @Test
+    fun bothWithGregorianPrimarySwapsTheTwoFigures() {
+        // `datePrimary` moves the *hero position*, so the two strings exchange places rather than the
+        // Gregorian day becoming the small line and the Hijri day staying where it was.
+        val figures = dayCellFigures(
+            cell,
+            WidgetDateDisplayMode.BOTH,
+            WidgetDatePrimary.GREGORIAN,
+        )
+        assertEquals("30", figures.main)
+        assertEquals("13", figures.sub)
+    }
+
+    @Test
+    fun aSingleFigureModeIgnoresThePrimary() {
+        // The mode has already answered "which date is primary", so a stored GREGORIAN primary must
+        // not resurrect a second line in HIJRI_ONLY or turn GREGORIAN_ONLY's hero back into the Hijri
+        // day. A renderer that read the field there would make `dateDisplayMode` behave differently
+        // depending on a setting the user cannot see in that mode.
+        for (mode in listOf(WidgetDateDisplayMode.HIJRI_ONLY, WidgetDateDisplayMode.GREGORIAN_ONLY)) {
+            assertEquals(
+                dayCellFigures(cell, mode, WidgetDatePrimary.HIJRI),
+                dayCellFigures(cell, mode, WidgetDatePrimary.GREGORIAN),
+            )
+        }
     }
 
     @Test
@@ -57,7 +85,7 @@ class DayCellFiguresTest {
         // having is that out-of-month cells resolve the same way.
         val adjacent = cell.copy(isCurrentMonth = false, dayText = "29", gregorianDayText = "28")
         assertEquals(
-            DayCellFigures(main = "29", gregorianSub = "28"),
+            DayCellFigures(main = "29", sub = "28"),
             dayCellFigures(adjacent, WidgetDateDisplayMode.BOTH),
         )
     }

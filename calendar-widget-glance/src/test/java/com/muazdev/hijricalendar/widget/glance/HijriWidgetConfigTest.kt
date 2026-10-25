@@ -7,6 +7,7 @@ import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
+import com.muazdev.hijricalendar.widgetdata.WidgetDatePrimary
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetOptionsJson
@@ -83,6 +84,7 @@ class HijriWidgetConfigTest {
             showAdjacentDays = true,
             weekendPattern = WeekendPattern.SUNDAY,
             showCellBorders = true,
+            datePrimary = WidgetDatePrimary.GREGORIAN,
         )
         val restored = HijriWidgetConfig.widgetOptionsSaver().roundTrip(options)
 
@@ -118,6 +120,7 @@ class HijriWidgetConfigTest {
             if (options.showCellBorders == restored.showCellBorders) add("showCellBorders")
             if (options.theme == restored.theme) add("theme")
             if (options.dateDisplayMode == restored.dateDisplayMode) add("dateDisplayMode")
+            if (options.datePrimary == restored.datePrimary) add("datePrimary")
         }
         return surviving
     }

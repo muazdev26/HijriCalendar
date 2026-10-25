@@ -64,6 +64,7 @@ import com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData
 import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetDateDisplayMode
+import com.muazdev.hijricalendar.widgetdata.WidgetDatePrimary
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -208,6 +209,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
                 dateDisplayMode = data.dateDisplayMode,
+                datePrimary = data.datePrimary,
                 selectedDay = selectedDay,
                 isLoading = isLoading,
                 // Resolved here, where the options live: the footer must name an observance in the
@@ -249,6 +251,7 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
                 dateDisplayMode = data.dateDisplayMode,
+                datePrimary = data.datePrimary,
                 selectedDay = null,
                 isLoading = false,
                 selectedEventName = null,
@@ -300,6 +303,13 @@ internal data class HijriWidgetRenderData(
      * options configured rather than re-reading them at compose time.
      */
     val dateDisplayMode: WidgetDateDisplayMode,
+    /**
+     * Which of the two figures is the top, bold line under `dateDisplayMode = BOTH`
+     * ([WidgetOptions.datePrimary]). Carried here for the same reason [dateDisplayMode] is: the
+     * renderer paints what the options configured rather than re-reading them mid-compose, and the
+     * projection's cells are identical either way so it cannot be a render-cache key.
+     */
+    val datePrimary: WidgetDatePrimary,
     /**
      * The day the user tapped, or `null` (FD-09). Read from the same reactive preferences snapshot as
      * the viewed month, so a tap and the render it triggers cannot disagree about what is selected —
@@ -615,6 +625,7 @@ internal object HijriWidgetRenderCache {
             showAdjacentDays = options.showAdjacentDays,
             showCellBorders = options.showCellBorders,
             dateDisplayMode = options.dateDisplayMode,
+            datePrimary = options.datePrimary,
             selectedDay = null,
         )
     }
@@ -870,6 +881,8 @@ internal fun HijriWidgetRoot(
     showCellBorders: Boolean,
     /** Which figures each grid cell paints. Grid-only — see [WidgetOptions.dateDisplayMode]. */
     dateDisplayMode: WidgetDateDisplayMode,
+    /** Which of the two is the top, bold line under `BOTH`. See [WidgetOptions.datePrimary]. */
+    datePrimary: WidgetDatePrimary,
     selectedDay: HijriDaySelection?,
     /**
      * Whether a month step is in flight.
@@ -926,6 +939,7 @@ internal fun HijriWidgetRoot(
                 showAdjacentDays = showAdjacentDays,
                 showCellBorders = showCellBorders,
                 dateDisplayMode = dateDisplayMode,
+                datePrimary = datePrimary,
                 selectedDay = selectedDay,
                 isLoading = isLoading,
                 selectedEventName = selectedEventName,
@@ -1207,6 +1221,7 @@ private fun MonthGrid(
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
     dateDisplayMode: WidgetDateDisplayMode,
+    datePrimary: WidgetDatePrimary,
     selectedDay: HijriDaySelection?,
     isLoading: Boolean,
     selectedEventName: String?,
@@ -1217,8 +1232,8 @@ private fun MonthGrid(
     // One measurement for the whole grid, so every cell resolves the same sizes from the same number
     // rather than each re-deriving from its own slot.
     val cellSize = LocalSize.current.width / CalendarMonth.DAYS_IN_WEEK
-    val hijriSize = GridTypography.hijriSizeSp(cellSize.value).sp
-    val gregorianSize = GridTypography.gregorianSizeSp(cellSize.value).sp
+    val mainSize = GridTypography.hijriSizeSp(cellSize.value).sp
+    val subSize = GridTypography.gregorianSizeSp(cellSize.value).sp
     // The header's own width tier, not the cell's: this row is chrome, sized with the title lines it
     // sits under rather than with the cells it labels.
     val weekdaySize = GridHeaderTypography.weekdaySp(LocalSize.current.width.value).sp
@@ -1262,9 +1277,10 @@ private fun MonthGrid(
             showAdjacentDays = showAdjacentDays,
             showCellBorders = showCellBorders,
             dateDisplayMode = dateDisplayMode,
+            datePrimary = datePrimary,
             selectedDay = selectedDay,
-            hijriSize = hijriSize,
-            gregorianSize = gregorianSize,
+            mainSize = mainSize,
+            subSize = subSize,
             weekdaySize = weekdaySize,
             colors = colors,
             actions = actions,
@@ -1469,9 +1485,10 @@ private fun MonthDays(
     showAdjacentDays: Boolean,
     showCellBorders: Boolean,
     dateDisplayMode: WidgetDateDisplayMode,
+    datePrimary: WidgetDatePrimary,
     selectedDay: HijriDaySelection?,
-    hijriSize: TextUnit,
-    gregorianSize: TextUnit,
+    mainSize: TextUnit,
+    subSize: TextUnit,
     weekdaySize: TextUnit,
     colors: WidgetColors,
     actions: WidgetActions,
@@ -1522,8 +1539,9 @@ private fun MonthDays(
                             todayEpochDay = todayEpochDay,
                             colors = colors,
                             dateDisplayMode = dateDisplayMode,
-                            hijriSize = hijriSize,
-                            gregorianSize = gregorianSize,
+                            datePrimary = datePrimary,
+                            mainSize = mainSize,
+                            subSize = subSize,
                             // A rule after each column but the last (FD-04): one per column per row,
                             // not a border on all 42 cells, because Glance's cost is per view.
                             dividerAfter = showCellBorders && column < week.lastIndex,
@@ -2139,47 +2157,67 @@ private fun RowScope.BlankCell(dividerAfter: Boolean, colors: WidgetColors) {
  * another while both differ from BOTH.
  */
 internal data class DayCellFigures(
-    /** The cell's hero figure: the Hijri day, or the Gregorian one when that mode is selected. */
+    /**
+     * The cell's hero figure — the top line, in the hero size, weight and tone colour: the Hijri day,
+     * or the Gregorian one when that mode or that primary asks for it.
+     */
     val main: String,
-    /** The subordinate line under it, or `null` when the mode draws only one figure. */
-    val gregorianSub: String?,
+    /**
+     * The subordinate line under it, or `null` when the cell draws only one figure. Which *date* it is
+     * follows from [main]: it is the other one.
+     */
+    val sub: String?,
 )
 
 /**
- * [cell]'s figures under [dateDisplayMode].
+ * [cell]'s figures under [dateDisplayMode] and [datePrimary].
  *
- * GREGORIAN_ONLY promotes the Gregorian day to the hero rather than shrinking the Hijri one away — see
- * [DayFigures] for why the promoted figure also takes the hero colour and size.
+ * Three shapes, one per mode:
+ *
+ * - `GREGORIAN_ONLY` promotes the Gregorian day to the hero rather than shrinking the Hijri one away —
+ *   see [DayFigures] for why the promoted figure also takes the hero colour and size.
+ * - `HIJRI_ONLY` draws the Hijri day alone, whatever [datePrimary] says: a single-figure mode has
+ *   already answered "which date is primary".
+ * - `BOTH` draws both, and [datePrimary] decides **which is on top**. `HIJRI` is the library's
+ *   historical order and the default, so a stored widget that predates the option renders exactly as
+ *   it did.
  */
 internal fun dayCellFigures(
     cell: HijriDayWidgetData,
     dateDisplayMode: WidgetDateDisplayMode,
-): DayCellFigures = DayCellFigures(
-    main = if (dateDisplayMode == WidgetDateDisplayMode.GREGORIAN_ONLY) {
-        cell.gregorianDayText
+    datePrimary: WidgetDatePrimary = WidgetDatePrimary.HIJRI,
+): DayCellFigures = when (dateDisplayMode) {
+    WidgetDateDisplayMode.HIJRI_ONLY -> DayCellFigures(main = cell.dayText, sub = null)
+    WidgetDateDisplayMode.GREGORIAN_ONLY ->
+        DayCellFigures(main = cell.gregorianDayText, sub = null)
+    WidgetDateDisplayMode.BOTH -> if (datePrimary == WidgetDatePrimary.HIJRI) {
+        DayCellFigures(main = cell.dayText, sub = cell.gregorianDayText)
     } else {
-        cell.dayText
-    },
-    gregorianSub = cell.gregorianDayText
-        .takeIf { dateDisplayMode == WidgetDateDisplayMode.BOTH },
-)
+        DayCellFigures(main = cell.gregorianDayText, sub = cell.dayText)
+    }
+}
 
 /**
- * The figures inside a day cell: a main line, and — under [WidgetDateDisplayMode.BOTH] — the Gregorian
- * day beneath it.
+ * The figures inside a day cell: a main line and — under [WidgetDateDisplayMode.BOTH] — a second one
+ * beneath it.
  *
  * Extracted from `DayCell` for the same reason as [CellFill] — the composable was over detekt's
  * complexity threshold once the observance fill added branches — and because the two `Text` calls are
  * the only place in the widget where [GridCellWeights] is read, so keeping them together keeps that
  * relationship visible.
  *
- * ## How [dateDisplayMode] maps onto these two lines
+ * ## How [dateDisplayMode] and [datePrimary] map onto these two lines
  *
  * **One main line, always drawn at the hero size and in the hero colour; a second line only under
  * [WidgetDateDisplayMode.BOTH].** The main line is the cell's answer to "what day is it?" — the Hijri
  * figure by default, the Gregorian one when that mode asks for it — so [WidgetDateDisplayMode.GREGORIAN_ONLY]
  * is not the Gregorian digit rendered small and dim, which is what a "just hide the Hijri line" reading
  * would produce and which nobody asked for. It is the Gregorian figure taking the Hijri figure's place.
+ *
+ * [datePrimary] moves that same *hero position* between the two dates without changing either's style:
+ * with `GREGORIAN` the Gregorian figure takes the hero size, weight and colour and the Hijri figure
+ * becomes the sub-line. Swapping the two `Text`s' arguments instead — leaving the sizes alone — would
+ * make "primary" mean "the smaller line on top", which is the opposite of what it says.
  *
  * The colours come from the caller, which resolves them by the tone precedence (selected > today >
  * out-of-month > observance > weekend > regular) — see [dayCellTone]. So a Gregorian-only out-of-month
@@ -2190,14 +2228,17 @@ internal fun dayCellFigures(
 @Composable
 private fun DayFigures(
     cell: HijriDayWidgetData,
-    hijriColor: ColorProvider,
-    gregorianColor: ColorProvider,
-    hijriSize: TextUnit,
-    gregorianSize: TextUnit,
+    /** The hero line's colour: the tone the whole cell resolved to. */
+    mainColor: ColorProvider,
+    /** The subordinate line's colour; see the KDoc for why it is not the same tier. */
+    subColor: ColorProvider,
+    mainSize: TextUnit,
+    subSize: TextUnit,
     dateDisplayMode: WidgetDateDisplayMode,
+    datePrimary: WidgetDatePrimary,
 ) {
     val fonts = HijriWidgetFonts.default
-    val figures = dayCellFigures(cell, dateDisplayMode)
+    val figures = dayCellFigures(cell, dateDisplayMode, datePrimary)
     Column(
         modifier = GlanceModifier.fillMaxSize(),
         verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -2206,20 +2247,20 @@ private fun DayFigures(
         WidgetText(
             text = figures.main,
             style = TextStyle(
-                color = hijriColor,
-                fontSize = hijriSize,
+                color = mainColor,
+                fontSize = mainSize,
                 fontWeight = GridCellWeights.HIJRI_DAY,
                 fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
         )
-        figures.gregorianSub?.let { sub ->
+        figures.sub?.let { sub ->
             WidgetText(
                 text = sub,
                 style = TextStyle(
-                    color = gregorianColor,
-                    fontSize = gregorianSize,
+                    color = subColor,
+                    fontSize = subSize,
                     fontWeight = GridCellWeights.GREGORIAN_DAY,
                     fontFamily = fonts.dayNumber.toGlanceFontFamily(),
                     textAlign = TextAlign.Center,
@@ -2275,8 +2316,9 @@ private fun RowScope.DayCell(
     todayEpochDay: Long,
     colors: WidgetColors,
     dateDisplayMode: WidgetDateDisplayMode,
-    hijriSize: TextUnit,
-    gregorianSize: TextUnit,
+    datePrimary: WidgetDatePrimary,
+    mainSize: TextUnit,
+    subSize: TextUnit,
     dividerAfter: Boolean,
     cellHasDividers: Boolean,
     isSelected: Boolean,
@@ -2295,7 +2337,7 @@ private fun RowScope.DayCell(
     val isToday = cell.gregorianEpochDay == todayEpochDay
     val tone = dayCellTone(cell, isToday, isSelected)
 
-    val hijriColor = when (tone) {
+    val mainColor = when (tone) {
         DayCellTone.SELECTED -> colors.onTodayText
         DayCellTone.TODAY -> colors.accent
         DayCellTone.OUT_OF_MONTH -> colors.outOfMonthDay
@@ -2303,7 +2345,7 @@ private fun RowScope.DayCell(
         DayCellTone.WEEKEND -> colors.weekendText
         DayCellTone.REGULAR -> colors.primaryText
     }
-    val gregorianColor = when (tone) {
+    val subColor = when (tone) {
         DayCellTone.SELECTED -> colors.onTodayText
         DayCellTone.OUT_OF_MONTH -> colors.outOfMonthGregorianDay
         DayCellTone.EVENT -> colors.onEventDayText
@@ -2357,11 +2399,27 @@ private fun RowScope.DayCell(
                             .background(colors.background)
                             .then(if (cellHasDividers) GlanceModifier else GlanceModifier.cornerRadius(14.dp)),
                     ) {
-                        DayFigures(cell, hijriColor, gregorianColor, hijriSize, gregorianSize, dateDisplayMode)
+                        DayFigures(
+                            cell = cell,
+                            mainColor = mainColor,
+                            subColor = subColor,
+                            mainSize = mainSize,
+                            subSize = subSize,
+                            dateDisplayMode = dateDisplayMode,
+                            datePrimary = datePrimary,
+                        )
                     }
                 }
             } else {
-                DayFigures(cell, hijriColor, gregorianColor, hijriSize, gregorianSize, dateDisplayMode)
+                DayFigures(
+                    cell = cell,
+                    mainColor = mainColor,
+                    subColor = subColor,
+                    mainSize = mainSize,
+                    subSize = subSize,
+                    dateDisplayMode = dateDisplayMode,
+                    datePrimary = datePrimary,
+                )
             }
         }
         if (dividerAfter) CellDivider(colors.cellBorder)

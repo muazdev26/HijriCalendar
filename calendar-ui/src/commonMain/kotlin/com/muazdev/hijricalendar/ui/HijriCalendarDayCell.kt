@@ -22,9 +22,11 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.ui.util.clickableIfEnabled
 
@@ -38,7 +40,9 @@ import com.muazdev.hijricalendar.ui.util.clickableIfEnabled
  * @param day The cell to render. Its three nullable date slots are resolved by core; see
  *   [CalendarDay] for which slot is populated in which calendar space. A day carrying an observance is
  *   **filled** with [HijriCalendarColors.eventDayContainerColor] — not dotted — unless it is also
- *   selected, outside the month, or disabled.
+ *   selected, outside the month, or disabled. A weekend day is red **text**, never a fill: the colour
+ *   marks the day the user chose as a day off, and a filled cell would compete with the observance and
+ *   the selection.
  * @param onClick Invoked on tap. Ignored when [CalendarDay.isDisabled] — the cell renders with the
  *   disabled colours, exposes no `Role.Button`, registers no click action, and sets
  *   `SemanticsProperties.Disabled`.
@@ -63,6 +67,11 @@ public fun HijriCalendarDayCell(
     dayCellSize: Dp? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     content: (@Composable (CalendarDay) -> Unit)? = null,
+    /**
+     * Which date is the **top, bold** line under [DateDisplayMode.BOTH]. A single-figure mode
+     * already names its primary, so this only changes the two-line cell. See [PrimaryDate].
+     */
+    primaryDate: PrimaryDate = PrimaryDate.HIJRI,
     /**
      * Paints nothing at all: no day figure, no Gregorian gloss, no background, no border, no
      * content description and no click target.
@@ -166,7 +175,7 @@ public fun HijriCalendarDayCell(
         if (content != null) {
             content(day)
         } else {
-            CellText(dateDisplayMode, hijriText, gregorianText, style)
+            CellText(dateDisplayMode, hijriText, gregorianText, style, primaryDate)
         }
     }
 }
@@ -202,7 +211,7 @@ internal fun Int.toArabicIndicNumerals(): String {
  */
 internal data class DayCellStyle(
     val contentColor: Color,
-    val gregorianColor: Color,
+    val secondaryColor: Color,
     val backgroundColor: Color,
     val borderColor: Color,
     val borderWidth: Dp,
@@ -245,12 +254,16 @@ internal fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
     // communicated by a dimmed figure, and a fill on a day the month does not contain reads as a
     // second selection — worse than the dot it replaces. The observance is still named in the header
     // once such a day is selected.
+    //
+    // A **weekend** day is deliberately not filled at all: the user's chosen day off is marked by the
+    // figure's colour ([weekendDayContentColor]), because the one fill on the grid has to mean
+    // "observance" and a second fill would make the two marks compete.
     val observance = event != null && isCurrentMonth && !isDisabled
     val filled = observance && !isSelected
     val showTodayBorder = isToday && !isSelected && !observance
     return DayCellStyle(
         contentColor = contentColor(colors, observance),
-        gregorianColor = gregorianColor(colors, observance),
+        secondaryColor = secondaryColor(colors, observance),
         backgroundColor = when {
             isSelected -> colors.selectedDayContainerColor
             filled -> colors.eventDayContainerColor
@@ -288,14 +301,23 @@ private fun CalendarDay.contentColor(colors: HijriCalendarColors, observance: Bo
         else -> colors.dayContentColor
     }
 
-/** The Gregorian sub-label: the figure's colour, dimmed, for the states that dim the figure too. */
-private fun CalendarDay.gregorianColor(colors: HijriCalendarColors, observance: Boolean): Color =
-    when {
-        isSelected -> colors.selectedDayContentColor.copy(alpha = 0.7f)
-        !isCurrentMonth -> colors.outsideMonthDayContentColor.copy(alpha = 0.7f)
-        observance -> colors.eventDayContentColor.copy(alpha = 0.7f)
-        else -> colors.gregorianDayContentColor
-    }
+/**
+ * The colour of the cell's **second** line — the dimmed gloss, whichever date that is.
+ *
+ * Under [PrimaryDate.GREGORIAN] the second line is the Hijri figure, so this is not a
+ * "Gregorian" colour even though [HijriCalendarColors.gregorianDayContentColor] is where the ordinary
+ * case comes from.
+ */
+private fun CalendarDay.secondaryColor(
+    colors: HijriCalendarColors,
+    observance: Boolean,
+): Color = when {
+    isSelected -> colors.selectedDayContentColor.copy(alpha = 0.7f)
+    !isCurrentMonth -> colors.outsideMonthDayContentColor.copy(alpha = 0.7f)
+    observance -> colors.eventDayContentColor.copy(alpha = 0.7f)
+    isWeekend -> colors.weekendDayContentColor.copy(alpha = 0.7f)
+    else -> colors.gregorianDayContentColor
+}
 
 /** Renders [value] with Arabic-Indic digits when [useArabicIndicNumerals], else Western. */
 private fun Int.toArabicIndicNumeralsOrWestern(useArabicIndicNumerals: Boolean): String =
@@ -308,9 +330,28 @@ private fun Int.toArabicIndicNumeralsOrWestern(useArabicIndicNumerals: Boolean):
  * is about *which dates are drawn*. The three `Text` calls were near-identical and the duplication
  * is where a style change would have been applied to two of the three.
  *
- * `HIJRI_ONLY` uses `bodyMedium` at the full content colour; `BOTH` uses `bodySmall` over
- * `labelSmall`, because two lines have to share one fixed-size cell — see
- * [HijriCalendarDefaults.SingleLineCellSize] for why that cell is 48dp.
+ * `HIJRI_ONLY` and `GREGORIAN_ONLY` draw **one** figure and it is the cell's whole answer, so it is
+ * emphasized: `bodyMedium` at [CellFigureWeight]. A single date used to sit at the type's own weight,
+ * which made a one-date grid read lighter than the two-line one beside it — the same day, drawn with
+ * less authority, only because the mode had nothing to put under it.
+ *
+ * `BOTH` uses a full-size `bodyMedium` primary line at the same [CellFigureWeight] over a `labelSmall`
+ * sub-line left at its type's own weight, because two lines have to share one fixed-size cell — see
+ * [HijriCalendarDefaults.SingleLineCellSize] for why that cell is 48dp. **Only the primary line is
+ * emphasized**: the second line answering at the same weight is what made two dates read as two
+ * primary values, and it was reported as such.
+ *
+ * Under `BOTH`, [primaryDate] decides *which* date takes the top line. That line is **bigger and
+ * heavier** than the one under it — where an earlier round used `bodySmall` at `Bold` — because two
+ * lines set one size apart were reported as not reading as primary, secondary. HIJRI_ONLY and
+ * GREGORIAN_ONLY draw one line and ignore [primaryDate] — the mode already said which date is
+ * primary.
+ *
+ * The two line heights are stated rather than inherited ([BothPrimaryLineHeight] /
+ * [BothSecondaryLineHeight]) so the stack still totals the 32sp the fixed cell was sized for at
+ * [HijriCalendarDefaults.BothModeMaxFontScale]. Material's `bodyMedium` default line box is 20sp and
+ * `labelSmall`'s is 16sp; that pair would total 36sp — 54dp at 1.5x, past the 48dp cell — which is
+ * exactly the overflow this file's size contract exists to prevent.
  */
 @Composable
 private fun CellText(
@@ -318,36 +359,97 @@ private fun CellText(
     hijriText: String,
     gregorianText: String,
     style: DayCellStyle,
+    primaryDate: PrimaryDate,
 ) {
     when (dateDisplayMode) {
         DateDisplayMode.HIJRI_ONLY -> CellTextLine(
             text = hijriText,
             color = style.contentColor,
-            textStyle = MaterialTheme.typography.bodyMedium,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = CellFigureWeight),
         )
 
         DateDisplayMode.GREGORIAN_ONLY -> CellTextLine(
             text = gregorianText,
             color = style.contentColor,
-            textStyle = MaterialTheme.typography.bodyMedium,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = CellFigureWeight),
         )
 
         DateDisplayMode.BOTH -> Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
+            val (primary, secondary) = cellDateLines(primaryDate, hijriText, gregorianText)
             CellTextLine(
-                text = hijriText,
+                text = primary,
                 color = style.contentColor,
-                textStyle = MaterialTheme.typography.bodySmall,
+                // Full size and emphasized, so "which date is primary" survives a glance and not just
+                // a reading of the order — the report asked for the top date to be *bigger and more
+                // bolder* than the one beneath it, not merely first.
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = CellFigureWeight,
+                    lineHeight = BothPrimaryLineHeight,
+                ),
             )
             CellTextLine(
-                text = gregorianText,
-                color = style.gregorianColor,
-                textStyle = MaterialTheme.typography.labelSmall,
+                text = secondary,
+                color = style.secondaryColor,
+                // No weight override: the sub-line keeps `labelSmall`'s own, which is what makes it
+                // read as the gloss rather than as a second primary value.
+                textStyle = MaterialTheme.typography.labelSmall.copy(lineHeight = BothSecondaryLineHeight),
             )
         }
     }
+}
+
+/**
+ * The weight of the cell's **emphasized** figure: the only date in a single-date mode, and the primary
+ * line under [DateDisplayMode.BOTH].
+ *
+ * One constant rather than a weight written at each of the three call sites, because the rule the
+ * report gave is about *which* line carries the emphasis, not about the value: a single-date cell has
+ * one figure and it is emphasized; a two-date cell emphasizes the primary one only, and the sub-line
+ * stays at `labelSmall`'s own weight. Three literals is how one of the three stops agreeing.
+ *
+ * `ExtraBold`, not `Bold`: at 14sp in a 48dp cell the difference between the two is a few device
+ * pixels of stroke, and `Bold` had been the sub-line's weight in an earlier round — the report that
+ * asked for this could not see it. Pinned by `DayCellFigureWeightTest`, which measures the **painted**
+ * ink rather than reading this constant back, so a dropped `fontWeight` fails there.
+ */
+internal val CellFigureWeight: FontWeight = FontWeight.ExtraBold
+
+/**
+ * The primary line's line box under [DateDisplayMode.BOTH]: 18sp for a 14sp figure.
+ *
+ * Digits carry no descender, so the box can sit below the font's natural ascent+descent (≈16.4sp at
+ * 14sp) and still hold the ink; the point of stating it is that the two lines' boxes together must
+ * stay inside the cell, not that either one is tight.
+ */
+private val BothPrimaryLineHeight = 18.sp
+
+/** The sub-line's line box under [DateDisplayMode.BOTH]: 14sp for an 11sp figure. */
+private val BothSecondaryLineHeight = 14.sp
+
+/**
+ * The two cell lines under [DateDisplayMode.BOTH], primary first.
+ *
+ * Exists as a function rather than two `if`s inside [CellText] so the one decision that makes
+ * [PrimaryDate] mean anything — which date is on top — is reachable by a test. The cell is a
+ * composable painting 42 nodes; a suite that has to read pixels to learn the order would either be
+ * brittle or would not be written at all, and this is the kind of swap that looks correct while
+ * being reversed.
+ *
+ * It returns text only. Bold and colour belong to the caller, because "primary" is one choice drawn
+ * two ways and a helper that also returned a style would be a second place for the emphasis to
+ * drift.
+ */
+internal fun cellDateLines(
+    primaryDate: PrimaryDate,
+    hijriText: String,
+    gregorianText: String,
+): Pair<String, String> = if (primaryDate == PrimaryDate.HIJRI) {
+    hijriText to gregorianText
+} else {
+    gregorianText to hijriText
 }
 
 /**

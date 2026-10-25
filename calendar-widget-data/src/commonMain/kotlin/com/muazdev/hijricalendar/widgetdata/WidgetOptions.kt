@@ -151,6 +151,24 @@ public data class WidgetOptions(
      * which of them the renderer draws.
      */
     val dateDisplayMode: WidgetDateDisplayMode = WidgetDateDisplayMode.BOTH,
+    /**
+     * Which of the two figures is the **top, bold** line when [dateDisplayMode] is
+     * [WidgetDateDisplayMode.BOTH].
+     *
+     * [WidgetDatePrimary.HIJRI] by default, which is what every release before this field rendered: a
+     * Hijri figure with a Gregorian digit under it. A value stored without this field decodes into
+     * that default, so upgrading repaints no already-placed widget.
+     *
+     * Grid-only and BOTH-only, exactly like [dateDisplayMode]: the strip and the 1x1 tiles each exist
+     * to show one particular calendar, and a single-figure mode has already said which date is
+     * primary. A renderer must therefore consult it on the grid path and only under
+     * [WidgetDateDisplayMode.BOTH].
+     *
+     * Presentational and **not** in the render cache's keys, for the same reason as
+     * [dateDisplayMode]: the projection carries both figures on every cell either way, and this only
+     * decides which line each is drawn on.
+     */
+    val datePrimary: WidgetDatePrimary = WidgetDatePrimary.HIJRI,
 ) {
     /**
      * The first day of week to render with.
@@ -272,7 +290,8 @@ public data class WidgetOptions(
             weekendPattern == other.weekendPattern &&
             showCellBorders == other.showCellBorders &&
             theme == other.theme &&
-            dateDisplayMode == other.dateDisplayMode
+            dateDisplayMode == other.dateDisplayMode &&
+            datePrimary == other.datePrimary
     }
 
     override fun hashCode(): Int {
@@ -289,6 +308,7 @@ public data class WidgetOptions(
         result = 31 * result + showCellBorders.hashCode()
         result = 31 * result + theme.hashCode()
         result = 31 * result + dateDisplayMode.hashCode()
+        result = 31 * result + datePrimary.hashCode()
         return result
     }
 
@@ -297,7 +317,7 @@ public data class WidgetOptions(
         "weekStart=$weekStart, pinned=$pinned, source=$source, " +
         "language=$language, monthNameLanguage=$monthNameLanguage, " +
         "monthLengthOverrides=$monthLengthOverrides, theme=$theme, " +
-        "dateDisplayMode=$dateDisplayMode)"
+        "dateDisplayMode=$dateDisplayMode, datePrimary=$datePrimary)"
 
     val localizedHijriMonthNames: List<String>?
         get() = WidgetLocalization.hijriMonthNames(effectiveMonthNameLanguage)
@@ -345,6 +365,7 @@ public data class WidgetOptions(
             showCellBorders = true,
             theme = WidgetTheme.SYSTEM,
             dateDisplayMode = WidgetDateDisplayMode.BOTH,
+            datePrimary = WidgetDatePrimary.HIJRI,
         )
     }
 }
@@ -546,6 +567,7 @@ public fun createWidgetOptions(
     showCellBorders: Boolean = true,
     theme: WidgetTheme = WidgetTheme.SYSTEM,
     dateDisplayMode: WidgetDateDisplayMode = WidgetDateDisplayMode.BOTH,
+    datePrimary: WidgetDatePrimary = WidgetDatePrimary.HIJRI,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -561,6 +583,7 @@ public fun createWidgetOptions(
     showCellBorders = showCellBorders,
     theme = theme,
     dateDisplayMode = dateDisplayMode,
+    datePrimary = datePrimary,
 )
 
 /**

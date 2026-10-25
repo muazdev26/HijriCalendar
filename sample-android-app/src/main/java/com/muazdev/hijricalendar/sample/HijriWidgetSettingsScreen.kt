@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,8 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshScheduler
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WeekStart
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
+import com.muazdev.hijricalendar.widgetdata.WidgetDateDisplayMode
+import com.muazdev.hijricalendar.widgetdata.WidgetDatePrimary
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
@@ -141,6 +144,10 @@ internal fun HijriWidgetSettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // The settings screen is a bare Surface, not a Scaffold, and Android 15+ draws every app
+            // edge-to-edge: without this the title sat under the status bar and the footer under the
+            // navigation bar. Applied outside the scroll so the bars stay clear of content.
+            .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -404,6 +411,42 @@ internal fun HijriWidgetSettingsScreen(
             )
         }
 
+        // ── Date in each cell (grid only) ─────────────────────────────────────
+        //
+        // Grid-only for the same reason the option is: the strip and the 1x1 tiles each exist to show
+        // one particular calendar and have no cell whose two figures could be prioritised.
+        if (kind == WidgetKind.GRID) {
+            SectionTitle("Date in each cell")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WidgetDateDisplayMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = options.dateDisplayMode == mode,
+                        onClick = { update(options.copy(dateDisplayMode = mode)) },
+                        label = { Text(mode.settingsLabel()) },
+                    )
+                }
+            }
+            // Only meaningful when both figures are drawn: a single-figure mode has already said
+            // which date is primary, and offering the control there would be a setting that does
+            // nothing.
+            if (options.dateDisplayMode == WidgetDateDisplayMode.BOTH) {
+                SectionTitle("Primary date")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WidgetDatePrimary.entries.forEach { primary ->
+                        FilterChip(
+                            selected = options.datePrimary == primary,
+                            onClick = { update(options.copy(datePrimary = primary)) },
+                            label = { Text(primary.settingsLabel()) },
+                        )
+                    }
+                }
+                Text(
+                    "The primary date is the top, bold line; the other one is drawn under it.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+
         if (kind == WidgetKind.GRID) {
             SectionTitle("Cell dividers")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -512,9 +555,28 @@ private fun SectionTitle(text: String) {
  */
 private fun WeekendPattern.settingsLabel(): String = when (this) {
     WeekendPattern.FRIDAY_SATURDAY -> "Fri+Sat"
+    WeekendPattern.FRIDAY_SUNDAY -> "Fri+Sun"
     WeekendPattern.SUNDAY -> "Sun"
     WeekendPattern.FRIDAY_ONLY -> "Fri"
     WeekendPattern.NONE -> "None"
+}
+
+/** The date-in-cell chips: the mode's own short name, since the row has to fit three of them. */
+private fun WidgetDateDisplayMode.settingsLabel(): String = when (this) {
+    WidgetDateDisplayMode.HIJRI_ONLY -> "Hijri"
+    WidgetDateDisplayMode.GREGORIAN_ONLY -> "Gregorian"
+    WidgetDateDisplayMode.BOTH -> "Both"
+}
+
+/**
+ * The primary-date chips.
+ *
+ * A name-backed enum read straight off `WidgetOptions.datePrimary`, not an index: an ordinal in a
+ * settings screen is how the WD-05 bug would come back through the UI instead of the wire format.
+ */
+private fun WidgetDatePrimary.settingsLabel(): String = when (this) {
+    WidgetDatePrimary.HIJRI -> "Hijri"
+    WidgetDatePrimary.GREGORIAN -> "Gregorian"
 }
 
 /** Switching language follows the new language's default digits unless a custom style was chosen. */

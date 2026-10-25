@@ -163,7 +163,8 @@ enum HijriShared {
             weekendPattern: .fridaySaturday,
             showCellBorders: true,
             theme: .system,
-            dateDisplayMode: .both
+            dateDisplayMode: .both,
+            datePrimary: .hijri
         )
     }
 

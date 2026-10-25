@@ -62,8 +62,13 @@ class WidgetCatalogActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The bar icons must match the *chosen* palette, not the device's: on a dark phone forced to
+        // Light they would otherwise be white on this screen's light surface.
+        applySampleSystemBars(SampleThemeStore.read(this))
         setContent {
-            MaterialTheme {
+            // Same stored mode as the calendar screen: a catalog that rendered light while the app
+            // was dark would make every preview here a lie about what gets placed.
+            HijriSampleTheme(SampleThemeStore.read(this)) {
                 WidgetCatalogScreen(
                     onBack = { finish() },
                     onAdd = ::requestAdd,
@@ -176,7 +181,7 @@ private val catalogWidgets = listOf(
 )
 
 private val catalogPreviewSizes = mapOf(
-    WidgetKind.GRID to DpSize(168.dp, 176.dp),
+    WidgetKind.GRID to DpSize(260.dp, 280.dp),
     WidgetKind.TODAY to DpSize(300.dp, 72.dp),
     WidgetKind.HIJRI_DATE to DpSize(96.dp, 96.dp),
     WidgetKind.GREGORIAN_DATE to DpSize(96.dp, 96.dp),

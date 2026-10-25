@@ -16,7 +16,9 @@ import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriDate
 import com.muazdev.hijricalendar.ui.DateDisplayMode
+import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshLog
+import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -34,21 +36,91 @@ class CalendarViewModel(
         restoreMonthLengthOverrides()
     }
 
+    /**
+     * The weekend pattern the grid restores with.
+     *
+     * Resolved once, before [state], because [HijriCalendarState] takes the weekend as a constructor
+     * parameter — unlike the toggles below, which are runtime-switchable on the state. It is kept as an
+     * enum rather than as the set the state stores so the selector can highlight the right chip: a
+     * `Set<WeekDay>` has no order to read a pattern back out of cheaply, and `WeekendPattern.of` is the
+     * one place that mapping is defined.
+     */
+    private val restoredWeekendPattern = restoreWeekendPattern()
+
     val state: HijriCalendarState = HijriCalendarState(
         initialMonth = restoreMonth() ?: todayHijriMonth(),
         initialSelectedDate = restoreSelectedDate() ?: todayHijriDate(),
         adjustmentDays = restoreAdjustmentDays(),
         pakistanDates = restorePakistanDates(),
         initialSelectedPakistanDate = restorePakistanSelectedDate(),
+        weekendDays = restoredWeekendPattern.toWeekDays(),
+        showAdjacentDays = restoreShowAdjacentDays(),
+        showCellBorders = restoreShowCellBorders(),
     )
 
     var dateDisplayMode: DateDisplayMode by mutableStateOf(restoreDateDisplayMode())
         private set
 
-fun onDateDisplayModeChange(mode: DateDisplayMode) {
+    /**
+     * Which date is the top, bold line when [dateDisplayMode] is [DateDisplayMode.BOTH].
+     *
+     * Held beside the mode rather than on the state, because it is a rendering choice that only the
+     * calendar component consumes — exactly like the mode itself.
+     */
+    var primaryDate: PrimaryDate by mutableStateOf(restorePrimaryDate())
+        private set
+
+    /**
+     * Whether in-app settings are mirrored onto the placed widgets.
+     *
+     * The user asked for this as an option rather than as behaviour, because the mirror also overwrites
+     * the same options on a widget the user configured individually. Default **on**: the point of the
+     * request was that changing a setting in the app did not reach the home screen.
+     */
+    var autoSyncToWidget: Boolean by mutableStateOf(restoreAutoSyncToWidget())
+        private set
+
+    fun onDateDisplayModeChange(mode: DateDisplayMode) {
         dateDisplayMode = mode
         savedStateHandle[KEY_DATE_DISPLAY_MODE] = mode.name
         prefs.edit().putString(KEY_DATE_DISPLAY_MODE, mode.name).apply()
+    }
+
+    fun onPrimaryDateChange(primary: PrimaryDate) {
+        primaryDate = primary
+        savedStateHandle[KEY_PRIMARY_DATE] = primary.name
+        prefs.edit().putString(KEY_PRIMARY_DATE, primary.name).apply()
+    }
+
+    /**
+     * Switches the weekend *and* persists it.
+     *
+     * The widget selector writes straight to the state (`state.setWeekendDays`), which is all a
+     * runtime-only calendar needs; this screen also has to survive process death and mirror the choice
+     * to the widgets, so the pattern is the thing stored and the state is told what it means.
+     */
+    fun onWeekendPatternChange(pattern: WeekendPattern) {
+        savedStateHandle[KEY_WEEKEND_PATTERN] = pattern.name
+        prefs.edit().putString(KEY_WEEKEND_PATTERN, pattern.name).apply()
+        state.setWeekendDays(pattern.toWeekDays())
+    }
+
+    fun onShowAdjacentDaysChange(show: Boolean) {
+        savedStateHandle[KEY_SHOW_ADJACENT_DAYS] = show
+        prefs.edit().putBoolean(KEY_SHOW_ADJACENT_DAYS, show).apply()
+        state.setShowAdjacentDays(show)
+    }
+
+    fun onShowCellBordersChange(show: Boolean) {
+        savedStateHandle[KEY_SHOW_CELL_BORDERS] = show
+        prefs.edit().putBoolean(KEY_SHOW_CELL_BORDERS, show).apply()
+        state.setShowCellBorders(show)
+    }
+
+    fun onAutoSyncToWidgetChange(enabled: Boolean) {
+        autoSyncToWidget = enabled
+        savedStateHandle[KEY_AUTO_SYNC_TO_WIDGET] = enabled
+        prefs.edit().putBoolean(KEY_AUTO_SYNC_TO_WIDGET, enabled).apply()
     }
 
     fun onAdjustmentDaysChange(adjustmentDays: Int) {
@@ -190,6 +262,41 @@ fun onDateDisplayModeChange(mode: DateDisplayMode) {
             ?: DEFAULT_DATE_DISPLAY_MODE
     }
 
+    private fun restorePrimaryDate(): PrimaryDate {
+        val saved = prefs.getString(KEY_PRIMARY_DATE, null)
+            ?: savedStateHandle.get<String>(KEY_PRIMARY_DATE)
+        return saved?.let { runCatching { PrimaryDate.valueOf(it) }.getOrNull() }
+            ?: DEFAULT_PRIMARY_DATE
+    }
+
+    private fun restoreWeekendPattern(): WeekendPattern {
+        val saved = prefs.getString(KEY_WEEKEND_PATTERN, null)
+            ?: savedStateHandle.get<String>(KEY_WEEKEND_PATTERN)
+        return saved?.let { runCatching { WeekendPattern.valueOf(it) }.getOrNull() }
+            ?: DEFAULT_WEEKEND_PATTERN
+    }
+
+    private fun restoreShowAdjacentDays(): Boolean {
+        if (prefs.contains(KEY_SHOW_ADJACENT_DAYS)) {
+            return prefs.getBoolean(KEY_SHOW_ADJACENT_DAYS, DEFAULT_SHOW_ADJACENT_DAYS)
+        }
+        return savedStateHandle.get<Boolean>(KEY_SHOW_ADJACENT_DAYS) ?: DEFAULT_SHOW_ADJACENT_DAYS
+    }
+
+    private fun restoreShowCellBorders(): Boolean {
+        if (prefs.contains(KEY_SHOW_CELL_BORDERS)) {
+            return prefs.getBoolean(KEY_SHOW_CELL_BORDERS, DEFAULT_SHOW_CELL_BORDERS)
+        }
+        return savedStateHandle.get<Boolean>(KEY_SHOW_CELL_BORDERS) ?: DEFAULT_SHOW_CELL_BORDERS
+    }
+
+    private fun restoreAutoSyncToWidget(): Boolean {
+        if (prefs.contains(KEY_AUTO_SYNC_TO_WIDGET)) {
+            return prefs.getBoolean(KEY_AUTO_SYNC_TO_WIDGET, DEFAULT_AUTO_SYNC_TO_WIDGET)
+        }
+        return savedStateHandle.get<Boolean>(KEY_AUTO_SYNC_TO_WIDGET) ?: DEFAULT_AUTO_SYNC_TO_WIDGET
+    }
+
     private fun restoreAdjustmentDays(): Int {
         if (prefs.contains(KEY_ADJUSTMENT_DAYS)) return prefs.getInt(KEY_ADJUSTMENT_DAYS, DEFAULT_ADJUSTMENT_DAYS)
         return savedStateHandle.get<Int>(KEY_ADJUSTMENT_DAYS) ?: DEFAULT_ADJUSTMENT_DAYS
@@ -244,6 +351,11 @@ fun onDateDisplayModeChange(mode: DateDisplayMode) {
         private const val KEY_SELECTED_MONTH = "selected_month"
         private const val KEY_SELECTED_DAY = "selected_day"
         private const val KEY_DATE_DISPLAY_MODE = "date_display_mode"
+        private const val KEY_PRIMARY_DATE = "primary_date"
+        private const val KEY_WEEKEND_PATTERN = "weekend_pattern"
+        private const val KEY_SHOW_ADJACENT_DAYS = "show_adjacent_days"
+        private const val KEY_SHOW_CELL_BORDERS = "show_cell_borders"
+        private const val KEY_AUTO_SYNC_TO_WIDGET = "auto_sync_to_widget"
         private const val KEY_ADJUSTMENT_DAYS = "adjustment_days"
         private const val KEY_PAKISTAN_DATES = "pakistan_dates"
         private const val KEY_PAK_SELECTED_YEAR = "pakistan_selected_year"
@@ -253,6 +365,21 @@ fun onDateDisplayModeChange(mode: DateDisplayMode) {
 
         private val DEFAULT_MONTH = HijrahYearMonth(1447, 1)
         private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
+        private val DEFAULT_PRIMARY_DATE = PrimaryDate.HIJRI
+
+        // Friday+Saturday is the library's own default and what every release before the option
+        // rendered, so restoring onto it keeps an upgrading install looking untouched.
+        private val DEFAULT_WEEKEND_PATTERN = WeekendPattern.FRIDAY_SATURDAY
+
+        // Off — `HijriCalendarState`'s own default, and `WidgetOptions.DEFAULTS` after it, so the app
+        // opens looking exactly as it did before this option was persisted and like the widget it
+        // syncs to. The toggle is in the settings list for anyone who wants the overlap.
+        private const val DEFAULT_SHOW_ADJACENT_DAYS = false
+
+        // On, matching the widget grid's own default (FD-04): an undivided grid of 42 numbers is hard
+        // to scan, and the in-app calendar should not open looking different from the widget.
+        private const val DEFAULT_SHOW_CELL_BORDERS = true
+        private const val DEFAULT_AUTO_SYNC_TO_WIDGET = true
         private const val DEFAULT_ADJUSTMENT_DAYS = 0
         private const val DEFAULT_PAKISTAN_DATES = false
     }

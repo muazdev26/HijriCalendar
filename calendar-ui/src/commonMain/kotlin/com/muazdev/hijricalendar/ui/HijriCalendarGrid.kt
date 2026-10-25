@@ -44,6 +44,8 @@ internal fun HijriCalendarGrid(
     dayCellSize: Dp? = null,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
+    /** Which of the two figures is the top, bold line under [DateDisplayMode.BOTH]; see [PrimaryDate]. */
+    primaryDate: PrimaryDate = PrimaryDate.HIJRI,
 ) {
     // The pager's anchor: the first month this grid ever saw, frozen so page indices stay stable
     // while the user navigates. Deliberately *not* keyed on state.currentMonth — the anchor must not
@@ -180,6 +182,7 @@ internal fun HijriCalendarGrid(
                 dayCellSize = dayCellSize,
                 labels = labels,
                 dayContent = dayContent,
+                primaryDate = primaryDate,
             )
         }
     }
@@ -281,6 +284,7 @@ private fun MonthGrid(
     dayCellSize: Dp?,
     labels: HijriCalendarLabels,
     dayContent: (@Composable (CalendarDay) -> Unit)?,
+    primaryDate: PrimaryDate,
 ) {
     val weeks = remember(days, showAdjacentDays) { gridWeeks(days, showAdjacentDays) }
 
@@ -311,6 +315,7 @@ private fun MonthGrid(
                 dayCellSize = dayCellSize,
                 labels = labels,
                 dayContent = dayContent,
+                primaryDate = primaryDate,
             )
         }
     }

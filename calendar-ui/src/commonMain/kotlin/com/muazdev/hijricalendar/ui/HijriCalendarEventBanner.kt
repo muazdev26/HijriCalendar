@@ -16,29 +16,34 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * The observance on the selected day, as a banner **below the grid** rather than in the header.
+ * The observances the calendar speaks about, as a banner **below the grid** rather than in the header.
  *
  * It used to be a coloured line under the month title. Two things were wrong with that. The header is
  * about *where you are* — a month and a range — and an observance is about *a day you picked*, so the
  * line belonged with the grid that carries the pick. And a plain coloured line reads as more chrome
- * under the title; the day cells already fill an observance with a container wash, so the banner takes
- * the same wash to read as the same statement.
+ * under the title; the day cells fill an observance with a container wash, so the banner takes the
+ * same wash to read as the same statement.
  *
- * The container is [HijriCalendarColors.eventDayContainerColor] at
- * [EventBannerContainerAlpha] rather than solid, matching the "accent with opacity" treatment the
- * widget's footer carries. The text is **not** bold: the fill is what marks the line, exactly as the
- * filled cell is marked by its fill and not by a heavier figure.
+ * The container is [HijriCalendarColors.eventDayContainerColor] at [EventBannerContainerAlpha], and
+ * that pair is deliberately **not red**: red is the weekend figure's colour
+ * ([HijriCalendarColors.weekendDayContentColor]), which marks the days the user chose as days off. An
+ * observance here is background information — the month's history — so it gets the quiet container. It
+ * was briefly painted red, which was reported as wrong for exactly that reason.
  *
- * Rendered only when there is an observance to name. Unlike the widget's footer — which reserves its
- * line for every month so the layout does not move under a finger — the in-app calendar scrolls and
- * has no such reserved geometry, so an absent observance draws nothing at all.
+ * The text is **not** bold: the fill is what marks the line, exactly as the filled cell is marked by
+ * its fill and not by a heavier figure.
+ *
+ * Rendered for **every** month — the caller resolves what to say, including the empty-month label —
+ * because a bar that comes and goes moves the grid under the user's finger. A caller that wants no bar
+ * at all passes `showEventBanner = false` to [HijriCalendar]; a `null` or empty [text] draws nothing.
  */
 @Composable
 internal fun HijriCalendarEventBanner(
-    text: String,
+    text: String?,
     modifier: Modifier = Modifier,
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
 ) {
+    if (text.isNullOrEmpty()) return
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -58,7 +63,7 @@ internal fun HijriCalendarEventBanner(
     }
 }
 
-/** How much of the accent container the banner paints; enough to read as a wash, not a solid block. */
+/** How much of the observance container the banner paints: a wash over the surface, not a solid bar. */
 internal const val EventBannerContainerAlpha: Float = 0.5f
 
 private val EventBannerTopPadding = 8.dp

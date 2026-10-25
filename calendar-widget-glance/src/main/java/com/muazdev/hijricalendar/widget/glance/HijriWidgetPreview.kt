@@ -69,6 +69,7 @@ internal class HijriCalendarWidgetPreview(
                 showAdjacentDays = data.showAdjacentDays,
                 showCellBorders = data.showCellBorders,
                 dateDisplayMode = data.dateDisplayMode,
+                datePrimary = data.datePrimary,
                 selectedDay = null,
                 // A preview never loads a month: it renders one the caller already resolved. The
                 // loading bar belongs to a real navigation step, and showing one here would imply a

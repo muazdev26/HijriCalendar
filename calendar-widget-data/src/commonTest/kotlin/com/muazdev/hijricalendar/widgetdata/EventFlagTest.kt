@@ -52,19 +52,22 @@ class EventFlagTest {
     }
 
     /**
-     * Ramadan is month 9, and carries nothing.
+     * Ramadan is month 9, and the only day it flags is its first.
      *
      * The regression guard for the bug this suite exists beside: the core table had Eid al-Fitr on
      * month 9, so every grid drew Eid on 1 Ramadan. It shipped because the flag is derived *from* that
      * table, so every projection test agreed with itself — this one is the negative the derivation
-     * cannot produce on its own.
+     * cannot produce on its own. Day 1 is flagged **on purpose**: the month's first day is named after
+     * the month, which is what a reader counting to Eid looks for.
      */
     @Test
-    fun ramadanCarriesNoObservance() {
+    fun ramadanFlagsOnlyItsFirstDay() {
         val ramadan = assertNotNull(buildHijriMonthWidgetData(1447, 9, options))
-        assertTrue(
-            ramadan.days.none { it.isCurrentMonth && it.hasEvent },
-            "no day of Ramadan carries an observance; Eid al-Fitr is 1 Shawwal (month 10)",
+        val flagged = ramadan.days.filter { it.isCurrentMonth && it.hasEvent }.map { it.hijriDay }
+        assertEquals(
+            listOf(1),
+            flagged,
+            "only 1 Ramadan carries an observance here; Eid al-Fitr is 1 Shawwal (month 10)",
         )
     }
 

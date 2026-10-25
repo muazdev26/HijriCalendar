@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window background only shows for the frame before Compose draws, and around the
+         edge-to-edge insets. It follows the *device* night mode: an in-app override paints its own
+         surface on the first frame anyway, and a white flash on a dark device would be the flash
+         users notice. Values are Material 3's light/dark `surface`. -->
+    <color name="sample_window_background">#FFFBFE</color>
+</resources>

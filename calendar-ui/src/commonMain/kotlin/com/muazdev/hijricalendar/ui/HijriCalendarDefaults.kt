@@ -13,11 +13,12 @@ import androidx.compose.ui.unit.dp
  * ## Why 48dp
  *
  * [SingleLineCellSize] is not arbitrary: it is the smallest cell that holds the two-line
- * [DateDisplayMode.BOTH] stack at [BothModeMaxFontScale]: `bodySmall` over `labelSmall` with no
- * vertical gap is roughly 31dp at scale 1, and about 46dp at 1.5x. Every cell is this size at every
- * display mode and every font scale, which is what makes a month grid a fixed-pitch matrix; the
- * day *text* scales within it instead. A future contributor who wants to "fix" the cell size should
- * read this first.
+ * [DateDisplayMode.BOTH] stack at [BothModeMaxFontScale]: a 14sp `bodyMedium` primary over an 11sp
+ * `labelSmall` sub-line, with line boxes stated in `HijriCalendarDayCell.kt` so the pair totals 32sp —
+ * 32dp at scale 1 and 48dp at 1.5x, the cell's own height. Every cell is this size at every display
+ * mode and every font scale, which is what makes a month grid a fixed-pitch matrix; the day *text*
+ * scales within it instead. A future contributor who wants to "fix" the cell size should read this
+ * first.
  */
 @Immutable
 public object HijriCalendarDefaults {
@@ -25,9 +26,10 @@ public object HijriCalendarDefaults {
 
     /**
      * 48dp, chosen to hold the two-line [DateDisplayMode.BOTH] stack at
-     * [BothModeMaxFontScale]: `bodySmall` over `labelSmall` with no vertical gap comes to roughly
-     * 31dp at scale 1, which is ~46dp at 1.5x and would overflow the box beyond that. This is the
-     * constraint that makes the cell fixed, so it is stated rather than implied.
+     * [BothModeMaxFontScale]: a 14sp `bodyMedium` primary over an 11sp `labelSmall` sub-line whose
+     * line boxes are stated to total 32sp, i.e. 32dp at scale 1 and exactly 48dp at 1.5x. Going
+     * beyond 1.5x would overflow the box, which is what makes this the cap. This is the constraint
+     * that makes the cell fixed, so it is stated rather than implied.
      */
     public val SingleLineCellSize: Dp = 48.dp
 
@@ -58,8 +60,8 @@ public object HijriCalendarDefaults {
     /**
      * Builds [HijriCalendarColors] from the ambient Material colour scheme.
      *
-     * [HijriCalendarColors] has no public constructor: 16 values restated at each call site is how a
-     * palette drifts away from the theme it claims to follow. Note the one derived default,
+     * [HijriCalendarColors] has no public constructor: restating every value at each call site is how
+     * a palette drifts away from the theme it claims to follow. Note the one derived default,
      * , documented on that field.
      *
      * [dayOfWeekLabelColor] is `onSurface` rather than the `onSurfaceVariant` it used to be. The

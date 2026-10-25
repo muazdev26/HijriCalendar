@@ -63,7 +63,7 @@ class DayCellStyleTest {
         isWeekend = weekend,
     )
 
-    // ── content colour: selected > disabled > outside-month > weekend > normal ──
+    // ── content colour: selected > disabled > outside-month > observance > weekend > normal ──
 
     @Test
     fun selected_beatsEveryOtherState() {
@@ -113,7 +113,7 @@ class DayCellStyleTest {
         assertFalse(style.enabled, "but it must not be interactive")
     }
 
-    // ── observance fill (FD-08) ──
+    // ── observance fill (FD-08), and the red weekend figure ──
 
     /**
      * The fill itself, and the reason it exists.
@@ -139,6 +139,44 @@ class DayCellStyleTest {
             colors.eventDayContentColor,
             day(event = true, weekend = true).cellStyle(colors).contentColor,
         )
+    }
+
+    /**
+     * A weekend day is **never filled**: the red is text only.
+     *
+     * It marks the day the user chose as a day off, and the fill on this grid already means
+     * "observance" — a second fill would have to compete with it on the one cell that is both. The
+     * report is explicit that the colour alone is the mark.
+     */
+    @Test
+    fun weekendDay_carriesRedTextAndNoFill() {
+        val style = day(weekend = true).cellStyle(colors)
+        assertEquals(colors.dayBackgroundColor, style.backgroundColor)
+        assertEquals(colors.weekendDayContentColor, style.contentColor)
+    }
+
+    /** The sub-label dims with its figure rather than staying the ordinary grey, on a weekend too. */
+    @Test
+    fun weekend_gregorianSubLabelIsDimmedToo() {
+        assertEquals(
+            colors.weekendDayContentColor.copy(alpha = 0.7f),
+            day(weekend = true).cellStyle(colors).secondaryColor,
+        )
+    }
+
+    /**
+     * Today's border stays on a weekend, because nothing is drawn over it.
+     *
+     * The suppression below is driven by a *fill*, and a weekend has none — so a Friday that is today
+     * must still be findable. Pinned because it is the one state that changed meaning when the weekend
+     * stopped being filled.
+     */
+    @Test
+    fun todayOnAWeekend_keepsItsBorder() {
+        val style = day(today = true, weekend = true).cellStyle(colors)
+        assertEquals(colors.dayBackgroundColor, style.backgroundColor)
+        assertEquals(colors.todayBorderColor, style.borderColor)
+        assertEquals(colors.todayBorderWidth, style.borderWidth)
     }
 
     /**
@@ -185,7 +223,7 @@ class DayCellStyleTest {
     fun observance_gregorianSubLabelIsDimmedToo() {
         assertEquals(
             colors.eventDayContentColor.copy(alpha = 0.7f),
-            day(event = true).cellStyle(colors).gregorianColor,
+            day(event = true).cellStyle(colors).secondaryColor,
         )
     }
 
@@ -231,13 +269,13 @@ class DayCellStyleTest {
     fun gregorianSubLabel_isDimmedForSelectedAndOutsideMonth() {
         assertEquals(
             colors.selectedDayContentColor.copy(alpha = 0.7f),
-            day(selected = true).cellStyle(colors).gregorianColor,
+            day(selected = true).cellStyle(colors).secondaryColor,
         )
         assertEquals(
             colors.outsideMonthDayContentColor.copy(alpha = 0.7f),
-            day(currentMonth = false).cellStyle(colors).gregorianColor,
+            day(currentMonth = false).cellStyle(colors).secondaryColor,
         )
-        assertEquals(colors.gregorianDayContentColor, day().cellStyle(colors).gregorianColor)
+        assertEquals(colors.gregorianDayContentColor, day().cellStyle(colors).secondaryColor)
     }
 
     // ── interactivity ──
