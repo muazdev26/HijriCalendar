@@ -76,11 +76,13 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  *
  * > **Four lines in a 72dp square is the tightest stack in the family.** The band plus three body lines
  * > leaves ~17dp per line, so the captions render around 7sp at the drawn edge and the figure around
- * > 18sp. That is what the geometry allows, not a tuning oversight: the fit rule below shrinks the
+ * > 16sp. That is what the geometry allows, not a tuning oversight: the fit rule below shrinks the
  * > whole stack together rather than letting any one line clip, and `logcat -s HijriWidgetRefresh`
  * > prints the sizes it settled on (`compact-tile-sizes`). The band is the one line that does *not* pay
  * > a line box for its height — it costs its ink ([WeekdayBandFit]) — which is what makes it the same
- * > legible word here as on the three larger tiles.
+ * > legible word here as on the three larger tiles, and it is the only line whose height is *measured*
+ * > per word ([rememberWeekdayInkEm]) rather than assumed, because on this tile that height competes
+ * > directly with the two captions a reader is trying to read.
  *
  * The provider info asks for `minWidth/minHeight = 40dp`, `targetCellWidth/Height = 1`, and
  * `resizeMode="none"`, so the host picks exactly one cell and does not offer a resize that would turn
@@ -206,12 +208,12 @@ public class HijriCompactDateWidget : GlanceAppWidget() {
  * declared minimum — where the whole stack shrinks together rather than being clipped.
  *
  * 72dp is therefore both the drawn edge and the sizing reference, and the reference sizes are chosen so
- * that the stack fills it at [TEXT_LINE_RATIO]: 10sp × 1 (the band's ink) + 2 × 8sp × 1.7 + 20sp × 1.3 +
- * 5dp ≈ 68dp. Sizing the reference at the 40dp floor instead would make every real placement render
- * well above scale 1 and clamp at the ceiling, which is how the sibling tiles once ended up unable to
- * grow. The ~4dp the band gave back (it reserved 13.6dp as a line box, and paints 10dp of ink) is why
- * the stack no longer fills the drawn edge exactly, and why the drawn square's own type is slightly
- * larger than the reference rather than slightly smaller.
+ * that the stack fills it at [TEXT_LINE_RATIO]: 10sp × 1 (the band's **worst-case** ink) + 2 × 9sp × 1.7
+ * + 20sp × 1.3 + 5dp ≈ 72dp. A real weekday measures less than that worst case — 0.77em for `بدھ`
+ * against the 2.1em reserved — and [rememberWeekdayInkEm] hands the difference to the body, so a placed
+ * tile renders its captions *above* the reference scale instead of leaving a gap under the band. Sizing
+ * the reference at the 40dp floor instead would make every real placement render well above scale 1 and
+ * clamp at the ceiling, which is how the sibling tiles once ended up unable to grow.
  * The cap is also why a 1x1 on a five-column Pixel launcher — a 62x88dp cell — draws 62x62dp: the
  * square is never larger than the cell, and what is left of the cell stays transparent.
  *
@@ -272,8 +274,15 @@ internal object CompactDateTileTypography {
      * height ([WeekdayBandFit]), so the tile's tightest stack gained a legible weekday *and* gave the
      * body back ~3dp: the band cost `8 × 1.7 + 5 = 18.6dp` of a 72dp square before, and costs
      * `10 × 1 + 5 = 15dp` now, with the word 25% larger.
+     *
+     * Reference 9sp, up from 8sp: the Gregorian date and the Hijri month are the two lines a reader
+     * actually reads, and at a placed 62dp cell they rendered at ~5.7sp under the bundled face — a
+     * report described the date as unreadable. What pays for the increase is the band: the compact
+     * tile is the one fitted typography whose stack arithmetic sets its scale, and it now reserves the
+     * word's **measured** ink ([rememberWeekdayInkEm]) rather than the face's worst case, which hands
+     * the body back ~1.3em of height a typical weekday never uses.
      */
-    val captionSizeAtReference = 8.sp
+    val captionSizeAtReference = 9.sp
 
     /**
      * The Hijri day figure. The tile's largest line by construction — the reference design asks for
@@ -298,12 +307,25 @@ internal object CompactDateTileTypography {
 
     private val MAX_SCALE: Float = daySizeCeiling.value / daySize.value
 
-    fun referenceTextHeightDp(scriptRatio: Float): Float =
-        WeekdayBandFit.inkHeightDp(weekdaySizeAtReference, WeekdayBandFit.inkEmFor(scriptRatio)) +
-            captionSizeAtReference.value * scriptRatio * CAPTION_LINES +
-            daySize.value * DIGIT_LINE_RATIO
+    /**
+     * The stack's height at scale 1 — the band's ink, the two body captions and the digit line.
+     *
+     * [bandInkEm] is the weekday word's own ink, in em, from [rememberWeekdayInkEm]; the default is
+     * the face's worst case ([WeekdayBandFit.inkEmFor]), which is what a caller with no word to
+     * measure — the static mirror, a test, a host that failed to load the face — has to assume.
+     *
+     * The band's ink is **not** `weekdaySize × scriptRatio`: that is a line box, and a band paints its
+     * ink. Reserving the wrong one is what put a gap under the band on a Wednesday, when the word was
+     * 0.77em and the face's worst case 2.1em.
+     */
+    fun referenceTextHeightDp(
+        scriptRatio: Float,
+        bandInkEm: Float = WeekdayBandFit.inkEmFor(scriptRatio),
+    ): Float = WeekdayBandFit.inkHeightDp(weekdaySizeAtReference, bandInkEm) +
+        captionSizeAtReference.value * scriptRatio * CAPTION_LINES +
+        daySize.value * DIGIT_LINE_RATIO
 
-    /** [referenceTextHeightDp] at the system script ratio; the static mirror and the tests read this. */
+    /** [referenceTextHeightDp] at the system script ratio and the worst-case band; the tests read this. */
     val REFERENCE_TEXT_HEIGHT_DP: Float = referenceTextHeightDp(TEXT_LINE_RATIO)
 
     /** The non-scaling part of the stack: the weekday band's padding. */
@@ -316,22 +338,36 @@ internal object CompactDateTileTypography {
         availableWidthDp: Float,
         grantedHeightDp: Float,
         scriptRatio: Float = TEXT_LINE_RATIO,
+        bandInkEm: Float = WeekdayBandFit.inkEmFor(scriptRatio),
     ): CompactDateTileSizes = sizesAtScale(
         widgetTypeScale(
             availableWidthDp = availableWidthDp,
             referenceWidthDp = REFERENCE_WIDTH_DP,
             availableHeightDp = grantedHeightDp,
             fixedHeightDp = FIXED_HEIGHT_DP,
-            referenceTextHeightDp = referenceTextHeightDp(scriptRatio),
+            referenceTextHeightDp = referenceTextHeightDp(scriptRatio, bandInkEm),
             maxScale = MAX_SCALE,
         ),
+        bandInkEm = bandInkEm,
     )
 
-    fun sizesFor(availableWidthDp: Float): CompactDateTileSizes = sizesAtScale(
+    /**
+     * The projection for a caller that has a **drawn edge but no granted height** — the static
+     * `previewLayout` mirror and the tests, which state a width and nothing else.
+     *
+     * Named apart from the two-axis overload deliberately: `sizesFor(62f, 62f)` would otherwise be
+     * ambiguous between (width, height) and (width, band ink), and Kotlin resolves that in favour of
+     * whichever it likes — silently. A band ink of `62` em is not a value any caller means.
+     */
+    fun sizesForDrawnEdge(
+        availableWidthDp: Float,
+        bandInkEm: Float = WeekdayBandFit.inkEmFor(TEXT_LINE_RATIO),
+    ): CompactDateTileSizes = sizesAtScale(
         (availableWidthDp / REFERENCE_WIDTH_DP).coerceIn(MIN_TYPE_SCALE, MAX_SCALE),
+        bandInkEm = bandInkEm,
     )
 
-    private fun sizesAtScale(scale: Float): CompactDateTileSizes = CompactDateTileSizes(
+    private fun sizesAtScale(scale: Float, bandInkEm: Float): CompactDateTileSizes = CompactDateTileSizes(
         daySize = (daySize.value * scale).sp,
         captionSize = (captionSizeAtReference.value * scale)
             .coerceAtMost(captionSizeCeiling.value)
@@ -339,13 +375,16 @@ internal object CompactDateTileTypography {
         weekdaySize = (weekdaySizeAtReference.value * scale)
             .coerceAtMost(WeekdayBandFit.MAX_SIZE.value)
             .sp,
+        bandInkEm = bandInkEm,
     )
 
     fun verticalBudgetDp(
         availableWidthDp: Float,
         grantedHeightDp: Float,
         scriptRatio: Float = TEXT_LINE_RATIO,
-    ): Float = sizesFor(availableWidthDp, grantedHeightDp, scriptRatio).requestedHeightDp(scriptRatio)
+        bandInkEm: Float = WeekdayBandFit.inkEmFor(scriptRatio),
+    ): Float = sizesFor(availableWidthDp, grantedHeightDp, scriptRatio, bandInkEm)
+        .requestedHeightDp(scriptRatio)
 }
 
 /** The type sizes a compact dual-date tile renders at, as one value. */
@@ -356,10 +395,19 @@ internal data class CompactDateTileSizes(
     val captionSize: TextUnit,
     /** The weekday band's type; see [CompactDateTileTypography.weekdaySizeAtReference]. */
     val weekdaySize: TextUnit = WeekdayBandFit.sizeFor(daySize),
+    /**
+     * The band's word ink, in em, as the layout reserved it — [weekdayInkEm] of the word actually
+     * drawn, or the face's worst case when nothing could be measured.
+     *
+     * Carried rather than recomputed so [requestedHeightDp] states the same height the typography was
+     * fitted to: a value that said "the band is a line box" while the renderer painted an ink crop is
+     * exactly the disagreement that produced the gap under the band.
+     */
+    val bandInkEm: Float = WeekdayBandFit.inkEmFor(TEXT_LINE_RATIO),
 ) {
     /** The height the stack asks for: the band's ink, the two body captions and the digit line. */
     fun requestedHeightDp(scriptRatio: Float = TEXT_LINE_RATIO): Float =
-        WeekdayBandFit.inkHeightDp(weekdaySize, WeekdayBandFit.inkEmFor(scriptRatio)) +
+        WeekdayBandFit.inkHeightDp(weekdaySize, bandInkEm) +
             captionSize.value * scriptRatio * CompactDateTileTypography.CAPTION_LINES +
             daySize.value * DIGIT_LINE_RATIO +
             WidgetBand.TOP_PADDING_DP +
@@ -397,10 +445,18 @@ internal fun CompactDateTileRoot(
     val edge = edgeDp.dp
 
     val scriptRatio = fonts.scriptInkBandRatio()
+    // The band's word is the one thing in this stack whose height cannot be derived from a ratio: a
+    // weekday name's ink ranges from 0.77em (`بدھ`) to 1.82em (`منگل`) in the bundled face. Measuring
+    // it is what keeps the reserve equal to the paint — reserving the face's worst case for a short
+    // word is what left a gap under the band — and what hands the difference to the body, which is
+    // where the Gregorian date and the month name gained their size.
+    val measuredInkEm = rememberWeekdayInkEm(today?.weekdayTileName.orEmpty(), fonts.weekday)
+    val bandInkEm = measuredInkEm.takeIf { it > 0f } ?: WeekdayBandFit.inkEmFor(scriptRatio)
     val sizes = CompactDateTileTypography.sizesFor(
         availableWidthDp = edgeDp,
         grantedHeightDp = edgeDp,
         scriptRatio = scriptRatio,
+        bandInkEm = bandInkEm,
     )
 
     logSizes(edgeDp, scriptRatio, sizes)
@@ -467,6 +523,12 @@ private fun CompactDateUnavailable(
  * The three body lines, centred in the height the band left — at the drawn edge they fill it exactly
  * (see the typography's reference arithmetic): the Gregorian row, the Hijri day as the
  * largest line, and the Hijri month name.
+ *
+ * **Centred, not bottom-pinned.** A bottom-pinned body pools every unspent dp above its first line,
+ * which is precisely where a reader looks for the date: on a placed 62dp cell that was 9.5dp of space
+ * under the band and the Gregorian row sitting well below it. The stack is fitted so that the residue
+ * is ~0, and centring splits whatever is left instead of collecting it in one place. The band's own
+ * reserve is the other half of the same defect ([rememberWeekdayInkEm]).
  */
 @Composable
 private fun CompactDateBody(
@@ -481,7 +543,7 @@ private fun CompactDateBody(
 
     Box(
         modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.BottomCenter,
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = GlanceModifier.fillMaxWidth()
@@ -521,8 +583,12 @@ private fun CompactDateBody(
 
 /**
  * The Gregorian date as **one row with two labelled ends**: the day at the reading-start edge, the
- * month at the reading-trailing one. Both carry the primary tone — one date in two calendars, not a
- * title and a footnote.
+ * month at the reading-trailing one.
+ *
+ * The two halves are split by *kind*, not by importance: the figures in the tile (this day and the
+ * Hijri one below it) carry the family accent, and the two month names carry the primary tone — the
+ * same rule every widget in the family follows, so one date in two calendars never reads as a title
+ * with a footnote under it.
  *
  * Glance's `Row` has no spread arrangement, only a group alignment, so the two ends are made by giving
  * each child half the width and aligning its text to the outer edge. That alignment is **absolute**
@@ -620,7 +686,8 @@ private fun logSizes(edgeDp: Float, scriptRatio: Float, sizes: CompactDateTileSi
         "compact-tile-sizes",
         "tile=${edgeDp.toInt()}dp band=${sizes.weekdaySize.value}sp " +
             "caption=${sizes.captionSize.value}sp day=${sizes.daySize.value}sp " +
-            "lineRatio=$scriptRatio budget=${sizes.requestedHeightDp(scriptRatio).toInt()}dp",
+            "lineRatio=$scriptRatio bandInk=${sizes.bandInkEm}em " +
+            "budget=${sizes.requestedHeightDp(scriptRatio).toInt()}dp",
     )
 }
 

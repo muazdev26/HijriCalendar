@@ -53,7 +53,7 @@ class CompactDateTilePreviewLayoutTest {
     @Test
     fun theDayFigureDominatesAtEveryWidth() {
         for (width in 1..400) {
-            val sizes = CompactDateTileTypography.sizesFor(width.toFloat())
+            val sizes = CompactDateTileTypography.sizesForDrawnEdge(width.toFloat())
             assertTrue("at ${width}dp caption reached the figure", sizes.isDayDominant())
         }
     }
@@ -62,15 +62,21 @@ class CompactDateTilePreviewLayoutTest {
     fun theWidthOnlyProjectionIsMonotonicAndClamped() {
         var previousDay = 0f
         for (width in 1..400) {
-            val sizes = CompactDateTileTypography.sizesFor(width.toFloat())
+            val sizes = CompactDateTileTypography.sizesForDrawnEdge(width.toFloat())
             assertTrue("day dropped", sizes.daySize.value >= previousDay)
             previousDay = sizes.daySize.value
             assertTrue("lines rendered", sizes.captionSize.value > 0f && sizes.daySize.value > 0f)
         }
-        assertEquals(CompactDateTileTypography.daySizeCeiling.value.toDouble(),
-            CompactDateTileTypography.sizesFor(4000f).daySize.value.toDouble(), 0.01)
-        assertEquals(CompactDateTileTypography.captionSizeCeiling.value.toDouble(),
-            CompactDateTileTypography.sizesFor(4000f).captionSize.value.toDouble(), 0.01)
+        assertEquals(
+            CompactDateTileTypography.daySizeCeiling.value.toDouble(),
+            CompactDateTileTypography.sizesForDrawnEdge(4000f).daySize.value.toDouble(),
+            0.01,
+        )
+        assertEquals(
+            CompactDateTileTypography.captionSizeCeiling.value.toDouble(),
+            CompactDateTileTypography.sizesForDrawnEdge(4000f).captionSize.value.toDouble(),
+            0.01,
+        )
     }
 
     @Test
@@ -149,8 +155,68 @@ class CompactDateTilePreviewLayoutTest {
     }
 
     @Test
+    fun aShorterBandWordSpendsItsSpareHeightOnTheBody() {
+        // The band's reserve is the word's own ink, not the face's worst case. `بدھ` measures 0.77em
+        // and `منگل` 1.82em in the bundled face (device-measured); the compact tile is the one fitted
+        // typography whose stack arithmetic sets its scale, so the difference between those two has to
+        // reach the body — that is where the Gregorian date and the month name gained their size.
+        val shortest = 0.77f
+        val worstCase = WeekdayBandFit.inkEmFor(NASTALIQ_INK_BAND_RATIO)
+        val wednesday = CompactDateTileTypography.sizesFor(62f, 62f, NASTALIQ_INK_BAND_RATIO, shortest)
+        val assumed = CompactDateTileTypography.sizesFor(62f, 62f, NASTALIQ_INK_BAND_RATIO, worstCase)
+        assertTrue(
+            "a ${shortest}em word must render its captions larger than a ${worstCase}em reserve",
+            wednesday.captionSize.value > assumed.captionSize.value + 0.5f,
+        )
+        assertTrue(
+            "a ${shortest}em word must render a larger figure too",
+            wednesday.daySize.value > assumed.daySize.value,
+        )
+        // Both still fit the cell they were granted — measuring cannot overrun the tile.
+        for ((label, sizes) in listOf("measured" to wednesday, "worst case" to assumed)) {
+            val requested = sizes.requestedHeightDp(NASTALIQ_INK_BAND_RATIO)
+            assertTrue("the $label stack asks for ${requested}dp of 62dp", requested <= 62.05f)
+        }
+    }
+
+    @Test
+    fun theReserveIsThePaintForEveryMeasuredWeekday() {
+        // Every ink this project has measured, in both faces, at the cells a phone grants. The point
+        // is that no weekday's band overruns the height the stack reserved for it, and that the gap
+        // between reserve and paint — the defect — is zero rather than a third of the band.
+        for (inkEm in listOf(0.59f, 0.65f, 0.69f, 0.77f, 0.87f, 0.94f, 0.97f, 1.0f, 1.41f, 1.82f)) {
+            for (edge in listOf(40f, 47f, 56f, 62f, 63f, 72f)) {
+                for (ratio in listOf(TEXT_LINE_RATIO, NASTALIQ_INK_BAND_RATIO)) {
+                    val sizes = CompactDateTileTypography.sizesFor(edge, edge, ratio, inkEm)
+                    val requested = sizes.requestedHeightDp(ratio)
+                    assertTrue(
+                        "ink=${inkEm}em at ${edge}dp ratio=$ratio asks for ${requested}dp",
+                        requested <= edge + 0.05f,
+                    )
+                    // The band's painted height is the reserve by construction.
+                    assertEquals(
+                        WeekdayBandFit.bandHeightDp(sizes.weekdaySize, inkEm).toDouble(),
+                        (WeekdayBandFit.inkHeightDp(sizes.weekdaySize, inkEm) +
+                            WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP).toDouble(),
+                        0.01,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun theMirrorCentresItsBodyLikeTheLiveTile() {
+        // The live body is centred; pinning it to the bottom is what pooled every unspent dp above the
+        // Gregorian row. The static mirror has to agree, or the Android 12-14 picker advertises a tile
+        // that no longer exists.
+        val body = childrenOf(layoutRoot())[1]
+        assertEquals("center_horizontal|center_vertical", attr(body, "android:gravity"))
+    }
+
+    @Test
     fun thePreviewLayoutMatchesTheLiveSizes() {
-        val sizes = CompactDateTileTypography.sizesFor(CompactDateTileTypography.REFERENCE_WIDTH_DP)
+        val sizes = CompactDateTileTypography.sizesForDrawnEdge(CompactDateTileTypography.REFERENCE_WIDTH_DP)
         val lines = zoneTextViews()
         assertEquals(5, lines.size)
         // The band's word is its own size now, not a body caption's: five TextViews are the band, the

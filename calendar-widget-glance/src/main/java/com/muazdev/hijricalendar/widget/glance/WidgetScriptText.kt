@@ -3,6 +3,7 @@ package com.muazdev.hijricalendar.widget.glance
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.text.Layout
 import android.text.Spannable
@@ -214,6 +215,78 @@ internal fun String.systemFaceRuns(): List<IntRange> {
         ranges.add(start until length)
     }
     return ranges
+}
+
+/**
+ * The size the ink probe measures at, in px. Large enough that the integer `getTextBounds` answer is
+ * precise to a hundredth of an em, and never drawn — the ratio is scale-invariant.
+ */
+private const val INK_PROBE_SIZE_PX = 100f
+
+/**
+ * The ink height of a **band word**, in em, in the face [WidgetText] will draw it with.
+ *
+ * ## Why a fitted stack needs this at all
+ *
+ * [WeekdayBandFit.inkEmFor] answers with the *worst case* for the face — 2.1 em for Nastaliq, the
+ * tallest ink any label reaches. A stack that must never clip has to reserve that, but a weekday name
+ * is one short word and its ink is not the worst case: measured on a Pixel 6a, `بدھ` is **0.77 em**
+ * while `منگل` is **1.82 em**. Reserving 2.1 em for a 0.77 em word leaves ~1.3 em of reserved height
+ * that nothing paints, and on the compact tile — the one fitted typography whose stack arithmetic sets
+ * the scale — that phantom is what a user sees as a gap under the band, because the body is fitted to
+ * a taller band than is drawn.
+ *
+ * So the compact tile asks the face instead of assuming: `Paint.getTextBounds` reports the word's own
+ * ink, and the reserve becomes the word's ink plus the band's two paddings, exactly as the band paints
+ * it. The measured answer and the rasterised one agree — `getTextBounds` was checked against the
+ * rasteriser for all seven Urdu weekday names and their English forms in both faces, and differs by at
+ * most 0.08 em, always in the *system* face and always over-reporting, which is the safe direction.
+ *
+ * @param text the band's word.
+ * @return the ink height in em, or `0` when nothing painted — the caller then falls back to
+ *   [WeekdayBandFit.inkEmFor], which is what a face that failed to load would need.
+ */
+internal fun weekdayInkEm(text: String, face: Typeface?, fakeBold: Boolean): Float {
+    if (text.isEmpty()) return 0f
+    val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {
+        textSize = INK_PROBE_SIZE_PX
+        typeface = face ?: Typeface.DEFAULT
+        // The band's word is always bold, and Nastaliq synthesises that weight rather than carrying a
+        // bold face — the same two decisions `rasterizeScriptText` makes, so the probe measures the
+        // ink the raster will paint.
+        isFakeBoldText = fakeBold
+    }
+    val bounds = Rect()
+    paint.getTextBounds(text, 0, text.length, bounds)
+    return bounds.height() / INK_PROBE_SIZE_PX
+}
+
+/**
+ * [weekdayInkEm] for the word [WidgetText] would draw, resolved in the composition's context.
+ *
+ * `remember`ed on the word, the family and the face choice: the answer is a property of those three,
+ * not of the size it is drawn at, so it survives every resize.
+ *
+ * @param family the host's weekday family name, exactly as [WeekdayBand] passes it to `TextStyle`. The
+ *   band draws the word in that family, so the probe has to measure in it too — a custom family with a
+ *   shorter ink would otherwise keep reserving the default face's, which is the gap this exists to
+ *   remove.
+ */
+@Composable
+internal fun rememberWeekdayInkEm(text: String, family: String?): Float {
+    val context = LocalContext.current
+    val bundledFace = HijriWidgetFonts.default.drawsAsScript(text, maxLines = 1)
+    return remember(text, family, bundledFace) {
+        weekdayInkEm(
+            text = text,
+            face = when {
+                bundledFace -> scriptTypeface(context)
+                family != null -> Typeface.create(family, Typeface.BOLD)
+                else -> Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            },
+            fakeBold = bundledFace,
+        )
+    }
 }
 
 /**
