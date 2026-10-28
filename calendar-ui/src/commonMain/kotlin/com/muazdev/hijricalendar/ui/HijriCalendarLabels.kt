@@ -2,8 +2,10 @@ package com.muazdev.hijricalendar.ui
 
 import androidx.compose.runtime.Immutable
 import com.muazdev.hijricalendar.core.CalendarDay
+import com.muazdev.hijricalendar.core.CalendarEvent
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriEvent
+import com.muazdev.hijricalendar.core.PakistanEvent
 import com.muazdev.hijricalendar.core.WeekDay
 import kotlinx.datetime.LocalDate
 
@@ -176,6 +178,50 @@ public data class HijriCalendarLabels(
     val dayContentDescription: (CalendarDay) -> String = { day ->
         val suffix = if (day.isDisabled) ", disabled" else ""
         "Day ${day.dayOfMonth}$suffix"
+    },
+
+    /**
+     * The name of a **Pakistani national day**, in the host's language.
+     *
+     * Separate from [eventName] because the two tables are separate types ([HijriEvent] vs
+     * [PakistanEvent]) fixed to different calendars. There is no sensible single lambda that would
+     * accept both without a cast: a host translating these is translating a different list of names.
+     *
+     * Mirrors [eventName] otherwise: takes the event rather than a `String` so a locale can use
+     * [PakistanEvent.key] instead of the English name, and never returns `null` because a missing
+     * translation is far more discoverable as English than as a blank.
+     *
+     * **Appended rather than grouped with [eventName]**, like [monthEventBannerWithPakistan] below:
+     * these are `@Immutable` data classes on a published artifact with a binary-compatibility golden
+     * file, and inserting a parameter mid-list renumbers every later `componentN` — changing the
+     * *return type* of `component8()`, which is a `NoSuchMethodError` in a consumer's compiled code
+     * rather than a recompile. A trailing addition costs a recompile; a mid-list one costs a crash.
+     */
+    val pakistanEventName: (PakistanEvent) -> String = { it.nameEn },
+
+    /**
+     * The line the banner shows when the month holds **Pakistani national days as well** — the
+     * Pakistan-mode counterpart of [monthEventBanner].
+     *
+     * Takes one ordered list of [CalendarEvent] rather than two lists because ordering is the whole
+     * problem: a Gregorian-fixed national day (14 August) and a Hijri observance (Ashura) interleave by
+     * day within a month, and a lambda that received two lists could not restore that order. The list
+     * is already in cell order, so the names read the same way the grid does.
+     *
+     * **Only called when a national day is present.** A host that has customised
+     * [monthEventBanner] keeps that lambda for every month without one, which is why this is an
+     * additional field rather than a replacement: changing [monthEventBanner]'s parameter type would
+     * break every existing label set. A host that wants its own phrasing for Pakistan months overrides
+     * this one; the default joins [eventName] and [pakistanEventName] with the same middle dot
+     * [monthEventBanner] uses.
+     */
+    val monthEventBannerWithPakistan: (List<CalendarEvent>) -> String = { events ->
+        events.joinToString(" · ") { event ->
+            when (event) {
+                is PakistanEvent -> pakistanEventName(event)
+                is HijriEvent -> eventName(event)
+            }
+        }
     },
 )
 

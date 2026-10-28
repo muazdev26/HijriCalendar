@@ -172,8 +172,14 @@ public fun HijriCalendar(
     val eventBannerText = remember(bannerEvents, labels, showEventBanner) {
         when {
             !showEventBanner -> null
-            bannerEvents.isEmpty() -> labels.noEventBanner.takeIf { it.isNotEmpty() }
-            else -> labels.monthEventBanner(bannerEvents).takeIf { it.isNotEmpty() }
+            bannerEvents.isEmpty -> labels.noEventBanner.takeIf { it.isNotEmpty() }
+            // A month with no Pakistani national day keeps the published Hijri-only lambda, so an
+            // existing custom `monthEventBanner` is still what renders. Only a Pakistan-mode month that
+            // actually holds a national day routes through the additive combined label.
+            bannerEvents.pakistan.isEmpty() ->
+                labels.monthEventBanner(bannerEvents.hijri).takeIf { it.isNotEmpty() }
+            else ->
+                labels.monthEventBannerWithPakistan(bannerEvents.ordered).takeIf { it.isNotEmpty() }
         }
     }
 

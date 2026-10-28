@@ -5,6 +5,7 @@ import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.HijriEvents
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -72,14 +73,14 @@ class MonthEventListTest {
     fun everyObservanceOfTheMonthIsListedInDayOrder() {
         assertEquals(
             listOf(newYear, ashuraEve, ashura),
-            monthEvents(month(MUHARRAM, previous = 12, next = SAFAR, length = 30)),
+            monthEvents(month(MUHARRAM, previous = 12, next = SAFAR, length = 30)).hijri,
         )
     }
 
     /** A month with no observance at all answers with an empty list, which the caller words itself. */
     @Test
     fun aMonthWithNoObservance_hasAnEmptyList() {
-        assertTrue(monthEvents(month(SAFAR, previous = MUHARRAM, next = 3, length = 29)).isEmpty())
+        assertTrue(monthEvents(month(SAFAR, previous = MUHARRAM, next = 3, length = 29)).isEmpty)
     }
 
     /**
@@ -101,10 +102,10 @@ class MonthEventListTest {
 
         assertEquals(
             listOf("ramadan"),
-            events.map { it.key },
+            events.hijri.map { it.key },
             "1 Ramadan carries the month's own first day, and no other day of it carries anything",
         )
-        assertEquals("Ramadan", HijriCalendarLabels().monthEventBanner(events))
+        assertEquals("Ramadan", HijriCalendarLabels().monthEventBanner(events.hijri))
     }
 
     /**
@@ -121,7 +122,7 @@ class MonthEventListTest {
             cell(dayOfMonth = 15, month = SAFAR),
         )
 
-        assertTrue(monthEvents(safarWithMuharramPadding).isEmpty())
+        assertTrue(monthEvents(safarWithMuharramPadding).isEmpty)
     }
 
     /**
@@ -135,7 +136,7 @@ class MonthEventListTest {
     fun aRepeatedObservanceAppearsOnce() {
         assertEquals(
             listOf(ashura),
-            monthEvents(listOf(cell(dayOfMonth = 10), cell(dayOfMonth = 10))),
+            monthEvents(listOf(cell(dayOfMonth = 10), cell(dayOfMonth = 10))).hijri,
         )
     }
 
@@ -153,14 +154,14 @@ class MonthEventListTest {
         val grid = month(MUHARRAM, previous = 12, next = SAFAR, length = 30)
         assertEquals(
             listOf(newYear, ashuraEve, ashura),
-            eventBannerEvents(grid),
+            eventBannerEvents(grid).hijri,
             "paging through the month: the bar describes the month",
         )
 
         val tapped = grid.map { day -> if (day.dayOfMonth == 10) day.copy(isSelected = true) else day }
 
-        assertEquals(listOf(ashura), eventBannerEvents(tapped))
-        assertEquals("Ashura", HijriCalendarLabels().monthEventBanner(eventBannerEvents(tapped)))
+        assertEquals(listOf(ashura), eventBannerEvents(tapped).hijri)
+        assertEquals("Ashura", HijriCalendarLabels().monthEventBanner(eventBannerEvents(tapped).hijri))
     }
 
     /**
@@ -175,7 +176,7 @@ class MonthEventListTest {
         val tapped = month(MUHARRAM, previous = 12, next = SAFAR, length = 30)
             .map { day -> if (day.dayOfMonth == 2) day.copy(isSelected = true) else day }
 
-        assertEquals(listOf(newYear, ashuraEve, ashura), eventBannerEvents(tapped))
+        assertEquals(listOf(newYear, ashuraEve, ashura), eventBannerEvents(tapped).hijri)
     }
 
     /**
@@ -192,7 +193,7 @@ class MonthEventListTest {
             cell(dayOfMonth = 15, month = SAFAR),
         )
 
-        assertTrue(eventBannerEvents(safarWithSelectedMuharramPadding).isEmpty())
+        assertTrue(eventBannerEvents(safarWithSelectedMuharramPadding).isEmpty)
     }
 
     /**
@@ -212,4 +213,115 @@ class MonthEventListTest {
         )
         assertTrue("Day " !in text, "the banner must not attach the day to the name")
     }
+
+    // ── Pakistan mode: national days join the same line ───────────────────
+
+    /**
+     * A Pakistan-mode month lists its national day, end to end from a real state.
+     *
+     * 14 August 2026 is 30 Safar 1448, so the banner for that month must name Independence Day — driven
+     * through [HijriCalendarState] in Pakistan mode rather than a hand-built cell, because the gate that
+     * makes it appear (`CalendarDay.pakistanEvent`, which requires `pakistanDate`) is the thing this test
+     * exists to pin. A fixture would set `pakistanDate` itself and prove nothing.
+     */
+    @Test
+    fun aPakistanModeMonthNamesItsNationalDay() {
+        val safar = pakistanMonth(1448, 2)
+
+        val events = monthEvents(safar)
+
+        assertEquals(
+            listOf("independence_day"),
+            events.pakistan.map { it.key },
+            "Safar 1448 holds 14 August, the only national day in it",
+        )
+        assertEquals(
+            listOf("independence_day"),
+            events.ordered.map { it.key },
+            "and the ordered list is what the combined label receives",
+        )
+        assertEquals(
+            "Independence Day",
+            HijriCalendarLabels().monthEventBannerWithPakistan(events.ordered),
+        )
+    }
+
+    /**
+     * A month with no national day keeps the **published** Hijri-only lambda.
+     *
+     * That is why the combined label is an additional field rather than a changed signature: a host that
+     * customised `monthEventBanner` must keep rendering through it on every month that has no Pakistan
+     * national day, which is most of them.
+     */
+    @Test
+    fun aMonthWithoutANationalDayStaysOnTheHijriOnlyLabel() {
+        val muharram = pakistanMonth(1448, 1)
+
+        val events = monthEvents(muharram)
+
+        assertTrue(events.pakistan.isEmpty(), "Muharram 1448 holds no national day")
+        assertEquals(
+            listOf("islamic_new_year", "ashura_ninth", "ashura"),
+            events.hijri.map { it.key },
+            "the Hijri list is unchanged, so the Hijri-only label still renders it",
+        )
+        assertEquals(
+            HijriCalendarLabels().monthEventBanner(events.hijri),
+            events.ordered.joinToString(" · ") { it.nameEn },
+            "the ordered stream and the Hijri list describe the same set here",
+        )
+    }
+
+    /**
+     * Tapping the national day narrows the line to that one name, and the *national* name at that.
+     *
+     * The tap rule did not change for Pakistan mode — it narrows to the tapped day's marks — but the
+     * mark here comes from the Gregorian table, so a banner that had kept resolving through `event`
+     * alone would have shown the month's Hijri list instead of the day the user tapped.
+     */
+    @Test
+    fun tappingTheNationalDayNarrowsTheBannerToIt() {
+        val safar = pakistanMonth(1448, 2)
+        val tapped = safar.map { day ->
+            if (day.localDate == LocalDate(2026, 8, 14)) day.copy(isSelected = true) else day
+        }
+
+        val events = eventBannerEvents(tapped)
+
+        assertEquals(listOf("independence_day"), events.ordered.map { it.key })
+        assertEquals(
+            "Independence Day",
+            HijriCalendarLabels().monthEventBannerWithPakistan(events.ordered),
+        )
+    }
+
+    /**
+     * In Calculation mode the same Gregorian month names **no** national day.
+     *
+     * The gate is the calendar space the user chose, so switching the in-app calendar to Umm al-Qura
+     * must drop the national days with it rather than painting 14 August's fill on a calculated grid.
+     */
+    @Test
+    fun theCalculationModeMonthNamesNoNationalDay() {
+        val safar = calculationMonth(1448, 2)
+
+        assertTrue(
+            monthEvents(safar).pakistan.isEmpty(),
+            "Calculation mode must not carry Pakistani national days",
+        )
+    }
+
+    /** The month grid of a real state in Pakistan mode. */
+    private fun pakistanMonth(year: Int, month: Int): List<CalendarDay> =
+        HijriCalendarState(
+            initialMonth = HijrahYearMonth(year, month),
+            pakistanDates = true,
+        ).calendarMonthFor(HijrahYearMonth(year, month)).days
+
+    /** The month grid of a real state in Calculation mode. */
+    private fun calculationMonth(year: Int, month: Int): List<CalendarDay> =
+        HijriCalendarState(
+            initialMonth = HijrahYearMonth(year, month),
+            pakistanDates = false,
+        ).calendarMonthFor(HijrahYearMonth(year, month)).days
 }
