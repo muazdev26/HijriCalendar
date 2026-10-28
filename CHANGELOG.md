@@ -2,6 +2,99 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## 2.3.4 - 2026-10-28
+
+### Added
+
+- **Pakistani national days, in Pakistan mode.** `PakistanEvent` + `PakistanEvents` (`calendar-core`)
+  carry eight Gregorian-fixed national days — Kashmir Solidarity Day (5 Feb), Pakistan Day (23 Mar),
+  Labour Day (1 May), Youm-e-Takbir (28 May), Independence Day (14 Aug), Defence Day (6 Sep), Iqbal
+  Day (9 Nov), Quaid-e-Azam Day (25 Dec) — with English and Urdu names, a stable `key`, and
+  `forDate` / `forMonth` / `hasAnyIn`. They are **Gregorian** coordinates and never Hijri: expressing
+  14 August as a `HijriEvent` would move it eleven days earlier every year. Eid, Ashura and
+  Eid Milad-un-Nabi stay in `HijriEvents`, because Pakistan *announces* those rather than fixing them
+  by statute; provincial and one-off days are deliberately absent.
+- `CalendarEvent`, the interface both event tables implement, plus `CalendarDay.pakistanEvent` (`null`
+  outside Pakistan mode), `CalendarDay.notableEvents` (national day first, then the Hijri observance,
+  in cell order) and `CalendarDay.hasNotableEvent`. Additive: `CalendarDay.event` is unchanged, and a
+  day can now carry both marks without either being dropped.
+- `HijriCalendarLabels.pakistanEventName` and `HijriCalendarLabels.monthEventBannerWithPakistan`, both
+  defaulted. **Appended at the end of the data class, not grouped with `eventName`**: this is an
+  `@Immutable` parameter object on a published artifact with a binary golden file, and inserting a
+  parameter mid-list renumbers every later `componentN` — which is a `NoSuchMethodError` in already
+  compiled consumer code rather than a recompile. `monthEventBannerWithPakistan` is only consulted for
+  months that actually hold a national day, so a host's existing `monthEventBanner` customisation keeps
+  applying to every other month. `UrduCalendarLabels` supplies both.
+- `HijriDayWidgetData.eventKey` — the stable key of the day's notable date, so a host can print its own
+  label without matching on a name. `null`-defaulted and additive. The grid widget's footer
+  (`eventFor` / `nextEventName`) now resolves through it, Pakistan day first, which is also what fixes
+  the footer naming a different observation than the filled cell meant in Pakistan/observed mode.
+- **A sixth widget: `HijriCompactDateWidget`** (with `HijriCompactDateWidgetReceiver` and the public
+  `HijriCompactDateWidgetLivePreview`). An app-icon-sized dual-date tile, four lines top to bottom: the
+  weekday in the family accent band, then **one Gregorian row** with the day at one end and the short
+  month at the other, then the **Hijri day as the largest line**, then the **Hijri month name** below it
+  — no year, no era marker, no separator. The weekday appears once: a closing copy of it was built and
+  removed, because at this size a duplicate of the same word costs a caption line. It answers both dates
+  in the one cell where `HijriDateWidget` and `GregorianDateWidget` answer half each, and where
+  `HijriDualDateWidget`'s four stacked zones collapse into each other. `minWidth/minHeight = 40dp`,
+  `targetCell = 1x1`, `resizeMode="none"`, so a host grants one cell and offers no resize that would
+  duplicate the dual tile. The tile **paints itself at a fixed square of at most 72×72dp centred in that
+  cell** (`CompactDateTileTypography.DRAWN_EDGE_DP` / `drawnEdgeDp`) rather than filling it: the leftover
+  cell height stays transparent, so no background shows past the content, and the square renders the same
+  size on every host. It is capped by the cell — a placed widget on a Pixel 6a launcher gets a 62×88dp
+  content area, so that host draws 62×62dp and only a cell at least 72dp in both axes draws 72dp — and a
+  grant *below* the square shrinks the whole stack rather than clipping it. Type is derived from the
+  drawn edge by one scale (reference 72×72dp, ceilings 12sp/40sp), and `sizeMode` is `SizeMode.Exact` so
+  the composition can see a grant below the edge. The Gregorian day sits at the reading-start edge in both
+  languages (`options.language.isRtl`), the two halves are weighted to opposite ends of their row, and
+  the Hijri figure carries the accent colour.
+- The compact tile is wired end to end: the library manifest (`<receiver>` and
+  `hijri_compact_date_widget_info.xml`), `HijriWidgetPresence`, `HijriWidgetPreviewPublisher`,
+  `HijriWidgetRenderQueue`, the Android 15+ `providePreview`
+  (`PreviewSizeMode.Responsive(72×72dp)`), an Android 12-14 `previewLayout` mirror and an
+  `previewImage` fallback for older hosts. The sample app gains `WidgetKind.COMPACT_DATE`, a configure
+  activity, a settings screen entry, a catalog entry and its own widget-info override. **The existing
+  five widgets are unchanged** — same classes, same receivers, same defaults.
+- `CompactDateTilePreviewLayoutTest` pins the compact tile's contract: the square never above 72dp and
+  capped by the cell, its type sized at the drawn edge, the stack fitting the declared 40dp minimum,
+  and the static `previewLayout` mirror agreeing with the live composition line for line — band,
+  Gregorian day, Gregorian month, Hijri figure, Hijri month — with no line carrying a year, an era
+  or a separator.
+
+### Fixed
+
+- **The weekday name on every widget is legible, and its size is a rule rather than a per-widget
+  choice.** `بدھ` was reported as "showing very very small, unable to read" on everything but the
+  in-app grid. Two things were wrong, and both were the band: each widget sized the word from whatever
+  line it happened to share (a caption on the dual and compact tiles, a hand-picked 13sp on the tiles and
+  the strip), and the band then took the whole font *line box* as its height — 1.7em for ~0.75em of ink,
+  so a short word sat as a smudge in a bright accent block a third of a 1×1 tile tall. The rule is now
+  `WeekdayBandFit`: the word is **half the widget's dominant figure** (capped at 22sp), and the band is
+  as tall as its **ink** plus its paddings, drawn through a raster cropped to that ink
+  (`WidgetText(cropToInk = true)`), so growing the word costs the body nothing. At a placed Pixel 6a
+  cell the weekday went from ~6.9 → ~9.1sp on the compact tile, ~8.7 → ~11.4sp on the dual tile and
+  ~11.7 → ~12.5sp on the Today strip, while every band got *shorter*; the 1×1 tiles' word kept its 13sp
+  and doubled its painted ink. `WeekdayBandFitTest` states the share on all four fitted typographies and
+  `WidgetScriptTextTest` pins the three crop modes (`ScriptCrop`).
+- **A one-day hole in the Pakistan calendar at 14 August 2026.** `PakistanHijriCalendar.FIXES` held a
+  verified 1448 Rabi al-Awwal anchor (2026-08-15) but no Safar entry, so the chain fell back to Umm
+  al-Qura's earlier start and ran 1448-02 out on 2026-08-13: the grid painted 1448-02-30 twice and **no
+  page ever showed 2026-08-14** — the day Independence Day falls on. `(1448, 2)` is now pinned to its
+  announced start (2026-07-16) and its 30 days, which is exactly the re-sync between a fallback-length
+  month and a verified anchor that a `Fix` exists for. Pinned by
+  `PakistanCalendarMonthTest.theMonthBeforeAResyncReachesItWithoutAHole`; a roundtrip test cannot catch
+  this class of bug, since both directions share the chain.
+
+### Changed
+
+- **A Pakistan-mode cell fills for a national day**, and the in-app event banner names it: tapping 14
+  August narrows the banner to "Independence Day" the same way tapping an observance narrows it to that
+  observance, and a month holding both interleaves them by day rather than listing one table after the
+  other. Calculation mode is untouched — a national day belongs to the Ruet-e-Hilal calendar the user
+  chose, and showing it on the calculated grid would put a fill on a page whose whole claim is "these
+  are calculated dates". The banner still reads the month's **cells**, so it cannot disagree with the
+  fills above it.
+
 ## 2.3.3 - 2026-10-21
 
 ### Added
