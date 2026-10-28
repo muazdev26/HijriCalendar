@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The sample's override of the compact dual-date tile's provider info: identical to the library's
+     apart from `android:configure` and `widgetFeatures`, which route long-press to this app's own
+     settings screen. Resource merging resolves the library manifest's @xml reference to this file, so
+     the sample declares no <receiver> of its own — the library is the single declaration site (WG-10).
+
+     `resizeMode="none"` is kept from the library's info: this tile is a fixed at-a-glance glance with
+     two figures side by side, and a resize would turn it into a second, worse copy of the dual tile.
+     `widgetFeatures="reconfigurable|configuration_optional"` is what lets the pin flow run the configure
+     activity *and* lets a user skip it: the tile follows the family options mirror either way. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/hijri_compact_date_widget_description"
+    android:configure="com.muazdev.hijricalendar.sample.HijriCompactDateWidgetConfigureActivity"
+    android:initialLayout="@layout/hijri_widget_loading"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:previewImage="@drawable/hijri_compact_date_widget_preview"
+    android:previewLayout="@layout/hijri_compact_date_widget_preview_layout"
+    android:resizeMode="none"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen"
+    android:widgetFeatures="reconfigurable|configuration_optional"
+    tools:ignore="UnusedAttribute">
+</appwidget-provider>

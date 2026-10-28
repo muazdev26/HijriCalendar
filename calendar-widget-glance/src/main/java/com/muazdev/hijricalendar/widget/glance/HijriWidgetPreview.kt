@@ -369,6 +369,74 @@ public fun HijriDualDateWidgetLivePreview(
     }
 }
 
+/** Non-interactive clone of [HijriCompactDateWidget] for the compact tile's settings preview. */
+internal class HijriCompactDateWidgetPreview(
+    private val options: WidgetOptions
+) : GlanceAppWidget() {
+
+    override val sizeMode: SizeMode = SizeMode.Single
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        if (options.source.pakistan) {
+            PakistanWarmUp.ensureWarm()
+        }
+        val colors = WidgetColors.forTheme(options.theme)
+        // The stable preview id — see the note in `HijriTodayWidgetPreview`.
+        val today = HijriWidgetRenderCache.today(
+            glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
+            options = options,
+            todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
+        )
+        provideContent {
+            CompactDateTileRoot(
+                today = today,
+                colors = colors,
+                openAction = null,
+                deviceRtl = computeDeviceLayoutRtl(context),
+                language = options.language,
+            )
+        }
+    }
+}
+
+/**
+ * Live preview of the compact dual-date tile: composes the real [CompactDateTileRoot] layout and hosts
+ * the resulting [RemoteViews] in an [AndroidView]. Public so a host app's settings screen can show the
+ * tile live from the same [WidgetOptions] its controls edit, matching the other tile previews.
+ */
+@Composable
+public fun HijriCompactDateWidgetLivePreview(
+    options: WidgetOptions,
+    size: DpSize,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    var remoteViews by remember(options, size) { mutableStateOf<RemoteViews?>(null) }
+
+    LaunchedEffect(options, size) {
+        try {
+            remoteViews = HijriCompactDateWidgetPreview(options)
+                .compose(context.glanceComposeContext(), size = size)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            HijriWidgetRefreshLog.d("preview-compact-date", "compose failed: ${error.message}")
+        }
+    }
+
+    val rendered = remoteViews
+    if (rendered == null) {
+        Box(modifier = modifier.background(Color.Transparent))
+    } else {
+        key(rendered) {
+            AndroidView(
+                modifier = modifier,
+                factory = { ctx -> rendered.apply(ctx, null) },
+            )
+        }
+    }
+}
+
 /**
  * Live preview of the 1x1 Gregorian date tile, mirroring [HijriDateWidgetLivePreview] on the
  * Gregorian side.

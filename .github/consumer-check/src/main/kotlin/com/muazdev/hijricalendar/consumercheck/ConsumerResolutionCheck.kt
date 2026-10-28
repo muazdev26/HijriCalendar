@@ -12,6 +12,9 @@ import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidget
 import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidget
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidget
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver
@@ -83,6 +86,9 @@ private object ConsumerResolutionCheck {
         // FD-10: the dual-date tile's preview. Same `DpSize`/`Modifier` shape as the four above, so a
         // scope mistake on this one fails here rather than in a consumer's settings screen.
         HijriDualDateWidgetLivePreview(options = options, size = DpSize(120.dp, 120.dp))
+        // The compact tile's preview, at the square the picker shows it at (the 72dp reference cell
+        // plus its clear space). Same shape again — the sixth widget is reachable or this is red.
+        HijriCompactDateWidgetLivePreview(options = options, size = DpSize(84.dp, 84.dp))
     }
 
     /** A compose-typed default argument, the shape a real settings screen uses. */
@@ -99,11 +105,14 @@ private object ConsumerResolutionCheck {
         GregorianDateWidget(),
         // FD-10: the strict 1x1 dual-date tile. Its `SizeMode.Single` is what the picker sizes it at.
         HijriDualDateWidget(),
+        // The compact dual-date tile: `SizeMode.Exact`, because it fits its type to the granted cell.
+        HijriCompactDateWidget(),
         HijriCalendarWidgetReceiver(),
         HijriTodayWidgetReceiver(),
         HijriDateWidgetReceiver(),
         GregorianDateWidgetReceiver(),
         HijriDualDateWidgetReceiver(),
+        HijriCompactDateWidgetReceiver(),
         HijriCalendarWidget().sizeMode,
         SizeMode.Single,
         HIJRI_DEEP_LINK_TODAY,
@@ -175,6 +184,13 @@ private object ConsumerResolutionCheck {
             ordinal = "2",
             language = WidgetLanguage.ENGLISH,
         )
+
+        // The observance key each cell carries, added for the Pakistan national-day table: a renderer
+        // resolves a footer name through it rather than re-deriving one from `(month, day)`, which
+        // cannot express a Gregorian-fixed national day at all. A plain `String?` from no new
+        // dependency, named here so the field cannot be dropped from the published ABI unnoticed.
+        // It lives on `HijriDayWidgetData` (the month's cells), not on the today strip's projection.
+        val eventKey: String? = grid?.days?.firstOrNull()?.eventKey
     }
 
     /** The refresh/scheduling surface a host app drives from its own settings screen. */

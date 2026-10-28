@@ -68,13 +68,39 @@ internal fun WidgetText(
      * grid's chrome opts in, the fitted typographies do not.
      */
     trimScriptLeading: Boolean = false,
+    /**
+     * Whether the raster is cropped to its ink **on all four sides**, and therefore whether the slot's
+     * height is the ink itself rather than the face's line box.
+     *
+     * One caller: [WeekdayBand], whose whole height is its word's ink (see [WeekdayBandFit]). It is
+     * also the one slot that must rasterise **whatever** the bundled face is set to, so `cropToInk`
+     * *forces* the raster path and picks the face the host asked for — with `bundledUrduFont` off that
+     * is the system face, laid out and drawn by the same `StaticLayout` code. Cropping is the only way
+     * a band can look tight: Glance's padding is non-negative and its `TextStyle` has no `lineHeight`,
+     * so the empty band above and below a glyph cannot be reclaimed by any layout nudge.
+     *
+     * Single-line only, like the rest of the raster path: a crop of a wrapped run would keep one ink
+     * box of two. Every caller states `maxLines = 1`, and a slot that wraps never sets this.
+     */
+    cropToInk: Boolean = false,
 ) {
     val fonts = HijriWidgetFonts.default
     val resolved = style ?: TextStyle()
-    val fontSize = resolved.fontSize
-    // The size check sits here rather than in [drawsAsScript] so the `fontSize == null` result is
-    // visible to the compiler and the `.value` read below is on a non-null receiver.
-    if (fontSize == null || fontSize.isUnspecified || !fonts.drawsAsScript(text, maxLines)) {
+    // `null` covers both "no size stated" and `TextUnit.Unspecified`, so the raster path has one size
+    // test to make and the compiler sees the non-null receiver the `.value` read below needs.
+    val fontSize = resolved.fontSize?.takeUnless { it.isUnspecified }
+    val bundledFace = fonts.drawsAsScript(text, maxLines)
+    // A slot rasterises for one of two independent reasons: the host asked for the bundled face, or the
+    // slot needs a crop only a bitmap can give it. The two flags are folded into the one value the
+    // rasteriser and [inkCropRect] both read, so there is no way for the drawing and the height the
+    // layout reserved to disagree about which crop ran.
+    val crop = when {
+        cropToInk -> ScriptCrop.INK
+        trimScriptLeading -> ScriptCrop.TRIM_LEADING
+        else -> ScriptCrop.BOX
+    }
+    val rasterises = bundledFace || crop != ScriptCrop.BOX
+    if (fontSize == null || !rasterises) {
         Text(text = text, modifier = modifier, style = resolved, maxLines = maxLines)
         return
     }
@@ -82,22 +108,19 @@ internal fun WidgetText(
     val context = LocalContext.current
     val metrics = context.resources.displayMetrics
     val colorArgb = resolved.color.getColor(context).toArgb()
-    val sizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSize.value, metrics)
     val availableDp = maxWidthDp?.toFloat() ?: LocalSize.current.width.value
-    val maxWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, availableDp, metrics)
-        .coerceAtLeast(1f)
+    val run = ScriptRun(
+        text = text,
+        sizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, fontSize.value, metrics),
+        colorArgb = colorArgb,
+        bold = resolved.fontWeight == FontWeight.Bold,
+        maxWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, availableDp, metrics)
+            .coerceAtLeast(1f),
+        crop = crop,
+        bundledFace = bundledFace,
+    )
 
-    val bitmap = remember(text, colorArgb, sizePx, resolved.fontWeight, maxWidthPx, trimScriptLeading) {
-        rasterizeScriptText(
-            context = context,
-            text = text,
-            sizePx = sizePx,
-            colorArgb = colorArgb,
-            bold = resolved.fontWeight == FontWeight.Bold,
-            maxWidthPx = maxWidthPx,
-            trimLeading = trimScriptLeading,
-        )
-    }
+    val bitmap = remember(run) { rasterizeScriptText(context, run) }
 
     // The caller's modifier goes straight on the `Image`, with Glance's default `Fit` — and that is
     // safe, which is worth spelling out because it is not obvious. `glance_image_fit.xml` is a
@@ -287,7 +310,7 @@ private class SystemFaceSpan(
  * the *fitted* typographies (the 1x1 tiles, the dual tile, the Today strip), whose stacks are sized
  * against `scriptLineRatio()` — the ratio *is* the arithmetic those layouts reserve with.
  *
- * It is the wrong answer for the **grid's chrome**, and [trimLeading] is the way out. The face's
+ * It is the wrong answer for the **grid's chrome**, and [ScriptCrop.TRIM_LEADING] is the way out. The face's
  * declared line box is 2.5 em while a Nastaliq line's ink is usually far shorter — measured on a
  * device, the grid's Hijri title raster carried 28 px of empty band above its ink inside an 85 px box,
  * the Gregorian line 8 px, and the weekday names 12-43 px. Nothing in the grid is fitted to a ratio:
@@ -296,7 +319,7 @@ private class SystemFaceSpan(
  * against the 29.3 dp they need. With the band kept, a Nastaliq grid cannot show a two-line month
  * title, a weekday row, a footer *and* a legible two-line cell at once.
  *
- * So [trimLeading] crops the bitmap's top to the first row that painted and leaves the bottom at the
+ * So [ScriptCrop.TRIM_LEADING] crops the bitmap's top to the first row that painted and leaves the bottom at the
  * layout's own descent. The bottom is the part that matters: `baseline + descent` is a *constant*
  * offset below the baseline for a given size, so every trimmed slot keeps its baseline at the same
  * distance from its own bottom edge. A row of labels that bottom-aligns therefore still shares one
@@ -305,38 +328,36 @@ private class SystemFaceSpan(
  * removed. Nothing is clipped: the crop is computed from the pixels, so the ink is kept whatever its
  * extent.
  */
-private fun rasterizeScriptText(
-    context: Context,
-    text: String,
-    sizePx: Float,
-    colorArgb: Int,
-    bold: Boolean,
-    maxWidthPx: Float,
-    trimLeading: Boolean,
-): Bitmap {
+private fun rasterizeScriptText(context: Context, run: ScriptRun): Bitmap {
     val metrics = context.resources.displayMetrics
     val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {
-        this.textSize = sizePx
-        this.color = colorArgb
-        typeface = scriptTypeface(context)
+        textSize = run.sizePx
+        color = run.colorArgb
+        typeface = if (run.bundledFace) {
+            scriptTypeface(context)
+        } else {
+            Typeface.create(Typeface.DEFAULT, if (run.bold) Typeface.BOLD else Typeface.NORMAL)
+        }
         // Nastaliq ships no bold face — it is a single-weight script — so a bold slot synthesises the
         // weight rather than falling back to regular, which is what `Typeface.create(_, BOLD)` would
-        // silently do.
-        isFakeBoldText = bold
+        // silently do. A run in the *system* face has a real bold face to use, so it must not also be
+        // smeared by a synthetic one.
+        isFakeBoldText = run.bold && run.bundledFace
     }
 
     // `true` measurement, before any ellipsis: `measureText` reports the run's natural width, so the
     // scale factor is exact rather than a guess refined by rebuilding layouts in a loop. It measures
     // the whole string in the bundled face, which is the wide case — a caption that fits in
     // Nastaliq fits with the figures in the narrower system face too.
-    val naturalWidth = paint.measureText(text)
-    if (naturalWidth > maxWidthPx) {
-        paint.textSize = (sizePx * (maxWidthPx / naturalWidth)).coerceAtLeast(sizePx * MIN_RASTER_SCALE)
+    val naturalWidth = paint.measureText(run.text)
+    if (naturalWidth > run.maxWidthPx) {
+        paint.textSize = (run.sizePx * (run.maxWidthPx / naturalWidth))
+            .coerceAtLeast(run.sizePx * MIN_RASTER_SCALE)
     }
 
-    val body = SpannableStringBuilder(text)
-    val systemFace = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
-    for (range in text.systemFaceRuns()) {
+    val body = SpannableStringBuilder(run.text)
+    val systemFace = if (run.bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
+    for (range in run.text.systemFaceRuns()) {
         body.setSpan(
             SystemFaceSpan(systemFace, fakeBold = false),
             range.first,
@@ -354,7 +375,7 @@ private fun rasterizeScriptText(
     // `maxOf` over the two measurers because the spanned body pins its digit runs to the *narrower*
     // system face, so the plain `measureText` is the safe upper bound.
     val layoutWidth = ceil(
-        maxOf(paint.measureText(text), Layout.getDesiredWidth(body, paint)),
+        maxOf(paint.measureText(run.text), Layout.getDesiredWidth(body, paint)),
     ).toInt().coerceAtLeast(1)
 
     val layout = StaticLayout.Builder
@@ -370,9 +391,8 @@ private fun rasterizeScriptText(
     val advanceWidth = ceil(layout.getLineRight(0) - left).toInt().coerceAtLeast(1)
     val height = layout.height.coerceAtLeast(1)
 
-    // See the KDoc: one em of slack either side, then crop to what painted. The height is the full
-    // line box in both bitmap and result, so a row of labels keeps one baseline.
-    val margin = ceil(sizePx).toInt().coerceAtLeast(1)
+    // See the KDoc: one em of slack either side, then crop to what painted.
+    val margin = ceil(run.sizePx).toInt().coerceAtLeast(1)
     val scratch = Bitmap.createBitmap(
         metrics,
         advanceWidth + margin * 2,
@@ -389,14 +409,98 @@ private fun rasterizeScriptText(
     val pixels = IntArray(scratch.width * scratch.height)
     scratch.getPixels(pixels, 0, scratch.width, 0, 0, scratch.width, scratch.height)
     // A run that painted nothing at all (an empty string cannot reach here, but a font that failed to
-    // load could) falls back to the advance box rather than to a 0-wide bitmap.
-    val ink = inkColumnRange(scratch.width, scratch.height, pixels)
-        ?: return Bitmap.createBitmap(scratch, margin, 0, advanceWidth, height)
-    // See the KDoc: the leading band above the ink is dropped only where the caller asked for it, and
-    // the bottom stays the layout's own descent so every trimmed slot keeps its baseline at the same
-    // distance from its own bottom edge.
-    val top = if (trimLeading) inkRowRange(scratch.width, scratch.height, pixels)?.first ?: 0 else 0
-    return Bitmap.createBitmap(scratch, ink.first, top, ink.last - ink.first + 1, height - top)
+    // load could) falls back to the advance box rather than to a 0-sized bitmap.
+    val ink = inkCropRect(
+        width = scratch.width,
+        height = scratch.height,
+        pixels = pixels,
+        crop = run.crop,
+    ) ?: return Bitmap.createBitmap(scratch, margin, 0, advanceWidth, height)
+    return Bitmap.createBitmap(scratch, ink.left, ink.top, ink.width, ink.height)
+}
+
+/**
+ * One rasterised run: the words, how to set them, and the box to keep.
+ *
+ * A value rather than nine arguments, and not only for the parameter count: it is also the identity of
+ * the resulting bitmap, so [WidgetText]'s `remember` is keyed on it directly. Two draws of the same word
+ * at the same size, colour, weight, budget and crop share one bitmap, and a change to any of them
+ * produces a new one — the property that keeps a rasterised slot from re-drawing on every composition.
+ */
+internal data class ScriptRun(
+    val text: String,
+    val sizePx: Float,
+    val colorArgb: Int,
+    val bold: Boolean,
+    val maxWidthPx: Float,
+    val crop: ScriptCrop,
+    /**
+     * Whether the bundled face is the base face. `false` is a slot that rasterises for its **crop**
+     * rather than for its typeface — the weekday band, whose height must be its ink — and the system
+     * face is then both the right face and the one the host chose.
+     */
+    val bundledFace: Boolean,
+)
+
+/**
+ * Which box [rasterizeScriptText] keeps of its scratch bitmap.
+ *
+ * One value rather than a pair of booleans because the three modes are mutually exclusive and each
+ * states a *contract* with the layout that reserved room for the slot: [BOX] is a line in a row,
+ * [TRIM_LEADING] is the grid's chrome (height bought back from leading, baseline unmoved) and [INK] is
+ * the weekday band (the slot *is* its ink). A bitmap can only satisfy one, and a caller that set two
+ * flags would be stating contradictory contracts.
+ */
+internal enum class ScriptCrop {
+    /** The face's whole line box, cropped horizontally to the ink. A row of labels shares one baseline. */
+    BOX,
+
+    /** [BOX] with the empty band above the ink dropped; the bottom stays the layout's descent. */
+    TRIM_LEADING,
+
+    /** Exactly the ink, on all four sides — [WeekdayBand]'s, whose whole height is its word. */
+    INK,
+}
+
+/**
+ * The box [rasterizeScriptText] keeps of its scratch bitmap, or `null` when nothing painted.
+ *
+ * Extracted from the rasteriser because the three crop modes are *policy*, not drawing, and this
+ * module's unit tests run against the stubbed `android.jar` — a `Bitmap` cannot be built there, so a
+ * rule worth pinning has to be reachable as a function over pixels. The modes are documented on
+ * [ScriptCrop]; what they share is that the crop is always to the ink **horizontally**
+ * ([inkColumnRange] has the overhang story) and differs only in which rows survive.
+ */
+internal data class InkCrop(val left: Int, val top: Int, val width: Int, val height: Int)
+
+internal fun inkCropRect(
+    width: Int,
+    height: Int,
+    pixels: IntArray,
+    crop: ScriptCrop,
+): InkCrop? {
+    val columns = inkColumnRange(width, height, pixels)
+    val rows = inkRowRange(width, height, pixels)
+    return if (columns == null || rows == null) null else cropRect(columns, rows, height, crop)
+}
+
+/**
+ * The one crop each [ScriptCrop] mode makes, given the buffer's ink — a single `InkCrop` per mode
+ * rather than a branch per mode, so the three answers can be read against each other.
+ *
+ * The two vertical edges are chosen independently: the top is the ink or the box's own top, and the
+ * bottom is the ink or the box's own bottom. `INK` takes both; `TRIM_LEADING` takes the top only,
+ * which is what leaves a trimmed slot's baseline at a constant offset from its own bottom edge.
+ */
+private fun cropRect(columns: IntRange, rows: IntRange, height: Int, crop: ScriptCrop): InkCrop {
+    val top = if (crop == ScriptCrop.BOX) 0 else rows.first
+    val bottom = if (crop == ScriptCrop.INK) rows.last else height - 1
+    return InkCrop(
+        left = columns.first,
+        top = top,
+        width = columns.last - columns.first + 1,
+        height = (bottom - top + 1).coerceAtMost(height - top),
+    )
 }
 
 /**

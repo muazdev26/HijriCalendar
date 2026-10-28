@@ -19,7 +19,7 @@ import android.content.Context
  * **Where the truth comes from.** [AppWidgetManager.getAppWidgetIds] for the provider components
  * this manifest declares — the same call Glance itself uses to enumerate a receiver's instances
  * (`GlanceAppWidgetReceiver.onReceive`, `ACTION_LOCALE_CHANGED`). Bound ids are exactly "placed in
- * a host"; a provider with no instance answers an empty array. All five providers must be asked
+ * a host"; a provider with no instance answers an empty array. All six providers must be asked
  * because any one of them being placed has to keep the *single* shared alarm armed.
  *
  * **Fails open.** A query that throws answers `true`. The two failure directions are not
@@ -33,9 +33,9 @@ internal object HijriWidgetPresence {
     /**
      * Every provider this library declares in its own manifest, in picker order.
      *
-     * Kept as the one list of the family: a sixth widget added without adding it here means the
+     * Kept as the one list of the family: a seventh widget added without adding it here means the
      * alarm is scheduled as if that widget did not exist, so it alone never rolls over at midnight
-     * while the other five do.
+     * while the other six do.
      */
     private val PROVIDERS: List<Class<*>> = listOf(
         HijriCalendarWidgetReceiver::class.java,
@@ -43,6 +43,7 @@ internal object HijriWidgetPresence {
         HijriDateWidgetReceiver::class.java,
         GregorianDateWidgetReceiver::class.java,
         HijriDualDateWidgetReceiver::class.java,
+        HijriCompactDateWidgetReceiver::class.java,
     )
 
     /** True when at least one instance of at least one family provider is bound to a host. */

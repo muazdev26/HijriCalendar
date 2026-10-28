@@ -49,7 +49,7 @@
         android:paddingBottom="3dp"
         android:text="بدھ"
         android:textColor="@color/widget_on_today"
-        android:textSize="10sp"
+        android:textSize="12sp"
         android:textStyle="bold" />
 
     <!-- Centred, matching the live weighted Box: this is what splits the leftover height between the

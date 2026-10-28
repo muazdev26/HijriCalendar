@@ -14,12 +14,13 @@
      a weekday cannot drift apart. Its text colour is `widget_on_today`, the token for text drawn
      *on* the accent.
 
-     includeFontPadding="false" on every line is what removes the strip of empty space above
-     and below each glyph: a TextView reserves room for the font's full ascent and descent, and on
-     these small sizes that reserved space is most of the visible line. It is the XML-only lever for
-     the gap - see the note in DateTileTypography.WEEKDAY sizing. NOTE this makes the picker preview
-     TIGHTER than the live tile, because Glance has no equivalent and the live composition still
-     shows the font-metrics padding. -->
+     includeFontPadding="false" is what removes the strip of empty space above and below each glyph:
+     a TextView reserves room for the font's full ascent and descent, and on these small sizes that
+     reserved space is most of the visible line. The band below is the one line where it is what the
+     LIVE tile does too: WeekdayBand draws its word through a raster cropped to its ink
+     (WeekdayBandFit), so the band is ink-tall in the composition and in this mirror alike. The other
+     two lines still reserve their font metrics live, so the mirror stays a little tighter than they
+     are. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"

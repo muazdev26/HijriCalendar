@@ -483,6 +483,11 @@ public fun buildHijriMonthWidgetData(
 
     val days = calendarMonth.days.map { day ->
         val local = day.localDate
+        // Resolved once per cell: the flag and the key must come from the same answer, or the footer
+        // could name a date the grid did not fill. `notableEvents` carries the Pakistani national day
+        // first in Pakistan mode, then the Hijri observance (see its KDoc), so the footer inherits that
+        // precedence for free.
+        val notable = day.notableEvents
         HijriDayWidgetData(
             hijriDay = day.dayOfMonth,
             dayText = formatNumber(day.dayOfMonth, numeralStyle),
@@ -492,9 +497,10 @@ public fun buildHijriMonthWidgetData(
             isCurrentMonth = day.isCurrentMonth,
             isWeekend = day.isWeekend,
             // FD-08: the observance flag rides the projection rather than being re-derived by each
-            // renderer, because `CalendarDay.event` has already resolved the calendar space this
-            // projection was built in.
-            hasEvent = day.event != null,
+            // renderer, because `CalendarDay.event`/`pakistanEvent` have already resolved the calendar
+            // space this projection was built in.
+            hasEvent = notable.isNotEmpty(),
+            eventKey = notable.firstOrNull()?.key,
         )
     }.let { cells ->
         // Reverse within each 7-cell week (not the whole list) so the rows still read as weeks

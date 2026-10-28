@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.core.WeekDay
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetLivePreview
@@ -68,6 +69,9 @@ enum class WidgetKind {
 
     /** FD-10: the fixed 1x1 tile showing both dates together. */
     DUAL_DATE,
+
+    /** The compact dual-date tile: two figures side by side inside one cell, icon-dense. */
+    COMPACT_DATE,
 }
 
 internal fun WidgetKind.title(): String = when (this) {
@@ -76,6 +80,7 @@ internal fun WidgetKind.title(): String = when (this) {
     WidgetKind.HIJRI_DATE -> "Hijri Date Tile"
     WidgetKind.GREGORIAN_DATE -> "Gregorian Date Tile"
     WidgetKind.DUAL_DATE -> "Hijri + Gregorian Date Tile"
+    WidgetKind.COMPACT_DATE -> "Compact Date Tile"
 }
 
 internal fun WidgetKind.subtitle(): String = when (this) {
@@ -91,6 +96,10 @@ internal fun WidgetKind.subtitle(): String = when (this) {
     WidgetKind.DUAL_DATE -> "A fixed 1x1 tile with both dates at once: the Hijri month across the " +
             "top, the Gregorian date under it, the Hijri day large in the middle and the weekday at " +
             "the bottom. It follows the family options below — every change applies immediately."
+    WidgetKind.COMPACT_DATE -> "The most compact tile: the weekday in the accent band, then the " +
+            "Hijri month, the Gregorian day and month on one line, the Hijri day as the largest " +
+            "figure and the weekday closing it. No year, no era, no symbols. It follows the " +
+            "family options below — every change applies immediately."
 }
 
 private val COMPACT_PREVIEW_SIZE = DpSize(104.dp, 110.dp)
@@ -105,6 +114,13 @@ private val TILE_PREVIEW_SIZE = DpSize(120.dp, 120.dp)
  * show.
  */
 private val DUAL_TILE_PREVIEW_SIZE = DpSize(150.dp, 150.dp)
+
+/**
+ * The compact tile's preview: a normal placed 1x1, the cell its type is tuned against (see
+ * `CompactDateTileTypography`). Its type is derived from the granted cell, so previewing at another
+ * size would show proportions the tile never renders.
+ */
+private val COMPACT_DATE_PREVIEW_SIZE = DpSize(104.dp, 104.dp)
 
 /**
  * The shared widget settings form used by every per-widget configure activity. Every control
@@ -244,6 +260,21 @@ internal fun HijriWidgetSettingsScreen(
                         // showing the proportions the tile actually gets.
                         size = DUAL_TILE_PREVIEW_SIZE,
                         modifier = previewBorder(DUAL_TILE_PREVIEW_SIZE, MaterialTheme.colorScheme.outlineVariant),
+                    )
+                }
+            }
+
+            WidgetKind.COMPACT_DATE -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    HijriCompactDateWidgetLivePreview(
+                        options = options,
+                        // An ordinary 1x1 on a phone, which is the cell this tile's type is tuned
+                        // against — the same reason the other fitted tiles preview at one shape.
+                        size = COMPACT_DATE_PREVIEW_SIZE,
+                        modifier = previewBorder(COMPACT_DATE_PREVIEW_SIZE, MaterialTheme.colorScheme.outlineVariant),
                     )
                 }
             }

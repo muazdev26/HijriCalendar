@@ -50,6 +50,7 @@ public object HijriWidgetPreviewPublisher {
             anySuccess = publish(manager, HijriDateWidgetReceiver::class) || anySuccess
             anySuccess = publish(manager, GregorianDateWidgetReceiver::class) || anySuccess
             anySuccess = publish(manager, HijriDualDateWidgetReceiver::class) || anySuccess
+            anySuccess = publish(manager, HijriCompactDateWidgetReceiver::class) || anySuccess
         }.onFailure {
             HijriWidgetRefreshLog.e("preview", "publish failed", it)
         }

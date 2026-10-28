@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The compact dual-date tile (sixth widget): both dates at the smallest placement a launcher grants.
+
+     Android has no sub-cell widgets, so the physical cell is the host's 1x1; the tile draws itself at a
+     fixed 72dp square centred inside it (CompactDateTileTypography.DRAWN_EDGE_DP), so it renders at the
+     same size on every launcher instead of growing with the grid, and shrinks only when a host grants
+     less than that square. `resizeMode="none"` is deliberate and differs from the other two fixed tiles
+     (which are resizable so they can grow their type): this tile is a fixed at-a-glance glance, and a
+     stretch would turn it into a second, worse copy of `HijriDualDateWidget`.
+
+     `minWidth`/`minHeight` stay at 40dp: on launchers before Android 12 the cell count is derived from
+     them (`cells = ceil((size + 30) / 70)`), so a larger minimum would make this a two-cell widget
+     there — the opposite of what it is for. No `android:configure`: the library ships none, and this
+     tile follows the family options mirror. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/hijri_compact_date_widget_description"
+    android:initialLayout="@layout/hijri_widget_loading"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:previewImage="@drawable/hijri_compact_date_widget_preview"
+    android:previewLayout="@layout/hijri_compact_date_widget_preview_layout"
+    android:resizeMode="none"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen"
+    tools:ignore="UnusedAttribute">
+</appwidget-provider>

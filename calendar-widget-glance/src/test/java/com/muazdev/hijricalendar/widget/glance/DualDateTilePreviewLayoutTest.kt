@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.widget.glance
 
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import com.muazdev.hijricalendar.widgetdata.NumeralStyle
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.createWidgetOptions
@@ -134,10 +135,15 @@ class DualDateTilePreviewLayoutTest {
             val expected = (DualDateTileTypography.captionAtReference.value * scale)
                 .coerceAtMost(DualDateTileTypography.monthSizeCeiling.value)
 
+            val weekday = WeekdayBandFit.sizeFor(
+                (DualDateTileTypography.daySize.value * scale)
+                    .coerceAtMost(DualDateTileTypography.daySizeCeiling.value)
+                    .sp,
+            )
             assertEquals(
-                "the band's weekday at ${width}dp: the reference caption is " +
-                    "${DualDateTileTypography.captionAtReference.value}, scaled it should be $expected",
-                expected.toDouble(),
+                "the band's weekday at ${width}dp must be the family's share of the figure, not the " +
+                    "caption's size (which would be ${expected}sp)",
+                weekday.value.toDouble(),
                 sizes.weekdaySize.value.toDouble(),
                 0.01,
             )
@@ -156,22 +162,35 @@ class DualDateTilePreviewLayoutTest {
     }
 
     /**
-     * The band weekday and the Hijri month name are sized **alike**.
+     * The band weekday is the family's share of the figure, **not** the caption's size.
      *
-     * Not a rounding artefact of sharing one rule: they are the same class of line — a name on a page
-     * whose figure is the day — and giving them one rule is what stops them drifting apart as the width
-     * changes.
+     * This is the band-legibility fix stated as a rule. Until it, the weekday shared the month caption's
+     * scale (`captionAtReference`), which is a *body* line's proportion — on a placed cell that was
+     * ~8.7sp against a 24sp figure, in a band as tall as that size's whole line box, and it read as a
+     * smudge in a strip of accent. The band now takes half the figure ([WeekdayBandFit]), the same
+     * proportion the three 1×1 tiles use, and its height is its ink rather than a line box.
+     *
+     * Asserted as an *inequality* as well as a value, because "different size" alone would be satisfied
+     * by any drift: the weekday must exceed the caption it used to equal, and stay under the figure.
      */
     @Test
-    fun theBandWeekdayAndTheMonthNameAreSizedAlike() {
+    fun theBandWeekdayIsAsShareOfTheFigureNotTheCaption() {
         for (width in 1..200) {
             val sizes = DualDateTileTypography.sizesFor(width.toFloat())
             assertEquals(
-                "at ${width}dp the band weekday (${sizes.weekdaySize.value}sp) and the month name " +
-                    "(${sizes.monthSize.value}sp) must be the same size",
+                "at ${width}dp the band weekday must be WeekdayBandFit's share of the figure",
+                WeekdayBandFit.sizeFor(sizes.daySize).value,
                 sizes.weekdaySize.value,
-                sizes.monthSize.value,
-                0.001f,
+                0.01f,
+            )
+            assertTrue(
+                "at ${width}dp the band weekday (${sizes.weekdaySize.value}sp) must not fall back to " +
+                    "the month caption's size (${sizes.monthSize.value}sp)",
+                sizes.weekdaySize.value > sizes.monthSize.value,
+            )
+            assertTrue(
+                "at ${width}dp the band weekday must stay under the figure",
+                sizes.weekdaySize.value < sizes.daySize.value,
             )
         }
     }

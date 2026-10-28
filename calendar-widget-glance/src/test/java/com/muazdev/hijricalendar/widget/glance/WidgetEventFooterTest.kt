@@ -1,13 +1,18 @@
 package com.muazdev.hijricalendar.widget.glance
 
+import com.muazdev.hijricalendar.core.HijriEventLanguage
+import com.muazdev.hijricalendar.core.HijriEvents
+import com.muazdev.hijricalendar.core.PakistanEvents
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
+import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.buildHijriMonthWidgetData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 import kotlin.test.assertNotNull
 
 /**
@@ -21,16 +26,36 @@ import kotlin.test.assertNotNull
  *
  * What is pinned here is the *choice* of which observance, because that is where the plausible
  * implementations differ: the first in the month, the nearest from today, or nothing.
+ *
+ * **Two calendar spaces, two tables.** A Pakistan-mode grid can fill a cell for a Gregorian-fixed
+ * national day (Independence Day, Defence Day), which the Hijri table cannot name at all. The fixtures
+ * that pin the Hijri *selection* rule therefore name [WidgetSource.CALCULATION] explicitly — a bare
+ * `WidgetOptions` defaults to Pakistan, and the national days would then answer every question about
+ * which Hijri observance was chosen.
  */
 class WidgetEventFooterTest {
 
-    private val options = WidgetOptions(language = WidgetLanguage.ENGLISH)
+    /** Hijri observances only: the space every "which one is nearest" assertion below is about. */
+    private val options = WidgetOptions(
+        language = WidgetLanguage.ENGLISH,
+        source = WidgetSource.CALCULATION,
+    )
+
+    /** The national days a Pakistan-mode grid also fills. */
+    private val pakistanOptions = WidgetOptions(
+        language = WidgetLanguage.ENGLISH,
+        source = WidgetSource.PAKISTAN,
+    )
 
     // kotlin.test's, not JUnit's: JUnit's `assertNotNull` returns `Unit`, so it cannot back a
     // helper whose whole job is to hand the projection on (or fail with the month in the message).
-    private fun month(hijriMonth: Int): HijriMonthWidgetData = assertNotNull(
-        buildHijriMonthWidgetData(1447, hijriMonth, options),
-        "no projection for Hijri month $hijriMonth",
+    private fun month(
+        hijriMonth: Int,
+        options: WidgetOptions = this.options,
+        hijriYear: Int = 1447,
+    ): HijriMonthWidgetData = assertNotNull(
+        buildHijriMonthWidgetData(hijriYear, hijriMonth, options),
+        "no projection for Hijri month $hijriYear-$hijriMonth",
     )
 
     /** The in-month days, which is what the "nearest from today" rule ranges over. */
@@ -138,10 +163,93 @@ class WidgetEventFooterTest {
     fun aMonthWithNoObservanceNamesNothing() {
         val safar = month(2)
         assertTrue(
-            "Safar must contain no observance for this test to mean anything",
+            "Safar must contain no Hijri observance for this test to mean anything",
             safar.days.none { it.isCurrentMonth && it.hasEvent },
         )
         assertNull(nextEventName(safar, dayOffset(safar, 0), WidgetLanguage.ENGLISH))
+    }
+
+    /**
+     * The same month in **Pakistan mode** names its national day — the one mark the Hijri table is
+     * silent on.
+     *
+     * Safar 1447 straddles 14 August, so the grid fills a cell no `HijriEvents` lookup can account for.
+     * A footer that resolved only through the Hijri table would leave a visibly filled cell unnamed,
+     * which is exactly the failure the fallback exists to prevent — and it is why the projection
+     * carries an `eventKey` rather than a `(month, day)` the renderer re-derives.
+     */
+    @Test
+    fun aNationalDayIsNamedWhenItIsTheMonthsOnlyMark() {
+        val safar = month(2, pakistanOptions)
+        val independenceDay = assertNotNull(
+            inMonthDays(safar).firstOrNull { cell ->
+                val gregorian = LocalDate.ofEpochDay(cell.gregorianEpochDay)
+                gregorian.monthValue == 8 && gregorian.dayOfMonth == 14
+            },
+            "Safar 1447 must contain 14 August for this fixture to mean anything",
+        )
+
+        assertEquals(
+            "Independence Day is a Gregorian fact with no Hijri coordinate",
+            "Independence Day",
+            nextEventName(safar, independenceDay.gregorianEpochDay, WidgetLanguage.ENGLISH),
+        )
+        assertEquals(
+            "and the name follows the widget's language, not the device's",
+            PakistanEvents.all.first { it.key == "independence_day" }
+                .name(HijriEventLanguage.URDU),
+            nextEventName(safar, independenceDay.gregorianEpochDay, WidgetLanguage.URDU),
+        )
+    }
+
+    /**
+     * Every national day is named on its own day in Pakistan mode — and none of them leaks into
+     * Calculation mode.
+     *
+     * Swept over the whole table rather than one fixture: [PakistanEvents] is Gregorian-fixed, so the
+     * answer depends only on the cell's real-world date, and the sweep is what catches a cell whose
+     * **Pakistan** day number differs from Umm al-Qura's around a re-sync fix. The Calculation half is
+     * the other direction of the same rule: a national day belongs to the Ruet-e-Hilal calendar the user
+     * chose, so a widget that did not choose it must not name it.
+     */
+    @Test
+    fun everyNationalDayIsNamedOnItsOwnDayAndOnlyInPakistanMode() {
+        // 1447 and 1448 together span all of 2026, so every entry in the table is reachable once.
+        val pakistanMonths = listOf(1447, 1448).flatMap { year ->
+            (1..12).map { month(it, pakistanOptions, year) }
+        }
+        val calculationMonths = listOf(1447, 1448).flatMap { year ->
+            (1..12).map { month(it, options, year) }
+        }
+
+        for (nationalDay in PakistanEvents.all) {
+            val date = LocalDate.of(2026, nationalDay.month, nationalDay.day)
+            val pakistanMonth = assertNotNull(
+                pakistanMonths.firstOrNull { data ->
+                    inMonthDays(data).any { it.gregorianEpochDay == date.toEpochDay() }
+                },
+                "no Pakistan-mode projection contains ${nationalDay.key} on $date",
+            )
+
+            assertEquals(
+                "${nationalDay.key} on $date",
+                nationalDay.name(HijriEventLanguage.ENGLISH),
+                nextEventName(pakistanMonth, date.toEpochDay(), WidgetLanguage.ENGLISH),
+            )
+
+            val calculationMonth = assertNotNull(
+                calculationMonths.firstOrNull { data ->
+                    inMonthDays(data).any { it.gregorianEpochDay == date.toEpochDay() }
+                },
+                "no Calculation-mode projection contains $date",
+            )
+            assertTrue(
+                "a Calculation-mode grid must not name ${nationalDay.key}; got " +
+                    "'${nextEventName(calculationMonth, date.toEpochDay(), WidgetLanguage.ENGLISH)}'",
+                nextEventName(calculationMonth, date.toEpochDay(), WidgetLanguage.ENGLISH) !=
+                    nationalDay.name(HijriEventLanguage.ENGLISH),
+            )
+        }
     }
 
     /**
@@ -163,7 +271,7 @@ class WidgetEventFooterTest {
         assertNotNull(english)
         assertTrue(
             "the Urdu name should be in the Urdu script, got '$urdu'",
-            urdu!!.any { it.code > 0x7F },
+            urdu.any { it.code > 0x7F },
         )
         assertEquals("Islamic New Year", english)
     }
@@ -187,9 +295,8 @@ class WidgetEventFooterTest {
             val observances = monthData.days.filter { it.isCurrentMonth && it.hasEvent }
             assertTrue("month $hijriMonth has observances but none were named", observances.isNotEmpty())
             val nearest = observances.firstOrNull { it.gregorianEpochDay >= today } ?: observances.last()
-            val expected = com.muazdev.hijricalendar.core.HijriEvents
-                .forDate(hijriMonth, nearest.hijriDay)
-                ?.name(com.muazdev.hijricalendar.core.HijriEventLanguage.ENGLISH)
+            val expected = HijriEvents.forDate(hijriMonth, nearest.hijriDay)
+                ?.name(HijriEventLanguage.ENGLISH)
             assertEquals("month $hijriMonth", expected, named)
         }
     }

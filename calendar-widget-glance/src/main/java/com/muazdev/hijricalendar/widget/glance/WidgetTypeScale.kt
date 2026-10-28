@@ -103,6 +103,19 @@ internal const val DIGIT_LINE_RATIO: Float = 1.3f
 internal const val NASTALIQ_LINE_RATIO: Float = 2.5f
 
 /**
+ * The height a **weekday word**'s ink paints at, as a multiple of its font size, in the **system**
+ * face — the face every widget uses unless the host turns the bundled one on.
+ *
+ * This is the number [WeekdayBandFit] sizes a weekday band against, and it is deliberately smaller
+ * than [TEXT_LINE_RATIO]: that ratio is a *line box* (ascent plus descent, most of it empty), while a
+ * weekday name's ink is what a reader sees. Measured on a Pixel 6a, `بدھ`, `جمعرات`, `Wednesday` and
+ * `Thu` all paint 0.7-0.78 em tall, and the value here is rounded up to 1 em so the reserve can only
+ * ever be too generous. Reserving the *box* is what made the word look lost: the band was 1.7 em tall
+ * for ~0.75 em of ink, so it was 2.3× the word in every direction, on every widget in the family.
+ */
+internal const val SYSTEM_WEEKDAY_INK_EM: Float = 1f
+
+/**
  * The height a script line's raster actually paints in — its ink above the baseline plus the face's
  * descent — as a multiple of its font size, for the bundled Nastaliq face.
  *
