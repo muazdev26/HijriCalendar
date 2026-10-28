@@ -45,6 +45,52 @@ public data class CalendarDay(
             ?: hijrahDate?.let { HijriEvents.forDate(it.month.number, it.day) }
 
     /**
+     * The Pakistani national day this cell carries, or `null`.
+     *
+     * **Only in Pakistan mode.** A cell is in that space when it carries a [pakistanDate], which is
+     * exactly the condition this reads — a Gregorian-fixed national day belongs to the Ruet-e-Hilal
+     * calendar the user chose, not to the Umm al-Qura grid they did not. Returning it in Calculation
+     * mode would put 14 August's fill on a grid whose whole claim is "these are calculated dates".
+     *
+     * Resolved from the cell's **real-world Gregorian day** ([localDate], which already undoes
+     * [adjustmentDays]), because a national day is a Gregorian fact. Using the stored Hijri coordinate
+     * here would move Independence Day whenever the user changed the moon-sighting shift.
+     *
+     * Independent of [event]: a day can carry both a Hijri observance and a national day (Ashura can
+     * land on 14 August), and neither is a correction of the other. See [notableEvents].
+     */
+    val pakistanEvent: PakistanEvent?
+        get() = if (pakistanDate == null) {
+            null
+        } else {
+            val gregorian = localDate
+            PakistanEvents.forDate(gregorian.month.ordinal + 1, gregorian.day)
+        }
+
+    /**
+     * Every notable date this cell carries, in the order a banner should name them: the Pakistani
+     * national day first, then the Hijri observance.
+     *
+     * A list rather than the single [event] because the two tables are independent — a Gregorian national
+     * day and a Hijri observance can share a cell — and collapsing them would silently drop one. The
+     * order is deliberate: in a Pakistan-mode calendar the national day is the specific, local fact,
+     * and the Hijri observance recurs the same way in every country. A renderer with room for one line
+     * can take [firstOrNull]; the banner names all of them.
+     *
+     * Empty in Calculation mode when the day has no Hijri observance, since [pakistanEvent] is gated on
+     * Pakistan mode.
+     */
+    val notableEvents: List<CalendarEvent>
+        get() = buildList {
+            pakistanEvent?.let(::add)
+            event?.let(::add)
+        }
+
+    /** Whether this cell carries any notable date at all — the mark a grid fills the cell for. */
+    val hasNotableEvent: Boolean
+        get() = pakistanEvent != null || event != null
+
+    /**
      * The day number of this cell in whatever date space it represents.
      *
      * Returns `0` for disabled placeholder cells where all date fields are null

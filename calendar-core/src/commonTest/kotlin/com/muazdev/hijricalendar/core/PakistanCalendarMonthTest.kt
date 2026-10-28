@@ -7,6 +7,7 @@ import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -54,6 +55,49 @@ class PakistanCalendarMonthTest {
                 dates.any { it.year == 1448 && it.month == month },
                 "1448-$month missing from its own grid",
             )
+        }
+    }
+
+    /**
+     * The month **before** a verified re-sync must be long enough to reach it.
+     *
+     * Safar 1448 is announced as starting 2026-07-16 and Rabi al-Awwal 1448 as starting 2026-08-15
+     * (both Central Ruet-e-Hilal), so Safar runs 30 days to 2026-08-14. Umm al-Qura's fallback starts
+     * Safar a day earlier and gives it 30 days, which ran out on 2026-08-13 and left 2026-08-14 in a
+     * **hole** between the two fixes: the 1448-02 grid painted 1448-02-30 on both 13 and 14 August and
+     * no page showed 14 August at all — the day Independence Day falls on.
+     *
+     * The generic gapless assertion above covers months 5..8, i.e. *after* the fix; this is the same
+     * property on the month that leads into it, which is where a fallback length can silently be one
+     * day short.
+     */
+    @Test
+    fun theMonthBeforeAResyncReachesItWithoutAHole() {
+        assertEquals(
+            LocalDate(2026, 7, 16),
+            PakistanHijriCalendar.hijriToGregorian(1448, 2, 1),
+            "1 Safar 1448 is 2026-07-16",
+        )
+        assertEquals(30, PakistanHijriCalendar.lengthOfMonth(1448, 2))
+        assertEquals(
+            LocalDate(2026, 8, 15),
+            PakistanHijriCalendar.hijriToGregorian(1448, 3, 1),
+            "the verified Rabi al-Awwal start",
+        )
+
+        // Every Gregorian day from the month's start to the next month's start must map to a distinct
+        // Pakistan date: a hole shows up as one Gregorian day resolving back onto its predecessor's
+        // date, which is what produced the duplicate 1448-02-30 cell.
+        var day = LocalDate(2026, 7, 16)
+        val seen = mutableSetOf<PakistanHijriDate>()
+        while (day < LocalDate(2026, 8, 15)) {
+            val resolved = assertNotNull(
+                PakistanHijriCalendar.gregorianToHijri(day),
+                "$day resolved to no Pakistan date",
+            )
+            assertEquals(day, resolved.localDate, "$day resolved to a date stored as ${resolved.localDate}")
+            assertTrue(seen.add(resolved), "$day resolved to $resolved, already claimed by an earlier day")
+            day = day.plus(1, DateTimeUnit.DAY)
         }
     }
 

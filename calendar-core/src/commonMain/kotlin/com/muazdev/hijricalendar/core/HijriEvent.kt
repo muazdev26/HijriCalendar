@@ -44,11 +44,11 @@ import kotlinx.serialization.Serializable
 public data class HijriEvent(
     public val month: Int,
     public val day: Int,
-    public val key: String,
-    public val nameEn: String,
-    public val nameUr: String,
+    override val key: String,
+    override val nameEn: String,
+    override val nameUr: String,
     public val isGregorianFixedInPractice: Boolean = false,
-) {
+) : CalendarEvent {
     /**
      * The name in [language], falling back to English.
      *
@@ -57,7 +57,7 @@ public data class HijriEvent(
      * crashes or draws a blank. An untranslated entry is visible as English, which is discoverable;
      * a blank is not.
      */
-    public fun name(language: HijriEventLanguage): String = when (language) {
+    override fun name(language: HijriEventLanguage): String = when (language) {
         HijriEventLanguage.ENGLISH -> nameEn
         HijriEventLanguage.URDU -> nameUr.ifBlank { nameEn }
     }

@@ -258,7 +258,9 @@ internal fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
     // A **weekend** day is deliberately not filled at all: the user's chosen day off is marked by the
     // figure's colour ([weekendDayContentColor]), because the one fill on the grid has to mean
     // "observance" and a second fill would make the two marks compete.
-    val observance = event != null && isCurrentMonth && !isDisabled
+    // `hasNotableEvent`, not `event != null`: in Pakistan mode a Gregorian-fixed national day is as
+    // notable as a Hijri observance, and the grid's one fill means "notable", not "Hijri".
+    val observance = hasNotableEvent && isCurrentMonth && !isDisabled
     val filled = observance && !isSelected
     val showTodayBorder = isToday && !isSelected && !observance
     return DayCellStyle(

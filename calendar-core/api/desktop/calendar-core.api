@@ -19,10 +19,13 @@ public final class com/muazdev/hijricalendar/core/CalendarDay {
 	public final fun getDayOfMonth ()I
 	public final fun getDayOfWeek ()Lcom/muazdev/hijricalendar/core/WeekDay;
 	public final fun getEvent ()Lcom/muazdev/hijricalendar/core/HijriEvent;
+	public final fun getHasNotableEvent ()Z
 	public final fun getHijrahDate ()Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;
 	public final fun getLocalDate ()Lkotlinx/datetime/LocalDate;
+	public final fun getNotableEvents ()Ljava/util/List;
 	public final fun getObservedDate ()Lcom/muazdev/hijricalendar/core/ObservedHijriDate;
 	public final fun getPakistanDate ()Lcom/muazdev/hijricalendar/core/PakistanHijriDate;
+	public final fun getPakistanEvent ()Lcom/muazdev/hijricalendar/core/PakistanEvent;
 	public fun hashCode ()I
 	public final fun isCurrentMonth ()Z
 	public final fun isDisabled ()Z
@@ -46,6 +49,13 @@ public final synthetic class com/muazdev/hijricalendar/core/CalendarDay$$seriali
 
 public final class com/muazdev/hijricalendar/core/CalendarDay$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class com/muazdev/hijricalendar/core/CalendarEvent {
+	public abstract fun getKey ()Ljava/lang/String;
+	public abstract fun getNameEn ()Ljava/lang/String;
+	public abstract fun getNameUr ()Ljava/lang/String;
+	public abstract fun name (Lcom/muazdev/hijricalendar/core/HijriEventLanguage;)Ljava/lang/String;
 }
 
 public final class com/muazdev/hijricalendar/core/CalendarLog {
@@ -189,7 +199,7 @@ public final class com/muazdev/hijricalendar/core/HijriCalendarStateKt {
 	public static final fun rememberSaveableHijriCalendarState (Lcom/abdulrahman_b/hijrahdatetime/yearmonth/HijrahYearMonth;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/muazdev/hijricalendar/core/WeekDay;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;Lcom/abdulrahman_b/hijrahdatetime/HijrahDate;IZLcom/muazdev/hijricalendar/core/PakistanHijriDate;Ljava/util/Set;ZZLandroidx/compose/runtime/Composer;III)Lcom/muazdev/hijricalendar/core/HijriCalendarState;
 }
 
-public final class com/muazdev/hijricalendar/core/HijriEvent {
+public final class com/muazdev/hijricalendar/core/HijriEvent : com/muazdev/hijricalendar/core/CalendarEvent {
 	public static final field $stable I
 	public static final field Companion Lcom/muazdev/hijricalendar/core/HijriEvent$Companion;
 	public fun <init> (IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
@@ -204,13 +214,13 @@ public final class com/muazdev/hijricalendar/core/HijriEvent {
 	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/HijriEvent;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/HijriEvent;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDay ()I
-	public final fun getKey ()Ljava/lang/String;
+	public fun getKey ()Ljava/lang/String;
 	public final fun getMonth ()I
-	public final fun getNameEn ()Ljava/lang/String;
-	public final fun getNameUr ()Ljava/lang/String;
+	public fun getNameEn ()Ljava/lang/String;
+	public fun getNameUr ()Ljava/lang/String;
 	public fun hashCode ()I
 	public final fun isGregorianFixedInPractice ()Z
-	public final fun name (Lcom/muazdev/hijricalendar/core/HijriEventLanguage;)Ljava/lang/String;
+	public fun name (Lcom/muazdev/hijricalendar/core/HijriEventLanguage;)Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -329,6 +339,54 @@ public final synthetic class com/muazdev/hijricalendar/core/ObservedHijriDate$$s
 
 public final class com/muazdev/hijricalendar/core/ObservedHijriDate$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanEvent : com/muazdev/hijricalendar/core/CalendarEvent {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/core/PakistanEvent$Companion;
+	public fun <init> (IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/PakistanEvent;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/PakistanEvent;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/PakistanEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDay ()I
+	public fun getKey ()Ljava/lang/String;
+	public final fun getMonth ()I
+	public fun getNameEn ()Ljava/lang/String;
+	public fun getNameUr ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun name (Lcom/muazdev/hijricalendar/core/HijriEventLanguage;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/muazdev/hijricalendar/core/PakistanEvent$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/PakistanEvent$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/muazdev/hijricalendar/core/PakistanEvent;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/muazdev/hijricalendar/core/PakistanEvent;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanEvent$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/muazdev/hijricalendar/core/PakistanEvents {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/PakistanEvents;
+	public final fun forDate (II)Lcom/muazdev/hijricalendar/core/PakistanEvent;
+	public final fun forMonth (I)Ljava/util/List;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getCoordinateByKey ()Ljava/util/Map;
+	public final fun hasAnyIn (I)Z
 }
 
 public final class com/muazdev/hijricalendar/core/PakistanHijriCalendar {
