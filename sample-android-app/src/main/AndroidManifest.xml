@@ -87,6 +87,14 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".HijriCompactDateWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.HijriSample">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <!-- requestPinAppWidget success callback: confirms an added widget, so the add-to-home
              flow from WidgetCatalogActivity gives feedback. -->

@@ -255,14 +255,21 @@ public class GregorianDateWidget : GlanceAppWidget() {
 internal data class DateTileSizes(
     val captionSize: TextUnit,
     val daySize: TextUnit,
+    /**
+     * The weekday band's type. Numerically the same as [captionSize] at every scale — both read the
+     * same reference and the same factor — but stated separately because its **line arithmetic** is
+     * not the caption's: the band is as tall as its ink ([WeekdayBandFit]), the month line as tall as
+     * its box.
+     */
+    val weekdaySize: TextUnit = captionSize,
 ) {
     /**
-     * The height these three lines plus the weekday band ask for, in dp: both captions at
-     * [scriptRatio], the figure at [DIGIT_LINE_RATIO], and the band's own padding. What a caller
-     * asserts against the height the launcher granted.
+     * The height these three lines plus the weekday band ask for, in dp: the band's ink, the month
+     * caption at [scriptRatio], the figure at [DIGIT_LINE_RATIO], and the band's own padding. What a
+     * caller asserts against the height the launcher granted.
      */
     fun requestedHeightDp(scriptRatio: Float = TEXT_LINE_RATIO): Float =
-        captionSize.value * scriptRatio +
+        WeekdayBandFit.inkHeightDp(weekdaySize, WeekdayBandFit.inkEmFor(scriptRatio)) +
             daySize.value * DIGIT_LINE_RATIO +
             captionSize.value * scriptRatio +
             WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP
@@ -280,12 +287,19 @@ internal object DateTileTypography {
      */
     val REFERENCE_CELL = DpSize(WEEKDAY_REFERENCE_WIDTH_DP.dp, REFERENCE_HEIGHT_DP.dp)
 
-    val weekdaySizeAtReference = 13.sp
-
     /** The caption's ceiling at a large cell. The figure is twice it; see [sizesFor]. */
     val weekdaySizeCeiling = 32.sp
 
     val daySize = 26.sp
+
+    /**
+     * The weekday's size at the reference — half the figure, by [WeekdayBandFit]'s family-wide share.
+     *
+     * Stated as the rule rather than as a number: it used to be a hand-picked 13 sp that happened to
+     * be half of [daySize], and the two tiles that sized their weekday from a *caption* instead
+     * (the dual and compact tiles) are the ones the band-legibility report is about.
+     */
+    val weekdaySizeAtReference: TextUnit = WeekdayBandFit.sizeFor(daySize)
 
     /**
      * The figure's ceiling at a large cell, and the constant `MAX_SCALE` is read off.
@@ -314,7 +328,7 @@ internal object DateTileTypography {
      * figure is digits, so they are counted at [scriptRatio] and [DIGIT_LINE_RATIO] respectively.
      */
     fun referenceTextHeightDp(scriptRatio: Float): Float =
-        weekdaySizeAtReference.value * scriptRatio +
+        WeekdayBandFit.inkHeightDp(weekdaySizeAtReference, WeekdayBandFit.inkEmFor(scriptRatio)) +
             daySize.value * DIGIT_LINE_RATIO +
             weekdaySizeAtReference.value * scriptRatio
 
@@ -367,6 +381,7 @@ internal object DateTileTypography {
     private fun sizesAtScale(scale: Float): DateTileSizes = DateTileSizes(
         captionSize = (weekdaySizeAtReference.value * scale).sp,
         daySize = (daySize.value * scale).sp,
+        weekdaySize = (weekdaySizeAtReference.value * scale).sp,
     )
 }
 
@@ -457,7 +472,7 @@ internal fun DateTileRoot(
         // text needs — so the three tiles are the same object whether they carry one date or two.
         WeekdayBand(
             text = weekdayText.orEmpty(),
-            fontSize = sizes.captionSize,
+            weekdaySize = sizes.weekdaySize,
             colors = colors,
             fontFamily = fonts.weekday.toGlanceFontFamily(),
         )

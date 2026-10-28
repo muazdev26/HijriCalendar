@@ -1,10 +1,13 @@
 package com.muazdev.hijricalendar.widgetdata
 
 import com.muazdev.hijricalendar.core.HijriEvents
+import com.muazdev.hijricalendar.core.PakistanEvents
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -21,10 +24,17 @@ import kotlin.test.assertTrue
  * to skip a fill on a cell outside the month; the projection does not, because a renderer that painted
  * neighbours is entitled to know they carry observances, and a second platform's renderer must not have
  * to re-derive the rule. Gating here would make the flag mean two things depending on who read it.
+ *
+ * **And there are two tables behind the flag.** In Pakistan mode a cell can be marked for a *Gregorian*
+ * national day instead of a Hijri observance, which is why the projection also carries
+ * [HijriDayWidgetData.eventKey]: the flag says "fill this cell", the key says which table answered.
+ * The Hijri-table assertions below therefore state Calculation mode explicitly — `WidgetOptions.DEFAULTS`
+ * is Pakistan, so leaving them on the default would make them assert against the combined table.
  */
 class EventFlagTest {
 
-    private val options = WidgetOptions()
+    /** Pakistan is the widget default, so the Hijri-table cases have to name Calculation mode. */
+    private val options = WidgetOptions(source = WidgetSource.CALCULATION)
 
     @Test
     fun anObservanceDayIsFlagged() {
@@ -130,5 +140,101 @@ class EventFlagTest {
             isWeekend = false,
         )
         assertFalse(cell.hasEvent)
+        assertNull(cell.eventKey)
+    }
+
+    /**
+     * The Gregorian month of a projected cell.
+     *
+     * `HijriDayWidgetData` carries `gregorianDay` and `gregorianEpochDay`, not a month number — the cell
+     * renders a day figure, and the epoch day is what the renderer converts. Resolving the month from
+     * the same epoch day keeps this test reading the value the widget actually paints.
+     */
+    private fun gregorianMonthOf(cell: HijriDayWidgetData): Int =
+        LocalDate.fromEpochDays(cell.gregorianEpochDay).month.ordinal + 1
+
+    /**
+     * A Pakistani national day marks the cell **in Pakistan mode**, and carries its key.
+     *
+     * 14 August 2026 is 30 Safar 1448, the last day of that month, so this is a real in-month cell in the
+     * Pakistan projection rather than an adjacent-day slot. The key is what the footer names, and it is
+     * the only thing that distinguishes a national day from a Hijri observance downstream — the flag
+     * alone cannot say which table answered.
+     */
+    @Test
+    fun aPakistanNationalDayIsFlaggedInPakistanMode() {
+        val pakistan = WidgetOptions(source = WidgetSource.PAKISTAN)
+        val month = assertNotNull(buildHijriMonthWidgetData(1448, 2, pakistan))
+        val independence = month.days.firstOrNull {
+            it.isCurrentMonth && gregorianMonthOf(it) == 8 && it.gregorianDay == 14
+        }
+        assertNotNull(independence, "14 August is not in the 1448-02 projection")
+        assertTrue(independence.hasEvent, "14 August must be flagged for a fill")
+        assertEquals("independence_day", independence.eventKey)
+    }
+
+    /**
+     * The same Gregorian day in Calculation mode carries no national day.
+     *
+     * The gate is on the projection builder's calendar space, not on the renderer: a widget in
+     * Calculation mode must not paint Independence Day, and a renderer that had to remember the rule
+     * would be the second place to get it wrong.
+     */
+    @Test
+    fun theSameDayIsNotFlaggedInCalculationMode() {
+        // 14 August 2026 is 30 Safar in the Pakistan calendar and 1 Rabi' I in Umm al-Qura.
+        val calculation = WidgetOptions(source = WidgetSource.CALCULATION)
+        val month = assertNotNull(buildHijriMonthWidgetData(1448, 3, calculation))
+        val august14 = month.days.firstOrNull { gregorianMonthOf(it) == 8 && it.gregorianDay == 14 }
+        assertNotNull(august14, "14 August is not in the 1448-03 projection")
+        assertNull(
+            august14.eventKey,
+            "Calculation mode must not carry a Pakistani national day",
+        )
+        assertFalse(august14.hasEvent, "and it must not flag the cell for one")
+    }
+
+    /**
+     * A national day outranks a Hijri observance on the same cell, and that precedence is stated once.
+     *
+     * `notableEvents` puts the national day first, so both the flag and the footer's key inherit it. The
+     * search here is for a cell carrying **both** kinds, so the assertion is about the order rather than
+     * about a month that happens to hold one national day: if no such cell existed the test would be
+     * vacuous, hence the explicit failure.
+     */
+    @Test
+    fun aNationalDayWinsTheCellsSingleKey() {
+        val pakistan = WidgetOptions(source = WidgetSource.PAKISTAN)
+        // A coincidence between the two tables is a rare alignment (10 Muharram landing on a
+        // national day, say), so the search spans a decade of Hijri years rather than one.
+        val found = sequence {
+            for (year in 1440..1450) {
+                for (month in 1..12) {
+                    val projection = buildHijriMonthWidgetData(year, month, pakistan) ?: continue
+                    for (cell in projection.days) {
+                        if (cell.isCurrentMonth) yield(month to cell)
+                    }
+                }
+            }
+        }.mapNotNull { (month, cell) ->
+            val national = PakistanEvents.forDate(gregorianMonthOf(cell), cell.gregorianDay)
+                ?: return@mapNotNull null
+            val hijri = HijriEvents.forDate(month, cell.hijriDay) ?: return@mapNotNull null
+            Triple(cell, national.key, hijri.key)
+        }.firstOrNull()
+        val (cell, nationalKey, hijriKey) = assertNotNull(
+            found,
+            "no in-month cell in 1440..1450 carries both a national day and an observance, so the " +
+                "precedence this test exists for is never exercised",
+        )
+        assertTrue(
+            nationalKey != hijriKey,
+            "the two tables share a key, which makes this assertion meaningless",
+        )
+        assertEquals(
+            nationalKey,
+            cell.eventKey,
+            "the key must be the national day's ($nationalKey), not the observance's ($hijriKey)",
+        )
     }
 }

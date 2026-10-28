@@ -167,23 +167,6 @@ public class HijriTodayWidget : GlanceAppWidget() {
 internal object TodayStripTypography {
 
     /**
-     * The weekday name, centred above both dates, at the reference height.
-     *
-     * Drawn in the family's shared accent band ([WeekdayBand]) now, so it matches the tiles' weekday
-     * exactly rather than being a lookalike: same fill, same on-accent text, same weight. It was the
-     * only bare-text weekday left in the family.
-     *
-     * **A step smaller than it shipped** (17sp → 13sp, round 3). At a placed strip's height the band
-     * was taking ~43% of the widget and leaving the month captions under it ~9.4sp, which is exactly
-     * what the feedback reported: the weekday line "taking a large portion of day name ... which
-     * shortens the month names which are almost un readable". The band is one full-width word with the
-     * whole row to itself, so it carries a size the captions cannot; 13sp puts it at ~33% of the same
-     * height and lifts the captions by ~30% with no change to the grant. It stays well under
-     * [daySize], so the figure is still the loudest thing on the strip.
-     */
-    val weekdaySize = 13.sp
-
-    /**
      * The day figure at the reference height: 28sp.
      *
      * Every line on the strip is now `reference * scale`, where the scale comes from the granted
@@ -193,6 +176,31 @@ internal object TodayStripTypography {
      * scale with all three lines in it cannot clip a later line at the expense of an earlier one.
      */
     val daySize = 28.sp
+
+    /**
+     * The weekday name, centred above both dates, at the reference height.
+     *
+     * **Read from [daySize] by [WeekdayBandFit]'s family-wide share**, so it is declared *after* it.
+     *
+     * Drawn in the family's shared accent band ([WeekdayBand]), so it matches the tiles' weekday
+     * exactly rather than being a lookalike: same fill, same on-accent text, same weight. It was the
+     * only bare-text weekday left in the family.
+     *
+     * **A step smaller than it shipped** (17sp → 13sp, round 3). At a placed strip's height the band
+     * was taking ~43% of the widget and leaving the month captions under it ~9.4sp, which is exactly
+     * what the feedback reported: the weekday line "taking a large portion of day name ... which
+     * shortens the month names which are almost un readable". The band is one full-width word with the
+     * whole row to itself, so it carries a size the captions cannot. It stays well under [daySize], so
+     * the figure is still the loudest thing on the strip.
+     *
+     * **Now derived, and cheaper than it was at 13sp.** The band costs its *ink* rather than its line
+     * box ([WeekdayBandFit]) — every widget's weekday does — so the 14sp this reads from the figure
+     * takes 14dp of the strip where 13sp took 22.1dp. That is the point: the word is bigger and the
+     * band shorter, so the captions under it gained height in the same change that grew the weekday,
+     * rather than paying for it. The round-3 trade still stands as the reason the band may not take a
+     * line box's worth of the strip.
+     */
+    val weekdaySize: TextUnit = WeekdayBandFit.sizeFor(daySize)
 
     /** Never larger than this, however tall: a strip should still read as a strip. */
     val daySizeCeiling = 40.sp
@@ -248,7 +256,7 @@ internal object TodayStripTypography {
      * so they are counted at [scriptRatio] and [DIGIT_LINE_RATIO].
      */
     fun referenceTextHeightDp(scriptRatio: Float): Float =
-        weekdaySize.value * scriptRatio +
+        WeekdayBandFit.inkHeightDp(weekdaySize, WeekdayBandFit.inkEmFor(scriptRatio)) +
             daySize.value * DIGIT_LINE_RATIO +
             captionSize.value * scriptRatio
 
@@ -297,7 +305,7 @@ internal object TodayStripTypography {
      * The height the three lines ask for at [TodayStripSizes] — used by tests and the mirror.
      */
     fun requestedHeightDp(sizes: TodayStripSizes, scriptRatio: Float = TEXT_LINE_RATIO): Float =
-        sizes.weekdaySize.value * scriptRatio +
+        WeekdayBandFit.inkHeightDp(sizes.weekdaySize, WeekdayBandFit.inkEmFor(scriptRatio)) +
             sizes.daySize.value * DIGIT_LINE_RATIO +
             sizes.captionSize.value * scriptRatio +
             WidgetBand.TOP_PADDING_DP + WidgetBand.BOTTOM_PADDING_DP +
@@ -444,7 +452,7 @@ internal fun HijriTodayRoot(
         // because there the word heads a *column*, not a day. Drawn in the family's band ([WeekdayBand]).
         WeekdayBand(
             text = today.weekdayTileName,
-            fontSize = sizes.weekdaySize,
+            weekdaySize = sizes.weekdaySize,
             colors = colors,
             fontFamily = fonts.weekday.toGlanceFontFamily(),
             modifier = GlanceModifier.padding(bottom = TodayStripTypography.lineGap),

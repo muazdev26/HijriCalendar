@@ -281,6 +281,47 @@ class WidgetScriptTextTest {
     }
 
     /**
+     * The three crop modes as one rule, over a buffer whose ink is deliberately **inset on every
+     * side**: columns 1..2 and rows 2..3 of a 4x6 buffer, so a crop that kept any edge would show it.
+     *
+     * The mode that matters here is `cropToInk`, which is what makes the weekday band possible: the
+     * band's height is its word's ink ([WeekdayBandFit]), and a slot cropped to its line box instead
+     * would be 1.7 em tall for ~0.75 em of ink — the "`بدھ` is very very small" report, where the word
+     * was a smudge in a band a third of the tile tall.
+     */
+    @Test
+    fun theCropKeepsTheInkTheTrimKeepsTheDescentAndNeitherKeepsTheBox() {
+        val width = 4
+        val height = 6
+        val pixels = IntArray(width * height)
+        for (y in 2..3) for (x in 1..2) pixels[y * width + x] = OPAQUE
+
+        // Neither: the full line box, cropped to the ink horizontally. A row of labels keeps one
+        // baseline because the box is the face's ascent + descent.
+        assertEquals(
+            "the untrimmed slot keeps the whole box below the ink's top",
+            InkCrop(left = 1, top = 0, width = 2, height = 6),
+            inkCropRect(width, height, pixels, ScriptCrop.BOX),
+        )
+        // trimLeading: the top moves to the ink, the bottom stays the box's descent.
+        assertEquals(
+            "the trimmed slot drops only the band above the ink",
+            InkCrop(left = 1, top = 2, width = 2, height = 4),
+            inkCropRect(width, height, pixels, ScriptCrop.TRIM_LEADING),
+        )
+        // cropToInk: exactly the ink, on all four sides.
+        assertEquals(
+            "the band's slot is its ink and nothing else",
+            InkCrop(left = 1, top = 2, width = 2, height = 2),
+            inkCropRect(width, height, pixels, ScriptCrop.INK),
+        )
+        assertNull(
+            "nothing painted has no crop at all",
+            inkCropRect(width, height, IntArray(width * height), ScriptCrop.INK),
+        )
+    }
+
+    /**
      * The trimmed band is *shorter* than the declared box under Nastaliq and identical to it otherwise.
      *
      * The two functions differ only where a raster exists: with the bundled face off a slot is Glance's

@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidgetLivePreview
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetLivePreview
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetLivePreview
@@ -173,10 +175,21 @@ private val catalogWidgets = listOf(
         provider = HijriDualDateWidgetReceiver::class.java,
         settingsActivity = HijriDualDateWidgetConfigureActivity::class.java,
         label = "Hijri + Gregorian Date",
-        description = "Both dates in one fixed cell: the Hijri month across the top, the Gregorian\n" +
-                "date under it, the Hijri day large in the middle and the weekday at the bottom.",
+        description = "Both dates in one fixed cell: the weekday across the top, the Hijri day large\n" +
+                "in the middle, the Hijri month under it and the Gregorian date at the bottom.",
         sizeHint = "Fixed · 1×1",
         requestCode = 5,
+    ),
+    CatalogWidget(
+        kind = WidgetKind.COMPACT_DATE,
+        provider = HijriCompactDateWidgetReceiver::class.java,
+        settingsActivity = HijriCompactDateWidgetConfigureActivity::class.java,
+        label = "Compact Date",
+        description = "The smallest tile the family ships: the weekday band, the Gregorian day and " +
+                "month at opposite ends, the Hijri day large and the Hijri month under it. " +
+                "No year, no era, no symbols.",
+        sizeHint = "Fixed · 1×1",
+        requestCode = 6,
     ),
 )
 
@@ -189,6 +202,9 @@ private val catalogPreviewSizes = mapOf(
     // derived from the height it is given, so a smaller preview would understate the Hijri day — the
     // one figure this tile exists to show.
     WidgetKind.DUAL_DATE to DpSize(150.dp, 150.dp),
+    // The compact tile's type is fitted to the cell, so the preview states an ordinary placed 1x1
+    // rather than an arbitrary size: that is the cell its sizes are tuned against.
+    WidgetKind.COMPACT_DATE to DpSize(104.dp, 104.dp),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -285,5 +301,6 @@ private fun WidgetCatalogPreview(
         WidgetKind.HIJRI_DATE -> HijriDateWidgetLivePreview(options, size, modifier)
         WidgetKind.GREGORIAN_DATE -> GregorianDateWidgetLivePreview(options, size, modifier)
         WidgetKind.DUAL_DATE -> HijriDualDateWidgetLivePreview(options, size, modifier)
+        WidgetKind.COMPACT_DATE -> HijriCompactDateWidgetLivePreview(options, size, modifier)
     }
 }

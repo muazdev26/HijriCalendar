@@ -269,6 +269,18 @@ internal object DualDateTileTypography {
     const val CAPTION_RATIO = 0.78f
     internal const val CAPTION_MAX_SHARE = 0.8f
 
+    /**
+     * The weekday band's type: the family-wide share of the figure ([WeekdayBandFit]), not the caption
+     * scale this tile used to give it.
+     *
+     * That was the band-legibility defect on this tile: the weekday rendered at `caption × 0.78`, so on
+     * a placed cell it was ~8.7sp against a 24sp figure, in a band whose height was that size's whole
+     * line box — a short word in a tall accent strip. The band is now as tall as its ink and the word is
+     * half the figure, so it reads at ~11.4sp on the same cell and the tile's stack is *shorter* by
+     * ~7dp ([referenceTextHeightDp]).
+     */
+    val weekdaySizeAtReference: TextUnit = WeekdayBandFit.sizeFor(daySize)
+
     val subRowSize = 10.5.sp
     val subRowSizeCeiling = 16.sp
 
@@ -287,7 +299,7 @@ internal object DualDateTileTypography {
      * [DIGIT_LINE_RATIO] respectively.
      */
     fun referenceTextHeightDp(scriptRatio: Float): Float =
-        captionAtReference.value * scriptRatio +
+        WeekdayBandFit.inkHeightDp(weekdaySizeAtReference, WeekdayBandFit.inkEmFor(scriptRatio)) +
             daySize.value * DIGIT_LINE_RATIO +
             subRowAtReference.value * scriptRatio +
             captionAtReference.value * scriptRatio
@@ -369,7 +381,9 @@ internal object DualDateTileTypography {
             monthSize = caption,
             daySize = day,
             subRowSize = subRow,
-            weekdaySize = caption,
+            weekdaySize = (weekdaySizeAtReference.value * scale)
+                .coerceAtMost(WeekdayBandFit.MAX_SIZE.value)
+                .sp,
         )
     }
 
@@ -391,11 +405,12 @@ internal object DualDateTileTypography {
  * The four type sizes a dual-date tile renders at, as one value.
  */
 internal data class DualDateTileSizes(
-    /** The Hijri month name, alone in the band. */
+    /** The Hijri month name, in full, under the figure. */
     val monthSize: TextUnit,
     /** The Hijri day figure, in the centre of the tile. */
     val daySize: TextUnit,
     val subRowSize: TextUnit,
+    /** The weekday name, alone in the accent band — see [DualDateTileTypography.weekdaySizeAtReference]. */
     val weekdaySize: TextUnit,
 ) {
     /**
@@ -406,7 +421,7 @@ internal data class DualDateTileSizes(
         monthSize.value * scriptRatio +
             daySize.value * DIGIT_LINE_RATIO +
             subRowSize.value * scriptRatio +
-            weekdaySize.value * scriptRatio +
+            WeekdayBandFit.inkHeightDp(weekdaySize, WeekdayBandFit.inkEmFor(scriptRatio)) +
             DualDateTileTypography.BAND_TOP_PADDING_DP +
             DualDateTileTypography.BAND_PADDING_DP +
             DualDateTileTypography.lineGap.value * 2
@@ -468,7 +483,7 @@ internal fun DualDateTileRoot(
         // length of the word it holds, so the tile's vertical rhythm does not depend on the day.
         WeekdayBand(
             text = today.weekdayTileName,
-            fontSize = sizes.weekdaySize,
+            weekdaySize = sizes.weekdaySize,
             colors = colors,
             fontFamily = fonts.weekday.toGlanceFontFamily(),
         )

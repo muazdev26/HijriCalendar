@@ -9,6 +9,7 @@ import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriCalendarWidgetReceiver
+import com.muazdev.hijricalendar.widget.glance.HijriCompactDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriDualDateWidgetReceiver
 import com.muazdev.hijricalendar.widget.glance.HijriTodayWidgetReceiver
@@ -70,6 +71,7 @@ internal class WidgetSettingsSync(private val context: Context) {
         HijriDateWidgetReceiver::class.java,
         GregorianDateWidgetReceiver::class.java,
         HijriDualDateWidgetReceiver::class.java,
+        HijriCompactDateWidgetReceiver::class.java,
     )
 
     fun sync(settings: WidgetSettings) {

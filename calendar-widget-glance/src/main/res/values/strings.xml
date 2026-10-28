@@ -11,4 +11,6 @@
     <string name="gregorian_date_widget_description">Today\'s Gregorian day and month as a compact tile; follows the Hijri Calendar widget\'s settings.</string>
     <string name="hijri_dual_date_widget_label">Hijri + Gregorian Date</string>
     <string name="hijri_dual_date_widget_description">Today\'s Hijri and Gregorian dates together in one fixed tile; follows the Hijri Calendar widget\'s settings.</string>
+    <string name="hijri_compact_date_widget_label">Hijri Compact Date</string>
+    <string name="hijri_compact_date_widget_description">Both dates at app-icon size: the weekday, the Hijri and Gregorian day figures and their short month names, in a single fixed cell; follows the Hijri Calendar widget\'s settings.</string>
 </resources>

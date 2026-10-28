@@ -50,11 +50,12 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.muazdev.hijricalendar.core.CalendarEvent
 import com.muazdev.hijricalendar.core.CalendarMonth
-import com.muazdev.hijricalendar.core.HijriEvent
 import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.PakistanEvents
 import com.muazdev.hijricalendar.widgetdata.GridTypography
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
@@ -1666,7 +1667,7 @@ private fun EventFooter(
  * rather than a separate failure: a footer that named an observance for a month the grid cannot draw
  * would be worse than a blank line.
  */
-internal fun eventFor(selection: HijriDaySelection, options: WidgetOptions): HijriEvent? {
+internal fun eventFor(selection: HijriDaySelection, options: WidgetOptions): CalendarEvent? {
     val month = buildHijriMonthWidgetData(
         hijriYear = selection.year,
         hijriMonth = selection.month,
@@ -1675,8 +1676,26 @@ internal fun eventFor(selection: HijriDaySelection, options: WidgetOptions): Hij
 
     // Matched by day number **and** in-month, because a month can hold two days with the same number
     // only if the projection is wrong — and a footer that marked the wrong one would be untraceable.
+    //
+    // The *name* comes from the cell's own `eventKey`, not from a second `HijriEvents.forDate(...)`
+    // lookup: in Pakistan mode the mark may be a Gregorian-fixed national day, and in observed mode
+    // the month's day numbers are not Umm al-Qura's. Re-deriving from `(month, day)` could name a
+    // different date than the cell the fill and the tap mean.
     val cell = month.days.firstOrNull { it.isCurrentMonth && it.hijriDay == selection.day }
-    return cell?.let { HijriEvents.forDate(selection.month, it.hijriDay) }
+    return eventForKey(cell?.eventKey)
+}
+
+/**
+ * Resolves a projection `eventKey` back to the table entry it came from.
+ *
+ * Pakistan first, then the Hijri table: the keys are disjoint today, but the precedence matches
+ * `CalendarDay.notableEvents` so a future collision cannot make the footer name a different kind of
+ * date than the grid filled.
+ */
+internal fun eventForKey(key: String?): CalendarEvent? {
+    if (key == null) return null
+    return PakistanEvents.all.firstOrNull { it.key == key }
+        ?: HijriEvents.all.firstOrNull { it.key == key }
 }
 
 /**
@@ -1704,10 +1723,9 @@ internal fun nextEventName(
     val observances = month.days.filter { it.isCurrentMonth && it.hasEvent }
     if (observances.isEmpty()) return null
 
-    val eventLanguage = eventLanguage(language)
     val upcoming = observances.firstOrNull { it.gregorianEpochDay >= todayEpochDay }
         ?: observances.last()
-    return HijriEvents.forDate(month.hijriMonth, upcoming.hijriDay)?.name(eventLanguage)
+    return eventForKey(upcoming.eventKey)?.name(eventLanguage(language))
 }
 
 /** Maps a widget's language onto the events table's, which is a `calendar-core` concept (FD-08). */

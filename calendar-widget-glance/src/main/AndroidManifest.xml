@@ -82,6 +82,18 @@
                 android:resource="@xml/hijri_dual_date_widget_info" />
         </receiver>
 
+        <receiver
+            android:name=".HijriCompactDateWidgetReceiver"
+            android:label="@string/hijri_compact_date_widget_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hijri_compact_date_widget_info" />
+        </receiver>
+
         <!-- System-broadcast catch-up receiver provided by the library -->
         <receiver
             android:name=".HijriWidgetUpdateReceiver"

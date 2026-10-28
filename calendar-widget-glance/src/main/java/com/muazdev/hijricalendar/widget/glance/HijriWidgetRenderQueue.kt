@@ -200,6 +200,10 @@ internal object HijriWidgetRenderQueue {
         // too. A tile that is placed but never swept is the one failure mode here with no log line —
         // it simply shows the language the user picked two settings screens ago.
         HijriDualDateWidget().updateAll(context)
+        // The compact dual-date tile follows the family mirror like the other stateless tiles, so it
+        // must be swept on a settings apply for the same reason — a placed tile that is never swept
+        // silently keeps rendering the language two settings screens ago.
+        HijriCompactDateWidget().updateAll(context)
     }
 
     /** Whether a request is queued but not yet rendered. For tests, which must not guess. */

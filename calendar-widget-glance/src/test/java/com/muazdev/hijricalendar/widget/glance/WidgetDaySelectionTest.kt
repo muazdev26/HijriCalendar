@@ -3,6 +3,8 @@ package com.muazdev.hijricalendar.widget.glance
 import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
+import com.muazdev.hijricalendar.widgetdata.WidgetSource
+import com.muazdev.hijricalendar.widgetdata.buildHijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.createWidgetOptions
 import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 import org.junit.Assert.assertEquals
@@ -30,6 +32,26 @@ class WidgetDaySelectionTest {
 
     /** A Hijri month is 29 or 30 days, so 30 is the widest a day can be. */
     private val hijriDays = 1..30
+
+    /**
+     * The selection a tap on [date]'s cell produces, found through the projection so the fixture cannot
+     * disagree with the calendar space under test (a Pakistan-mode cell's day number is not Umm al-Qura's
+     * around a re-sync fix).
+     *
+     * `null` when no month of 1447-1448 contains [date].
+     */
+    private fun selectionFor(date: java.time.LocalDate, options: WidgetOptions): HijriDaySelection? {
+        for (year in listOf(1447, 1448)) {
+            for (month in hijriMonths) {
+                val data = buildHijriMonthWidgetData(year, month, options) ?: continue
+                val cell = data.days.firstOrNull {
+                    it.isCurrentMonth && it.gregorianEpochDay == date.toEpochDay()
+                }
+                if (cell != null) return HijriDaySelection(year, month, cell.hijriDay)
+            }
+        }
+        return null
+    }
 
     @Test
     fun aSelectionIsAPairOfMonthAndADay() {
@@ -178,7 +200,14 @@ class WidgetDaySelectionTest {
      */
     @Test
     fun theFooterAgreesWithTheInAppCalendar() {
-        val options = createWidgetOptions(language = WidgetLanguage.ENGLISH)
+        // Calculation mode: this compares the footer against the **Hijri table**, which is the whole of
+        // that calendar space. A bare `createWidgetOptions` defaults to Pakistan, where a cell can also
+        // be filled by a Gregorian-fixed national day that no `(month, day)` lookup can produce — that
+        // half is pinned by `aNationalDayWinsInPakistanModeAndOnlyThere` below.
+        val options = createWidgetOptions(
+            language = WidgetLanguage.ENGLISH,
+            source = WidgetSource.CALCULATION,
+        )
         val anchor = 20_731L
 
         for (month in 1..12) {
@@ -198,5 +227,46 @@ class WidgetDaySelectionTest {
                 )
             }
         }
+    }
+
+    /**
+     * A Pakistani national day reaches the tapped-day footer — and only in Pakistan mode.
+     *
+     * The tapped path resolves through the same `eventKey` the footer's fallback does, so the risk here
+     * is a second lookup reappearing at the call site: `(month, day)` cannot express `independence_day`
+     * at all, and a renderer that re-derived the name from day numbers would leave the cell unnamed.
+     *
+     * 14 August 2026 is used because it is the date the Pakistan calendar originally could not reach
+     * (`PakistanHijriCalendar.FIXES` was missing Safar 1448), so the fixture also covers the day the
+     * cell exists at all.
+     */
+    @Test
+    fun aNationalDayWinsInPakistanModeAndOnlyThere() {
+        val independenceDay = java.time.LocalDate.of(2026, 8, 14)
+        val pakistan = createWidgetOptions(
+            language = WidgetLanguage.ENGLISH,
+            source = WidgetSource.PAKISTAN,
+        )
+
+        val selection = checkNotNull(selectionFor(independenceDay, pakistan)) {
+            "no Pakistan-mode cell for $independenceDay"
+        }
+        val event = eventFor(selection, pakistan)
+        assertNotNull("14 August 2026 resolved no observance in Pakistan mode", event)
+        assertEquals("independence_day", event!!.key)
+        assertEquals("Independence Day", event.name(HijriEventLanguage.ENGLISH))
+
+        val calculation = createWidgetOptions(
+            language = WidgetLanguage.ENGLISH,
+            source = WidgetSource.CALCULATION,
+        )
+        val calculationSelection = checkNotNull(selectionFor(independenceDay, calculation)) {
+            "no Calculation-mode cell for $independenceDay"
+        }
+        assertTrue(
+            "a Calculation-mode widget must not name Independence Day; got " +
+                "'${eventFor(calculationSelection, calculation)?.key}'",
+            eventFor(calculationSelection, calculation)?.key != "independence_day",
+        )
     }
 }

@@ -192,3 +192,14 @@ class GregorianDateWidgetConfigureActivity : HijriWidgetSettingsActivity() {
 class HijriDualDateWidgetConfigureActivity : HijriWidgetSettingsActivity() {
     override val kind: WidgetKind get() = WidgetKind.DUAL_DATE
 }
+
+/**
+ * Compact dual-date tile configuration screen, pointed at by the sample's `res/xml` compact-tile
+ * widget-info.
+ *
+ * A thin subclass like the other tiles: the tile has no options of its own and follows the family
+ * mirror, so this screen exists only to show it live and to give the pin flow somewhere to land.
+ */
+class HijriCompactDateWidgetConfigureActivity : HijriWidgetSettingsActivity() {
+    override val kind: WidgetKind get() = WidgetKind.COMPACT_DATE
+}

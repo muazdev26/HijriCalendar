@@ -97,8 +97,34 @@ public data class HijriDayWidgetData(
      * Default `false` so a caller constructing a cell by hand is unchanged. Note this is an additive
      * field **with** a default, so the primary constructor, `copy` and `componentN` all gain a slot:
      * source-compatible, a binary break for anything already compiled. See `CHANGELOG.md`.
+     *
+     * **True for a Pakistani national day as well** (in Pakistan mode), because the grid's fill has
+     * one meaning — "this day is notable" — and a Gregorian-fixed national day is as notable as a Hijri
+     * observance. The footer needs to name *which* kind, which is what [eventKey] carries.
      */
     val hasEvent: Boolean = false,
+    /**
+     * The key of the notable date on this cell, or `null` when it carries none.
+     *
+     * A **key, not a name**, for the same reason [hasEvent] is a flag and not a name: 42 cells each
+     * carrying a localized string is a lot of allocation for a string the grid never reads, and the
+     * footer needs to resolve *one* day's name, not all 42.
+     *
+     * It is `null`-defaulted and additive; a caller that builds cells by hand keeps working and simply
+     * does not get a footer name.
+     *
+     * The key is resolved in the same precedence as
+     * [com.muazdev.hijricalendar.core.CalendarDay.notableEvents] — the Pakistani national day first in
+     * Pakistan mode, then the Hijri observance — so the footer's name and the cell's fill cannot
+     * disagree about which mark they are describing. A renderer resolves it against
+     * [com.muazdev.hijricalendar.core.PakistanEvents.all] and
+     * [com.muazdev.hijricalendar.core.HijriEvents.all], which is why the keys are stable.
+     *
+     * Before this field existed the widget footer re-derived the name from `(hijriMonth, hijriDay)`,
+     * which could not see a Gregorian-fixed national day at all and, in observed/Pakistan mode, could
+     * name a different observation than the filled cell meant.
+     */
+    val eventKey: String? = null,
 )
 
 /**
