@@ -2,6 +2,33 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## 2.3.5 - 2026-10-28
+
+### Fixed
+
+- **The compact tile's Gregorian date sat too low, under a gap, and the date and month were too small to
+  read.** Two independent defects met above the same row. The band reserved the face's *worst-case* ink
+  (2.1em for Nastaliq) for whatever word it happened to print, so a Wednesday (`بدھ`, measured on a
+  Pixel 6a at **0.77em**) reserved 2.1em and painted 0.77em — and the body was pinned to the
+  bottom of its slot, which pooled that phantom in the one place a reader looks for the date. On a placed
+  62dp tile that was **9.5dp of empty space** between the accent band and the Gregorian row.
+  `WeekdayBandFit.inkEmFor` remains the worst case for a caller with no word to measure; the compact
+  tile now measures its own (`weekdayInkEm` / `rememberWeekdayInkEm`, `Paint.getTextBounds` in the face
+  the band draws with) and reserves what it paints, and the body is centred, so any residue is split
+  rather than collected. Everything the band gave up goes to the body, which is also how the two
+  captions grew: the reference caption is **8 → 9sp**, so at a placed 62dp cell the Gregorian date and
+  the Hijri month render at ~5.7 → ~7.25sp and the Hijri figure at ~14.4 → ~16.1sp. Measured after the
+  change, the gap above the Gregorian row is **0.4dp**.
+- The Android 12-14 `previewLayout` mirror follows: centred body, 9sp captions, and the month sample is
+  the projection's short form (`Oct`) — the full English name does not fit a half-width caption and was
+  rendering clipped.
+
+### Changed
+
+- `CompactDateTileTypography.sizesFor(availableWidthDp)` — the width-only projection — is now
+  `sizesForDrawnEdge(availableWidthDp, bandInkEm)`. With the band's ink as a parameter, `sizesFor(62f,
+  62f)` was ambiguous between *(width, height)* and *(width, ink)*, and Kotlin resolved it silently.
+
 ## 2.3.4 - 2026-10-28
 
 ### Added
