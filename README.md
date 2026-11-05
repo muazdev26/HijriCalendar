@@ -18,7 +18,7 @@ Distributed via [JitPack](https://jitpack.io/#muazdev26/HijriCalendar).
 ```kotlin
 repositories { maven("https://jitpack.io") }
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.3.2")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.3.5")
 }
 ```
 
@@ -41,6 +41,8 @@ fun HijriCalendar(
     colors: HijriCalendarColors = HijriCalendarDefaults.colors(),
     useArabicIndicNumerals: Boolean = false,
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
+    primaryDate: PrimaryDate = PrimaryDate.HIJRI,
+    showEventBanner: Boolean = true,
     dayCellSize: Dp? = null,
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
@@ -139,25 +141,37 @@ rememberHijriCalendarState(initialMonth = ..., adjustmentDays = 1)
 
 Shifts the whole calendar (day numbers, alignment, `isToday`, selection, bounds). `selectedDate` is already adjusted. Dates pushed out of range (~1300–1600 AH) render as disabled placeholders.
 
+## Pakistan (Ruet-e-Hilal) mode
+
+`HijriCalendarState(..., pakistanDates = true)` (and `toCalendarMonth(pakistan = true)`) switches from the Umm al-Qura calculation to the Pakistan moon-sighting calendar. Months with an official Ruet-e-Hilal fix are pinned to the announced start and length; every month after the last verified fix falls back to Umm al-Qura as a proxy, so the further you look past the end of the verified table, the more Pakistany dates can drift by a day. The library ships the verified window in `calendar-core` (`pakistan-fixes.json`, a resource) and a `PakistanCalendarFreshnessTest` that fails when the table is more than 12 months old, so the proxy is never extended indefinitely by silence — if that test fails, re-check the Central Ruet-e-Hilal Committee's announcements and update `pakistan-fixes.json` rather than widening the test.
+
 ## Home-Screen Widgets
 
 A shared projection module (`calendar-widget-data`, `WidgetCalendar` framework on iOS) computes each month grid + "today" projection, keeping both platforms in sync.
 
-**Android (Glance):** five widgets ship in the library — `HijriCalendarWidget` (resizable month grid), `HijriTodayWidget` (today strip), and three 1x1 tiles `HijriDateWidget`/`GregorianDateWidget`/`HijriDualDateWidget`. Month grid has today's highlighted cell, weekend tint, faded out-of-month cells, on-widget month navigation, two-line Hijri/Gregorian header. Today's cell is a filled accent highlight; tapping clears it back to today. Today strip lays Gregorian + Hijri dates side by side under a weekday band. Tiles show day + month, or both dates at once (dual). Reading direction follows each widget's own language (Urdu RTL or English), not the device locale. Bundled Noto Nastaliq Urdu face is opt-in via `HijriWidgetFonts(bundledUrduFont = true)` — rasterised in-app, handed to the launcher as a bitmap. Settings (`adjustmentDays`, numeral style, first day of week, language, month names, source, pinned month for grid, bundled font, manual refresh) apply immediately with no Save step and refresh the whole family. Live previews via `HijriWidgetLivePreview` etc. Midnight + `TIME_CHANGED`/`TIMEZONE_CHANGED`/`LOCALE_CHANGED`/`BOOT_COMPLETED` refresh with a WorkManager 24h backstop; background renders skipped while foregrounded. Deep-link on tap to `hijricalendar://today`. Android 15+ uses `providePreview`; 12–14 use static `previewLayout` XMLs.
+**Android (Glance):** six widgets ship in the library — `HijriCalendarWidget` (resizable month grid), `HijriTodayWidget` (today strip), three 1x1 tiles `HijriDateWidget`/`GregorianDateWidget`/`HijriDualDateWidget`, and `HijriCompactDateWidget` (compact dual-date tile). Month grid has today's highlighted cell, weekend tint, faded out-of-month cells, on-widget month navigation, two-line Hijri/Gregorian header. Today's cell is a filled accent highlight; tapping clears it back to today. Today strip lays Gregorian + Hijri dates side by side under a weekday band. Tiles show day + month, or both dates at once (dual). Reading direction follows each widget's own language (Urdu RTL or English), not the device locale. Bundled Noto Nastaliq Urdu face is opt-in via `HijriWidgetFonts(bundledUrduFont = true)` — rasterised in-app, handed to the launcher as a bitmap. Settings (`adjustmentDays`, numeral style, first day of week, language, month names, source, pinned month for grid, bundled font, manual refresh) apply immediately with no Save step and refresh the whole family. Live previews via `HijriWidgetLivePreview` etc. Midnight + `TIME_CHANGED`/`TIMEZONE_CHANGED`/`LOCALE_CHANGED`/`BOOT_COMPLETED` refresh with a WorkManager 24h backstop; background renders skipped while foregrounded. Deep-link on tap to `hijricalendar://today`. Android 15+ uses `providePreview`; 12–14 use static `previewLayout` XMLs.
 
 **iOS (WidgetKit, 17+):** `systemSmall`/`Medium`/`Large`, one timeline entry per day, deep-links to `hijricalendar://today`.
 
 ### Adding the widget to your app
 
 ```kotlin
-dependencies { implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.3.2") }
+dependencies { implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.3.5") }
 ```
 
-The library's manifest declares all five receivers; widgets work on defaults. Optional setup:
+The library's manifest declares all six receivers; widgets work on defaults. Optional setup:
 
 1. In `Application.onCreate`: `HijriWidgetRefreshScheduler.schedule(this)` + register `HijriWidgetForegroundWatcher`.
 2. Handle the `hijricalendar://today` deep link on your root activity.
 3. (Optional) Build a settings screen using `HijriWidgetConfig`, `widgetOptionsSaver()`, `HijriWidgetRefresher`, and the live-preview composables. Override the widget-info XML in your app to add `android:configure`.
+
+## Requirements
+
+- Kotlin 2.4.10+
+- Compose Multiplatform 1.11.0+
+- AGP 9.4.0+ (Android consumers)
+- minSdk 26 (Android)
+- iOS 17+ (WidgetKit)
 
 ## Underlying Library
 
