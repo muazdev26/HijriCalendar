@@ -1,11 +1,15 @@
-// Throwaway consumer for the resolution gate — see `.github/scripts/check-consumer-resolution.sh`
-// and docs/widgets/glance/WG-01-compose-runtime-scope.md.
+// Throwaway consumer for the resolution gate — see `.github/scripts/check-consumer-resolution.sh`.
 //
 // This is a SEPARATE Gradle build. It must not become a project of the main build: it has to
 // resolve the *published* artifacts from a local repository, with no project dependency and no
 // transitive access to the main build's configurations. A `project(":calendar-widget-glance")`
 // dependency would hand it the main build's `implementation` dependencies for free and the gate
 // would pass no matter what the POM says.
+//
+// Three subprojects cover the three published artifacts that a consumer installs:
+//   consumer-glance  — hijri-calendar-widget-glance (widgets, the original gate)
+//   consumer-ui      — hijri-calendar-compose (the artifact the README tells people to install)
+//   consumer-core    — hijri-calendar-core (pure data model, no Compose)
 
 pluginManagement {
     repositories {
@@ -14,6 +18,10 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
+include("consumer-glance")
+include("consumer-ui")
+include("consumer-core")
 
 // The main build's catalog, so the gate cannot drift onto a different AGP/Kotlin/Compose train
 // than the one it is checking. `libs.versions.toml` is self-contained, so reusing it wholesale
