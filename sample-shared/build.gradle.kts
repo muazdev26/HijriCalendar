@@ -29,6 +29,10 @@ kotlin {
             implementation(projects.calendarUi)
             implementation(libs.hijrah.datetime)
             implementation(libs.kotlinx.datetime)
+            // The sample screen draws with Compose; the convention no longer injects it.
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
         }
     }
 }

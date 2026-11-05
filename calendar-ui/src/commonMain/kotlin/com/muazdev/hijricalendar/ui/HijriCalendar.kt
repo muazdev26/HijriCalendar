@@ -10,13 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import com.abdulrahman_b.hijrahdatetime.HijrahDate
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.HijriCalendarState
-import com.muazdev.hijricalendar.core.WeekDay
-import com.muazdev.hijricalendar.core.rememberHijriCalendarState as coreRememberHijriCalendarState
-import com.muazdev.hijricalendar.core.rememberSaveableHijriCalendarState as coreRememberSaveableHijriCalendarState
 
 /**
  * A Hijri (Islamic) calendar: month header, weekday row, and a swipeable month grid, all driven by
@@ -261,71 +256,3 @@ public fun HijriCalendar(
 public fun HijriCalendarState.defaultOnDayClick(): (CalendarDay) -> Unit = { day ->
     selectDay(day)
 }
-
-@Composable
-public fun rememberHijriCalendarState(
-    initialMonth: HijrahYearMonth,
-    initialSelectedDate: HijrahDate? = null,
-    firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
-    minDate: HijrahDate? = null,
-    maxDate: HijrahDate? = null,
-    adjustmentDays: Int = 0,
-    pakistanDates: Boolean = false,
-    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
-    /**
-     * Whether the grid also renders the neighbouring months' days. `false` — the default — shows
-     * only this month's own days, and the grid then takes five or six rows instead of always six.
-     * Presentational only; see [HijriCalendarState.showAdjacentDays].
-     */
-    showAdjacentDays: Boolean = false,
-    /**
-     * Whether the grid draws a hairline between cells. `false` — the default — leaves it undivided.
-     * Presentational only; see [HijriCalendarState.showCellBorders].
-     */
-    showCellBorders: Boolean = false,
-): HijriCalendarState = coreRememberHijriCalendarState(
-    initialMonth = initialMonth,
-    initialSelectedDate = initialSelectedDate,
-    firstDayOfWeek = firstDayOfWeek,
-    minDate = minDate,
-    maxDate = maxDate,
-    adjustmentDays = adjustmentDays,
-    pakistanDates = pakistanDates,
-    weekendDays = weekendDays,
-    showAdjacentDays = showAdjacentDays,
-    showCellBorders = showCellBorders,
-)
-
-@Composable
-public fun rememberSaveableHijriCalendarState(
-    initialMonth: HijrahYearMonth,
-    initialSelectedDate: HijrahDate? = null,
-    firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
-    minDate: HijrahDate? = null,
-    maxDate: HijrahDate? = null,
-    adjustmentDays: Int = 0,
-    pakistanDates: Boolean = false,
-    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
-    /**
-     * Whether the grid also renders the neighbouring months' days. `false` — the default — shows
-     * only this month's own days, and the grid then takes five or six rows instead of always six.
-     * Presentational only; see [HijriCalendarState.showAdjacentDays].
-     */
-    showAdjacentDays: Boolean = false,
-    /**
-     * Whether the grid draws a hairline between cells. `false` — the default — leaves it undivided.
-     * Presentational only; see [HijriCalendarState.showCellBorders].
-     */
-    showCellBorders: Boolean = false,
-): HijriCalendarState = coreRememberSaveableHijriCalendarState(
-    initialMonth = initialMonth,
-    initialSelectedDate = initialSelectedDate,
-    firstDayOfWeek = firstDayOfWeek,
-    minDate = minDate,
-    maxDate = maxDate,
-    adjustmentDays = adjustmentDays,
-    pakistanDates = pakistanDates,
-    weekendDays = weekendDays,
-    showAdjacentDays = showAdjacentDays,
-    showCellBorders = showCellBorders,
-)

@@ -30,6 +30,11 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 hijrah-datetime = { group = "com.abdulrahman-b.hijrahdatetime", name = "hijrahdatetime", version.ref = "hijrahDateTime" }
 compose-multiplatform-material3 = { group = "org.jetbrains.compose.components", name = "components-resources-material3", version.ref = "composeMultiplatform" }
+# `compose.runtime` by coordinate, for calendar-core: the data module is compiled without the
+# Compose *Gradle plugin* (it has no @Composable), but @Immutable/@Stable on the value types and
+# mutableStateOf inside HijriCalendarState are runtime APIs, not compiler-plugin features. See
+# review-remediation 04.
+compose-multiplatform-runtime = { group = "org.jetbrains.compose.runtime", name = "runtime", version.ref = "composeMultiplatform" }
 androidx-test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }

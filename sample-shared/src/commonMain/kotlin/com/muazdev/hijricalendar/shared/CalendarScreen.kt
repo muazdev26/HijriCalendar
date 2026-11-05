@@ -31,12 +31,12 @@ import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
-import com.muazdev.hijricalendar.core.rememberHijriCalendarState
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendar
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
+import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus

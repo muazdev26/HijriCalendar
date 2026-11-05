@@ -11,6 +11,12 @@ kotlin {
             api(projects.calendarCore)
             implementation(libs.hijrah.datetime)
             implementation(libs.kotlinx.datetime)
+            // Declared here rather than injected by the `hijri.multiplatform.library` convention:
+            // this module draws, so it names the Compose artifacts it draws with (review-remediation
+            // 04). `compose.ui` arrives transitively with foundation.
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
         }
         // Previews live in androidMain, so the @Preview annotation is an androidMain dependency
         // rather than a commonMain one. It used to be commonMain, which put an annotation from a
