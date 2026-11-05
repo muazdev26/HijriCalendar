@@ -88,45 +88,14 @@ public object PakistanHijriCalendar {
     /**
      * Verified Pakistani month starts + lengths, keyed by `(year, month)`.
      *
-     * Months 1440-10..1442-04 come from the official government scrap; 1448-02..1448-04 cover the
+     * The table is generated at build time from `src/commonMain/resources/pakistan-fixes.json` —
+     * see [PAKISTAN_FIXES] for the data, its `source`/`verifiedOn` provenance, and the freshness
+     * rule. 1440-10..1442-04 come from the official Ruet-e-Hilal scrap; 1448-02..1448-04 cover the
      * user-verified current window (1448-02's start and length are the announced Safar decision that
      * the verified 1448-03 anchor requires; 1448-04's start is the continuation of 1448-03's 30th and
      * is an estimate, not an official decision).
      */
-    public val FIXES: Map<Pair<Int, Int>, Fix> = mapOf(
-        // Official Ruet-e-Hilal (bilgrami/hijri-calendar)
-        (1440 to 10) to Fix(LocalDate(2019, 6, 5), 29),
-        (1440 to 11) to Fix(LocalDate(2019, 7, 4), 30),
-        (1440 to 12) to Fix(LocalDate(2019, 8, 3), 29),
-        (1441 to 1) to Fix(LocalDate(2019, 9, 1), 29),
-        (1441 to 2) to Fix(LocalDate(2019, 9, 30), 30),
-        (1441 to 3) to Fix(LocalDate(2019, 10, 30), 29),
-        (1441 to 4) to Fix(LocalDate(2019, 11, 28), 30),
-        (1441 to 5) to Fix(LocalDate(2019, 12, 28), 30),
-        (1441 to 6) to Fix(LocalDate(2020, 1, 27), 29),
-        (1441 to 7) to Fix(LocalDate(2020, 2, 25), 30),
-        (1441 to 8) to Fix(LocalDate(2020, 3, 26), 30),
-        (1441 to 9) to Fix(LocalDate(2020, 4, 25), 29),
-        (1441 to 10) to Fix(LocalDate(2020, 5, 24), 30),
-        (1441 to 11) to Fix(LocalDate(2020, 6, 23), 29),
-        (1441 to 12) to Fix(LocalDate(2020, 7, 22), 30),
-        (1442 to 1) to Fix(LocalDate(2020, 8, 21), 29),
-        (1442 to 2) to Fix(LocalDate(2020, 9, 19), 29),
-        (1442 to 3) to Fix(LocalDate(2020, 10, 18), 30),
-        (1442 to 4) to Fix(LocalDate(2020, 11, 17), 29),
-        // Current window (2026-2027): Rabi al-Awwal 1448 observed a 30th.
-        //
-        // Safar 1448 is pinned to its announced start (1 Safar = 2026-07-16, Central Ruet-e-Hilal
-        // Committee) and its announced 30 days, 2026-07-16..2026-08-14. Without it the chain fell back
-        // to Umm al-Qura's start a day earlier (2026-07-15), which ran the month out on 2026-08-13 and
-        // left a **one-day hole at 2026-08-14** between it and the verified 1448-03 anchor below: the
-        // 1448-02 grid painted 1448-02-30 twice and no page ever showed 2026-08-14 — the day
-        // Independence Day falls on. A `Fix` is exactly the vehicle for a re-sync that a fallback
-        // length cannot bridge.
-        (1448 to 2) to Fix(LocalDate(2026, 7, 16), 30),
-        (1448 to 3) to Fix(LocalDate(2026, 8, 15), 30),
-        (1448 to 4) to Fix(LocalDate(2026, 9, 14), 30),
-    )
+    public val FIXES: Map<Pair<Int, Int>, Fix> = PAKISTAN_FIXES
 
     public const val MIN_YEAR: Int = 1400
     public const val MAX_YEAR: Int = 1500
