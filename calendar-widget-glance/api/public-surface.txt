@@ -200,3 +200,18 @@ HijriWidgetRefreshLog
 HijriWidgetRefreshLog.TAG
 HijriWidgetRefreshLog.d
 HijriWidgetRefreshLog.e
+
+# ── Persistence. `HijriMonthLengthsRepository` is the durable home of a host's month-length
+# overrides: one DataStore Preferences file in the application's filesDir, shared between the app
+# and its widgets, so a process woken by an alarm renders the same table a settings screen wrote
+# (the process-global table evaporates with the process). `shared(context)` is the
+# one-instance-per-process entry point; the constructor is module-internal because a DataStore
+# allows exactly one instance per file per process.
+HijriMonthLengthsRepository
+HijriMonthLengthsRepository.public
+HijriMonthLengthsRepository.load
+HijriMonthLengthsRepository.loadTable
+HijriMonthLengthsRepository.setMonthLength
+HijriMonthLengthsRepository.clearMonthLength
+HijriMonthLengthsRepository.clearAll
+HijriMonthLengthsRepository.replaceAll

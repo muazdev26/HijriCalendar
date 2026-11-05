@@ -51,6 +51,9 @@ dependencies {
     // Public config/refresh API exposes GlanceId, so consumers on the compile classpath need Glance
     api(libs.androidx.glance.appwidget)
     implementation(libs.androidx.work.runtime)
+    // Month-length overrides persist to DataStore Preferences so the app and its widgets — one
+    // package, one process — render from the same table. See HijriMonthLengthsRepository.
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -80,6 +83,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 // `StaticPreviewLayoutTest` (WG-14) reads `src/main/res/layout/*.xml` off disk rather than off the

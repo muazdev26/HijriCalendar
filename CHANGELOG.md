@@ -2,6 +2,24 @@
 
 Notable changes to the published modules, newest first. The long-form write-ups live in `docs/`.
 
+## Unreleased
+
+### Added
+
+- `HijriMonthLengthsRepository` (`calendar-widget-glance`) — the month-length overrides now persist
+  to one DataStore Preferences file in the application's `filesDir` (`shared(context)` is the
+  one-instance-per-process entry point; the constructor is module-internal because a DataStore
+  allows exactly one instance per file per process). The app and its widgets share the file, so an
+  alarm-woken widget in a fresh process renders the same overrides a settings screen wrote — not the
+  calculated calendar. `HijriCalendar`'s widget renderers seed the process table from the store at
+  the top of every composition.
+
+### Deprecated
+
+- `HijriMonthOverrides` — the process-global, volatile override table. It is a warning-level
+  deprecation with a migration note; the durable replacement is `HijriMonthLengthsRepository`. The
+  table still works for the process lifetime, so existing callers do not break.
+
 ## 2.3.5 - 2026-10-28
 
 ### Fixed

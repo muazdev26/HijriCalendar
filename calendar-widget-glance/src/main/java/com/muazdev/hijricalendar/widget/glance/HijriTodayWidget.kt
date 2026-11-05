@@ -87,6 +87,7 @@ public class HijriTodayWidget : GlanceAppWidget() {
         // warm up the Pakistan century table if needed. The options themselves come from the
         // process-global family mirror below — the strip has no settings screen of its own and
         // follows whatever the family's most recent configure-screen save configured.
+        HijriMonthOverridesSeed.seed(context)
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.load(context, id)
         if (peeked.source.pakistan) {

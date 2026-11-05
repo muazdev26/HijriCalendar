@@ -115,6 +115,7 @@ public class HijriCompactDateWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        HijriMonthOverridesSeed.seed(context)
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.load(context, id)
         if (peeked.source.pakistan) {

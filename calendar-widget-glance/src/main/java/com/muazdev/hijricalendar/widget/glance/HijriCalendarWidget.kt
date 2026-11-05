@@ -156,6 +156,11 @@ public class HijriCalendarWidget : GlanceAppWidget() {
 
     @OptIn(ExperimentalGlanceApi::class)
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        // Seed the process-global override table from the durable store, so a process woken by an
+        // alarm renders the month lengths a settings screen wrote — not the calculated calendar.
+        // The app and its widgets share one DataStore file, so both see the same table.
+        HijriMonthOverridesSeed.seed(context)
+
         // One-shot, non-reactive peek for things that must not wait for the live state read: port
         // any legacy flat-file config and decide whether the Pakistan century table must be warm
         // before a render can build the grid. Reading state here also means the first composition
