@@ -2,19 +2,17 @@ package com.muazdev.hijricalendar.core
 
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.SaverScope
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.plus
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -383,54 +381,6 @@ class MonthLengthOverridesTest {
 
         assertEquals(1, state.adjustmentDays)
         assertEquals(before, state.selectedObservedDate!!.localDate.minus(1, DateTimeUnit.DAY))
-    }
-
-    // ── rememberSaveable saver with observed selection ──────────────────
-
-    private val testSaverScope = object : SaverScope {
-        override fun canBeSaved(value: Any): Boolean = true
-    }
-
-    private fun <T> Saver<T, List<Int>>.saveForTest(value: T): List<Int>? =
-        with(testSaverScope) { save(value) }
-
-    private fun observedConfig() = HijriCalendarStateConfig(
-        firstDayOfWeek = WeekDay.DEFAULT_FIRST_DAY,
-        minDate = null,
-        maxDate = null,
-        adjustmentDays = 0,
-        weekendDays = WeekDay.WEEKEND_DAYS,
-    )
-
-    @Test
-    fun saver_roundTrip_preservesObservedSelection() {
-        HijriMonthOverrides.setMonthLength(1448, 3, 30)
-        val saver = hijriCalendarStateSaver(observedConfig())
-        val original = HijriCalendarState(
-            initialMonth = HijrahYearMonth(1448, 3),
-            initialSelectedObservedDate = observedDate(1448, 3, 30, 30),
-        )
-
-        val restored = saver.restore(saver.saveForTest(original)!!)!!
-
-        assertEquals(observedDate(1448, 3, 30, 30), restored.selectedObservedDate)
-        assertNull(restored.selectedDate)
-    }
-
-    @Test
-    fun saver_roundTrip_observedSelectionSurvivesWithoutOverrides() {
-        // The observed date encodes its own effective month length, so it restores even if
-        // the global overrides were cleared before the process restarted.
-        val saver = hijriCalendarStateSaver(observedConfig())
-        val original = HijriCalendarState(
-            initialMonth = HijrahYearMonth(1448, 3),
-            initialSelectedObservedDate = observedDate(1448, 3, 30, 30),
-        )
-
-        HijriMonthOverrides.clearAll()
-        val restored = saver.restore(saver.saveForTest(original)!!)!!
-
-        assertEquals(observedDate(1448, 3, 30, 30), restored.selectedObservedDate)
     }
 
     private fun nextObserved(date: ObservedHijriDate): ObservedHijriDate {

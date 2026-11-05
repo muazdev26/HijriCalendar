@@ -1,7 +1,5 @@
 package com.muazdev.hijricalendar.core
 
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.SaverScope
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
@@ -480,84 +478,6 @@ class HijriCalendarStateTest {
         // The highlighted cell still lands on the same real-world Gregorian day.
         assertEquals(todayCellBefore.localDate, todayCellAfter.localDate)
         assertEquals(todayCellBefore.dayOfWeek, todayCellAfter.dayOfWeek)
-    }
-
-    // ── rememberSaveable Saver ─────────────────────────────────────────
-
-    private val testSaverScope = object : SaverScope {
-        override fun canBeSaved(value: Any): Boolean = true
-    }
-
-    private fun <T> Saver<T, List<Int>>.saveForTest(value: T): List<Int>? =
-        with(testSaverScope) { save(value) }
-
-    @Test
-    fun saver_roundTrip_preservesMonthSelectionAndConfig() {
-        val config = HijriCalendarStateConfig(
-            firstDayOfWeek = WeekDay.SUNDAY,
-            minDate = null,
-            maxDate = null,
-            adjustmentDays = 0,
-            weekendDays = setOf(WeekDay.FRIDAY),
-        )
-        val saver = hijriCalendarStateSaver(config)
-        val state = HijriCalendarState(
-            initialMonth = HijrahYearMonth(1447, 9),
-            initialSelectedDate = HijrahDate(1447, 9, 15),
-            firstDayOfWeek = WeekDay.SUNDAY,
-            weekendDays = setOf(WeekDay.FRIDAY),
-        )
-        state.goToNextMonth()
-
-        val saved = saver.saveForTest(state)
-        assertNotNull(saved)
-        val restored = saver.restore(saved)
-
-        assertNotNull(restored)
-        assertEquals(HijrahYearMonth(1447, 10), restored.currentMonth)
-        assertEquals(HijrahDate(1447, 9, 15), restored.selectedDate)
-        assertEquals(WeekDay.SUNDAY, restored.firstDayOfWeek)
-        assertEquals(setOf(WeekDay.FRIDAY), restored.weekendDays)
-    }
-
-    @Test
-    fun saver_roundTrip_withAdjustmentDays_preservesAdjustedSelection() {
-        val config = HijriCalendarStateConfig(
-            firstDayOfWeek = WeekDay.DEFAULT_FIRST_DAY,
-            minDate = null,
-            maxDate = null,
-            adjustmentDays = 1,
-            weekendDays = WeekDay.WEEKEND_DAYS,
-        )
-        val saver = hijriCalendarStateSaver(config)
-        val original = HijriCalendarState(
-            initialMonth = HijrahYearMonth(1447, 9),
-            initialSelectedDate = HijrahDate(1447, 9, 15),
-            adjustmentDays = 1,
-        )
-        assertEquals(16, original.selectedDate!!.day)
-
-        val restored = saver.restore(saver.saveForTest(original)!!)!!
-
-        assertEquals(original.selectedDate, restored.selectedDate)
-    }
-
-    @Test
-    fun saver_roundTrip_emptySelection() {
-        val config = HijriCalendarStateConfig(
-            firstDayOfWeek = WeekDay.DEFAULT_FIRST_DAY,
-            minDate = null,
-            maxDate = null,
-            adjustmentDays = 0,
-            weekendDays = WeekDay.WEEKEND_DAYS,
-        )
-        val saver = hijriCalendarStateSaver(config)
-        val original = HijriCalendarState(initialMonth = HijrahYearMonth(1447, 9))
-
-        val restored = saver.restore(saver.saveForTest(original)!!)!!
-
-        assertEquals(HijrahYearMonth(1447, 9), restored.currentMonth)
-        assertNull(restored.selectedDate)
     }
 
     // ── Pakistan (Ruet-e-Hilal) mode ────────────────────────────────────

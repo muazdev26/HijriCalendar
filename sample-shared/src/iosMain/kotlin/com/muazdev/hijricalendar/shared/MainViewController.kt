@@ -11,7 +11,7 @@ import androidx.compose.ui.window.ComposeUIViewController
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.ui.DateDisplayMode
-import com.muazdev.hijricalendar.core.rememberHijriCalendarState
+import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

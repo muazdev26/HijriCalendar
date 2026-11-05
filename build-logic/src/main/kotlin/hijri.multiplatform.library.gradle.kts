@@ -43,12 +43,10 @@ kotlin {
         }
     }
 
-    sourceSets {
-        commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.components.resources)
-        }
-    }
+    // No Compose *dependencies* here on purpose (review-remediation 04). The plugin block above
+    // opts the module into the Compose toolchain; which Compose artifacts a module gets is that
+    // module's own decision. Injecting foundation/material3/components-resources from the
+    // convention meant every module that wanted only `compose.runtime` — calendar-core, before it
+    // stopped using this convention — published a POM dragging the whole UI stack behind a data
+    // model. Modules that draw declare their Compose deps in their own build script.
 }
