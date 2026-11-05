@@ -70,4 +70,33 @@ internal object HijriWidgetPresence {
             }
         }.getOrElse { 1 }
     }
+
+    /**
+     * The ids of [provider]'s placed instances, straight from [AppWidgetManager].
+     *
+     * **Why the renderer asks this instead of `GlanceAppWidget.updateAll`** (WG-19).
+     * `updateAll` does not enumerate the platform: it answers from Glance's own
+     * receiver→providers registry, a DataStore map written by `GlanceAppWidgetReceiver.onUpdate`
+     * when it calls `super.onUpdate` — the very call the family's foreground gate skips, so that a
+     * re-render cannot steal frames from the app the user is looking at. A grid placed from the
+     * in-app catalog (`requestPinAppWidget`, see the sample's *Add widget*) is bound while the app
+     * is still visible, so its first `onUpdate` is skipped, nothing registers the receiver, and
+     * every later `updateAll` answers with an empty list: the widget sits on
+     * `hijri_widget_loading` until the host eventually sends an ungated update (the 30-minute
+     * `updatePeriodMillis` sweep, or a boot/time broadcast). Rendering by explicit id removes the
+     * dependency — `update(context, glanceId)` talks to a session directly and needs no registry.
+     *
+     * Fails closed, unlike [anyPlaced]: a lookup that throws means "no ids to render", which is a
+     * skipped render rather than the wrong *scheduling* answer, and it is logged so it is not
+     * silent.
+     */
+    fun placedIds(context: Context, provider: Class<*>): IntArray {
+        val manager = AppWidgetManager.getInstance(context) ?: return IntArray(0)
+        return runCatching {
+            manager.getAppWidgetIds(ComponentName(context, provider))
+        }.getOrElse {
+            HijriWidgetRefreshLog.e("presence", "app widget id lookup failed: ${it.message}", it)
+            IntArray(0)
+        }
+    }
 }
