@@ -18,6 +18,15 @@ android {
     defaultConfig {
         minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Glance resolves an ActionCallback at tap time *by name*: `AsyncRequestWorker` reads the
+        // class name Glance baked into the widget's PendingIntent and calls
+        // `Class.forName(name).getDeclaredConstructor().newInstance()`. Glance's own consumer rule
+        // (`-keep public class * extends ActionCallback`) keeps the *class*, but not its no-arg
+        // constructor — on a minified consumer those callbacks are kept and their constructors are
+        // not, so every widget navigation tap dies with `NoSuchMethodException` and the widget
+        // silently freezes. Shipping the constructor rule here means the consumer does not have to
+        // rediscover this on a device.
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
@@ -28,6 +37,9 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // (consumerProguardFiles lives in defaultConfig above, where a library declares it; the
+    // constructor rule is `consumer-rules.pro`.)
 
     testOptions {
         unitTests.isReturnDefaultValues = true

@@ -55,6 +55,17 @@ jobs:
       - name: Assemble sample debug APK
         run: ./gradlew :sample-android-app:assembleDebug --console=plain
 
+      # The release variant is the only one R8 minifies, and widget navigation is driven by class
+      # names Glance resolves *reflectively* at tap time — so a stripped callback is a silently dead
+      # button, not a build error, and `debug` can never show it. This assembles the minified APK
+      # and then asserts R8's mapping still contains every widget callback, receiver and worker.
+      - name: Assemble minified release APK (widget taps survive R8)
+        run: |
+          ./gradlew \
+            :sample-android-app:assembleRelease \
+            :sample-android-app:verifyReleaseR8KeepsWidgetCallbacks \
+            --console=plain
+
       # Publishes the four modules to a scratch repo and compiles a throwaway consumer against
       # only those artifacts. This is the only check that can see a dependency-scope mistake: the
       # sample app declares its own Compose/Glance dependencies, so an `implementation` that should

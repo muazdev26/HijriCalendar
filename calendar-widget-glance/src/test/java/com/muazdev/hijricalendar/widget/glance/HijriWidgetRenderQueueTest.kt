@@ -3,6 +3,7 @@ package com.muazdev.hijricalendar.widget.glance
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.glance.GlanceId
+import androidx.glance.appwidget.AppWidgetId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -240,6 +241,51 @@ class HijriWidgetRenderQueueTest {
             HijriWidgetRenderQueue.hasPendingForTest,
             "a previous test left a request queued",
         )
+    }
+
+    /**
+     * WG-19: a sweep renders **the platform's** placed ids, one `update` each, and never consults
+     * Glance's receiver→providers registry.
+     *
+     * The registry is written by `GlanceAppWidgetReceiver.onUpdate` calling `super.onUpdate`, and
+     * the family's foreground gate skips that call — so a widget added from the in-app catalog,
+     * which is bound while the app is still visible, is absent from the registry forever. A sweep
+     * built on `updateAll` therefore rendered nothing at all and the widget kept showing
+     * `hijri_widget_loading`, with no exception and no log line to say so. Stating "every id the
+     * platform reports gets its own update" is what makes that failure impossible rather than
+     * merely unlikely.
+     */
+    @Test
+    fun aSweepUpdatesEveryPlacedIdExplicitly() = runBlocking {
+        val updated = mutableListOf<Int>()
+        HijriWidgetRenderQueue.renderPlaced(
+            context = context,
+            widget = HijriCalendarWidget(),
+            receiver = HijriCalendarWidgetReceiver::class.java,
+            ids = intArrayOf(165, 166),
+            update = { glanceId ->
+                updated.add((glanceId as AppWidgetId).appWidgetId)
+            },
+        )
+        assertEquals(
+            listOf(165, 166),
+            updated,
+            "each placed id must be rendered by explicit id, not through Glance's registry",
+        )
+    }
+
+    /** No placed instances is a no-op, not a fallback to something else. */
+    @Test
+    fun aSweepWithNothingPlacedRendersNothing() = runBlocking {
+        val updated = mutableListOf<Int>()
+        HijriWidgetRenderQueue.renderPlaced(
+            context = context,
+            widget = HijriCalendarWidget(),
+            receiver = HijriCalendarWidgetReceiver::class.java,
+            ids = IntArray(0),
+            update = { glanceId -> updated.add((glanceId as AppWidgetId).appWidgetId) },
+        )
+        assertEquals(emptyList(), updated)
     }
 
     /** Minimal [GlanceId]: the queue only ever carries one opaquely. */

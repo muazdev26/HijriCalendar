@@ -1,8 +1,11 @@
 package com.muazdev.hijricalendar.widget.glance
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.glance.GlanceId
-import androidx.glance.appwidget.updateAll
+import androidx.glance.appwidget.AppWidgetId
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -74,7 +77,7 @@ internal object HijriWidgetRenderQueue {
      * coalesced no-op is a lie the same-day dedupe then believes for the rest of the day (WG-02).
      */
     internal sealed interface RenderOutcome {
-        /** A Glance `update`/`updateAll` was called by this call's own drain. */
+        /** A Glance `update` was called for every target of this call's own drain. */
         data object Rendered : RenderOutcome
 
         /**
@@ -188,22 +191,50 @@ internal object HijriWidgetRenderQueue {
 
     internal var renderAction: suspend (Context, GlanceId?) -> Unit = { context, glanceId ->
         if (glanceId == null) {
-            HijriCalendarWidget().updateAll(context)
+            renderPlaced(context, HijriCalendarWidget(), HijriCalendarWidgetReceiver::class.java)
         } else {
             HijriCalendarWidget().update(context, glanceId)
         }
-        HijriTodayWidget().updateAll(context)
-        HijriDateWidget().updateAll(context)
-        GregorianDateWidget().updateAll(context)
+        renderPlaced(context, HijriTodayWidget(), HijriTodayWidgetReceiver::class.java)
+        renderPlaced(context, HijriDateWidget(), HijriDateWidgetReceiver::class.java)
+        renderPlaced(context, GregorianDateWidget(), GregorianDateWidgetReceiver::class.java)
         // The dual-date tile is swept here for the same reason as the two 1x1 tiles above: it has no
         // settings screen and renders the family options mirror, so a settings apply must re-read it
         // too. A tile that is placed but never swept is the one failure mode here with no log line —
         // it simply shows the language the user picked two settings screens ago.
-        HijriDualDateWidget().updateAll(context)
+        renderPlaced(context, HijriDualDateWidget(), HijriDualDateWidgetReceiver::class.java)
         // The compact dual-date tile follows the family mirror like the other stateless tiles, so it
         // must be swept on a settings apply for the same reason — a placed tile that is never swept
         // silently keeps rendering the language two settings screens ago.
-        HijriCompactDateWidget().updateAll(context)
+        renderPlaced(context, HijriCompactDateWidget(), HijriCompactDateWidgetReceiver::class.java)
+    }
+
+    /**
+     * Renders every placed instance of one widget, by explicit id.
+     *
+     * **Not `GlanceAppWidget.updateAll`**, which answers from Glance's receiver→providers registry
+     * rather than from the platform, so it misses every instance whose receiver was never
+     * registered by an ungated `onUpdate` (WG-19; `HijriWidgetPresence.placedIds` has the full
+     * story — in short, a widget added from the in-app catalog is bound while the app is visible,
+     * its `onUpdate` is skipped by the foreground gate, and `updateAll` stays empty forever).
+     * `update(context, glanceId)` drives the session for that id directly and needs no registry, so
+     * the first render of a freshly pinned widget lands even though nothing has registered it yet.
+     *
+     * [ids] and [update] are parameters so the sweep can be stated without an `AppWidgetManager` or
+     * a live Glance session: the pair "which ids" and "did each get an update" is the contract.
+     */
+    // Glance marks AppWidgetId @RestrictTo(LIBRARY_GROUP) because a full Glance app is expected to
+    // reach it through the receiver registry; that registry is exactly what fails here (see WG-19),
+    // so the id is constructed directly, as Glance's own `updateAll` constructs it.
+    @SuppressLint("RestrictedApi")
+    internal suspend fun renderPlaced(
+        context: Context,
+        widget: GlanceAppWidget,
+        receiver: Class<out GlanceAppWidgetReceiver>,
+        ids: IntArray = HijriWidgetPresence.placedIds(context, receiver),
+        update: suspend (GlanceId) -> Unit = { widget.update(context, it) },
+    ) {
+        ids.forEach { update(AppWidgetId(it)) }
     }
 
     /** Whether a request is queued but not yet rendered. For tests, which must not guess. */
