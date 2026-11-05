@@ -17,23 +17,29 @@ import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriDate
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.PrimaryDate
+import com.muazdev.hijricalendar.widget.glance.HijriMonthLengthsRepository
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshLog
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 class CalendarViewModel(
     private val appContext: Context,
     private val savedStateHandle: SavedStateHandle,
+    // The process-shared, durable store — the same one the widgets' store reads (see appModule).
+    private val monthLengthOverrides: HijriMonthLengthsRepository,
 ) : ViewModel() {
     private val prefs get() = appContext.getSharedPreferences(CalendarViewModel.PREFS_NAME, Context.MODE_PRIVATE)
 
     init {
-        // Persisted month-length overrides are global and must be seeded before the state
-        // is constructed so its observed grid starts from the restored calendar.
-        restoreMonthLengthOverrides()
+        // One-time migration of the pre-DataStore SharedPreferences CSV into the repository, then
+        // seed the in-memory table from the durable store so the state below is built against the
+        // same table the widgets render from.
+        migrateLegacyOverridesToRepository()
+        seedOverridesFromRepository()
     }
 
     /**
@@ -145,30 +151,66 @@ class CalendarViewModel(
         state.goToToday()
     }
 
-    /** Persists the current global month-length overrides into the saved state and data store. */
+    /** Writes the current month-length overrides to DataStore — the shared, durable store. */
     fun persistMonthLengthOverrides() {
         val all = state.monthLengths.all()
         HijriWidgetRefreshLog.d("inapp:persist", "entries=${all.size}")
-        if (all.isEmpty()) {
-            savedStateHandle.remove<String>(KEY_MONTH_LENGTH_OVERRIDES)
-            prefs.edit().remove(KEY_MONTH_LENGTH_OVERRIDES).apply()
-        } else {
-            val encoded = all.entries.joinToString(",") { (key, length) ->
-                "${key.first}-${key.second}:$length"
-            }
-            savedStateHandle[KEY_MONTH_LENGTH_OVERRIDES] = encoded
-            prefs.edit().putString(KEY_MONTH_LENGTH_OVERRIDES, encoded).apply()
-        }
+        // Synchronous: the store is a small file and this is a user-initiated click, so the
+        // caller always sees the committed write.
+        runCatching { runBlocking { monthLengthOverrides.replaceAll(all) } }
+            .onFailure { HijriWidgetRefreshLog.e("inapp:persist", "could not write overrides to DataStore", it) }
     }
 
-    private fun restoreMonthLengthOverrides() {
+    /**
+     * One-time migration of the old SharedPreferences CSV into DataStore. Runs before the seed;
+     * leaves the CSV untouched if it cannot be read, so the data is never lost.
+     */
+    private fun migrateLegacyOverridesToRepository() {
         val prefsEncoded = prefs.getString(KEY_MONTH_LENGTH_OVERRIDES, null)
-        val encoded = if (!prefsEncoded.isNullOrBlank()) prefsEncoded else savedStateHandle.get<String>(KEY_MONTH_LENGTH_OVERRIDES)
-        if (encoded.isNullOrBlank()) {
-            HijriWidgetRefreshLog.d("inapp:restore", "entries=0 ok=true")
+        val encoded = if (!prefsEncoded.isNullOrBlank()) {
+            prefsEncoded
+        } else {
+            savedStateHandle.get<String>(KEY_MONTH_LENGTH_OVERRIDES)
+        }
+        if (encoded.isNullOrBlank()) return
+        val restored = decodeOverridesCsv(encoded)
+        if (restored == null) {
+            HijriWidgetRefreshLog.e("inapp:migrate", "legacy overrides CSV unreadable; leaving it in place")
             return
         }
-        val restored = runCatching {
+        runCatching { runBlocking { monthLengthOverrides.replaceAll(restored) } }
+            .onFailure {
+                HijriWidgetRefreshLog.e("inapp:migrate", "could not migrate overrides into DataStore", it)
+            }
+            .also {
+                if (it.isFailure) return@also
+                prefs.edit().remove(KEY_MONTH_LENGTH_OVERRIDES).apply()
+                savedStateHandle.remove<String>(KEY_MONTH_LENGTH_OVERRIDES)
+                HijriWidgetRefreshLog.d(
+                    "inapp:migrate",
+                    "migrated ${restored.size} month-length overrides into DataStore",
+                )
+            }
+    }
+
+    /**
+     * Seeds the in-memory table from the durable store — the exact same read the widgets do at the
+     * top of every render. The store is the truth, so an empty store clears the table: clearing
+     * every override in settings must actually happen.
+     */
+    private fun seedOverridesFromRepository() {
+        val restored = runCatching { runBlocking { monthLengthOverrides.load() } }.getOrNull()
+        if (restored == null) {
+            HijriWidgetRefreshLog.e("inapp:restore", "could not read DataStore; keeping the calculated calendar")
+            return
+        }
+        @Suppress("DEPRECATION")
+        HijriMonthOverrides.replaceAll(restored)
+        HijriWidgetRefreshLog.d("inapp:restore", "entries=${restored.size} ok=true")
+    }
+
+    private fun decodeOverridesCsv(encoded: String): Map<Pair<Int, Int>, Int>? =
+        runCatching {
             encoded.split(",").mapNotNull { rawToken ->
                 val token = rawToken.trim()
                 if (token.isEmpty()) return@mapNotNull null
@@ -182,13 +224,6 @@ class CalendarViewModel(
                 (year to month) to length
             }.toMap()
         }.getOrNull()
-        val ok = restored != null
-        val entries = restored?.size ?: 0
-        HijriWidgetRefreshLog.d("inapp:restore", "entries=$entries ok=$ok")
-        if (restored != null) {
-            HijriMonthOverrides.replaceAll(restored)
-        }
-    }
 
     init {
         viewModelScope.launch {
@@ -361,6 +396,9 @@ class CalendarViewModel(
         private const val KEY_PAK_SELECTED_YEAR = "pakistan_selected_year"
         private const val KEY_PAK_SELECTED_MONTH = "pakistan_selected_month"
         private const val KEY_PAK_SELECTED_DAY = "pakistan_selected_day"
+
+        // Legacy SharedPreferences/SavedStateHandle key, read only during the one-time migration
+        // to DataStore. New writes go to HijriMonthLengthsRepository; nothing writes this anymore.
         private const val KEY_MONTH_LENGTH_OVERRIDES = "month_length_overrides"
 
         private val DEFAULT_MONTH = HijrahYearMonth(1447, 1)

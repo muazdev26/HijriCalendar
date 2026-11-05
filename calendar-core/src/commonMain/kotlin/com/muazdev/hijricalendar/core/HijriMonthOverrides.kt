@@ -127,10 +127,23 @@ public class HijriMonthLengths(initial: Map<Pair<Int, Int>, Int> = emptyMap()) {
  * the process; the app is responsible for durable persistence (see [HijriMonthLengths] and
  * `docs/MONTH-END-LENGTH-OVERRIDES.md`).
  *
+ * **Migration note.** Prefer the DataStore-backed `HijriMonthLengthsRepository` from
+ * `calendar-widget-glance` to a process-global table: it persists overrides between processes and
+ * sessions, so an app relaunch or a widget started by an alarm sees the same table without a seed
+ * step. The repository is a drop-in `load*` / `*`-shaped counterpart of the calls below; seed the
+ * in-memory mirror once at startup if you must keep a synchronous call site.
+ *
  * Every function in this module that consults overrides takes an explicit `overrides:
  * HijriMonthLengths` parameter defaulting to `HijriMonthOverrides.current`. Passing an instance
  * is how you scope overrides; omitting it means the process default.
  */
+@Deprecated(
+    message = "Use the DataStore-backed HijriMonthLengthsRepository (calendar-widget-glance) " +
+        "for persisted overrides, or pass an explicit HijriMonthLengths instance. The " +
+        "process-global table evaporates with the process and is not shared between app and " +
+        "widget processes.",
+    level = DeprecationLevel.WARNING,
+)
 @OptIn(ExperimentalAtomicApi::class)
 public object HijriMonthOverrides {
 
