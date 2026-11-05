@@ -1,0 +1,31 @@
+{
+  "verifiedOn": "2026-10-28",
+  "sources": {
+    "official-scrap": "Ruet-e-Hilal (bilgrami/hijri-calendar) scrap of the official Central Ruet-e-Hilal Committee table, recorded in the library at 2026-10-28.",
+    "current-window": "Central Ruet-e-Hilal Committee announcements for Safar/Rabi al-Awwal 1448 (1448-02 start and length are the announced Safar decision; 1448-03 start is the announced continuation; 1448-04's start is the continuation of 1448-03's 30th day and is an estimate, not an official decision). Recorded at 2026-10-28."
+  },
+  "fixes": [
+    { "year": 1440, "month": 10, "firstGregorian": "2019-06-05", "length": 29, "source": "official-scrap" },
+    { "year": 1440, "month": 11, "firstGregorian": "2019-07-04", "length": 30, "source": "official-scrap" },
+    { "year": 1440, "month": 12, "firstGregorian": "2019-08-03", "length": 29, "source": "official-scrap" },
+    { "year": 1441, "month": 1, "firstGregorian": "2019-09-01", "length": 29, "source": "official-scrap" },
+    { "year": 1441, "month": 2, "firstGregorian": "2019-09-30", "length": 30, "source": "official-scrap" },
+    { "year": 1441, "month": 3, "firstGregorian": "2019-10-30", "length": 29, "source": "official-scrap" },
+    { "year": 1441, "month": 4, "firstGregorian": "2019-11-28", "length": 30, "source": "official-scrap" },
+    { "year": 1441, "month": 5, "firstGregorian": "2019-12-28", "length": 30, "source": "official-scrap" },
+    { "year": 1441, "month": 6, "firstGregorian": "2020-01-27", "length": 29, "source": "official-scrap" },
+    { "year": 1441, "month": 7, "firstGregorian": "2020-02-25", "length": 30, "source": "official-scrap" },
+    { "year": 1441, "month": 8, "firstGregorian": "2020-03-26", "length": 30, "source": "official-scrap" },
+    { "year": 1441, "month": 9, "firstGregorian": "2020-04-25", "length": 29, "source": "official-scrap" },
+    { "year": 1441, "month": 10, "firstGregorian": "2020-05-24", "length": 30, "source": "official-scrap" },
+    { "year": 1441, "month": 11, "firstGregorian": "2020-06-23", "length": 29, "source": "official-scrap" },
+    { "year": 1441, "month": 12, "firstGregorian": "2020-07-22", "length": 30, "source": "official-scrap" },
+    { "year": 1442, "month": 1, "firstGregorian": "2020-08-21", "length": 29, "source": "official-scrap" },
+    { "year": 1442, "month": 2, "firstGregorian": "2020-09-19", "length": 29, "source": "official-scrap" },
+    { "year": 1442, "month": 3, "firstGregorian": "2020-10-18", "length": 30, "source": "official-scrap" },
+    { "year": 1442, "month": 4, "firstGregorian": "2020-11-17", "length": 29, "source": "official-scrap" },
+    { "year": 1448, "month": 2, "firstGregorian": "2026-07-16", "length": 30, "source": "current-window" },
+    { "year": 1448, "month": 3, "firstGregorian": "2026-08-15", "length": 30, "source": "current-window" },
+    { "year": 1448, "month": 4, "firstGregorian": "2026-09-14", "length": 30, "source": "current-window" }
+  ]
+}

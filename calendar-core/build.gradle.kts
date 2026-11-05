@@ -1,3 +1,4 @@
+import com.muazdev.hijricalendar.buildlogic.GeneratePakistanFixesTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -22,6 +23,13 @@ plugins {
 // runtime type appears in a public signature — so it is not on a consumer's compile classpath.
 kotlin {
     explicitApi()
+
+    val generatePakistanFixes = tasks.register<GeneratePakistanFixesTask>("generatePakistanFixes") {
+        // The JSON is the one source of truth for the Pakistan fix table; the generated Kotlin
+        // constant is what `PakistanHijriCalendar.FIXES` exposes.
+        inputFile.set(file("src/commonMain/resources/pakistan-fixes.json"))
+        outputDir.set(layout.buildDirectory.dir("generated/pakistanFixes/kotlin"))
+    }
 
     android {
         namespace = project.findProperty("android.namespace") as? String
@@ -50,6 +58,9 @@ kotlin {
     }
 
     sourceSets {
+        getByName("commonMain") {
+            kotlin.srcDir(generatePakistanFixes)
+        }
         commonMain.dependencies {
             // `api`: LocalDate is in CalendarDay's public surface, so a consumer that reads
             // `CalendarDay.localDate` must be able to see kotlinx-datetime. As `implementation` the
