@@ -56,7 +56,15 @@ import kotlinx.datetime.plus
  *   today rather than treating the Pakistan selection as absent.
  */
 @Stable
-public class HijriCalendarState(
+@Suppress("DEPRECATION")
+public class HijriCalendarState
+@Deprecated(
+    message = "The constructor's date types come from the third-party alpha hijrah-datetime " +
+        "artifact. Use the constructor taking `initialHijriMonth: HijriYearMonth` and " +
+        "`HijriDate` values instead.",
+    level = DeprecationLevel.WARNING,
+)
+public constructor(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
     public val firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
@@ -71,7 +79,14 @@ public class HijriCalendarState(
      * earlier month unreachable by swipe. An unset bound reaches back to [HijrahDate.MIN], the same
      * edge [canGoToPreviousMonth] stops at. A `minDate` after the initial month leaves that month
      * unreachable and the grid opens on the nearest in-range month instead.
+     *
+     * @deprecated The type is from the third-party alpha artifact. Use [minHijriDate].
      */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+            "`minHijriDate: HijriDate?` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public val minDate: HijrahDate? = null,
     /**
      * Latest selectable day, or null for no upper bound. Resolved exactly as [minDate] is, and
@@ -80,7 +95,14 @@ public class HijriCalendarState(
      *
      * An inverted range (`minDate` after `maxDate`) is not rejected. No month is navigable and no
      * day is selectable; the grid renders a single month and both arrow predicates answer false.
+     *
+     * @deprecated The type is from the third-party alpha artifact. Use [maxHijriDate].
      */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+            "`maxHijriDate: HijriDate?` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public val maxDate: HijrahDate? = null,
     adjustmentDays: Int = 0,
     pakistanDates: Boolean = false,
@@ -126,6 +148,44 @@ public class HijriCalendarState(
      */
     public val monthLengths: HijriMonthLengths = HijriMonthOverrides.current,
 ) {
+    /**
+     * Constructs a state with the library-owned date types.
+     *
+     * The non-deprecated face of the primary constructor: a caller that starts from
+     * [initialHijriMonth] and a [HijriDate] selection never names the third-party alpha type.
+     * Everything is converted exactly once here; the instance behaves identically to one built
+     * through the deprecated parameters.
+     */
+    @Suppress("DEPRECATION")
+    public constructor(
+        initialHijriMonth: HijriYearMonth,
+        initialSelectedHijriDate: HijriDate? = null,
+        firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
+        minHijriDate: HijriDate? = null,
+        maxHijriDate: HijriDate? = null,
+        adjustmentDays: Int = 0,
+        pakistanDates: Boolean = false,
+        initialSelectedPakistanDate: PakistanHijriDate? = null,
+        initialSelectedObservedDate: ObservedHijriDate? = null,
+        weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+        showAdjacentDays: Boolean = false,
+        showCellBorders: Boolean = false,
+        monthLengths: HijriMonthLengths = HijriMonthOverrides.current,
+    ) : this(
+        initialMonth = initialHijriMonth.toHijrahYearMonth(),
+        initialSelectedDate = initialSelectedHijriDate?.toHijrahDate(),
+        firstDayOfWeek = firstDayOfWeek,
+        minDate = minHijriDate?.toHijrahDate(),
+        maxDate = maxHijriDate?.toHijrahDate(),
+        adjustmentDays = adjustmentDays,
+        pakistanDates = pakistanDates,
+        initialSelectedPakistanDate = initialSelectedPakistanDate,
+        initialSelectedObservedDate = initialSelectedObservedDate,
+        weekendDays = weekendDays,
+        showAdjacentDays = showAdjacentDays,
+        showCellBorders = showCellBorders,
+        monthLengths = monthLengths,
+    )
     private var _adjustmentDays by mutableStateOf(adjustmentDays)
     private var _pakistanDates by mutableStateOf(pakistanDates)
     private var _currentMonth by mutableStateOf(initialMonth)
@@ -240,8 +300,41 @@ public class HijriCalendarState(
         return this?.let { ObservedHijriCalendar.observedDateAt(it.shiftedByAdjustment().toEpochDays(), monthLengths) }
     }
 
+    /**
+     * The month the grid is showing.
+     *
+     * @deprecated The type is from the third-party alpha artifact. Use [currentHijriMonth].
+     */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+            "`currentHijriMonth: HijriYearMonth` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public val currentMonth: HijrahYearMonth get() = _currentMonth
+
+    /** The month the grid is showing, as a library-owned [HijriYearMonth]. */
+    public val currentHijriMonth: HijriYearMonth get() = _currentMonth.toHijriYearMonth()
+
+    /**
+     * The Umm al-Qura selection, or `null` when nothing is selected.
+     *
+     * @deprecated The type is from the third-party alpha artifact. Use [selectedHijriDate].
+     */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+            "`selectedHijriDate: HijriDate?` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public val selectedDate: HijrahDate? get() = _selectedDate
+
+    /** The selection as a library-owned [HijriDate], or `null` when nothing is selected. */
+    public val selectedHijriDate: HijriDate? get() = _selectedDate?.toHijriDate()
+
+    /** The lower bound as a library-owned [HijriDate], or `null` for no bound. */
+    public val minHijriDate: HijriDate? get() = minDate?.toHijriDate()
+
+    /** The upper bound as a library-owned [HijriDate], or `null` for no bound. */
+    public val maxHijriDate: HijriDate? get() = maxDate?.toHijriDate()
 
     /** Selected date in Pakistan (Ruet-e-Hilal) space; non-null when a Pakistan-mode cell is selected. */
     public val selectedPakistanDate: PakistanHijriDate? get() = _selectedPakistanDate
@@ -294,6 +387,12 @@ public class HijriCalendarState(
      * @param yearMonth any month in the supported range, not only [currentMonth] — a pager builds
      *   the pages either side of the visible one.
      */
+    @Deprecated(
+        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use the overload taking `HijriYearMonth` instead.",
+        level = DeprecationLevel.WARNING,
+    )
+    @Suppress("DEPRECATION")
     public fun calendarMonthFor(yearMonth: HijrahYearMonth): CalendarMonth {
         // Establishes a snapshot dependency on the override table. `HijriMonthLengths` is not a
         // Compose state — it is a lock-free table that swaps an immutable image and bumps a revision
@@ -322,6 +421,28 @@ public class HijriCalendarState(
     }
 
     /**
+     * The [CalendarMonth] grid this state would paint for the library-owned [yearMonth].
+     *
+     * The non-deprecated face of the [HijrahYearMonth] overload; see that KDoc for why this is the
+     * single definition of how a month becomes cells.
+     */
+    public fun calendarMonthFor(yearMonth: HijriYearMonth): CalendarMonth {
+        _overridesRevision
+        return yearMonth.toCalendarMonth(
+            overrides = monthLengths,
+            firstDayOfWeek = firstDayOfWeek,
+            selectedDate = selectedHijriDate,
+            selectedPakistanDate = _selectedPakistanDate,
+            selectedObservedDate = _selectedObservedDate,
+            minDate = minHijriDate,
+            maxDate = maxHijriDate,
+            adjustmentDays = adjustmentDays,
+            pakistan = pakistanDates,
+            weekendDays = weekendDays,
+        )
+    }
+
+    /**
      * The real-world Gregorian extent of [yearMonth] as a header would describe it, resolved
      * **without** building the 42-cell grid.
      *
@@ -330,10 +451,25 @@ public class HijriCalendarState(
      * fed the same month — guaranteed to describe the same interval, because both read
      * [monthLengths] here rather than at their own call sites.
      */
+    @Deprecated(
+        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use the overload taking `HijriYearMonth` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public fun gregorianRangeFor(yearMonth: HijrahYearMonth): GregorianMonthRange =
         resolveGregorianMonthRange(
             year = yearMonth.year,
             month = yearMonth.month.number,
+            pakistan = pakistanDates,
+            adjustmentDays = adjustmentDays,
+            overrides = monthLengths,
+        )
+
+    /** The Gregorian extent of the library-owned [yearMonth]. See the deprecated overload. */
+    public fun gregorianRangeFor(yearMonth: HijriYearMonth): GregorianMonthRange =
+        resolveGregorianMonthRange(
+            year = yearMonth.year,
+            month = yearMonth.month,
             pakistan = pakistanDates,
             adjustmentDays = adjustmentDays,
             overrides = monthLengths,
@@ -458,6 +594,11 @@ public class HijriCalendarState(
         }
     }
 
+    @Deprecated(
+        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use the overload taking `HijriDate` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public fun selectDate(date: HijrahDate) {
         if (dateWindow().contains(date)) {
             _selectedDate = date
@@ -467,8 +608,23 @@ public class HijriCalendarState(
         }
     }
 
+    /** Selects a library-owned [HijriDate]. See the deprecated overload for the bounds rule. */
+    public fun selectDate(date: HijriDate) {
+        selectDate(date.toHijrahDate())
+    }
+
+    @Deprecated(
+        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use the overload taking `HijriYearMonth` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     public fun goToMonth(yearMonth: HijrahYearMonth) {
         _currentMonth = yearMonth
+    }
+
+    /** Navigates to a library-owned [HijriYearMonth]. */
+    public fun goToMonth(yearMonth: HijriYearMonth) {
+        _currentMonth = yearMonth.toHijrahYearMonth()
     }
 
     public fun goToToday() {

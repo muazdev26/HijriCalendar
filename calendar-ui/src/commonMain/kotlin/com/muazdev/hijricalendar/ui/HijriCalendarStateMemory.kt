@@ -9,12 +9,15 @@ import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriDate
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.HijriYearMonth
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.ObservedHijriDate
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriDate
 import com.muazdev.hijricalendar.core.WeekDay
+import com.muazdev.hijricalendar.core.toHijriDate
 import kotlinx.datetime.DateTimeArithmeticException
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -32,6 +35,12 @@ import kotlinx.datetime.minus
  */
 
 @Composable
+@Suppress("DEPRECATION")
+@Deprecated(
+    message = "The parameter types are from the third-party alpha hijrah-datetime artifact. " +
+        "Use the overload taking `initialHijriMonth: HijriYearMonth` and `HijriDate` values.",
+    level = DeprecationLevel.WARNING,
+)
 public fun rememberHijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
@@ -63,6 +72,40 @@ public fun rememberHijriCalendarState(
 }
 
 /**
+ * The library-owned-types variant of the state factory.
+ *
+ * Same behaviour and the same one-composition lifetime as the deprecated overload; it exists so a
+ * caller starting from [HijriYearMonth] / [HijriDate] never names the third-party alpha type.
+ */
+@Composable
+@Suppress("DEPRECATION")
+public fun rememberHijriCalendarState(
+    initialHijriMonth: HijriYearMonth,
+    initialSelectedHijriDate: HijriDate? = null,
+    firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
+    minHijriDate: HijriDate? = null,
+    maxHijriDate: HijriDate? = null,
+    adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
+    initialSelectedPakistanDate: PakistanHijriDate? = null,
+    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    showAdjacentDays: Boolean = false,
+    showCellBorders: Boolean = false,
+): HijriCalendarState = rememberHijriCalendarState(
+    initialMonth = initialHijriMonth.toHijrahYearMonth(),
+    initialSelectedDate = initialSelectedHijriDate?.toHijrahDate(),
+    firstDayOfWeek = firstDayOfWeek,
+    minDate = minHijriDate?.toHijrahDate(),
+    maxDate = maxHijriDate?.toHijrahDate(),
+    adjustmentDays = adjustmentDays,
+    pakistanDates = pakistanDates,
+    initialSelectedPakistanDate = initialSelectedPakistanDate,
+    weekendDays = weekendDays,
+    showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
+)
+
+/**
  * A `rememberSaveable`-backed variant of [rememberHijriCalendarState]. Unlike the plain
  * `remember` version, the current month and the selected date (Umm al-Qura, observed
  * override-shifted, or Pakistan) survive configuration changes and process death, so the
@@ -71,6 +114,12 @@ public fun rememberHijriCalendarState(
  * reused when the state is restored.
  */
 @Composable
+@Suppress("DEPRECATION")
+@Deprecated(
+    message = "The parameter types are from the third-party alpha hijrah-datetime artifact. " +
+        "Use the overload taking `initialHijriMonth: HijriYearMonth` and `HijriDate` values.",
+    level = DeprecationLevel.WARNING,
+)
 public fun rememberSaveableHijriCalendarState(
     initialMonth: HijrahYearMonth,
     initialSelectedDate: HijrahDate? = null,
@@ -126,6 +175,40 @@ public fun rememberSaveableHijriCalendarState(
     }
 }
 
+/**
+ * The library-owned-types variant of the saveable state factory.
+ *
+ * Delegates to the deprecated overload, so the persisted format, the restore behaviour and the
+ * configuration keys are shared — only the caller-facing types differ.
+ */
+@Composable
+@Suppress("DEPRECATION")
+public fun rememberSaveableHijriCalendarState(
+    initialHijriMonth: HijriYearMonth,
+    initialSelectedHijriDate: HijriDate? = null,
+    firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
+    minHijriDate: HijriDate? = null,
+    maxHijriDate: HijriDate? = null,
+    adjustmentDays: Int = 0,
+    pakistanDates: Boolean = false,
+    initialSelectedPakistanDate: PakistanHijriDate? = null,
+    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    showAdjacentDays: Boolean = false,
+    showCellBorders: Boolean = false,
+): HijriCalendarState = rememberSaveableHijriCalendarState(
+    initialMonth = initialHijriMonth.toHijrahYearMonth(),
+    initialSelectedDate = initialSelectedHijriDate?.toHijrahDate(),
+    firstDayOfWeek = firstDayOfWeek,
+    minDate = minHijriDate?.toHijrahDate(),
+    maxDate = maxHijriDate?.toHijrahDate(),
+    adjustmentDays = adjustmentDays,
+    pakistanDates = pakistanDates,
+    initialSelectedPakistanDate = initialSelectedPakistanDate,
+    weekendDays = weekendDays,
+    showAdjacentDays = showAdjacentDays,
+    showCellBorders = showCellBorders,
+)
+
 internal data class HijriCalendarStateConfig(
     val firstDayOfWeek: WeekDay,
     val minDate: HijrahDate?,
@@ -175,13 +258,14 @@ internal data class HijriCalendarStateConfig(
  * [HijriCalendarState] shifts `initialSelectedDate` by
  * [HijriCalendarStateConfig.adjustmentDays] at construction.
  */
+@Suppress("DEPRECATION")
 internal fun hijriCalendarStateSaver(
     config: HijriCalendarStateConfig,
 ): Saver<HijriCalendarState, List<Int>> = Saver(
     save = { state ->
         buildList {
-            add(state.currentMonth.year)
-            add(state.currentMonth.month.number)
+            add(state.currentHijriMonth.year)
+            add(state.currentHijriMonth.month)
             add(if (config.pakistanDates) 1 else 0)
             when {
                 config.pakistanDates -> {
@@ -204,13 +288,13 @@ internal fun hijriCalendarStateSaver(
                     add(selected.monthLength)
                 }
                 else -> {
-                    val selected = state.selectedDate.toUnadjustedSpace(config.adjustmentDays)
+                    val selected = state.selectedHijriDate.toUnadjustedSpace(config.adjustmentDays)
                     if (selected == null) {
                         add(SELECTION_NONE)
                     } else {
                         add(SELECTION_HIJRAH)
                         add(selected.year)
-                        add(selected.month.number)
+                        add(selected.month)
                         add(selected.day)
                     }
                 }
@@ -249,9 +333,11 @@ internal fun hijriCalendarStateSaver(
     },
 )
 
-private fun HijrahDate?.toUnadjustedSpace(adjustmentDays: Int): HijrahDate? {
+private fun HijriDate?.toUnadjustedSpace(adjustmentDays: Int): HijriDate? {
     if (this == null || adjustmentDays == 0) return this
-    return orNullIfOutOfRange { toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate() } ?: this
+    return orNullIfOutOfRange {
+        toHijrahDate().toLocalDate().minus(adjustmentDays, DateTimeUnit.DAY).toHijrahDate().toHijriDate()
+    } ?: this
 }
 
 /**

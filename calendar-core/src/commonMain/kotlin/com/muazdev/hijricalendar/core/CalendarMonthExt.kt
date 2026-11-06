@@ -29,7 +29,18 @@ import kotlinx.datetime.plus
  * Cells whose shifted date falls outside the supported Umm al-Qura range (~1300-1600 AH)
  * do not throw: they become disabled placeholders clamped to [HijrahDate.MIN] or
  * [HijrahDate.MAX].
+ *
+ * @deprecated The receiver and date parameters are types from the third-party alpha
+ *   `hijrah-datetime` artifact. Use the overload taking the library-owned [HijriYearMonth] and
+ *   [HijriDate].
  */
+@Deprecated(
+    message = "The receiver and parameter types are from the third-party alpha " +
+        "hijrah-datetime artifact. Use the overload taking the library-owned " +
+        "`HijriYearMonth` / `HijriDate` instead.",
+    level = DeprecationLevel.WARNING,
+)
+@Suppress("ReturnCount")
 public fun HijrahYearMonth.toCalendarMonth(
     firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
     selectedDate: HijrahDate? = null,
@@ -118,6 +129,38 @@ public fun HijrahYearMonth.toCalendarMonth(
         ),
     )
 }
+
+/**
+ * Generates the 6-week grid for this library-owned Hijri month.
+ *
+ * The non-deprecated face of [HijrahYearMonth.toCalendarMonth]: every date-typed parameter is a
+ * [HijriDate], so a caller never names the third-party alpha type. The receiver converts through
+ * [toHijrahYearMonth] and the dates through [HijriDate.toHijrahDate] internally; the semantics are
+ * exactly the deprecated overload's.
+ */
+public fun HijriYearMonth.toCalendarMonth(
+    firstDayOfWeek: WeekDay = WeekDay.DEFAULT_FIRST_DAY,
+    selectedDate: HijriDate? = null,
+    selectedPakistanDate: PakistanHijriDate? = null,
+    selectedObservedDate: ObservedHijriDate? = null,
+    minDate: HijriDate? = null,
+    maxDate: HijriDate? = null,
+    adjustmentDays: Int = 0,
+    pakistan: Boolean = false,
+    weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    overrides: HijriMonthLengths = HijriMonthOverrides.current,
+): CalendarMonth = this.toHijrahYearMonth().toCalendarMonth(
+    firstDayOfWeek = firstDayOfWeek,
+    selectedDate = selectedDate?.toHijrahDate(),
+    selectedPakistanDate = selectedPakistanDate,
+    selectedObservedDate = selectedObservedDate,
+    minDate = minDate?.toHijrahDate(),
+    maxDate = maxDate?.toHijrahDate(),
+    adjustmentDays = adjustmentDays,
+    pakistan = pakistan,
+    weekendDays = weekendDays,
+    overrides = overrides,
+)
 
 /**
  * Pakistan (Ruet-e-Hilal) variant of [toCalendarMonth]: each grid cell carries its observed

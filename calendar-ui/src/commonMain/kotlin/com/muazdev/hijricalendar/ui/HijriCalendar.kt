@@ -30,7 +30,7 @@ import com.muazdev.hijricalendar.core.HijriCalendarState
  *   including as the system font scale rises. The *text* scales up to a cap
  *   ([HijriCalendarDefaults.maxFontScaleFor]) and the header is uncapped. Pass
  *   [ignoreFontScale] for the previous fully flat behaviour.
- * - **No bounds beyond [HijriCalendarState.minDate] / `maxDate`**, which also gate navigation and the
+ * - **No bounds beyond [HijriCalendarState.minHijriDate] / `maxHijriDate`**, which also gate navigation and the
  *   pager's reachable range.
  *
  * ## Reading the day
@@ -104,10 +104,10 @@ public fun HijriCalendar(
 ) {
     // Header text is derived from the month alone, not from the full 42-cell grid, so an
     // unrelated recomposition never rebuilds the CalendarMonth just to render the header.
-    val currentMonth = state.currentMonth
+    val currentMonth = state.currentHijriMonth
 
     val hijriMonthLabel = remember(currentMonth, labels) {
-        labels.hijriMonthName(currentMonth.year, currentMonth.month.number)
+        labels.hijriMonthName(currentMonth.year, currentMonth.month)
     }
 
     // The whole title line, so a locale controls its ordering and its digits. The header used to

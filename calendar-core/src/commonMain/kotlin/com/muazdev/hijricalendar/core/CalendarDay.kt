@@ -12,7 +12,20 @@ import kotlinx.serialization.Serializable
 
 @Immutable
 @Serializable
+@Suppress("DEPRECATION")
 public data class CalendarDay(
+    /**
+     * The Umm al-Qura date this cell represents, or `null` for a placeholder.
+     *
+     * @deprecated The type comes from the third-party `hijrah-datetime` alpha artifact. Use
+     *   [hijri], which is this library's own [HijriDate] and converts back with
+     *   [HijriDate.toHijrahDate].
+     */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use the library-owned `hijri: HijriDate?` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     val hijrahDate: HijrahDate? = null,
     val pakistanDate: PakistanHijriDate? = null,
     val observedDate: ObservedHijriDate? = null,
@@ -23,6 +36,15 @@ public data class CalendarDay(
     val isWeekend: Boolean,
     val adjustmentDays: Int = 0,
 ) {
+    /**
+     * This cell's Umm al-Qura date as a library-owned [HijriDate], or `null` for a placeholder.
+     *
+     * The non-deprecated replacement for [hijrahDate]: the calendar math still uses the
+     * third-party type internally, but a consumer reading a cell no longer has to name it.
+     */
+    val hijri: HijriDate?
+        get() = hijrahDate?.toHijriDate()
+
     /**
      * The notable date this cell carries, or `null` when it carries none.
      *

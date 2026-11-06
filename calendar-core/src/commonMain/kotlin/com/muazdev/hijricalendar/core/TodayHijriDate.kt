@@ -23,7 +23,15 @@ import kotlinx.datetime.toLocalDateTime
  *
  * The failure is reported to [CalendarLog] (silently discarded unless a consumer installs a
  * logger) so it is diagnosable in production without the library writing to standard out.
+ *
+ * @deprecated The return type is from the third-party alpha `hijrah-datetime` artifact. Use
+ *   [todayHijri], which returns the library-owned [HijriDate].
  */
+@Deprecated(
+    message = "The return type is from the third-party alpha hijrah-datetime artifact. " +
+        "Use `todayHijri(adjustmentDays): HijriDate?` instead.",
+    level = DeprecationLevel.WARNING,
+)
 public fun todayHijriDate(adjustmentDays: Int): HijrahDate? {
     return try {
         val now = kotlin.time.Clock.System.now()
@@ -40,3 +48,14 @@ public fun todayHijriDate(adjustmentDays: Int): HijrahDate? {
 }
 
 private const val LOG_TAG = "HijriCalendar"
+
+/**
+ * Computes today's Hijri date in the given [adjustmentDays]-shifted space as a library-owned
+ * [HijriDate].
+ *
+ * The non-deprecated face of [todayHijriDate]. Returns `null` for the same environmental failures —
+ * an unusable clock, a missing timezone database, a date outside the supported table.
+ */
+@Suppress("DEPRECATION")
+public fun todayHijri(adjustmentDays: Int): HijriDate? =
+    todayHijriDate(adjustmentDays)?.toHijriDate()
