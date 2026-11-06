@@ -3,7 +3,8 @@ package com.muazdev.hijricalendar.ui
 import androidx.compose.runtime.Immutable
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearMonth
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.core.HijriYearMonth
+import com.muazdev.hijricalendar.core.toHijriYearMonth
 
 /**
  * The months the grid's pager can navigate, expressed as offsets in months from the grid's frozen
@@ -87,14 +88,14 @@ internal data class PageWindow(
          * `HijrahDate`, whose constructor validates its own range.
          */
         fun forBounds(
-            minDate: HijrahYearMonth?,
-            maxDate: HijrahYearMonth?,
-            anchor: HijrahYearMonth,
+            minDate: HijriYearMonth?,
+            maxDate: HijriYearMonth?,
+            anchor: HijriYearMonth,
         ): PageWindow {
             val low = minDate?.let { monthOffset(it, anchor) }
-                ?: monthOffset(HijrahDate.MIN.yearMonth, anchor)
+                ?: monthOffset(HijrahDate.MIN.yearMonth.toHijriYearMonth(), anchor)
             val high = maxDate?.let { monthOffset(it, anchor) }
-                ?: monthOffset(HijrahDate.MAX.yearMonth, anchor)
+                ?: monthOffset(HijrahDate.MAX.yearMonth.toHijriYearMonth(), anchor)
             if (low > high) return PageWindow(0, 0)
             return PageWindow(low, high)
         }

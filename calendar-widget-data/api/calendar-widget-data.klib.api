@@ -262,35 +262,6 @@ final class com.muazdev.hijricalendar.widgetdata/HijriMonthWidgetData { // com.m
     }
 }
 
-final class com.muazdev.hijricalendar.widgetdata/HijriYearMonth { // com.muazdev.hijricalendar.widgetdata/HijriYearMonth|null[0]
-    constructor <init>(kotlin/Int, kotlin/Int) // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.<init>|<init>(kotlin.Int;kotlin.Int){}[0]
-
-    final val month // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.month|{}month[0]
-        final fun <get-month>(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.month.<get-month>|<get-month>(){}[0]
-    final val year // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.year|{}year[0]
-        final fun <get-year>(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.year.<get-year>|<get-year>(){}[0]
-
-    final fun component1(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.component1|component1(){}[0]
-    final fun component2(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.component2|component2(){}[0]
-    final fun copy(kotlin/Int = ..., kotlin/Int = ...): com.muazdev.hijricalendar.widgetdata/HijriYearMonth // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.copy|copy(kotlin.Int;kotlin.Int){}[0]
-    final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.equals|equals(kotlin.Any?){}[0]
-    final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.hashCode|hashCode(){}[0]
-    final fun toString(): kotlin/String // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.toString|toString(){}[0]
-
-    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.muazdev.hijricalendar.widgetdata/HijriYearMonth> { // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.$serializer|null[0]
-        final val descriptor // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.$serializer.descriptor|{}descriptor[0]
-            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.$serializer.childSerializers|childSerializers(){}[0]
-        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.muazdev.hijricalendar.widgetdata/HijriYearMonth // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-        final fun serialize(kotlinx.serialization.encoding/Encoder, com.muazdev.hijricalendar.widgetdata/HijriYearMonth) // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.muazdev.hijricalendar.widgetdata.HijriYearMonth){}[0]
-    }
-
-    final object Companion { // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.Companion|null[0]
-        final fun serializer(): kotlinx.serialization/KSerializer<com.muazdev.hijricalendar.widgetdata/HijriYearMonth> // com.muazdev.hijricalendar.widgetdata/HijriYearMonth.Companion.serializer|serializer(){}[0]
-    }
-}
-
 final class com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData { // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData|null[0]
     constructor <init>(kotlin/Int, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String = ..., kotlin/String, kotlin/String = ..., kotlin/String, kotlin/String, kotlin/Int, kotlin/Int, kotlin/String, kotlin/Int, kotlin/String, kotlin/Int, kotlin/String = ..., kotlin/String = ..., kotlin/String = ...) // com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData.<init>|<init>(kotlin.Int;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.Int;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.Int;kotlin.String;kotlin.String;kotlin.String){}[0]
 
@@ -402,7 +373,7 @@ final class com.muazdev.hijricalendar.widgetdata/WidgetOptions { // com.muazdev.
     final val numeralStyle // com.muazdev.hijricalendar.widgetdata/WidgetOptions.numeralStyle|{}numeralStyle[0]
         final fun <get-numeralStyle>(): com.muazdev.hijricalendar.widgetdata/NumeralStyle // com.muazdev.hijricalendar.widgetdata/WidgetOptions.numeralStyle.<get-numeralStyle>|<get-numeralStyle>(){}[0]
     final val pinned // com.muazdev.hijricalendar.widgetdata/WidgetOptions.pinned|{}pinned[0]
-        final fun <get-pinned>(): com.muazdev.hijricalendar.widgetdata/HijriYearMonth? // com.muazdev.hijricalendar.widgetdata/WidgetOptions.pinned.<get-pinned>|<get-pinned>(){}[0]
+        final fun <get-pinned>(): com.muazdev.hijricalendar.core/HijriYearMonth? // com.muazdev.hijricalendar.widgetdata/WidgetOptions.pinned.<get-pinned>|<get-pinned>(){}[0]
     final val pinnedMonth // com.muazdev.hijricalendar.widgetdata/WidgetOptions.pinnedMonth|{}pinnedMonth[0]
         final fun <get-pinnedMonth>(): kotlin/Int? // com.muazdev.hijricalendar.widgetdata/WidgetOptions.pinnedMonth.<get-pinnedMonth>|<get-pinnedMonth>(){}[0]
     final val pinnedYear // com.muazdev.hijricalendar.widgetdata/WidgetOptions.pinnedYear|{}pinnedYear[0]
@@ -440,8 +411,8 @@ final class com.muazdev.hijricalendar.widgetdata/WidgetOptions { // com.muazdev.
     final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.widgetdata/WidgetOptions.hashCode|hashCode(){}[0]
     final fun hijriMonthName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetOptions.hijriMonthName|hijriMonthName(kotlin.Int){}[0]
     final fun overridesTable(): com.muazdev.hijricalendar.core/HijriMonthLengths // com.muazdev.hijricalendar.widgetdata/WidgetOptions.overridesTable|overridesTable(){}[0]
-    final fun resolveGridMonth(com.muazdev.hijricalendar.widgetdata/HijriYearMonth): com.muazdev.hijricalendar.widgetdata/HijriYearMonth // com.muazdev.hijricalendar.widgetdata/WidgetOptions.resolveGridMonth|resolveGridMonth(com.muazdev.hijricalendar.widgetdata.HijriYearMonth){}[0]
-    final fun resolveGridMonthOrNull(com.muazdev.hijricalendar.widgetdata/HijriYearMonth?): com.muazdev.hijricalendar.widgetdata/HijriYearMonth? // com.muazdev.hijricalendar.widgetdata/WidgetOptions.resolveGridMonthOrNull|resolveGridMonthOrNull(com.muazdev.hijricalendar.widgetdata.HijriYearMonth?){}[0]
+    final fun resolveGridMonth(com.muazdev.hijricalendar.core/HijriYearMonth): com.muazdev.hijricalendar.core/HijriYearMonth // com.muazdev.hijricalendar.widgetdata/WidgetOptions.resolveGridMonth|resolveGridMonth(com.muazdev.hijricalendar.core.HijriYearMonth){}[0]
+    final fun resolveGridMonthOrNull(com.muazdev.hijricalendar.core/HijriYearMonth?): com.muazdev.hijricalendar.core/HijriYearMonth? // com.muazdev.hijricalendar.widgetdata/WidgetOptions.resolveGridMonthOrNull|resolveGridMonthOrNull(com.muazdev.hijricalendar.core.HijriYearMonth?){}[0]
     final fun toString(): kotlin/String // com.muazdev.hijricalendar.widgetdata/WidgetOptions.toString|toString(){}[0]
 
     final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.muazdev.hijricalendar.widgetdata/WidgetOptions> { // com.muazdev.hijricalendar.widgetdata/WidgetOptions.$serializer|null[0]
@@ -570,6 +541,6 @@ final fun com.muazdev.hijricalendar.widgetdata/encodeMonthLengthsCsv(kotlin.coll
 final fun com.muazdev.hijricalendar.widgetdata/monthLengthKey(kotlin/Int, kotlin/Int): kotlin/String // com.muazdev.hijricalendar.widgetdata/monthLengthKey|monthLengthKey(kotlin.Int;kotlin.Int){}[0]
 final fun com.muazdev.hijricalendar.widgetdata/monthLengthsFrom(kotlin.collections/Map<kotlin/String, kotlin/Int>): com.muazdev.hijricalendar.core/HijriMonthLengths // com.muazdev.hijricalendar.widgetdata/monthLengthsFrom|monthLengthsFrom(kotlin.collections.Map<kotlin.String,kotlin.Int>){}[0]
 final fun com.muazdev.hijricalendar.widgetdata/monthLengthsToMap(com.muazdev.hijricalendar.core/HijriMonthLengths): kotlin.collections/Map<kotlin/String, kotlin/Int> // com.muazdev.hijricalendar.widgetdata/monthLengthsToMap|monthLengthsToMap(com.muazdev.hijricalendar.core.HijriMonthLengths){}[0]
-final fun com.muazdev.hijricalendar.widgetdata/offsetHijriMonth(kotlin/Int, kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.widgetdata/HijriYearMonth? // com.muazdev.hijricalendar.widgetdata/offsetHijriMonth|offsetHijriMonth(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+final fun com.muazdev.hijricalendar.widgetdata/offsetHijriMonth(kotlin/Int, kotlin/Int, kotlin/Int): com.muazdev.hijricalendar.core/HijriYearMonth? // com.muazdev.hijricalendar.widgetdata/offsetHijriMonth|offsetHijriMonth(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
 final fun com.muazdev.hijricalendar.widgetdata/todayHijriWidgetData(kotlin/Long, com.muazdev.hijricalendar.widgetdata/WidgetOptions): com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData? // com.muazdev.hijricalendar.widgetdata/todayHijriWidgetData|todayHijriWidgetData(kotlin.Long;com.muazdev.hijricalendar.widgetdata.WidgetOptions){}[0]
 final fun com.muazdev.hijricalendar.widgetdata/todayHijriWidgetData(kotlin/Long, kotlin/Int, kotlin.collections/List<kotlin/String>? = ..., kotlin.collections/List<kotlin/String>? = ..., kotlin.collections/List<kotlin/String>? = ..., com.muazdev.hijricalendar.widgetdata/NumeralStyle = ..., kotlin/Boolean = ..., com.muazdev.hijricalendar.core/HijriMonthLengths = ..., kotlin/String? = ..., kotlin/String? = ..., com.muazdev.hijricalendar.widgetdata/WidgetLanguage? = ..., kotlin.collections/List<kotlin/String>? = ...): com.muazdev.hijricalendar.widgetdata/TodayHijriWidgetData? // com.muazdev.hijricalendar.widgetdata/todayHijriWidgetData|todayHijriWidgetData(kotlin.Long;kotlin.Int;kotlin.collections.List<kotlin.String>?;kotlin.collections.List<kotlin.String>?;kotlin.collections.List<kotlin.String>?;com.muazdev.hijricalendar.widgetdata.NumeralStyle;kotlin.Boolean;com.muazdev.hijricalendar.core.HijriMonthLengths;kotlin.String?;kotlin.String?;com.muazdev.hijricalendar.widgetdata.WidgetLanguage?;kotlin.collections.List<kotlin.String>?){}[0]

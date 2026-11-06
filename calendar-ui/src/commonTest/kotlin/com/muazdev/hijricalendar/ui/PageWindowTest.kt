@@ -1,8 +1,8 @@
 package com.muazdev.hijricalendar.ui
 
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
-import com.abdulrahman_b.hijrahdatetime.yearMonth
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.core.HijriYearMonth
+import com.muazdev.hijricalendar.core.toHijriDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -27,15 +27,15 @@ import kotlin.test.assertTrue
  */
 class PageWindowTest {
 
-    private val anchor = HijrahYearMonth(1447, 9)
+    private val anchor = HijriYearMonth(1447, 9)
 
     private fun windowOf(min: HijrahDate? = null, max: HijrahDate? = null): PageWindow =
-        PageWindow.forBounds(min?.yearMonth, max?.yearMonth, anchor)
+        PageWindow.forBounds(min?.toHijriDate()?.yearMonth, max?.toHijriDate()?.yearMonth, anchor)
 
     private fun hijri(year: Int, month: Int, day: Int = 1): HijrahDate = HijrahDate(year, month, day)
 
     private fun offsetOf(year: Int, month: Int): Int =
-        monthOffset(HijrahYearMonth(year, month), anchor)
+        monthOffset(HijriYearMonth(year, month), anchor)
 
     // ── unbounded: the ±500 magic window is gone ──────────────────────
 
@@ -220,7 +220,7 @@ class PageWindowTest {
         // an inverted window, because PageWindow's init would throw while composing.
         val years = listOf(HijrahDate.MIN.year, 1400, 1440, 1447, 1500, HijrahDate.MAX.year)
         val months = listOf(1, 9, 12)
-        val boundMonths = years.flatMap { y -> months.map { m -> HijrahYearMonth(y, m) } }
+        val boundMonths = years.flatMap { y -> months.map { m -> HijriYearMonth(y, m) } }
 
         for (min in boundMonths) {
             for (max in boundMonths) {
@@ -239,9 +239,9 @@ class PageWindowTest {
     fun forBounds_toleratesEveryNullCombination() {
         listOf(
             PageWindow.forBounds(null, null, anchor),
-            PageWindow.forBounds(HijrahYearMonth(1440, 1), null, anchor),
-            PageWindow.forBounds(null, HijrahYearMonth(1460, 1), anchor),
-            PageWindow.forBounds(HijrahYearMonth(1440, 1), HijrahYearMonth(1460, 1), anchor),
+            PageWindow.forBounds(HijriYearMonth(1440, 1), null, anchor),
+            PageWindow.forBounds(null, HijriYearMonth(1460, 1), anchor),
+            PageWindow.forBounds(HijriYearMonth(1440, 1), HijriYearMonth(1460, 1), anchor),
         ).forEach { w ->
             assertTrue(w.span >= 1)
             assertTrue(w.coercePage(w.pageOf(0)) in 0 until w.span, "no valid initial page in $w")

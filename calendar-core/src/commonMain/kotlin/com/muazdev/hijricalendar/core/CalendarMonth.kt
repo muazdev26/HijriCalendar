@@ -21,20 +21,55 @@ import kotlinx.datetime.LocalDate
  *   use [gregorianFirstDay] / [gregorianLastDay], which fall back correctly.
  */
 @Immutable
+@Suppress("DEPRECATION")
 public data class CalendarMonth(
+    /**
+     * The Umm al-Qura month identity.
+     *
+     * Always the *calculated* month — the Pakistan and observed spaces reuse it as their month
+     * label, so this alone never implies which space the cells are in.
+     *
+     * @deprecated The type comes from the third-party alpha artifact. Use [hijriYearMonth].
+     */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use the library-owned `hijriYearMonth: HijriYearMonth` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     val yearMonth: HijrahYearMonth,
     val days: ImmutableList<CalendarDay>,
     val firstDayOfWeek: WeekDay,
     val adjustmentDays: Int = 0,
     val gregorianRange: GregorianMonthRange? = null,
 ) {
+    /** This month's identity as a library-owned [HijriYearMonth]. */
+    val hijriYearMonth: HijriYearMonth get() = yearMonth.toHijriYearMonth()
+
     val numberOfWeeks: Int get() = days.size / DAYS_IN_WEEK
 
     val year: Int get() = yearMonth.year
 
+    /** @deprecated The type is from the third-party alpha artifact. Use [firstHijriDay]. */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use `firstHijriDay: HijriDate` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     val firstDay: HijrahDate get() = yearMonth.firstDay
 
+    /** @deprecated The type is from the third-party alpha artifact. Use [lastHijriDay]. */
+    @Deprecated(
+        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+            "Use `lastHijriDay: HijriDate` instead.",
+        level = DeprecationLevel.WARNING,
+    )
     val lastDay: HijrahDate get() = yearMonth.lastDay
+
+    /** The month's first day as a library-owned [HijriDate]. */
+    val firstHijriDay: HijriDate get() = firstDay.toHijriDate()
+
+    /** The month's last day as a library-owned [HijriDate]. */
+    val lastHijriDay: HijriDate get() = lastDay.toHijriDate()
 
     /**
      * The Gregorian extent of this month, resolved in the space its cells were generated in.

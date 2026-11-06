@@ -19,6 +19,33 @@ Notable changes to the published modules, newest first. The long-form write-ups 
 - `HijriMonthOverrides` — the process-global, volatile override table. It is a warning-level
   deprecation with a migration note; the durable replacement is `HijriMonthLengthsRepository`. The
   table still works for the process lifetime, so existing callers do not break.
+- Every `HijriCalendarState` member and `CalendarMonth` / `CalendarDay` / `toCalendarMonth` /
+  `todayHijriDate` surface that names `HijrahDate`, `HijrahYearMonth` or their properties — the types
+  come from the third-party `2.0.0-alpha07` artifact, so they are the one part of the published ABI
+  this library does not control. Warning level; the replacements are listed under *Migration*.
+
+### Added
+
+- `HijriDate` and `HijriYearMonth` (`calendar-core`) — the library's own Hijri value types, with
+  `HijriDate.yearMonth`, `HijriYearMonth.atDay` / `plusMonths`, and the conversions
+  `toHijrahDate()` / `toHijrahYearMonth()` in both directions. They are `@Serializable`, validate
+  their month (`1..12`), and are what new code should use.
+- `calendar-widget-data`'s `HijriYearMonth` is now a `typealias` for `calendar-core`'s, so the widget
+  projection and the in-app calendar name one type instead of two identical ones.
+
+### Migration
+
+- **`calendar-widget-data`'s `HijriYearMonth` moved to `calendar-core`.** Source-compatible (the old
+  import and `HijriYearMonth(...)` call still compile), but the class file is now
+  `com.muazdev.hijricalendar.core.HijriYearMonth` — recompile against 2.4.0. The methods whose
+  signatures changed are `offsetHijriMonth`, `WidgetOptions.pinned` /
+  `resolveGridMonth` / `resolveGridMonthOrNull`.
+- Replace deprecated alpha types with the library-owned ones: `HijrahDate` → `HijriDate`,
+  `HijrahYearMonth` → `HijriYearMonth`; `CalendarDay.hijrahDate` → `CalendarDay.hijri`,
+  `CalendarMonth.yearMonth` → `hijriYearMonth`, `firstDay` / `lastDay` → `firstHijriDay` /
+  `lastHijriDay`, `HijriCalendarState.currentMonth` / `selectedDate` / `minDate` / `maxDate` →
+  `currentHijriMonth` / `selectedHijriDate` / `minHijriDate` / `maxHijriDate`, `todayHijriDate(n)` →
+  `todayHijri(n)`. The old signatures keep working until 3.0.
 
 ## 2.3.5 - 2026-10-28
 

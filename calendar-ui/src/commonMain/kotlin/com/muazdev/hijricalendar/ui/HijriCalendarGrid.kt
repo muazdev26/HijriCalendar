@@ -25,11 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.abdulrahman_b.hijrahdatetime.yearMonth
-import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriYearMonth
 import com.muazdev.hijricalendar.core.WeekDay
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -48,18 +47,18 @@ internal fun HijriCalendarGrid(
     primaryDate: PrimaryDate = PrimaryDate.HIJRI,
 ) {
     // The pager's anchor: the first month this grid ever saw, frozen so page indices stay stable
-    // while the user navigates. Deliberately *not* keyed on state.currentMonth — the anchor must not
-    // follow navigation, or every swipe would renumber the window under the pager's feet.
-    val initialMonth = remember { state.currentMonth }
+    // while the user navigates. Deliberately *not* keyed on state.currentHijriMonth — the anchor
+    // must not follow navigation, or every swipe would renumber the window under the pager's feet.
+    val initialMonth = remember { state.currentHijriMonth }
 
     // The navigable page window, derived entirely from the caller's bounds. Previously this was
     // two page indices fed to a two-argument coerceIn, which threw on any range that made them
-    // invert — see PageWindow's KDoc. Because minDate/maxDate are immutable `val`s on the state,
-    // the window is fixed for the life of the grid, so page indices stay stable.
-    val window = remember(state.minDate, state.maxDate, initialMonth) {
+    // invert — see PageWindow's KDoc. Because minHijriDate/maxHijriDate are immutable `val`s on the
+    // state, the window is fixed for the life of the grid, so page indices stay stable.
+    val window = remember(state.minHijriDate, state.maxHijriDate, initialMonth) {
         PageWindow.forBounds(
-            minDate = state.minDate?.yearMonth,
-            maxDate = state.maxDate?.yearMonth,
+            minDate = state.minHijriDate?.yearMonth,
+            maxDate = state.maxHijriDate?.yearMonth,
             anchor = initialMonth,
         )
     }
@@ -100,10 +99,10 @@ internal fun HijriCalendarGrid(
         var lastTargetPage = -1
         snapshotFlow {
             val page = pagerState.settledPage
-            // targetPage is the page the state's month names; reading currentMonth inside the
+            // targetPage is the page the state's month names; reading currentHijriMonth inside the
             // flow is what makes a state change re-emit.
             val targetPage = window.coercePage(
-                window.pageOf(monthOffset(state.currentMonth, initialMonth)),
+                window.pageOf(monthOffset(state.currentHijriMonth, initialMonth)),
             )
             page to targetPage
         }
@@ -128,7 +127,7 @@ internal fun HijriCalendarGrid(
                 } else {
                     // The state did not move, so the pager did. A user swipe.
                     val month = initialMonth.plusPageOffset(window.offsetOf(page))
-                    if (month != state.currentMonth) {
+                    if (month != state.currentHijriMonth) {
                         state.goToMonth(month)
                     }
                 }
@@ -321,14 +320,8 @@ private fun MonthGrid(
     }
 }
 
-internal fun HijrahYearMonth.plusPageOffset(offset: Int): HijrahYearMonth {
-    return if (offset >= 0) {
-        this.plusMonth(offset)
-    } else {
-        this.minusMonth(-offset)
-    }
-}
+internal fun HijriYearMonth.plusPageOffset(offset: Int): HijriYearMonth = plusMonths(offset)
 
-internal fun monthOffset(from: HijrahYearMonth, to: HijrahYearMonth): Int {
-    return (from.year - to.year) * 12 + (from.month.number - to.month.number)
+internal fun monthOffset(from: HijriYearMonth, to: HijriYearMonth): Int {
+    return (from.year - to.year) * 12 + (from.month - to.month)
 }
