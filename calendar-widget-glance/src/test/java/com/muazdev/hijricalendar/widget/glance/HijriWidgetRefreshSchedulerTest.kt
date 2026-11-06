@@ -77,6 +77,97 @@ class HijriWidgetRefreshSchedulerTest {
         var armed = 0
     }
 
+    // ── exact-alarm fallback (issue 09) ──────────────────────────────────
+
+    @Test
+    fun belowApi31TheAlarmIsAlwaysExact() {
+        // canScheduleExactAlarms() does not exist before API 31, so the permission model cannot
+        // deny anything; a `false` here is what a naive caller would pass on an older device.
+        assertEquals(AlarmKind.EXACT, alarmKindFor(sdkInt = 30, canScheduleExactAlarms = false))
+    }
+
+    @Test
+    fun deniedExactAccessFromApi31FallsBackToInexact() {
+        assertEquals(AlarmKind.INEXACT, alarmKindFor(sdkInt = 31, canScheduleExactAlarms = false))
+        assertEquals(AlarmKind.INEXACT, alarmKindFor(sdkInt = 34, canScheduleExactAlarms = false))
+    }
+
+    @Test
+    fun grantedExactAccessStaysExact() {
+        assertEquals(AlarmKind.EXACT, alarmKindFor(sdkInt = 31, canScheduleExactAlarms = true))
+        assertEquals(AlarmKind.EXACT, alarmKindFor(sdkInt = 34, canScheduleExactAlarms = true))
+    }
+
+    @Test
+    fun theRealArmPathInexactWhenExactAccessIsDenied() {
+        val armer = RecordingArmer(apiLevel = 34, canScheduleExact = false)
+
+        withArmer(armer) { HijriWidgetRefreshScheduler.armMidnightAlarm(context) }
+
+        assertEquals(0, armer.exactCalls, "a denied exact-alarm access must not call setExact*")
+        assertEquals(1, armer.inexactCalls, "the rollover still has to be armed, just inexactly")
+    }
+
+    @Test
+    fun theRealArmPathExactWhenAccessIsGranted() {
+        val armer = RecordingArmer(apiLevel = 34, canScheduleExact = true)
+
+        withArmer(armer) { HijriWidgetRefreshScheduler.armMidnightAlarm(context) }
+
+        assertEquals(1, armer.exactCalls, "a granted access arms the exact midnight boundary")
+        assertEquals(0, armer.inexactCalls, "the fallback must not run when exact is available")
+    }
+
+    @Test
+    fun theRealArmPathStaysExactBelowApi31WhereThePermissionDoesNotExist() {
+        val armer = RecordingArmer(apiLevel = 30, canScheduleExact = false)
+
+        withArmer(armer) {
+            HijriWidgetRefreshScheduler.armMidnightAlarm(context)
+        }
+
+        assertEquals(1, armer.exactCalls, "Android 12 and below has no exact-alarm special access")
+        assertEquals(0, armer.inexactCalls, "degrading there would be a needless loss of exactness")
+    }
+
+    /** Records the arming call the real `armMidnightAlarmForReal` chooses. */
+    private class RecordingArmer(
+        private val apiLevel: Int,
+        private val canScheduleExact: Boolean,
+    ) : MidnightAlarmArmer {
+        var exactCalls = 0
+        var inexactCalls = 0
+
+        override fun apiLevel(): Int = apiLevel
+
+        override fun canScheduleExactAlarms(): Boolean = canScheduleExact
+
+        override fun armExact(triggerAtMillis: Long) {
+            exactCalls++
+        }
+
+        override fun armInexact(triggerAtMillis: Long) {
+            inexactCalls++
+        }
+    }
+
+    /**
+     * Runs [block] with the real arm path (the default [HijriWidgetRefreshScheduler.armAction]) but
+     * a recording [MidnightAlarmArmer], then restores both seams.
+     */
+    private fun withArmer(armer: MidnightAlarmArmer, block: () -> Unit) {
+        val originalArmer = HijriWidgetRefreshScheduler.armerAction
+        val originalArm = HijriWidgetRefreshScheduler.armAction
+        HijriWidgetRefreshScheduler.armerAction = { armer }
+        HijriWidgetRefreshScheduler.armAction = HijriWidgetRefreshScheduler::armMidnightAlarmForReal
+        try {
+            block()
+        } finally {
+            HijriWidgetRefreshScheduler.armerAction = originalArmer
+            HijriWidgetRefreshScheduler.armAction = originalArm
+        }
+    }
+
     /** Replaces every seam under test, runs [block], and restores them in a `finally`. */
     private fun withSeams(placed: Boolean, recorded: Recorded, block: () -> Unit) {
         val originalPlaced = HijriWidgetRefreshScheduler.placedAction

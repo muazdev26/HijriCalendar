@@ -3,9 +3,17 @@
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Exact-midnight rollover permissions: USE_EXACT_ALARM (Android 13+, auto-granted to
-         calendar apps) plus SCHEDULE_EXACT_ALARM (Android 12, granted by default) so the widget
-         flips at the exact local-midnight boundary on every supported API level. -->
+    <!-- Exact-midnight rollover permissions. Both are declared because the permission model
+         changed across releases and the scheduler degrades rather than assuming access:
+           * USE_EXACT_ALARM (Android 13+): auto-granted and not user-revocable, but Play policy
+             reserves it for apps whose core function is an alarm clock or a calendar — which is
+             this library's host.
+           * SCHEDULE_EXACT_ALARM (Android 12+): a special app access. Android 12 pre-grants it;
+             from Android 14 it is NOT pre-granted to most apps, and the user can revoke it at any
+             time under Settings > Special app access > Alarms & reminders.
+         HijriWidgetRefreshScheduler checks canScheduleExactAlarms() before arming: with access it
+         uses setExactAndAllowWhileIdle, without it setAndAllowWhileIdle, so the widget still rolls
+         over at the first opportunity instead of crashing with a SecurityException. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
