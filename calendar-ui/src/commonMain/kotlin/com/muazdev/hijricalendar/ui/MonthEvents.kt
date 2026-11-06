@@ -30,7 +30,7 @@ internal data class MonthEvents(
 /**
  * Every notable date the displayed month holds, in calendar order.
  *
- * This is the banner's content **while nothing has been tapped**: the report's second round asked for
+ * This is the banner's content **while nothing has been tapped**: the requirement is for
  * "all events in that line for that month, and skip attaching the days with them". So the banner lists
  * names and nothing else — the filled cells already answer *when*, and a day number beside a name in
  * one permanently-present line read as a footnote on a date nobody had asked about.
@@ -65,7 +65,7 @@ internal fun monthEvents(days: List<CalendarDay>): MonthEvents {
  * What the banner below the grid shows: the month's whole notable-date list, or the **one day's** marks
  * once a day carrying one has been tapped.
  *
- * The two answers are the report's two states, and they are deliberately different questions:
+ * The two answers are the banner's two states, and they are deliberately different questions:
  *
  * - **Nothing tapped** — the user is paging through months, so the bar describes the month on screen:
  *   every notable date it holds ([monthEvents]). That is the only place a calendar-wide strip can say

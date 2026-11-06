@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-02: `showAdjacentDays`, and the two distinct effects it has on a month grid.
+ * `showAdjacentDays`, and the two distinct effects it has on a month grid.
  *
  * The tempting implementation is one line — filter the out-of-month cells and re-chunk — and it is
  * **wrong**, because a Hijri month can begin on any weekday. Filtering slides the 1st into column
@@ -229,8 +229,9 @@ class AdjacentDaysTest {
     /**
      * A blob written before this field existed decodes into the new behaviour.
      *
-     * WD-08 in miniature. The field's default *is* the behaviour the field was added to change, so
-     * "not configured" and "configured off" have to agree — otherwise every widget a user already
+     * A platform-boundary test in miniature. The field's default *is* the behaviour the field was
+     * added to change, so "not configured" and "configured off" have to agree — otherwise every
+     * widget a user already
      * had would silently keep rendering the old grid, with no way to tell why.
      */
     @Test

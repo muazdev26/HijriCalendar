@@ -18,8 +18,8 @@ import kotlin.test.assertTrue
  * order ([monthEvents]); once a day that carries one is tapped it names **only** that one
  * ([eventBannerEvents]). The banner used to resolve a *single* observance by precedence (selected day,
  * today, nearest upcoming), which could only ever name one of a month's events — and Muharram has
- * three. The report asked for "all events in that line for that month, and skip attaching the days
- * with them", then for a tap to narrow the line to the tapped event.
+ * three. The requirement is "all events in that line for that month, and skip attaching the days
+ * with them", and for a tap to narrow the line to the tapped event.
  *
  * These tests feed the same shape `HijriCalendar` does — the month's **cells**, in grid order,
  * including any padded neighbouring-month cells — because that is what makes the bar agree with the
@@ -84,7 +84,7 @@ class MonthEventListTest {
     }
 
     /**
-     * The first of Ramadan reaches the banner — the report's case, end to end.
+     * The first of Ramadan reaches the banner — the reported case, end to end.
      *
      * Built from a real [HijriCalendarState] grid rather than a hand-made cell on purpose: the failure
      * being ruled out is a **table** with no entry for 1 Ramadan, and a fixture that calls
@@ -143,7 +143,7 @@ class MonthEventListTest {
     // ── the banner narrows to a tapped observance ─────────────────────
 
     /**
-     * A tap on an observance narrows the line to that one name — the report's second state.
+     * A tap on an observance narrows the line to that one name — the second state.
      *
      * The same grid answers both states, so the assertions differ only by which cell is selected: that
      * is the whole rule, and stating it as a pair is what rules out "narrowing" that quietly also
@@ -199,7 +199,7 @@ class MonthEventListTest {
     /**
      * The default label joins the names, and carries **no day numbers**.
      *
-     * The day used to be appended ("Ashura · Day 10"). The report asked to skip it: the filled cells
+     * The day used to be appended ("Ashura · Day 10"). The requirement is to skip it: the filled cells
      * already answer *when*, and a day number in a permanently-present line made the bar read as a
      * footnote on a date nobody had asked about.
      */

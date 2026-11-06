@@ -35,7 +35,7 @@ public data class WidgetOptions(
     val numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     /**
      * Which day the week starts on. Stored by **name** for the reason [WidgetOptionsJson] exists
-     * (WD-05): the previous field was a bare ordinal into [WeekDay], another module's enum, so
+     *: the previous field was a bare ordinal into [WeekDay], another module's enum, so
      * inserting a `WeekDay` entry would have silently re-aligned every placed widget's header row.
      */
     val weekStart: WeekStart = WeekStart.DEFAULT,
@@ -61,7 +61,7 @@ public data class WidgetOptions(
      * cross a process boundary: the iOS WidgetKit extension has its own pristine copy of the
      * process global, so an app that sets an override in-process would otherwise render a month the
      * extension cannot reproduce. Stored as `"1447-9"` keys (not a packed int, and no
-     * `Pair<Int, Int>`, which stays out of the published ABI — WD-07).
+     * `Pair<Int, Int>`, which stays out of the published ABI).
      */
     val monthLengthOverrides: Map<String, Int> = emptyMap(),
     /**
@@ -94,7 +94,7 @@ public data class WidgetOptions(
      * no already-placed widget's colours.
      *
      * A name-backed enum in this module rather than a set of [com.muazdev.hijricalendar.core.WeekDay]
-     * for the reason WD-05 removed `firstDayOfWeekIndex` from the schema: a set of another module's
+     * for the reason `firstDayOfWeekIndex` was removed from the schema: a set of another module's
      * ordinals reinterprets itself the day someone inserts a `WeekDay` entry. See [WeekendPattern].
      *
      * [WeekDay.WEEKEND_DAYS] in `calendar-core` is **not** changed by this. It is a default for
@@ -102,7 +102,7 @@ public data class WidgetOptions(
      */
     val weekendPattern: WeekendPattern = WeekendPattern.FRIDAY_SATURDAY,
     /**
-     * Whether the grid draws a hairline between every cell (FD-04).
+     * Whether the grid draws a hairline between every cell.
      *
      * `true` by default: on a wall-clock grid of 42 numbers an undivided month is genuinely hard to
      * scan — you read across, stop, and re-read — and a divider is the cheapest fix for that which
@@ -123,7 +123,7 @@ public data class WidgetOptions(
      * [WidgetTheme.SYSTEM] by default, which is the behaviour of every release before this field
      * existed: the palette is built from configuration-qualified `@ColorRes` resources, so the
      * launcher re-resolves it against its own configuration and a night-mode switch costs no
-     * re-compose (FD-07). A widget stored without this field therefore keeps following the system,
+     * re-compose. A widget stored without this field therefore keeps following the system,
      * which is what makes the option safe to add at all.
      *
      * The other two values force a palette by pointing the renderer at a **set of resources that has
@@ -175,8 +175,8 @@ public data class WidgetOptions(
      *
      * [weekStart] is the whole truth, including for a blob written before it existed: the codec
      * folds a stored `firstDayOfWeekIndex` into it at decode time, so the legacy ordinal never
-     * survives as a field (WD-05). See [WidgetOptionsJson] for that migration — it lives in the codec
-     * rather than here because a persisted field is the one thing this ticket is removing, and
+     * survives as a field. See [WidgetOptionsJson] for that migration — it lives in the codec
+     * rather than here because a persisted field is the one thing being removed, and
      * `@EncodeDefault(NEVER)` was measured not to suppress a field whose default is a non-constant
      * expression, so a schema-level marker could not be relied on to stay unwritten.
      */
@@ -233,7 +233,7 @@ public data class WidgetOptions(
             // A stored month outside 1..12 is not a Hijri month, so it is not a pin — and the
             // `require` inside [HijriYearMonth] must not be reachable from a property a renderer
             // reads on a render path (it threw straight out of `decodeOrNull`, which only catches
-            // `SerializationException`). Total by construction, and it folds in WD-09's month check.
+            // `SerializationException`). Total by construction, and it folds in the month-range check.
             if (month !in 1..12) return null
             return HijriYearMonth(year = year, month = month)
         }
@@ -387,7 +387,7 @@ public object WidgetOptionsJson {
         ignoreUnknownKeys = true
         // Write every field, so a reader never has to know the defaults *this* release uses.
         encodeDefaults = true
-        // Unknown or wrong-typed *values* (WD-06). `ignoreUnknownKeys` does nothing for these: one
+        // Unknown or wrong-typed *values*. `ignoreUnknownKeys` does nothing for these: one
         // unrecognised enum value threw, the `catch` returned null, and `decode` substituted
         // wholesale DEFAULTS — so a single renamed `language` reset adjustment days, numerals, first
         // day of week, pin, source and month-name language at once. This confines the damage to the
@@ -414,7 +414,7 @@ public object WidgetOptionsJson {
      * longer reaches here — only text that is not this format at all (malformed JSON, a JSON array)
      * does. That matters for callers layering a legacy reader on top, like
      * `calendar-widget-glance`'s `decodeOptionsJson`: a *newer* blob with an unrecognised enum no
-     * longer lands in that fallback and silently reverts to all-defaults (WG-09).
+     * longer lands in that fallback and silently reverts to all-defaults.
      *
      * The catch is narrowed to [SerializationException] (an `IllegalArgumentException`) rather than
      * `Exception`, so a genuine defect in a serializer surfaces in a test instead of quietly
@@ -426,7 +426,7 @@ public object WidgetOptionsJson {
      * [decodeOrNull], plus a report of which fields had to be repaired.
      *
      * A repaired field is evidence of a bug upstream — a hand-edited store, a renderer that wrote
-     * something impossible — and this module is coroutine-free and must stay that way (CORE-06), so
+     * something impossible — and this module is coroutine-free and must stay that way, so
      * it cannot log the fact itself. Handing the list to the *platform* is how `HijriWidgetRefreshLog`
      * gets to say "read a corrupt option" instead of the repair being invisible.
      */
@@ -458,7 +458,7 @@ public object WidgetOptionsJson {
     }
 
     /**
-     * Coerce or drop every field whose stored value cannot be rendered (WD-09).
+     * Coerce or drop every field whose stored value cannot be rendered.
      *
      * kotlinx-serialization checks *types*, not values, so `{"pinnedMonth":13}` decoded cleanly
      * into a `WidgetOptions` that no projection can build. The consequences were asymmetric and all
@@ -484,7 +484,7 @@ public object WidgetOptionsJson {
         val repaired = mutableListOf<String>()
 
         // The week start is already total: `withLegacyWeekStart` folds a stored legacy ordinal in
-        // through `WeekStart.fromIndex`, which clamps rather than throwing (WD-05). Nothing to repair.
+        // through `WeekStart.fromIndex`, which clamps rather than throwing. Nothing to repair.
 
         // Two distinct repairs, reported separately because they are two distinct bugs upstream:
         // a month that is not a month, and a pin with only one half. Reporting both as "pin" would
@@ -493,7 +493,7 @@ public object WidgetOptionsJson {
         if (validMonth != pinnedMonth) repaired += "pinnedMonth"
         if ((pinnedYear != null) != (pinnedMonth != null)) repaired += "pin"
 
-        // A half-set pin is not a pin (WD-03), so either half being absent clears the month too and
+        // A half-set pin is not a pin, so either half being absent clears the month too and
         // leaves the options value self-consistent for `equals`.
         val normalisedMonth = if (validMonth == null || pinnedYear == null) null else validMonth
         return DecodeResult(options = copy(pinnedMonth = normalisedMonth), repairedFields = repaired)
@@ -502,11 +502,11 @@ public object WidgetOptionsJson {
     /**
      * Folds a pre-[WidgetOptions.weekStart] `firstDayOfWeekIndex` into [WidgetOptions.weekStart].
      *
-     * The migration lives here rather than as a field on the schema, and that placement is the point
-     * (WD-05). A field would have to be *omitted* on write while still being *read*, and
+     * The migration lives here rather than as a field on the schema, and that placement is the point:
+     * a field would have to be *omitted* on write while still being *read*, and
      * `@EncodeDefault(NEVER)` was measured not to suppress a field whose default is a non-constant
      * expression — so the legacy ordinal would have kept being written back on every save, which is
-     * the exact thing the ticket removes. Keeping it in the codec also means [WidgetOptions] has no
+     * the exact thing being removed. Keeping it in the codec also means [WidgetOptions] has no
      * field that only exists for old blobs.
      *
      * [WidgetOptions.weekStart] wins when both are present, because a release that writes `weekStart`
@@ -667,7 +667,7 @@ public fun todayHijriWidgetData(
     hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
     gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
     // The short Hijri month name is *text* too, so it follows the month-name language rather than
-    // `language` and rather than the device (WG-12). Passed alongside the names it may shorten
+    // `language` and rather than the device. Passed alongside the names it may shorten
     // (English only — Urdu month names are never shortened), so a caller cannot localize the names
     // one way and pick the short base names another.
     monthNameLanguage = options.effectiveMonthNameLanguage,

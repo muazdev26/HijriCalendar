@@ -26,8 +26,7 @@ public object CalendarNames {
      * Transliteration follows the ISO/ALA-LC style (`Rabi' al-awwal`, `Sha'ban`,
      * `Dhu al-Qa'dah`), which is what the published widget API already emitted. The in-app
      * calendar used a different spelling for six of these twelve names; consolidating changed
-     * its output, which is the intended outcome of a single owner — see
-     * `docs/issues/CORE-06-core-purity.md`.
+     * its output, which is the intended outcome of a single owner.
      */
     public val englishHijriMonths: List<String> = listOf(
         "Muharram",

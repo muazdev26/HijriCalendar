@@ -19,12 +19,12 @@ import kotlin.test.assertTrue
 /**
  * The render queue's two load-bearing contracts, both of which were wrong when written:
  *
- *  1. **A coalesced request must not report itself as rendered** (WG-02). `HijriWidgetRefresher`
+ *  1. **A coalesced request must not report itself as rendered**. `HijriWidgetRefresher`
  *     writes the family's "we already show today" marker from that report, so a request that
  *     returned normally having called no Glance API used to mark the day fresh anyway — after which
  *     every background trigger for the rest of the epoch day skipped, logging a line that reads
  *     like correct behaviour.
- *  2. **A coalesced request must never be lost** (WG-13). Its intent is queued rather than rendered
+ *  2. **A coalesced request must never be lost**. Its intent is queued rather than rendered
  *     inline, and the caller that is already draining owes it a render. A design that let a request
  *     land in the gap between "drain found nothing" and "lock released" left it unrendered until
  *     some unrelated future request, which for a navigation tap means the widget shows the
@@ -101,7 +101,7 @@ class HijriWidgetRenderQueueTest {
             assertEquals(
                 HijriWidgetRenderQueue.RenderOutcome.Coalesced,
                 coalesced,
-                "a request that called no Glance API must not claim it rendered (WG-02)",
+                "a request that called no Glance API must not claim it rendered",
             )
             assertEquals(1, passes.get(), "the coalesced request must not have called Glance")
 
@@ -117,7 +117,7 @@ class HijriWidgetRenderQueueTest {
     }
 
     /**
-     * WG-13, stated as the property rather than as a schedule: no matter how a burst of requests
+     * Stated as the property rather than as a schedule: no matter how a burst of requests
      * interleaves with a render in flight, **every** requested instance is eventually rendered and
      * no request is left queued.
      *
@@ -244,7 +244,7 @@ class HijriWidgetRenderQueueTest {
     }
 
     /**
-     * WG-19: a sweep renders **the platform's** placed ids, one `update` each, and never consults
+     * A sweep renders **the platform's** placed ids, one `update` each, and never consults
      * Glance's receiver→providers registry.
      *
      * The registry is written by `GlanceAppWidgetReceiver.onUpdate` calling `super.onUpdate`, and

@@ -27,7 +27,7 @@ import kotlinx.serialization.Serializable
  *   hand on 2026-08-15..2026-09-13 (a 30th was observed; Umm al-Qura gives only 29).
  * - Everything else: Umm al-Qura length (a proxy; Pakistan is usually within +-2 days of Saudi).
  *
- * This is a "base table + manual correction" model (AGENTS.md): months without a known
+ * This is a "base table + manual correction" model: months without a known
  * fix follow [HijrahYearMonth.numberOfDays], and fixes re-sync the chain whenever an
  * official decision is published. Extend [FIXES] to cover more months as data becomes
  * available.

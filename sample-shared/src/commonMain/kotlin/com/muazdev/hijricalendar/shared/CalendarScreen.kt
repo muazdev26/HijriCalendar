@@ -239,7 +239,7 @@ private fun selectedDateSummary(
     val pakistan = state.selectedPakistanDate
     val plain = state.selectedDate
 
-    // Era-appended (FD-05). This card is the one place both calendars' years appear side by side, so it
+    // Era-appended. This card is the one place both calendars' years appear side by side, so it
     // is where the ambiguity of `١٤٤٨` next to `2026` is most worth one extra glyph.
     val hijri = observed?.let {
         "${it.day} ${CalendarNames.englishHijriMonths[it.month - 1]} ${labels.hijriYearWithEra(it.year)}"
@@ -256,7 +256,7 @@ private fun selectedDateSummary(
 
     if (hijri == null || gregorian == null) return null
 
-    // The observance on the selected day (FD-08), appended to whichever date the mode shows. Resolved
+    // The observance on the selected day, appended to whichever date the mode shows. Resolved
     // here rather than in the grid because the grid has no business knowing about events, and this
     // card is the summary of the selection.
     //

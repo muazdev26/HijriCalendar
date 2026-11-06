@@ -18,7 +18,7 @@ import org.junit.Test
  *    size on five widgets that sit side by side on one home screen.
  * 2. **The band costs its ink, not its line box**, so growing the word does not take height from the
  *    body. On the Today strip that distinction is a regeneration of a defect the family already fixed
- *    once: a taller weekday band was what starved the month captions in round 3.
+ *    once: a taller weekday band was what starved the month captions on the Today strip.
  *
  * The placed-cell numbers are computed here from each typography's own `sizesFor`, so a change to any
  * widget's reference sizes moves this test with it.
@@ -62,7 +62,7 @@ class WeekdayBandFitTest {
     }
 
     /**
-     * The rule read backwards: the compact tile is the cell the report is about, so its placed size is
+     * The rule read backwards: the compact tile is the cell this rule is about, so its placed size is
      * pinned in sp.
      *
      * A Pixel 6a grants a 1×1 a 62×88dp content cell, so the tile draws its 62dp square there. Before

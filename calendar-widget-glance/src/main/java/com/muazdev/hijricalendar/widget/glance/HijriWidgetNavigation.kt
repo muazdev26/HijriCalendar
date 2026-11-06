@@ -131,7 +131,7 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
         val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
         // The same resolver the projection and the render cache use, so a tap steps from exactly the
         // month the widget is showing. Reading `pinnedYear`/`pinnedMonth` here independently is what let
-        // a half-set pin step from a stored year paired with today's month (WD-03).
+        // a half-set pin step from a stored year paired with today's month.
         val (baseYear, baseMonth) = resolveGridMonth(options, viewed, todayHijri) ?: run {
             HijriWidgetRefreshLog.d(
                 "nav:step($step)",
@@ -167,7 +167,7 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
 /**
  * Tapping the month title: back to today.
  *
- * Clears the **selection** as well as the viewed month (FD-09). Leaving the selection behind would
+ * Clears the **selection** as well as the viewed month. Leaving the selection behind would
  * leave the footer naming an observance for a day in a month the user has just left — which is not an
  * answer about the month they are now looking at.
  */
@@ -180,7 +180,7 @@ public class HijriWidgetTodayResetCallback : ActionCallback {
 }
 
 /**
- * The callback behind a grid day cell (FD-09).
+ * The callback behind a grid day cell.
  *
  * Records the tapped day and re-renders **that instance** in place — no app launch. Before this, every
  * tappable region on a widget opened the app, which is a launcher shortcut wearing a calendar's
@@ -227,8 +227,8 @@ internal suspend fun selectDay(
     parameters: ActionParameters,
 ) {
     // All three or nothing. A partial tap is not a date, and writing a selection without a year would
-    // store a day that cannot be compared against a month — which is the half-set-pin defect WD-03
-    // exists to prevent, in a new place.
+    // store a day that cannot be compared against a month — which is the half-set-pin defect the
+    // pin pair exists to prevent, in a new place.
     val year = parameters[ACTION_YEAR]
     val month = parameters[ACTION_MONTH]
     val day = parameters[ACTION_DAY]

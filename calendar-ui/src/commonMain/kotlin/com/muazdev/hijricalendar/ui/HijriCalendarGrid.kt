@@ -87,7 +87,7 @@ internal fun HijriCalendarGrid(
     //    user swipe; nothing animates because the pager already went there.
     //  - The state moves somewhere the pager is not  ->  the pager follows the state. It *jumps*
     //    rather than animates, because the header's label has already changed instantly and a
-    //    visible catch-up scroll across intervening months is what this ticket is about.
+    //    visible catch-up scroll across intervening months is what this rule avoids.
     //
     // Neither branch can overwrite the other's authority, and no emission-count heuristic is
     // involved, so restore behaviour no longer depends on how many times Compose happens to emit.
@@ -160,8 +160,8 @@ internal fun HijriCalendarGrid(
             // constructor val baked in at build time, so nothing downstream can notice.
             //
             // The earlier version of this line used an 11-key remember list, maintained by hand
-            // against HijriCalendarState's surface, which silently dropped monthLengths — that was
-            // UI-01. Collapsing the list to one key fixed the *maintenance* half and introduced this
+            // against HijriCalendarState's surface, which silently dropped monthLengths. Collapsing
+            // the list to one key fixed the *maintenance* half and introduced this
             // staleness: a hand-maintained list can be incomplete, but a single key is always
             // wrong. `derivedStateOf` is the primitive that is actually correct here — it caches,
             // and it re-runs when any state it read during the previous run changes. The key stays

@@ -130,7 +130,7 @@ abstract class HijriWidgetSettingsActivity : ComponentActivity() {
             if (id != null) {
                 val previous = HijriWidgetConfig.load(this@HijriWidgetSettingsActivity, id)
                 // Compared as a unit, matching what the widget actually renders: a stored half-pin
-                // is "not pinned" (WD-03), so comparing the two fields independently would report a
+                // is "not pinned", so comparing the two fields independently would report a
                 // change where the rendered month did not move.
                 val pinnedChanged = previous.pinned != options.pinned
                 HijriWidgetConfig.saveWidgetOptions(this@HijriWidgetSettingsActivity, id, options, caller = "settings-apply")

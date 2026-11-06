@@ -15,7 +15,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * FD-09: tapping a day on the widget selects it.
+ * Tapping a day on the widget selects it.
  *
  * Before this, every tappable region on a widget opened the app — a launcher shortcut wearing a
  * calendar's clothes. The widget showed a month of 42 tappable cells and not one did anything a widget
@@ -128,9 +128,9 @@ class WidgetDaySelectionTest {
     /**
      * The footer's name follows the widget's language, not the device's.
      *
-     * WG-12's rule, one layer down: one Urdu widget is designed to sit beside an English one on a
-     * phone with no Urdu locale, and a footer that said "Ashura" under an Urdu grid would be the most
-     * obvious possible failure of that.
+     * The localization rule, one layer down: one Urdu widget is designed to sit beside an English one
+     * on a phone with no Urdu locale, and a footer that said "Ashura" under an Urdu grid would be the
+     * most obvious possible failure of that.
      */
     @Test
     fun theFootersNameFollowsTheWidgetsLanguage() {

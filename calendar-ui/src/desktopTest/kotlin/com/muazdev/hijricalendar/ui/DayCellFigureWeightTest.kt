@@ -33,7 +33,7 @@ import kotlin.test.assertTrue
  *
  * `DayCellStyleTest` pins colours and `PrimaryDateCellOrderTest` pins which date is on top, but neither
  * can see a `fontWeight`: Compose's semantics expose a `Text`'s string, not its style, so a cell that
- * quietly dropped the weight would pass every existing test. The report that asked for this ("if
+ * quietly dropped the weight would pass every existing test. The request that asked for this ("if
  * single date formats are there, the dates should be bold") is therefore pinned the only way a weight
  * can be: by reading the rendered pixels, which is a Skiko/Android API and so lives in `desktopTest`
  * next to `DayCellTodayRingRenderTest`.

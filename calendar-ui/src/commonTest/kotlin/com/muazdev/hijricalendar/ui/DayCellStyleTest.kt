@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
  *
  * Six parallel `when` blocks sat inline in the composable body, so the rules they encoded were
  * invisible to review and to CI. Extracting them into [CalendarDay.cellStyle] is what made them
- * testable; this file is why the extraction was worth doing. See UI-12.
+ * testable; this file is why the extraction was worth doing.
  *
  * The precedence is a *design decision*, so these assert the decision, not just self-consistency:
  * "selected wins" is a choice about what a user should see when a cell is both selected and
@@ -113,7 +113,7 @@ class DayCellStyleTest {
         assertFalse(style.enabled, "but it must not be interactive")
     }
 
-    // ── observance fill (FD-08), and the red weekend figure ──
+    // ── observance fill, and the red weekend figure ──
 
     /**
      * The fill itself, and the reason it exists.

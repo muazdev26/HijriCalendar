@@ -7,7 +7,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetFonts
 /**
  * Demonstrates the widget font hook, end to end.
  *
- * Feedback round 2, point 8: `HijriWidgetFonts` shipped with no caller in the sample, so "the fonts
+ * `HijriWidgetFonts` shipped with no caller in the sample, so "the fonts
  * do nothing" was the only observable behaviour. This is the missing caller.
  *
  * ## The family must already be known to the *system*, and that is not a detail
@@ -27,7 +27,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetFonts
  *   directory, which can only replace a family the system config already names (its entry there
  *   reads `Font is updated from /system/fonts/NotoColorEmoji.ttf`) — it is not a place a third-party
  *   app can add one to. The span therefore resolves to nothing and the widget silently keeps the
- *   default face. `docs/FEEDBACK-TODOS-2.md` records the experiment.
+ *   default face, which is why the switch below has no effect on a family the system does not know.
  * - **A bundled `res/font` cannot help either**, for the same reason stated in
  *   [HijriWidgetFonts]' KDoc: it is an app-private resource the system has never seen.
  *

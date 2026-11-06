@@ -161,7 +161,7 @@ class WidgetOptionsTest {
 
     @Test
     fun anUnreadableFieldDoesNotResetTheOthers() {
-        // WD-06. `ignoreUnknownKeys` covers unknown *keys*; an unknown enum *value* used to throw,
+        // `ignoreUnknownKeys` covers unknown *keys*; an unknown enum *value* used to throw,
         // and `decode` then substituted wholesale DEFAULTS — so one unrecognised language reset the
         // adjustment days, numerals, week start, pin and source too, silently and permanently (a
         // widget is only rewritten on the next save).
@@ -228,7 +228,7 @@ class WidgetOptionsTest {
             localizedHijriMonthNames = null,
             localizedGregorianMonthNames = null,
             localizedWeekdayNames = null,
-            // As above: the era markers are carried by the options overload (FD-05), so the
+            // As above: the era markers are carried by the options overload, so the
             // hand-built expectation has to name them or it is comparing different things.
             hijriEra = WidgetLocalization.ChromeLabels.hijriEra(WidgetLanguage.ENGLISH),
             gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(WidgetLanguage.ENGLISH),
@@ -268,7 +268,7 @@ class WidgetOptionsTest {
             adjustmentDays = 2,
             numeralStyle = NumeralStyle.WESTERN,
             pakistan = true,
-            // The era markers are part of what the options overload carries (FD-05), so the
+            // The era markers are part of what the options overload carries, so the
             // hand-built expectation has to name them too — otherwise this compares an era-marked
             // projection against a bare one and reports a difference that is really a missing
             // argument in the test.

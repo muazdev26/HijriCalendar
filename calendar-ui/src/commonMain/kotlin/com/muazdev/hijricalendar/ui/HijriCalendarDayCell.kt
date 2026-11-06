@@ -87,7 +87,7 @@ public fun HijriCalendarDayCell(
      */
     visible: Boolean = true,
     /**
-     * Whether the surrounding grid is drawing dividers (FD-04), which changes this cell's own shape.
+     * Whether the surrounding grid is drawing dividers, which changes this cell's own shape.
      *
      * A grid cell's background is a circle — the day figure is a round token. With dividers on that
      * is the wrong shape: a round fill floating between straight rules looks like a badge laid on
@@ -116,7 +116,7 @@ public fun HijriCalendarDayCell(
     val clickLabel = remember(day, labels) { labels.dayContentDescription(day) }
     // Only the date the mode actually draws is built. In GREGORIAN_ONLY the Hijri string -- and its
     // Arabic-Indic allocation -- used to be built and thrown away for all 42 cells, every
-    // recomposition. See UI-12.
+    // recomposition.
     val hijriText = if (dateDisplayMode == DateDisplayMode.GREGORIAN_ONLY) {
         ""
     } else {
@@ -138,7 +138,7 @@ public fun HijriCalendarDayCell(
                 } else {
                     // Without this a disabled cell is merely a target with no action, which a screen
                     // reader announces as an unlabelled tappable rather than a disabled one. Found
-                    // by the UI-02 harness: assertIsNotEnabled() on a disabled cell failed.
+                    // by a composable test: assertIsNotEnabled() on a disabled cell failed.
                     // The default dayContentDescription also appends ", disabled", so this was
                     // arriving twice; that string is kept for compatibility and because a custom
                     // label lambda is free to drop it.
@@ -226,7 +226,7 @@ internal data class DayCellStyle(
  * 1. **selected** wins over everything. A selected cell is drawn as selected even when it is also
  *    disabled, outside the month, or an observance, so the user's selection never changes appearance
  *    under them.
- * 2. **disabled**, then **outside the month**, then **observance** (FD-08), then **weekend** — in that
+ * 2. **disabled**, then **outside the month**, then **observance**, then **weekend** — in that
  *    order, for content colour.
  * 3. **observance** also fills the cell, below the selection container and above [dayBackgroundColor].
  * 4. **today** draws a border unless the cell is already selected **or an observance**, because
@@ -241,7 +241,7 @@ internal data class DayCellStyle(
  * relying on its appearance.
  */
 internal fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
-    // An observance **fills** the cell (FD-08). It used to be a 4dp dot above the day figure, which
+    // An observance **fills** the cell. It used to be a 4dp dot above the day figure, which
     // was too small to survive on a busy grid and carried no information beyond "something is here":
     // the header and the summary card already name the observance, so a glance needed the day's
     // *status*, not a second copy of its name.
@@ -385,8 +385,8 @@ private fun CellText(
                 text = primary,
                 color = style.contentColor,
                 // Full size and emphasized, so "which date is primary" survives a glance and not just
-                // a reading of the order — the report asked for the top date to be *bigger and more
-                // bolder* than the one beneath it, not merely first.
+                // a reading of the order — the top date must be *bigger and bolder* than the one
+                // beneath it, not merely first.
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = CellFigureWeight,
                     lineHeight = BothPrimaryLineHeight,
@@ -413,8 +413,8 @@ private fun CellText(
  * stays at `labelSmall`'s own weight. Three literals is how one of the three stops agreeing.
  *
  * `ExtraBold`, not `Bold`: at 14sp in a 48dp cell the difference between the two is a few device
- * pixels of stroke, and `Bold` had been the sub-line's weight in an earlier round — the report that
- * asked for this could not see it. Pinned by `DayCellFigureWeightTest`, which measures the **painted**
+ * pixels of stroke, and `Bold` had been the sub-line's weight before — a difference no reader could
+ * see. Pinned by `DayCellFigureWeightTest`, which measures the **painted**
  * ink rather than reading this constant back, so a dropped `fontWeight` fails there.
  */
 internal val CellFigureWeight: FontWeight = FontWeight.ExtraBold

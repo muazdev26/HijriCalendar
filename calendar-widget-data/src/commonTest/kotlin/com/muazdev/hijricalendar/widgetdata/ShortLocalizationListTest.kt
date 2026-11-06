@@ -7,7 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * WD-04: the projection is defensive almost everywhere and then indexed four caller-supplied
+ * The projection is defensive almost everywhere and then indexed four caller-supplied
  * localization lists without a bound.
  *
  * `buildHijriMonthWidgetData`'s documented failure mode is `null`, never a throw — and its callers
@@ -49,7 +49,7 @@ class ShortLocalizationListTest {
 
     @Test
     fun anElevenEntryGregorianMonthListIsIgnored() {
-        // The one the ticket calls out: `names[month.ordinal]` on 11 entries, outside every `try`.
+        // The one that matters most: `names[month.ordinal]` on 11 entries, outside every `try`.
         val short = english.dropLast(1)
         val data = grid(localizedGregorianMonthNames = short)
         assertEquals(reference.gregorianMonthTitle, data.gregorianMonthTitle)
@@ -72,7 +72,7 @@ class ShortLocalizationListTest {
     @Test
     fun aShortWeekdayListIsIgnored() {
         // 6 entries, not 7. The `?:` at this site used to localize index 0..5 and fall back on
-        // index 6, which is precisely the mixed-script row described in the ticket's "Not covered".
+        // index 6, which is precisely the mixed-script row.
         val data = grid(localizedWeekdayNames = englishWeekdays.dropLast(1))
         assertEquals(englishWeekdays.take(7), data.weekdayHeaders)
         assertTrue(

@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Coverage for [UI-04-accessible-text-scaling](UI-04-accessible-text-scaling.md).
+ * Coverage for the calendar honouring the user's text scale.
  *
  * The calendar used to wrap its whole subtree in `Density(fontScale = 1f)`, so a user who had raised
  * Android's font size to 200% got a calendar at exactly 100%. That is a WCAG 1.4.4 failure, it was

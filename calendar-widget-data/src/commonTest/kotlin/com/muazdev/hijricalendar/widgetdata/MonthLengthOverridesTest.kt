@@ -9,7 +9,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * WD-01: the projection must render against the month-length table its caller names, not a
+ * The projection must render against the month-length table its caller names, not a
  * process-wide mutable it happens to inherit.
  *
  * Before this, none of the four builders forwarded `overrides`, so `toCalendarMonth`,

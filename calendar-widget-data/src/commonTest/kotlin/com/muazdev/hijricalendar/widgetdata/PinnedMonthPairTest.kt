@@ -8,7 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * WD-03: a half-set pin is representable in the stored schema, and the two renderers used to
+ * A half-set pin is representable in the stored schema, and the two renderers used to
  * disagree about what it meant.
  *
  * `pinnedYear` and `pinnedMonth` are two independent nullable `Int`s on the wire, so any JSON

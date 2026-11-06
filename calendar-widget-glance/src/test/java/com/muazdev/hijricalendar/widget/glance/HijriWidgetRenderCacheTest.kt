@@ -14,7 +14,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * WG-04 and WG-11: the render cache's *properties*, which are all load-bearing and none of which
+ * The render cache's *properties*, which are all load-bearing and none of which
  * were true when these tests were written.
  *
  *  - **Bounded.** A key is not the widget id — it also carries the anchor day, the resolved month,
@@ -84,7 +84,7 @@ class HijriWidgetRenderCacheTest {
 
     @Test
     fun theCacheKeyTracksEverythingThatChangesTheOutput() {
-        // The durable form of WG-04's key-completeness point. Each of these changes the projection,
+        // The durable form of the key-completeness rule. Each of these changes the projection,
         // so each must produce a *different* month projection rather than a stale hit.
         val baseline = HijriWidgetRenderCache.render(
             glanceId = "key",
@@ -121,7 +121,7 @@ class HijriWidgetRenderCacheTest {
 
     @Test
     fun theCacheKeyMonthMatchesWhatTheWidgetRenders() {
-        // WG-11's dangerous case: the key is computed from one resolution of the grid month and the
+        // The dangerous case: the key is computed from one resolution of the grid month and the
         // data from another. If they disagree, the cache hands back a correct-looking grid for the
         // wrong month with no error anywhere.
         val cases = listOf(
@@ -159,8 +159,8 @@ class HijriWidgetRenderCacheTest {
 
     @Test
     fun aHalfSetPinDoesNotProduceAKeyedGridOfTheWrongMonth() {
-        // WD-03's symptom, reached through the cache: a stored year with no month used to be paired
-        // with *today's* month, so the key said 1447 and the data was this month's grid.
+        // The half-set-pin symptom, reached through the cache: a stored year with no month used to
+        // be paired with *today's* month, so the key said 1447 and the data was this month's grid.
         val half = options().copy(pinnedYear = 1447, pinnedMonth = null)
         val rendered = HijriWidgetRenderCache.render(
             glanceId = "half-pin",

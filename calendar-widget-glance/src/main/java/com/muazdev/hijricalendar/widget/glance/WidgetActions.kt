@@ -5,7 +5,7 @@ import androidx.glance.action.Action
 /**
  * The four actions a rendered widget can respond to, grouped.
  *
- * Grouping them is not cosmetic (WG-12). `HijriWidgetRoot` took them as four separate nullable
+ * Grouping them is not cosmetic. `HijriWidgetRoot` took them as four separate nullable
  * parameters and was already over detekt's threshold; threading a fifth value through (the widget's
  * language, for the chrome's accessibility labels) pushed it further. It also makes the
  * non-interactive case *explicit*: every preview constructs this with all four `null`, and
@@ -17,7 +17,7 @@ internal data class WidgetActions(
      * Tapping the widget's body **outside a day cell** opens the app (the deep link in
      * [HIJRI_DEEP_LINK_TODAY]).
      *
-     * FD-09 gave each day cell its own action, so this is no longer "tapping anywhere" — the cells
+     * Each day cell now has its own action, so this is no longer "tapping anywhere" — the cells
      * shadow it, and the header, the arrows, the weekday row and the padding still reach it. That is
      * deliberate: a widget that can no longer launch its own app is a regression for anyone using it
      * as a shortcut, and Glance has no long-press, so the background is where "open the app" has to

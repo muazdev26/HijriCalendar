@@ -10,7 +10,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 public class HijriTodayWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HijriTodayWidget()
 
-    // Placement hooks (WG-18): arm the shared midnight alarm/backstop on the first instance, and
+    // Placement hooks: arm the shared midnight alarm/backstop on the first instance, and
     // reconcile on removal so the alarm does not outlive the last widget of the family.
     override fun onEnabled(context: Context) {
         super.onEnabled(context)

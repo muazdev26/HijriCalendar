@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * WG-16: `resolveLayoutRtl` — the widget's reading direction as a function of its own language and
+ * `resolveLayoutRtl` — the widget's reading direction as a function of its own language and
  * the device's.
  *
  * This is the whole truth table rather than a couple of rows, because the two mixed rows are the

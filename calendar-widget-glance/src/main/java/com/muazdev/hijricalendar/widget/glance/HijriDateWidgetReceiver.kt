@@ -9,7 +9,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 public class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HijriDateWidget()
 
-    // Placement hooks (WG-18): see HijriCalendarWidgetReceiver for why these exist and why removal
+    // Placement hooks: see HijriCalendarWidgetReceiver for why these exist and why removal
     // reconciles rather than cancels the shared alarm.
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
@@ -42,7 +42,7 @@ public class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
  * Pairs [HijriDualDateWidget] with the app widget host.
  *
  * Its own receiver rather than a parameter of an existing one because the picker discovers a widget
- * per `APPWIDGET_UPDATE` receiver carrying the provider meta-data (WG-10) — one receiver means one
+ * per `APPWIDGET_UPDATE` receiver carrying the provider meta-data — one receiver means one
  * entry in the picker, and one info XML to override.
  *
  * The foreground gate is the same as the rest of the family, and for the same reason: a host update
@@ -52,7 +52,7 @@ public class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
 public class HijriDualDateWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = HijriDualDateWidget()
 
-    // Placement hooks (WG-18): arm the shared midnight alarm/backstop on the first instance, and
+    // Placement hooks: arm the shared midnight alarm/backstop on the first instance, and
     // reconcile on removal so the alarm does not outlive the last widget of the family.
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
@@ -83,7 +83,7 @@ public class HijriDualDateWidgetReceiver : GlanceAppWidgetReceiver() {
 public class GregorianDateWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = GregorianDateWidget()
 
-    // Placement hooks (WG-18): see HijriCalendarWidgetReceiver.
+    // Placement hooks: see HijriCalendarWidgetReceiver.
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         HijriWidgetRefreshScheduler.reconcile(context)

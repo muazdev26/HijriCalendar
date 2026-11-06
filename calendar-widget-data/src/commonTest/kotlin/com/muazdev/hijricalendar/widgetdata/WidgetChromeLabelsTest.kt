@@ -5,7 +5,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
- * WG-12: the widget's chrome labels are a function of the *widget's* `WidgetOptions.language`, never
+ * The widget's chrome labels are a function of the *widget's* `WidgetOptions.language`, never
  * of the device locale.
  *
  * These live in `calendar-widget-data` rather than in the Android module because iOS needs them too:

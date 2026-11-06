@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonNames
  *
  * The widget family already *follows the system* light/dark setting for free: its colours are
  * `@ColorRes` `ColorProvider`s, so the launcher re-resolves them against its own configuration at
- * bind time (FD-07). This option exists for the one case that mechanism cannot express — a host app
+ * bind time. This option exists for the one case that mechanism cannot express — a host app
  * whose **own** theme setting disagrees with the system, or pins one regardless of it. A host that
  * stores "System / Light / Dark" and mirrors it here makes the widget match the app rather than the
  * phone.

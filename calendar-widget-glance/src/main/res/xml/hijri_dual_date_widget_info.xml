@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FD-10: the dual-date 1x1 tile.
+<!-- The dual-date 1x1 tile.
 
      Byte-for-byte the two existing tiles' info except for its own description and preview resources.
      The 40dp minimum is load-bearing and deliberately NOT raised: on launchers before Android 12 the

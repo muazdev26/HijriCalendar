@@ -7,9 +7,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * WG-18: the daily backstop and the exact midnight alarm exist **only while a widget is placed**.
+ * The daily backstop and the exact midnight alarm exist **only while a widget is placed**.
  *
- * The report this pins down is user-visible rather than subtle: install the library (or the sample
+ * The failure this pins down is user-visible rather than subtle: install the library (or the sample
  * app), never add a widget, and Android still showed a pending alarm — the status-bar next-alarm
  * indicator and an entry under Settings > Alarms & reminders — because `schedule()` armed on every
  * `Application.onCreate` without asking whether anything was on a home screen.

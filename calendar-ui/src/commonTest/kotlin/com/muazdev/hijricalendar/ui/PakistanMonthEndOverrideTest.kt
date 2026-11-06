@@ -144,7 +144,7 @@ class PakistanMonthEndOverrideTest {
 
         setContent { host(state)() }
 
-        // A scoped table that disagrees with the process global is the case AGENTS.md warns about;
+        // A scoped table that disagrees with the process global is the case that matters;
         // rendering it correctly is what proves the builder reads *this* table.
         assertEquals(
             (1..30).toList(),

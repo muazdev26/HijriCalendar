@@ -22,12 +22,12 @@ import androidx.glance.text.TextStyle
  * the top while [HijriDateWidget], [GregorianDateWidget] and [HijriTodayWidget] drew the same weekday
  * as bare text. Four widgets rendering the same line two different ways is the kind of divergence the
  * family is arranged to prevent, so the band is one composable and every weekday goes through it —
- * the same reasoning as [CaptionBand] holding the tiles' month line (FD-11).
+ * the same reasoning as [CaptionBand] holding the tiles' month line.
  *
  * ## `widget_accent` on `widget_on_today`, not a colour of its own
  *
  * Reusing the family accent is what makes the band re-resolve for night mode and a forced theme, the
- * same argument [WidgetColors] makes for every token (FD-07). Giving it a blue because the reference
+ * same argument [WidgetColors] makes for every token. Giving it a blue because the reference
  * design's header is blue would produce the one colour in the family that does not re-resolve.
  *
  * ## Why the band's height is its ink, not its line box

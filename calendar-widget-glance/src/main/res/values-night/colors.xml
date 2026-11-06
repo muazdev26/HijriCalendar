@@ -9,28 +9,28 @@
     <color name="widget_weekend_text">#F2B8B5</color>
 
     <!--
-        The three dimmed day figures, night variants (FD-07). `widget_text_primary` (#E6E1E5)
+        The three dimmed day figures, night variants. `widget_text_primary` (#E6E1E5)
         composited over `widget_background` (#1C1B1F) at 38%, 60% and 24% respectively.
 
-        These existed only in the default folder before FD-07, which meant a dimmed day figure was the
-        one thing on the widget whose colour could not follow a night-mode switch.
+        These existed only in the default folder before they became resources, which meant a dimmed day
+        figure was the one thing on the widget whose colour could not follow a night-mode switch.
     -->
     <color name="widget_day_out_of_month">#69666A</color>
     <color name="widget_day_gregorian_sub">#959296</color>
     <color name="widget_day_out_faint">#4C4A4E</color>
     <color name="widget_arrow_dimmed">#55524E</color>
-    <!-- The cell divider (FD-04), night variant: `widget_accent` (#81C784) at 40% over the dark
+    <!-- The cell divider, night variant: `widget_accent` (#81C784) at 40% over the dark
          surface. See `values/colors.xml` for why it is the accent and not a grey hairline. -->
     <color name="widget_cell_border">#6681C784</color>
-    <!-- The weekday header's column rule (round 3), night variant: `widget_on_today` (#1C1B1F) at 40%
+    <!-- The weekday header's column rule, night variant: `widget_on_today` (#1C1B1F) at 40%
          over the band, the accent's own content colour faded. See `values/colors.xml` for why it is
          not `widget_cell_border`. -->
     <color name="widget_band_divider">#661C1B1F</color>
-    <!-- The fill of the tapped day (FD-09, redesigned), night variant: a full accent block, not the
+    <!-- The fill of the tapped day, night variant: a full accent block, not the
          corner ring this used to draw. See `values/colors.xml`. -->
     <color name="widget_selected_day">#81C784</color>
     <!--
-        The observance fill (FD-08), night variant. `widget_accent` (#81C784) at 18% over
+        The observance fill, night variant. `widget_accent` (#81C784) at 18% over
         `widget_background` (#1C1B1F), the same relationship the day variant records — a wash that
         reads as background information and not as a second accent fill.
     -->

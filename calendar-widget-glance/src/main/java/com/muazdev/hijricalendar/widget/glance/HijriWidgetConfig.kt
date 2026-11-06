@@ -65,7 +65,7 @@ public object HijriWidgetConfig {
     internal val VIEWED_KEY = stringPreferencesKey(KEY_VIEWED)
 
     /**
-     * The day the user tapped on the grid (FD-09). `internal` for the same reason as [VIEWED_KEY]:
+     * The day the user tapped on the grid. `internal` for the same reason as [VIEWED_KEY]:
      * the encoding is JSON, and `org.json` is a stubbed `android.jar` class in local unit tests, so an
      * unencodable store is only verifiable off-device.
      */
@@ -174,7 +174,7 @@ public object HijriWidgetConfig {
      * rotation/process death like the library's own screens did.
      *
      * Stores the options as one [WidgetOptionsJson] string rather than a positional list, and that
-     * is the whole design (WG-06). The previous version wrote enums as **ordinals** into a
+     * is the whole design. The previous version wrote enums as **ordinals** into a
      * `listSaver`, then read them back with an unchecked `entries[ordinal]`. Two problems, one of
      * them a crash:
      *
@@ -188,7 +188,7 @@ public object HijriWidgetConfig {
      *    be stored by name; it is the module's own storage format and the one every other native
      *    renderer writes. Delegating to it also removes the failure mode where the saver and the
      *    JSON store disagree about the field set — this saver used to have its own copy, and
-     *    `WidgetOptions.monthLengthOverrides` had to be added to *both* (WG-01).
+     *    `WidgetOptions.monthLengthOverrides` had to be added to *both*.
      *
      * **One-time cost:** saved state in a live Bundle across an in-place app update was written in
      * the old positional format and will not decode, so in-progress settings edits are lost once.
@@ -449,7 +449,7 @@ public object HijriWidgetConfig {
         // shared decoder, then the legacy one" was the original design and it was wrong twice over:
         // the shared decoder's failure used to send a *modern* blob into the legacy reader, which
         // read every field as "not an integer" and returned all-defaults — a silent, permanent
-        // revert (WG-09). And once the shared decoder learned `coerceInputValues` (WD-06), it
+        // revert. And once the shared decoder learned `coerceInputValues`, it
         // started *succeeding* on a legacy blob instead, coercing each integer enum to a default —
         // quietly wrong values instead of a clean fall-through. Neither is reachable once the format
         // is decided up front.
@@ -468,7 +468,7 @@ public object HijriWidgetConfig {
             if (decoded != null && decoded.wasRepaired) {
                 // An impossible stored value — a month of 13, a half-set pin — used to decode
                 // cleanly and then render as a compact today card in a grid-sized frame, with no
-                // error anywhere (WD-09). The repair is the evidence, so it gets logged.
+                // error anywhere. The repair is the evidence, so it gets logged.
                 HijriWidgetRefreshLog.e(
                     "config",
                     "repaired impossible stored option(s): ${decoded.repairedFields.joinToString()}",
@@ -493,11 +493,11 @@ public object HijriWidgetConfig {
      * `{"language":"PERSIAN","adjustmentDays":-2}`. The shared decoder failed on the unknown enum
      * name, the then-unfenced fallback read `"PERSIAN"` as "not an integer" so every field fell back,
      * and the widget silently reverted to Urdu defaults, Western numerals and Umm al-Qura — no log,
-     * no error, no way for a user to tell (WG-09).
+     * no error, no way for a user to tell.
      *
      * Retire this once no installed build predates the named format: the shape test is then the only
      * thing still routing blobs here, and deleting the reader is a strict improvement rather than a
-     * migration risk. AGENTS.md records the same lifecycle for the iOS `migrateLegacySwiftFormat`.
+     * migration risk. The iOS `migrateLegacySwiftFormat` has the same lifecycle.
      */
     private fun decodeLegacyOrdinalJson(json: JsonObject): WidgetOptions? {
         val language = json.intOrNull("language")?.let { WidgetLanguage.entries.getOrNull(it) }
@@ -510,7 +510,7 @@ public object HijriWidgetConfig {
             numeralStyle = json.intOrNull("numeralStyle")?.let { NumeralStyle.entries.getOrNull(it) }
                 ?: numeralDefault,
             // This whole reader handles the ordinal format, so its weekday field is an index too;
-            // mapped into the name-backed enum the current schema uses (WD-05).
+            // mapped into the name-backed enum the current schema uses.
             weekStart = WeekStart.fromIndex(
                 (json.intOrNull("firstDayOfWeekIndex") ?: DEFAULTS.firstDayOfWeekIndexValue)
                     .coerceIn(0, 6),
@@ -603,7 +603,7 @@ public object HijriWidgetConfig {
 
     // ── Runtime markers (global SharedPreferences, not per-widget view state) ─
     //
-    // All `internal` (WG-05). These are the switches that decide whether the widget updates, and a
+    // All `internal`. These are the switches that decide whether the widget updates, and a
     // consumer has no legitimate reason to write them: `markUpdatedNow(today)` from outside
     // suppresses every non-bypassing refresh for the rest of the day, permanently, with a log line
     // reading "already refreshed". Every call site is in this module. They were public only because

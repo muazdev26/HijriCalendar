@@ -141,7 +141,7 @@ internal class HijriTodayWidgetPreview(
             PakistanWarmUp.ensureWarm()
         }
         val colors = WidgetColors.forTheme(options.theme)
-        // The stable preview id, never `id.toString()` (WG-04b): `compose()` mints a fresh random
+        // The stable preview id, never `id.toString()`: `compose()` mints a fresh random
         // fake app-widget id per call, so keying on it inserted an entry no future read could ever
         // hit — the settings screen grew the cache without bound and got nothing for the cost.
         val data = HijriWidgetRenderCache.today(

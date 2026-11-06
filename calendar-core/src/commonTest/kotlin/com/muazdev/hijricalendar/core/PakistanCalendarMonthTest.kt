@@ -43,7 +43,7 @@ class PakistanCalendarMonthTest {
             val days = grid(1448, month).days
             assertEquals(42, days.size)
             val dates = days.mapNotNull { it.pakistanDate }
-            // The pre-fix anchor day (today at the time of the report) must not resurface
+            // The pre-fix anchor day must not resurface
             // inside later months' grids.
             assertTrue(dates.none { it == oldAnchorDate }, "1448-03-30 leaked into grid 1448-$month")
             // The grid is a 42-day run of consecutive Pakistani dates: no duplicates, no gaps.

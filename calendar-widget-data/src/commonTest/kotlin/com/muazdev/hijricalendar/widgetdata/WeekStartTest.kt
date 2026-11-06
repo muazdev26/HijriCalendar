@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * WD-05: the first day of week was persisted as a bare ordinal into [WeekDay] — another module's
+ * The first day of week was persisted as a bare ordinal into [WeekDay] — another module's
  * enum, in a published ABI — while every other enum in the shared schema was stored by name.
  *
  * `WeekDay`'s own KDoc says its declaration order is persisted and that inserting an entry would
@@ -20,8 +20,8 @@ class WeekStartTest {
 
     /**
      * The mapping the derived index accessor depends on. If this fails, every stored widget that
-     * still carries the legacy field changes meaning — which is precisely what this ticket exists to
-     * make impossible going forward, and what makes the legacy read worth keeping correct.
+     * still carries the legacy field changes meaning — which is precisely what the name-backed field
+     * exists to make impossible going forward, and what makes the legacy read worth keeping correct.
      */
     @Test
     fun weekStartOrderMatchesWeekDayOrder() {

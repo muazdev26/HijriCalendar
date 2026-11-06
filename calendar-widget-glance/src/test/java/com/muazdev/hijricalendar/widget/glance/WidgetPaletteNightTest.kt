@@ -8,14 +8,14 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * FD-07: every colour the widget paints must exist in **both** `values/` and `values-night/`, and the
+ * Every colour the widget paints must exist in **both** `values/` and `values-night/`, and the
  * two must differ.
  *
  * That is the whole fix, and it is worth being precise about the mechanism. The palette used to resolve
  * `context.getColor(R.color.x)` at compose time and hand Glance a literal int. A number carries no idea
  * of where it came from, so the launcher could not re-resolve it, and a night-mode switch had to
  * invalidate the whole `RemoteViews` and rebuild it — the widget went blank while the new one was
- * composed. That is the "restart" the report describes.
+ * composed. That is the "restart" users see.
  *
  * The palette is now built from `@ColorRes` ids, so what Glance serialises is a resource reference and
  * the launcher resolves it against **its own** configuration at bind time. A theme switch re-resolves
@@ -61,23 +61,23 @@ class WidgetPaletteNightTest {
         "widget_text_secondary",
         "widget_weekend_text",
         "widget_on_today",
-        // FD-07: the dimmed day figures. Real resources now, precisely because a ColorProvider cannot
+        // The dimmed day figures. Real resources now, precisely because a ColorProvider cannot
         // carry an alpha.
         "widget_day_out_of_month",
         "widget_day_gregorian_sub",
         "widget_day_out_faint",
-        // The cell divider (FD-04) and the selected-day fill (FD-09). `widget_today_background` is not
+        // The cell divider and the selected-day fill. `widget_today_background` is not
         // listed: today is the *default selection*, and the Glance render fills today's cell with
         // `widget_selected_day` like any other chosen day, so nothing in the composition reads the
         // old token — only the static preview drawable and the pre-Android-12 vector do, which is why
         // the colour resource survives.
         "widget_cell_border",
-        // The weekday header's column rule (round 3). A member of its own rather than a second use of
+        // The weekday header's column rule. A member of its own rather than a second use of
         // `widget_cell_border`, because that colour *is* the accent at 40% and would composite to the
         // band's own value on the accent band it would be drawn on.
         "widget_band_divider",
         "widget_selected_day",
-        // The observance fill (FD-08): two resources, because a ColorProvider cannot carry an alpha
+        // The observance fill: two resources, because a ColorProvider cannot carry an alpha
         // and the content colour has to change with its own container.
         "widget_event_day_background",
         "widget_on_event_day",
@@ -169,7 +169,7 @@ class WidgetPaletteNightTest {
         val hasFactory = WidgetColors::class.java.declaredMethods.any { it.name == "from" }
         assertTrue(
             "WidgetColors must not offer a Context-taking factory; resolving the colours too early is " +
-                "what FD-07 removed",
+                "what the move to resources removed",
             !hasFactory,
         )
         assertTrue(

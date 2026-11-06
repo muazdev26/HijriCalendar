@@ -16,7 +16,7 @@ import java.time.LocalDate
 import kotlin.test.assertNotNull
 
 /**
- * FD-08: the grid footer names an observance **without a tap**.
+ * The grid footer names an observance **without a tap**.
  *
  * The footer used to be laid out only once a day was selected, on the reasoning that a permanently
  * reserved strip is a cost paid for a feature most taps never use. That was the wrong trade once the
@@ -155,7 +155,7 @@ class WidgetEventFooterTest {
      *
      * The placeholder belongs at the call site, not here: `MonthGrid` renders
      * `WidgetLocalization.ChromeLabels.noEvent(language)` for a `null`, so the *footer* is never empty
-     * (FD-08 reserves the line for every month so the layout does not move under a finger, and an empty
+     * (the line is reserved for every month so the layout does not move under a finger, and an empty
      * line reads as a footer that failed to load), while this function stays a pure lookup. Asserting
      * `null` here and the label there keeps the one fact in one place.
      */
@@ -255,9 +255,10 @@ class WidgetEventFooterTest {
     /**
      * The name follows the **widget's** language, not the device's.
      *
-     * WG-12's rule at the footer, asserted separately from the selection path because the fallback is a
-     * second call site: one Urdu widget is designed to sit beside an English one on a phone with no Urdu
-     * locale, and an English footer under an Urdu grid is the most obvious possible failure of that.
+     * The localization rule at the footer, asserted separately from the selection path because the
+     * fallback is a second call site: one Urdu widget is designed to sit beside an English one on a
+     * phone with no Urdu locale, and an English footer under an Urdu grid is the most obvious possible
+     * failure of that.
      */
     @Test
     fun theNameFollowsTheWidgetsLanguage() {

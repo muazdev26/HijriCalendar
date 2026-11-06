@@ -2,7 +2,7 @@
 <!-- The sample's override of the compact dual-date tile's provider info: identical to the library's
      apart from `android:configure` and `widgetFeatures`, which route long-press to this app's own
      settings screen. Resource merging resolves the library manifest's @xml reference to this file, so
-     the sample declares no <receiver> of its own — the library is the single declaration site (WG-10).
+     the sample declares no <receiver> of its own — the library is the single declaration site.
 
      `resizeMode="none"` is kept from the library's info: this tile is a fixed at-a-glance glance with
      two figures side by side, and a resize would turn it into a second, worse copy of the dual tile.

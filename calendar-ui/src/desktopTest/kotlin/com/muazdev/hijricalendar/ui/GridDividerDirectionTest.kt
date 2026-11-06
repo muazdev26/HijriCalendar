@@ -137,7 +137,7 @@ class GridDividerDirectionTest {
     }
 
     /**
-     * The failing case from the report. With a Saturday-first week the last column is Friday, so the
+     * The failing case. With a Saturday-first week the last column is Friday, so the
      * missing rule lands between Thursday and Friday — the two leftmost cells on an RTL device.
      */
     @Test

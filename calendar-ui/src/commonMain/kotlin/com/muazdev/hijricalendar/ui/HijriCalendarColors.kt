@@ -41,7 +41,7 @@ public data class HijriCalendarColors(
     /** Content of a day in [HijriCalendarState.weekendDays]. Presentational only. */
     val weekendDayContentColor: Color,
     /**
-     * The hairline drawn between cells when [HijriCalendarState.showCellBorders] is on (FD-04).
+     * The hairline drawn between cells when [HijriCalendarState.showCellBorders] is on.
      *
      * A field on this type rather than the widget's `widget_cell_border` resource: `calendar-ui` has no
      * `res/` and no `WidgetColors`, and everything visible here comes from `MaterialTheme` through
@@ -85,7 +85,7 @@ public data class HijriCalendarColors(
     val gregorianHeaderColor: Color,
 
     /**
-     * Filled background of a day carrying an observance (FD-08).
+     * Filled background of a day carrying an observance.
      *
      * A **container, not the selection container**. The two answers are different — "this day is
      * Ashura" is a fact about the calendar, "this is the day you picked" is a fact about the session —

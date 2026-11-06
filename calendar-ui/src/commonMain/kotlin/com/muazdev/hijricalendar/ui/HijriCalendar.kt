@@ -145,7 +145,7 @@ public fun HijriCalendar(
     // padded neighbouring-month cell is excluded by `isCurrentMonth`.
     //
     // A `derivedStateOf` keyed on `state`, not a `remember` key list. The list would be a
-    // hand-maintained copy of HijriCalendarState's surface — the failure mode UI-01 described — and
+    // hand-maintained copy of HijriCalendarState's surface, and
     // this way any snapshot read inside `calendarMonth` re-derives the cells. Reading it here is also
     // what subscribes this scope to the state's month, which is why the old `monthSubscription`
     // no-op is gone: the header's own remember keys do not cover an override-table change, and

@@ -11,9 +11,10 @@ import kotlinx.serialization.json.JsonNames
  * ## Why an enum of patterns rather than a set of weekdays
  *
  * The obvious schema for this is `weekendDays: Set<WeekDay>`, and it must not be used. That is the
- * WD-05 hazard the wire format was introduced to remove, arriving again: [WeekDay] is **another
- * module's** enum whose own KDoc warns that its declaration order is persisted. A stored set of
- * ordinals would silently reinterpret itself the day someone inserted a `WeekDay` entry — no compile
+ * ordinal-in-the-wire hazard the schema was introduced to remove, arriving again: [WeekDay] is
+ * **another module's** enum whose own KDoc warns that its declaration order is persisted. A stored
+ * set of ordinals would silently reinterpret itself the day someone inserted a `WeekDay` entry — no
+ * compile
  * error, no test failure, no log line, just a home screen showing the wrong days red.
  *
  * A name-backed enum owned by this module cannot have that problem: reordering *these* entries
@@ -27,7 +28,7 @@ import kotlinx.serialization.json.JsonNames
  * Every entry below corresponds to a convention with a real audience:
  *
  * - [FRIDAY_SATURDAY] — Pakistan and the Gulf. Also the library's historical behaviour, and the
- *   reason the report this came from read as a bug: it looks like "two red days" next to a Google
+ *   reason the complaint read as a bug: it looks like "two red days" next to a Google
  *   Calendar that shows only Sunday. It was never wrong for the audience it was written for.
  * - [FRIDAY_SUNDAY] — the two weekly holidays many users in the Gulf, Pakistan and South Asia
  *   actually take: Friday for prayer and Sunday to match the Gregorian working week. Reported as

@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 
 /**
- * WG-07's guarantee, and the one thing in the module that had to survive a failure at midnight: the
- * next alarm must exist regardless of what the rollover render does.
+ * The receiver's guarantee, and the one thing in the module that had to survive a failure at
+ * midnight: the next alarm must exist regardless of what the rollover render does.
  *
  * The re-arm used to be the *second statement* rather than a `finally`, so a single `DataStore` I/O
  * failure at 00:00 left the alarm permanently unarmed. Recovery was then the daily

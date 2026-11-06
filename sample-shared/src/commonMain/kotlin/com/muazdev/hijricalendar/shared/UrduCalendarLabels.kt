@@ -25,7 +25,7 @@ private const val URDU_GREGORIAN_ERA = "\u0621"
  * produces a new object on every recomposition and discards all three caches. This is a `val`, so it
  * is a single instance for the process.
  *
- * The era markers are the reason this bundle exists rather than plain defaults (FD-05): `AH` and `AD`
+ * The era markers are the reason this bundle exists rather than plain defaults: `AH` and `AD`
  * are Latin, and an Urdu calendar that renders its year with an English suffix is answering in the
  * wrong script. The **library's** defaults stay empty — see `HijriCalendarLabels.hijriEra` — because
  * that type is published API and a default that changed output would silently restyle every existing
@@ -51,7 +51,7 @@ val UrduCalendarLabels = HijriCalendarLabels(
     eventName = { event -> event.name(HijriEventLanguage.URDU) },
     eventBanner = { event, _ -> event.name(HijriEventLanguage.URDU) },
     // The month's whole observance set, joined with the Urdu comma (U+060C). The day is no longer
-    // spelled out ("دن 10"): the report asked for the events alone, without the day attached, because
+    // spelled out ("دن 10"): the banner names the events alone, without the day attached, because
     // the filled cells already say when. The separator is Urdu punctuation rather than the English
     // middle dot, and the names stay in Urdu.
     monthEventBanner = { events ->

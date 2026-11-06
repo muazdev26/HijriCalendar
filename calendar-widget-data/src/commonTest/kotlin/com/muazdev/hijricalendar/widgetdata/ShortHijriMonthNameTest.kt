@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 /**
  * `TodayHijriWidgetData.hijriMonthShortName` — the month name a 1x1 tile prints where a full one
- * would clip (FD-10).
+ * would clip its cell.
  *
  * The rule is small and deliberately **asymmetric by language**:
  *
@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
  * 2. **Urdu never shortens.** For a non-English month-name language the value *is* the full month
  *    name: `ربیع الاول` in full, never `ربیع ١` — the same rule `gregorianMonthShortName`
  *    follows, and the host's decision restated in the field's own KDoc.
- * 3. **The projection decides, not the renderer** (WG-12): the month-name language is a
+ * 3. **The projection decides, not the renderer**: the month-name language is a
  *    `WidgetOptions` field, so iOS reads the same string with no Swift edit and no renderer can
  *    pick a language on its own.
  *
@@ -259,8 +259,8 @@ class ShortHijriMonthNameTest {
      *
      * They are separate options, and a widget is explicitly allowed to pair Urdu weekday names and
      * digits with English month names. Reading `language` here would put the Urdu full name
-     * `ربیع الثانی` in the caption of a widget that asked for English months — the same defect FD-05
-     * fixed for era markers, where using `language` produced "April - May 2026 ء".
+     * `ربیع الثانی` in the caption of a widget that asked for English months — the same defect the
+     * era markers had, where using `language` produced "April - May 2026 ء".
      */
     @Test
     fun theShortFormFollowsTheMonthNameLanguageNotTheWidgetsLanguage() {
@@ -288,7 +288,7 @@ class ShortHijriMonthNameTest {
      * A caption reading just `٢` is a number with nothing saying which month it belongs to, which
      * is worse than an empty caption: it looks populated. Reached through the public seam with a
      * full-length list of blank names — the projection discards lists that are *shorter* than
-     * twelve (WD-04), so a `null` or truncated list falls back to the built-in names, but an
+     * twelve, so a `null` or truncated list falls back to the built-in names, but an
      * all-blank one of full length passes through.
      */
     @Test
@@ -379,7 +379,7 @@ class ShortHijriMonthNameTest {
      * This is *why* the choice of ordinal lives in the projection rather than here: the projection
      * picks Roman for English and hands Urdu nothing at all (Urdu month names are never shortened),
      * while this function's whole contract is base + caller's ordinal. A primitive that started
-     * formatting its own digits would silently re-import the device's locale question (WG-12) and
+     * formatting its own digits would silently re-import the device's locale question and
      * undo the asymmetry the tests above pin.
      */
     @Test

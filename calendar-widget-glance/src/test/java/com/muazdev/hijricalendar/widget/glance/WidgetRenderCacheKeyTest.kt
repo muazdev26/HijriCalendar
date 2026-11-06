@@ -19,8 +19,8 @@ import org.junit.Test
  *
  * ## The defect this exists to prevent
  *
- * `MonthKey` omitted `weekendPattern` for one commit, after the weekend set had been made an option
- * (FD-03). The result was a widget that **reported** a new setting and **rendered** the old one: the
+ * `MonthKey` omitted `weekendPattern`, after the weekend set had been made an option. The result
+ * was a widget that **reported** a new setting and **rendered** the old one: the
  * render after the change found a cached `HijriMonthWidgetData` built with the previous weekend set,
  * so the shaded columns did not move. Nothing threw, nothing logged, and no test failed — the setting
  * simply appeared not to work, which is the hardest kind of bug to trace back to a cache key.
@@ -54,7 +54,7 @@ class WidgetRenderCacheKeyTest {
 
     /**
      * Options that change what a projected cell contains, paired with a copy differing in only that
-     * one.
+     * field.
      *
      * `pinnedYear`/`pinnedMonth` are absent because they do not change the *cells* — they change
      * which month is projected, and the month is in the key separately.

@@ -23,14 +23,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The assertions [UI-02-compose-test-harness](UI-02-compose-test-harness.md) says the module was
- * missing: **pairs of values that must agree**, not each value checked in isolation.
+ * The assertions this module was missing: **pairs of values that must agree**, not each value
+ * checked in isolation.
  *
  * Every pre-existing test asserted one thing at a time. The device test in the sample app is the
  * clearest example — it checks the grid with `assertCountEquals(42)`, checks the header range
  * separately, and never compares a cell's date against the header. That missing comparison is
- * precisely what [UI-01-scoped-overrides-ignored](UI-01-scoped-overrides-ignored.md) would have
- * been caught by, so these tests exist to make that class of bug fail loudly.
+ * precisely what a scoped-override mismatch consists of, so these tests exist to make that kind of
+ * bug fail loudly.
  *
  * ## How the cells are read
  *
@@ -185,7 +185,8 @@ class HijriCalendarRenderAgreementTest {
         }
 
     /**
-     * The assertion that would have caught UI-01. A scoped table moves the month's last day, so the
+     * The assertion that catches a scoped-override mismatch. A scoped table moves the month's last
+     * day, so the
      * header must move with it *and* the painted cells must agree with both. Deriving the expected
      * text from the painted cells (not the resolver) is what makes this capable of failing.
      */
@@ -263,9 +264,9 @@ class HijriCalendarRenderAgreementTest {
 
         // The day cells are still identifiable; this asserts the *mode* did not break the grid.
         //
-        // Not 42: FD-02 made the painted cell count a function of the month, since the default is
-        // now to hide the neighbours' days. The count is derived from the month rather than pinned,
-        // so this stays a statement about the *mode*.
+        // Not 42: `showAdjacentDays` made the painted cell count a function of the month, since the
+        // default is now to hide the neighbours' days. The count is derived from the month rather than
+        // pinned, so this stays a statement about the *mode*.
         assertTrue(
             cellDates().size in 29..30,
             "GREGORIAN_ONLY should paint this month's own 29 or 30 days; got ${cellDates().size}",

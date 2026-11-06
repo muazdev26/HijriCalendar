@@ -56,9 +56,9 @@ import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
  * The class it caught: `calendar-widget-glance` declared `androidx.compose.ui` as
  * `implementation`, which publishes at *runtime* scope, while four `public` composables took
  * `Modifier` and `DpSize`. A consumer adding the dependency and calling the documented integration
- * path got `cannot access class 'androidx.compose.ui.Modifier'`. Nothing in the repository could
- * see it — the sample app has its own Compose dependencies, so its classpath was complete and CI
- * was green. See docs/widgets/glance/WG-01-compose-runtime-scope.md.
+ * path got `cannot access class 'androidx.compose.ui.Modifier'`. Nothing in the repository could see
+ * it — the sample app has its own Compose dependencies, so its classpath was complete and CI was
+ * green.
  *
  * **Adding to this file is the point.** When a public API gains a parameter or return type from a
  * new dependency, add a line that names it here. If the library declares that dependency
@@ -68,7 +68,7 @@ import com.muazdev.hijricalendar.widgetdata.todayHijriWidgetData
 private object ConsumerResolutionCheck {
 
     /**
-     * The headline integration path from AGENTS.md: a settings screen showing a live preview of the
+     * The headline integration path: a settings screen showing a live preview of the
      * widget it is configuring. `DpSize` and `Modifier` come from `androidx.compose.ui`, which is
      * exactly what the original defect withheld from a consumer's compile classpath.
      */
@@ -83,7 +83,7 @@ private object ConsumerResolutionCheck {
         HijriTodayWidgetLivePreview(options = options, size = DpSize(144.dp, 72.dp))
         HijriDateWidgetLivePreview(options = options, size = DpSize(40.dp, 40.dp))
         GregorianDateWidgetLivePreview(options = options, size = DpSize(40.dp, 40.dp))
-        // FD-10: the dual-date tile's preview. Same `DpSize`/`Modifier` shape as the four above, so a
+        // The dual-date tile's preview. Same `DpSize`/`Modifier` shape as the four above, so a
         // scope mistake on this one fails here rather than in a consumer's settings screen.
         HijriDualDateWidgetLivePreview(options = options, size = DpSize(120.dp, 120.dp))
         // The compact tile's preview, at the square the picker shows it at (the 72dp reference cell
@@ -103,7 +103,7 @@ private object ConsumerResolutionCheck {
         HijriTodayWidget(),
         HijriDateWidget(),
         GregorianDateWidget(),
-        // FD-10: the strict 1x1 dual-date tile. Its `SizeMode.Single` is what the picker sizes it at.
+        // The strict 1x1 dual-date tile. Its `SizeMode.Single` is what the picker sizes it at.
         HijriDualDateWidget(),
         // The compact dual-date tile: `SizeMode.Exact`, because it fits its type to the granted cell.
         HijriCompactDateWidget(),
@@ -126,7 +126,7 @@ private object ConsumerResolutionCheck {
         HijriWidgetConfig.saveFamilyOptions(context, options)
         val saver = HijriWidgetConfig.widgetOptionsSaver()
 
-        // `WidgetOptions` members, including the ones added by WD-01.
+        // `WidgetOptions` members, including the threaded override table.
         val pinned: Boolean = options.isPinned
         val weekStart: WeekStart = options.effectiveWeekStart
         val month: Int = options.firstDayOfWeekIndexValue
@@ -134,7 +134,7 @@ private object ConsumerResolutionCheck {
         val key: String = monthLengthKey(1448, 3)
         val withOverride = options.copy(monthLengthOverrides = mapOf(key to 30))
         val resolved = options.resolveGridMonth(today = HijriYearMonth(1447, 1))
-        // WD-07: the nullable overload is what lets a renderer say "I do not know today" without
+        // The nullable overload is what lets a renderer say "I do not know today" without
         // inventing a fallback month.
         val maybeResolved = options.resolveGridMonthOrNull(today = null)
         val label = options.hijriMonthName(9)
@@ -151,7 +151,7 @@ private object ConsumerResolutionCheck {
             overridesCsv = "1448-3:30",
         )
 
-        // The projections, including the `overrides` parameter WD-01 added.
+        // The projections, including the `overrides` parameter.
         val grid: HijriMonthWidgetData? = buildHijriMonthWidgetData(
             hijriYear = 1447,
             hijriMonth = 9,
@@ -168,10 +168,10 @@ private object ConsumerResolutionCheck {
             options = built,
         )
 
-        // FD-10: the dual tile's header band reads `hijriMonthShortName` — the short Hijri month
+        // The dual tile's header band reads `hijriMonthShortName` — the short Hijri month
         // name, since a band cannot hold the long form. Named here so the field cannot be dropped
         // from the published ABI unnoticed, and because it is on the record that a renderer reads it
-        // from the *shared* projection rather than formatting one itself (WG-12): a consumer adding
+        // from the *shared* projection rather than formatting one itself: a consumer adding
         // this dependency must be able to reach it through the re-exported `calendar-widget-data`.
         val shortMonth: String = today?.hijriMonthShortName.orEmpty()
 

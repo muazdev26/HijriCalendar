@@ -7,7 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-05: era markers — `AH` / `AD` in English, `ھ` / `ء` in Urdu.
+ * Era markers — `AH` / `AD` in English, `ھ` / `ء` in Urdu.
  *
  * The reason this exists at all: a Hijri year and a Gregorian year are both four digits, and this is
  * a **bilingual** calendar that shows one under the other. `١٤٤٨` above `2026` leaves a reader
@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  * 1. **The right codepoint.** Urdu's *hijri sani* is `ھ` (U+06BE, Heh-goal), not `ہ` (U+06C1,
  *    do-chashmi he, which belongs to words). They are different characters and a wrong one is still a
  *    readable-looking glyph in Urdu, so nothing catches it but an assertion on the code point.
- * 2. **The marker follows the widget, not the device.** Per WG-12: a widget's language is a
+ * 2. **The marker follows the widget, not the device.** A widget's language is a
  *    [WidgetOptions] field, and one Urdu widget is designed to sit beside an English one on a phone
  *    with no Urdu locale at all.
  */
@@ -209,7 +209,7 @@ class EraMarkersTest {
         assertEquals("1447", month.hijriYearText)
         assertFalse(
             month.gregorianMonthTitle.contains("AD"),
-            "with no marker the Gregorian title must be exactly what it was before FD-05",
+            "with no marker the Gregorian title must be exactly what it was before era markers",
         )
     }
 }

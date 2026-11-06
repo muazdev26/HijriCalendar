@@ -13,7 +13,7 @@ public class HijriCalendarWidgetReceiver : GlanceAppWidgetReceiver() {
     /**
      * A widget was just placed. Reconcile scheduling here rather than waiting for the next app
      * start: the process is often already alive when a widget is added (the launcher starts only
-     * the receiver), so `Application.onCreate` may not run again (WG-18).
+     * the receiver), so `Application.onCreate` may not run again.
      */
     override fun onEnabled(context: Context) {
         super.onEnabled(context)

@@ -11,7 +11,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Covers ticket 03's shared behaviour: the per-widget language and source choices, the
+ * Covers the shared behaviour of the per-widget language and source choices: the
  * language-driven reading direction of the grid and the localized source pill label.
  */
 class WidgetLanguageAndSourceTest {

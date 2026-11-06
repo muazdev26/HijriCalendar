@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
  *     start and on boot, and the midnight receiver re-arms after it fires, so the alarm keeps
  *     re-arming without depending on the process staying alive between midnights.
  *
- * **Both mechanisms exist only while the user has a widget placed** (WG-18). [schedule] therefore
+ * **Both mechanisms exist only while the user has a widget placed**. [schedule] therefore
  * *reconciles* rather than arms unconditionally: with at least one instance bound it enqueues the
  * worker and arms the alarm, and with none it cancels both. A user who installed the library but
  * never placed a widget — or who has just removed the last one — is not left with a pending exact
@@ -46,7 +46,7 @@ public object HijriWidgetRefreshScheduler {
     internal const val ALARM_REQUEST_CODE = 4_101
 
     /**
-     * `RTC_WAKEUP`, not `RTC` (WG-08).
+     * `RTC_WAKEUP`, not `RTC`.
      *
      * `RTC` fires only while the device is **awake**. A phone at local midnight is normally asleep,
      * so a `RTC` midnight alarm does not fire at midnight — it fires at the next unlock, which is
@@ -62,7 +62,7 @@ public object HijriWidgetRefreshScheduler {
     /**
      * When the alarm was last armed, so the receiver can report how long it actually took to fire.
      *
-     * This is what turns WG-08 from "the widget said yesterday" into a number. A device that fired
+     * This is what turns "the widget said yesterday" into a number. A device that fired
      * the alarm at the armed time needs no investigation; one that fired hours later did not wake at
      * midnight, and the log says so directly.
      */
@@ -80,7 +80,7 @@ public object HijriWidgetRefreshScheduler {
         // regenerate the Android 15+ picker previews on first launch / every app start (cheap:
         // guarded to at most once per local day), so a fresh install immediately shows real
         // previews in the widget picker. Previews are shown in the picker whether or not an
-        // instance is placed, so that part is deliberately NOT gated (WG-18).
+        // instance is placed, so that part is deliberately NOT gated.
         reconcile(context)
         HijriWidgetPreviewPublisher.publishIfDueAsync(context)
     }
@@ -184,12 +184,12 @@ public object HijriWidgetRefreshScheduler {
     /**
      * Re-arms the exact midnight alarm (idempotent: a new `RTC_WAKEUP` alarm replaces the previous
      * one). This is the raw primitive — it does **not** check whether a widget is placed, because
-     * every caller inside this module has already established that (WG-18). A host that arms it
+     * every caller inside this module has already established that. A host that arms it
      * directly is responsible for the same check; the normal entry point is [schedule], which
      * reconciles placement for you.
      */
     public fun armMidnightAlarm(context: Context) {
-        // Seam for the WG-07 test: the receiver's guarantee is "the next alarm exists even when the
+        // Seam for the receiver's guarantee test: "the next alarm exists even when the
         // render throws", and that cannot be asserted against a real AlarmManager in a JVM unit test.
         armAction(context)
     }

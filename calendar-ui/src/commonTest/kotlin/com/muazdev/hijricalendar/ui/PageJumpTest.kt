@@ -4,8 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Pins the rule behind [pageJump], which is the whole of
- * [UI-09-pager-effect-sync](UI-09-pager-effect-sync.md).
+ * Pins the rule behind [pageJump].
  *
  * It lives here rather than in a composable test because the decision cannot be observed through
  * the pager: `HorizontalPager` composes the same nodes whether it jumps or animates, so the only
@@ -35,8 +34,8 @@ class PageJumpTest {
 
     @Test
     fun aLongJump_jumps() {
-        // goToToday, or a restored month disagreeing with a restored page. This is the case the
-        // ticket is about: animating it scrolls through every month in between.
+        // goToToday, or a restored month disagreeing with a restored page. This is the case that
+        // matters: animating it scrolls through every month in between.
         assertEquals(PageJump.JUMP, pageJump(500, 640))
         assertEquals(PageJump.JUMP, pageJump(640, 500))
     }

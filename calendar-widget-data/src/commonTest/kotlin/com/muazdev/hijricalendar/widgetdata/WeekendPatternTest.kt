@@ -11,9 +11,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * FD-03: `WeekendPattern` — which days the grid paints as non-working days.
+ * `WeekendPattern` — which days the grid paints as non-working days.
  *
- * The report this came from was "two days are showing red, like Friday and Sunday — every calendar
+ * The complaint was "two days are showing red, like Friday and Sunday — every calendar
  * only shows one". They were Friday and Saturday, from a hardcoded `WeekDay.WEEKEND_DATES` literal at
  * the one call site that built a projection, which is right for the Pakistan calendar this library
  * also supports and unwrong-able by the user. So the behaviour was correct and the *configuration* was
@@ -21,8 +21,8 @@ import kotlin.test.assertTrue
  *
  * The two properties that matter beyond "it decodes":
  *
- * - the schema stores a **name**, never an ordinal into another module's enum — the WD-05 hazard this
- *   field would otherwise reintroduce a second time; and
+ * - the schema stores a **name**, never an ordinal into another module's enum — the ordinal hazard
+ *   this field would otherwise reintroduce a second time; and
  * - the default is `FRIDAY_SATURDAY`, so upgrading changes no already-placed widget.
  */
 class WeekendPatternTest {
@@ -139,7 +139,7 @@ class WeekendPatternTest {
      *
      * The whole reason this is a name-backed enum owned by `calendar-widget-data` rather than a set of
      * `WeekDay` ordinals: `WeekDay`'s own KDoc warns that its declaration order is persisted, and
-     * inserting an entry there would have silently re-interpreted every placed widget (WD-05). This
+     * inserting an entry there would have silently re-interpreted every placed widget. This
      * cannot be asserted by reordering the enum in a test, so it is asserted the only way that
      * actually holds: by reading the names back out of the encoded form.
      */
@@ -227,7 +227,7 @@ class WeekendPatternTest {
      * A blob written before this field existed decodes into the old behaviour.
      *
      * And — the part that is easy to get wrong — an *unreadable* value also lands on the default rather
-     * than throwing and resetting the whole widget. `coerceInputValues` (WD-06) is what makes that so;
+     * than throwing and resetting the whole widget. `coerceInputValues` is what makes that so;
      * the alternative is one bad field silently reverting eight others.
      */
     @Test
@@ -241,7 +241,7 @@ class WeekendPatternTest {
         val legacy = assertNotNull(WidgetOptionsJson.decodeOrNull(fromTwoZeroZero))
         assertEquals(WeekendPattern.FRIDAY_SATURDAY, legacy.weekendPattern)
         assertEquals(-2, legacy.adjustmentDays, "no other field may be disturbed")
-        assertTrue(legacy.showAdjacentDays, "a field added by an earlier ticket must survive too")
+        assertTrue(legacy.showAdjacentDays, "a field from an earlier schema revision must survive")
 
         val corrupt = """
             {"adjustmentDays":5,"weekendPattern":"NOT_A_PATTERN","language":"ENGLISH"}
@@ -251,7 +251,7 @@ class WeekendPatternTest {
         assertEquals(
             5,
             repaired.adjustmentDays,
-            "one unreadable field must not reset the rest (WD-06)",
+            "one unreadable field must not reset the rest",
         )
     }
 

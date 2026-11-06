@@ -20,7 +20,7 @@ import javax.xml.parsers.DocumentBuilderFactory
  * ## Why the duplication is asserted rather than removed
  *
  * A forced theme cannot use the configuration-qualified `widget_*` resources — re-resolving them
- * *is* following the system, which is exactly what forcing exists to override (FD-07). So the values
+ * *is* following the system, which is exactly what forcing exists to override. So the values
  * are restated in `colors_widget_theme.xml` and `colors_widget_dark_theme.xml`, and Android resources
  * cannot alias one colour onto another. That leaves each forced value able to drift away from the
  * palette it is supposed to mirror, which is the failure this class exists to catch: a `widget_light_*`

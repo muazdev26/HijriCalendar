@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 /**
  * The module's one coroutine scope, with an exception handler that logs.
  *
- * **Why this exists** (WG-07). There was one ad-hoc `CoroutineScope(SupervisorJob() + …)` per call
+ * **Why this exists**. There was one ad-hoc `CoroutineScope(SupervisorJob() + …)` per call
  * site — the midnight alarm receiver, [HijriWidgetRefresher], [HijriWidgetPreviewPublisher] — and
  * none of them had a [CoroutineExceptionHandler]. A bare `SupervisorJob` with no parent means an
  * uncaught exception in `launch` goes to the thread's default handler, which **on Android kills the

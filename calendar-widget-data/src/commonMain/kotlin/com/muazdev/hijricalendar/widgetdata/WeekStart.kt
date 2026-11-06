@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonNames
 /**
  * The serialisable, name-backed form of the widget's first day of week.
  *
- * **Why this exists rather than an `Int`** (WD-05). `firstDayOfWeekIndex` was a bare ordinal into
+ * **Why this exists rather than an `Int`**. `firstDayOfWeekIndex` was a bare ordinal into
  * [WeekDay] — *another module's* enum, in a published ABI — persisted in the shared wire format and
  * read back by three platforms. `WeekDay`'s own KDoc warns that its declaration order is persisted
  * and that inserting an entry would silently reinterpret every stored value. That is precisely the
@@ -32,7 +32,7 @@ public enum class WeekStart(
     public val dayOfWeek: WeekDay,
 ) {
     // `@JsonNames` aliases are permanent, not transitional: a stored widget outlives every release
-    // that ever wrote it, so a spelling that was ever emitted must keep decoding forever (WD-06).
+    // that ever wrote it, so a spelling that was ever emitted must keep decoding forever.
     // `SUNDAY_INDEX` is here because that is what the pre-`WeekStart` `firstDayOfWeekIndex` field
     // encoded to when a renderer wrote the value through a name-based helper by mistake.
     @JsonNames("SAT")

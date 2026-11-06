@@ -192,7 +192,7 @@ class WidgetDataTest {
      * The header's Gregorian half is the month's whole extent, not its first day.
      *
      * This test previously asserted `"<first Gregorian month> <year>"` — it encoded the truncation as
-     * the expected behaviour, which is what made the defect survive (FD-06). A Hijri month is 29 or 30
+     * the expected behaviour, which is what made the defect survive. A Hijri month is 29 or 30
      * days and a Gregorian month is 28-31, so roughly half of all Hijri months start in one Gregorian
      * month and end in another; for those, naming only the first describes a Gregorian month the Hijri
      * month has almost nothing to do with.

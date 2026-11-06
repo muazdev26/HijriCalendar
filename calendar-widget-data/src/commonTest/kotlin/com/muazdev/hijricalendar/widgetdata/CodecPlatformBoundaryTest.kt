@@ -11,7 +11,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * WD-08: the shared JSON codec runs on **two** platforms — Android on the JVM, iOS through the
+ * The shared JSON codec runs on **two** platforms — Android on the JVM, iOS through the
  * `WidgetCalendar` Kotlin/Native framework — and these cases exist because the JVM tests alone do
  * not cover half the users.
  *
@@ -58,8 +58,8 @@ class CodecPlatformBoundaryTest {
     }
 
     /**
-     * WD-08, for FD-02: a blob written **before** `showAdjacentDays` existed decodes into the new
-     * behaviour, on whichever platform's parser runs.
+     * Platform parity, for `showAdjacentDays`: a blob written **before** the field existed decodes
+     * into the new behaviour, on whichever platform's parser runs.
      *
      * `WidgetOptionsJson` is the shared wire format for Android *and* iOS — `HijriSharedOptions.swift`
      * re-encodes through it on every `loadOptions` — so this is asserted in `commonTest` precisely so
@@ -89,7 +89,7 @@ class CodecPlatformBoundaryTest {
             "a widget stored before the field existed must land on the new default",
         )
         // Every other field must survive untouched, or the upgrade would silently reset the user's
-        // whole configuration over one missing key — the WD-06 failure mode.
+        // whole configuration over one missing key — the classic one-field-resets-everything mode.
         assertEquals(-1, decoded.adjustmentDays)
         assertEquals(NumeralStyle.ARABIC_INDIC, decoded.numeralStyle)
         assertEquals(WeekStart.MONDAY, decoded.effectiveWeekStart)
@@ -172,7 +172,7 @@ class CodecPlatformBoundaryTest {
         // rather than being clamped to something invented.
         assertEquals(0, WidgetOptionsJson.decode("""{"adjustmentDays":"two"}""").adjustmentDays)
 
-        // An out-of-range *month* is not a Hijri month, so it is not a pin (WD-09).
+        // An out-of-range *month* is not a Hijri month, so it is not a pin.
         assertEquals(
             null,
             WidgetOptionsJson.decodeOrNull("""{"pinnedMonth":13,"pinnedYear":1448}""")?.pinned,
