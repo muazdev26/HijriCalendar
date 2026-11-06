@@ -32,14 +32,18 @@ import java.util.concurrent.TimeUnit
  * [armMidnightAlarm] remains the raw primitive for a caller that has already established a widget
  * exists; everything driven by an unconditional lifecycle event goes through [reconcile].
  *
- * The alarm is exact via `USE_EXACT_ALARM` (auto-granted to calendar apps). On devices where
- * exact alarms are unavailable the call degrades to a regular `setAndAllowWhileIdle()`, keeping
- * the widget usable albeit not guaranteed at the exact boundary.
+ * The alarm is exact via `USE_EXACT_ALARM` (auto-granted to calendar apps on Android 13+) and
+ * `SCHEDULE_EXACT_ALARM` (the Android 12 mechanism). Exact-alarm access is not guaranteed on a
+ * device: a user can revoke it under Settings, and from Android 14 it is not pre-granted to every
+ * app. [armMidnightAlarmForReal] therefore asks the platform `canScheduleExactAlarms()` first and
+ * degrades to `setAndAllowWhileIdle()` when the answer is no, so the widget still rolls over —
+ * just not guaranteed at the exact boundary. [AlarmKind] is the decision as a pure function, and
+ * `HijriWidgetRefreshSchedulerTest` drives the real arm path through [armerAction].
  */
 public object HijriWidgetRefreshScheduler {
 
     private const val WORK_NAME = "hijri_widget_daily_refresh"
-    private const val ALARM_REQUEST_CODE = 4_101
+    internal const val ALARM_REQUEST_CODE = 4_101
 
     /**
      * `RTC_WAKEUP`, not `RTC` (WG-08).
@@ -53,7 +57,7 @@ public object HijriWidgetRefreshScheduler {
      * Both arms use it. An inexact `RTC_WAKEUP` still wakes the device, which is the property that
      * matters; exactness is a refinement on top.
      */
-    private const val ALARM_TYPE = AlarmManager.RTC_WAKEUP
+    internal const val ALARM_TYPE = AlarmManager.RTC_WAKEUP
 
     /**
      * When the alarm was last armed, so the receiver can report how long it actually took to fire.
@@ -193,28 +197,31 @@ public object HijriWidgetRefreshScheduler {
     /** The real [armMidnightAlarm], behind a seam. `internal` so only this module can replace it. */
     internal var armAction: (Context) -> Unit = ::armMidnightAlarmForReal
 
-    private fun armMidnightAlarmForReal(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_REQUEST_CODE,
-            Intent(context, HijriWidgetMidnightAlarmReceiver::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    /**
+     * The platform armer, behind a seam so the exact/inexact branch in
+     * [armMidnightAlarmForReal] can be asserted on the JVM. See [MidnightAlarmArmer].
+     */
+    internal var armerAction: (Context) -> MidnightAlarmArmer = ::PlatformAlarmArmer
+
+    internal fun armMidnightAlarmForReal(context: Context) {
+        val armer = armerAction(context)
         val triggerAt = nextLocalMidnightMillis()
         armedAtMillis = System.currentTimeMillis()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            HijriWidgetRefreshLog.d(
-                "alarm",
-                "arm INEXACT wake-up (canScheduleExactAlarms=false) at $triggerAt",
-            )
-            // `setAndAllowWhileIdle` rather than `set`: it survives Doze without consuming the
-            // exact-alarm budget, which is the whole point of degrading in the first place.
-            alarmManager.setAndAllowWhileIdle(ALARM_TYPE, triggerAt, pendingIntent)
-        } else {
-            HijriWidgetRefreshLog.d("alarm", "arm exact wake-up at $triggerAt")
-            alarmManager.setExactAndAllowWhileIdle(ALARM_TYPE, triggerAt, pendingIntent)
+        when (alarmKindFor(armer.apiLevel(), armer.canScheduleExactAlarms())) {
+            AlarmKind.INEXACT -> {
+                HijriWidgetRefreshLog.d(
+                    "alarm",
+                    "arm INEXACT wake-up (canScheduleExactAlarms=false) at $triggerAt",
+                )
+                // `setAndAllowWhileIdle` rather than `set`: it survives Doze without consuming the
+                // exact-alarm budget, which is the whole point of degrading in the first place.
+                armer.armInexact(triggerAt)
+            }
+            AlarmKind.EXACT -> {
+                HijriWidgetRefreshLog.d("alarm", "arm exact wake-up at $triggerAt")
+                armer.armExact(triggerAt)
+            }
         }
     }
 
@@ -225,4 +232,93 @@ public object HijriWidgetRefreshScheduler {
     }
 
     public fun todayEpochDay(): Long = LocalDate.now().toEpochDay()
+}
+
+/**
+ * Which `AlarmManager` call the midnight alarm uses.
+ *
+ * Exactness is a refinement on top of [HijriWidgetRefreshScheduler]'s `RTC_WAKEUP` type — an
+ * inexact alarm still wakes the device, it just may land later than 00:00. The distinction is a
+ * named type so the fallback can be asserted without an `AlarmManager`.
+ */
+internal enum class AlarmKind {
+    /** `setExactAndAllowWhileIdle` — fires at the local-midnight boundary. */
+    EXACT,
+
+    /** `setAndAllowWhileIdle` — survives Doze, but the platform chooses the moment. */
+    INEXACT,
+}
+
+/**
+ * The fallback rule, as a pure function.
+ *
+ * `canScheduleExactAlarms()` exists from API 31; below that the permission model does not apply
+ * and the alarm is always exact. From 31 on, a revoked or never-granted access means the app must
+ * degrade rather than crash — `setExactAndAllowWhileIdle` throws `SecurityException` in that case.
+ */
+internal fun alarmKindFor(sdkInt: Int, canScheduleExactAlarms: Boolean): AlarmKind =
+    if (sdkInt >= Build.VERSION_CODES.S && !canScheduleExactAlarms) {
+        AlarmKind.INEXACT
+    } else {
+        AlarmKind.EXACT
+    }
+
+/**
+ * The platform calls the alarm arm makes, behind an interface.
+ *
+ * `AlarmManager` and `PendingIntent` are stubbed in a local unit test, so the *choice* between the
+ * two arming methods cannot be observed through them. [HijriWidgetRefreshScheduler.armerAction]
+ * lets a test supply a recording implementation and drive the real
+ * `armMidnightAlarmForReal` path.
+ */
+internal interface MidnightAlarmArmer {
+    /**
+     * The API level the arming calls run on.
+     *
+     * Part of the seam, not a convenience: the exact-alarm permission model starts at API 31, and a
+     * JVM unit test always reads `SDK_INT == 0`, so a test that wants to exercise the fallback has
+     * to be able to say which device it is standing in for.
+     */
+    fun apiLevel(): Int
+
+    /** Whether the platform will accept an exact alarm right now. Always true below API 31. */
+    fun canScheduleExactAlarms(): Boolean
+
+    /** `setExactAndAllowWhileIdle(RTC_WAKEUP, …)`. */
+    fun armExact(triggerAtMillis: Long)
+
+    /** `setAndAllowWhileIdle(RTC_WAKEUP, …)`. */
+    fun armInexact(triggerAtMillis: Long)
+}
+
+/** The real [MidnightAlarmArmer]: one `AlarmManager` and the receiver's `PendingIntent`. */
+internal class PlatformAlarmArmer(context: Context) : MidnightAlarmArmer {
+    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        HijriWidgetRefreshScheduler.ALARM_REQUEST_CODE,
+        Intent(context, HijriWidgetMidnightAlarmReceiver::class.java),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    override fun apiLevel(): Int = Build.VERSION.SDK_INT
+
+    override fun canScheduleExactAlarms(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()
+
+    override fun armExact(triggerAtMillis: Long) {
+        alarmManager.setExactAndAllowWhileIdle(
+            HijriWidgetRefreshScheduler.ALARM_TYPE,
+            triggerAtMillis,
+            pendingIntent,
+        )
+    }
+
+    override fun armInexact(triggerAtMillis: Long) {
+        alarmManager.setAndAllowWhileIdle(
+            HijriWidgetRefreshScheduler.ALARM_TYPE,
+            triggerAtMillis,
+            pendingIntent,
+        )
+    }
 }

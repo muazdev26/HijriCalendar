@@ -165,6 +165,16 @@ The library's manifest declares all six receivers; widgets work on defaults. Opt
 2. Handle the `hijricalendar://today` deep link on your root activity.
 3. (Optional) Build a settings screen using `HijriWidgetConfig`, `widgetOptionsSaver()`, `HijriWidgetRefresher`, and the live-preview composables. Override the widget-info XML in your app to add `android:configure`.
 
+### Manifest permissions
+
+The library's own manifest declares what the widget refresh needs, so a consumer does not have to add it:
+
+- `RECEIVE_BOOT_COMPLETED` — re-arms the midnight rollover after a reboot.
+- `USE_EXACT_ALARM` (Android 13+) — auto-granted and not user-revocable. Play policy reserves it for apps whose core function is an alarm clock or a calendar, which a Hijri calendar is; check that policy before shipping if your app bundles this library for some other primary purpose.
+- `SCHEDULE_EXACT_ALARM` (Android 12+) — a special app access. Android 12 pre-grants it; **from Android 14 it is not pre-granted to most apps**, and the user can revoke it at any time under *Settings → Special app access → Alarms & reminders*.
+
+`HijriWidgetRefreshScheduler` never assumes the access. It asks `canScheduleExactAlarms()` and arms `setExactAndAllowWhileIdle` when granted, `setAndAllowWhileIdle` otherwise — so the widget still rolls over, just at the platform's next opportunity instead of exactly at 00:00. Both the alarm and the daily WorkManager backstop exist only while at least one widget is placed.
+
 ## Requirements
 
 - Kotlin 2.4.10+
