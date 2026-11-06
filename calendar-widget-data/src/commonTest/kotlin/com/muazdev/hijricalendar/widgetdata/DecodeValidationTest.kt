@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * WD-09 and WD-10: the decode boundary's contract.
+ * The decode boundary's contract: every value validated, and nothing thrown.
  *
  * kotlinx-serialization checks *types*, not values, so every field used to decode cleanly into a
  * `WidgetOptions` that no projection can build — and the failure was silent and *terminal*:
@@ -107,12 +107,12 @@ class DecodeValidationTest {
         assertTrue(!result.wasRepaired)
     }
 
-    // ── WD-10: nothing here may throw ────────────────────────────────────────
+    // ── nothing here may throw ──────────────────────────────────────
 
     @Test
     fun anExtremeAnchorCannotThrowOutOfTodayProjection() {
         // `LocalDate.plus` throws when the *shifted* date leaves the representable range, and that
-        // shift was outside a `try` in a function documented to return `null` (WD-10a).
+        // shift was outside a `try` in a function documented to return `null`.
         for (anchor in listOf(Long.MIN_VALUE, Long.MAX_VALUE, -1L, 0L)) {
             for (adjustment in listOf(Int.MIN_VALUE, Int.MAX_VALUE, 0, 2)) {
                 // No assertion on the value: the contract is that it returns rather than throws.
@@ -123,7 +123,7 @@ class DecodeValidationTest {
 
     @Test
     fun negativeNumbersRenderRatherThanIndexingTheDigitTable() {
-        // `formatNumber(-5, ARABIC_INDIC)` used to index the digit table at -3 (WD-10b). Latent today
+        // `formatNumber(-5, ARABIC_INDIC)` used to index the digit table at -3. Latent today
         // — day numbers are 1..30 — but one sign change away on a render path, and only the Urdu
         // branch reaches the table at all.
         val data = assertNotNull(

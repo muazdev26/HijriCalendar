@@ -14,8 +14,7 @@ import kotlinx.coroutines.launch
  *  - explicit user actions ([bypassGate]) which land even while the app is visible.
  *
  * All three entry points dispatch through [HijriWidgetScope] rather than an ad-hoc scope, so a
- * throwable from any of them is logged instead of taking down the host process at, say, midnight
- * (WG-07).
+ * throwable from any of them is logged instead of taking down the host process at, say, midnight.
  *
  * The two bypass flags are deliberately independent:
  *

@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * FD-08: the curated table of notable Hijri dates.
+ * The curated table of notable Hijri dates.
  *
  * Three things are worth testing here, in increasing order of how much they would hurt to get wrong:
  *

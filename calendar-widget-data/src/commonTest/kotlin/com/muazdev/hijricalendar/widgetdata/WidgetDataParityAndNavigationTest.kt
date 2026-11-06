@@ -29,13 +29,14 @@ import kotlin.test.assertTrue
  * **Which override table these tests exercise.** Every case here except
  * [month_gridMatchesInAppCalendarCellForCell_underAScopedOverrideTable] runs against the
  * **process-wide default** (`HijriMonthOverrides.current`), because they omit the `overrides`
- * argument. That is the same trap UI-01 documents for `calendar-ui`: omitting an argument whose
+ * argument. That is a trap that has bitten `calendar-ui` too: omitting an argument whose
  * default is the global tests the global and looks like it tests the parameter. The scoped case is
  * therefore a separate, explicitly-named test rather than a parameterised one — a reader can tell
  * from the name which promise each test is making.
  *
- * WD-01 was invisible to this file for exactly that reason: every test here used the global, so no
- * test could have failed while the widget read the global and the app read something else.
+ * The global-reading defect was invisible to this file for exactly that reason: every test here used
+ * the global, so no test could have failed while the widget read the global and the app read
+ * something else.
  */
 class WidgetDataParityAndNavigationTest {
 
@@ -50,10 +51,10 @@ class WidgetDataParityAndNavigationTest {
     // ── Pakistan flag: cell-for-cell parity with the in-app calendar ─────────
 
     /**
-     * WD-11: the regression guard for WD-01, and the only test in the module that pins the
+     * The regression guard for override threading, and the only test in the module that pins the
      * `overrides` parameter at all.
      *
-     * WD-01 was that the projection read `HijriMonthOverrides.current` while the in-app calendar
+     * The defect was that the projection read `HijriMonthOverrides.current` while the in-app calendar
      * could be driven from a scoped `HijriMonthLengths`, so two calendars configured differently
      * disagreed with no error anywhere. The existing parity test could not have caught it: it omits
      * the argument, so it compares global-with-global.

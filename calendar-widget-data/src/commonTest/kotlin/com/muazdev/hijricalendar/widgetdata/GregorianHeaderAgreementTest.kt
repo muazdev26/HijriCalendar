@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-06: the widget's header and the in-app calendar's header must be held to **one** answer.
+ * The widget's header and the in-app calendar's header must be held to **one** answer.
  *
  * This defect was never "the widget could not name two months". It was that the widget named one and
  * the app named two, for roughly half the calendar — so a user who checked one against the other
@@ -262,7 +262,7 @@ class GregorianHeaderAgreementTest {
     /**
      * The widget's header agrees with the in-app calendar's for the same month.
      *
-     * The whole point of the ticket. `calendar-ui`'s `defaultGregorianMonthRangeLabel` is the
+     * The whole point. `calendar-ui`'s `defaultGregorianMonthRangeLabel` is the
      * reference answer — the app was always right — and it is reproduced here rather than imported,
      * because `calendar-widget-data` cannot depend on `calendar-ui`. Copying it in is deliberate: a
      * shared helper would create a dependency in the wrong direction to save three lines, and the two

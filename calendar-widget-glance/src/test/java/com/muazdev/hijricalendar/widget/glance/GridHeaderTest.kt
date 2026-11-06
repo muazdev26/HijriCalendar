@@ -114,7 +114,7 @@ class GridHeaderTest {
     }
 
     /**
-     * Both title lines share one size, one weight and one colour (round 3).
+     * Both title lines share one size, one weight and one colour.
      *
      * The header used to carry a hierarchy — the Gregorian line a step down in size *and* in tone, at
      * `secondaryText` Medium — and on a device that read as a caption under a title rather than as the
@@ -152,8 +152,8 @@ class GridHeaderTest {
      * Android it cannot be raised further because Glance's `Medium` and `Bold` resolve to the same
      * style, so the row had to move on size and tone instead. The failure this catches is overshooting
      * past the month title, which would put a row of seven labels above the header's hero — the lower
-     * bound it used to be held to was the Gregorian line's size, and round 3 removed that line's own
-     * size by making it the title's.
+     * bound it used to be held to was the Gregorian line's size, and the header change removed that
+     * line's own size by making it the title's.
      *
      * A relationship rather than an equality, so the tiers stay free to move together.
      */

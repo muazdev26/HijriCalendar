@@ -18,7 +18,7 @@ import kotlin.test.assertNull
 /**
  * The `rememberSaveable` saver's round trips.
  *
- * **Why these moved here** (review-remediation 04). The saver, `HijriCalendarStateConfig` and the
+ * **Why these moved here.** The saver, `HijriCalendarStateConfig` and the
  * two `remember*` entry points are Compose-facing and now live in `calendar-ui`; a test in
  * `calendar-core` cannot see `internal` declarations in another module, and `calendar-core` no
  * longer even depends on `androidx.compose.runtime.saveable`. The assertions are unchanged from the

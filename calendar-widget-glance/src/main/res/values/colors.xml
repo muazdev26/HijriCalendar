@@ -16,15 +16,15 @@
     <color name="widget_weekend_text">#B3261E</color>
 
     <!--
-        The three dimmed day figures (FD-07).
+        The three dimmed day figures.
 
         These used to be `primaryText.copy(alpha = …)` computed in Kotlin, which had two costs: the
         alpha could not survive a night-mode switch (see below), and a colour could not be asserted.
 
         **They are now real resources, which means they are resolved by the launcher against its own
         configuration at bind time.** Before this they were literals baked into the composition, so a
-        night-mode switch invalidated the whole `RemoteViews` and rebuilt it — the "restart" the report
-        describes. There is a night variant of each.
+        night-mode switch invalidated the whole `RemoteViews` and rebuilt it — the "restart" users see.
+        There is a night variant of each.
 
         Each is `widget_text_primary` composited over `widget_background` at the alpha its name
         records, so they can be recomputed by hand if either of those two changes:
@@ -41,14 +41,14 @@
     <color name="widget_day_out_faint">#C5C2BF</color>
     <color name="widget_arrow_dimmed">#8F8B85</color>
     <!--
-        The cell divider (FD-04). The active-colour hairline: the palette accent at 40% over
+        The cell divider. The active-colour hairline: the palette accent at 40% over
         `widget_background`, so the grid reads as the calendar's own grid rather than as a grey
         spreadsheet rule. Still one hairline per row/column rather than a border per cell — the grid
         is 42 cells and a full border on each would cost 42 more views on a `previewLayout`.
     -->
     <color name="widget_cell_border">#662E7D32</color>
     <!--
-        The vertical rule between the weekday header's columns (round 3): `widget_on_today` at 40%,
+        The vertical rule between the weekday header's columns: `widget_on_today` at 40%,
         i.e. the accent band's own content colour, faded.
 
         **Not `widget_cell_border`**, which would be invisible here: that colour *is* the accent at
@@ -57,7 +57,7 @@
     -->
     <color name="widget_band_divider">#66FFFFFF</color>
     <!--
-        The fill of the chosen day (FD-09, redesigned). A full accent **block**, where this used to be
+        The fill of the chosen day. A full accent **block**, where this used to be
         a corner ring: a ring could not carry the accent without an alpha (which a `ColorProvider`
         cannot express) and read as decoration laid over the grid rather than as the chosen day. Today
         is the default selection, so an untouched widget fills today's cell with this and the block
@@ -65,7 +65,7 @@
     -->
     <color name="widget_selected_day">#2E7D32</color>
     <!--
-        The observance fill (FD-08). A **container**, not the accent: `widget_selected_day` is the
+        The observance fill. A **container**, not the accent: `widget_selected_day` is the
         selection and `widget_accent` marks today's figure, so reusing either would make Ashura read as
         a chosen day. This is the accent at 14% over `widget_background` (#FBF7F1) — visible as a wash,
         still letting the day figure carry it.

@@ -6,7 +6,7 @@
 
     A forced theme is the one thing `ColorProvider` cannot express. Every other colour the widget
     paints is a `@ColorRes` the launcher re-resolves against its own configuration, which is what lets
-    a night-mode switch happen with no re-compose (FD-07). That mechanism is precisely a *follow the
+    a night-mode switch happen with no re-compose. That mechanism is precisely a *follow the
     system* mechanism, so the only way to pin one appearance is to reference resources that have no
     night variant to resolve against.
 

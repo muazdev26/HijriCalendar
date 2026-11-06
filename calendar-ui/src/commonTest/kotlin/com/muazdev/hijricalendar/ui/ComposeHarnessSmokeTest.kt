@@ -14,7 +14,7 @@ import kotlin.test.Test
 /**
  * Proves the [runComposeUiTest] harness actually renders this module's composables in
  * `desktopTest` on this machine. If this fails, every other test in the file is unrunnable and the
- * problem is the harness, not the calendar — see UI-02.
+ * problem is the harness, not the calendar.
  */
 @OptIn(ExperimentalTestApi::class)
 class ComposeHarnessSmokeTest {

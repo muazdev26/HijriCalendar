@@ -3,11 +3,11 @@ package com.muazdev.hijricalendar.widget.glance
 import com.muazdev.hijricalendar.widgetdata.HijriYearMonth
 
 /**
- * The Hijri day the user tapped on the grid widget (FD-09).
+ * The Hijri day the user tapped on the grid widget.
  *
  * A value type rather than three loose integers, because the three always travel together and a
  * half-set triple is meaningless — the same reason `WidgetOptions` exposes `pinned` as a pair rather
- * than `pinnedYear` and `pinnedMonth` separately (WD-03).
+ * than `pinnedYear` and `pinnedMonth` separately.
  *
  * @property day 1-30. Hijri months are 29 or 30 days, so 30 is the widest a day can be; a value
  *   outside 1..30 is a corrupt store rather than a real date and is dropped at decode.

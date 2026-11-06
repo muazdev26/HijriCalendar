@@ -31,7 +31,7 @@
         </activity>
 
         <!-- The widget <receiver> elements are declared by calendar-widget-glance and merged
-             in from there (WG-10): AppWidgetManager discovers widgets by scanning the merged
+             in from there: AppWidgetManager discovers widgets by scanning the merged
              manifest, so a library that omitted them would give a consumer no widget at all.
              What the sample overrides is the provider *info* — its own res/xml copies below add
              `android:configure` + `widgetFeatures` pointing at this app's configuration

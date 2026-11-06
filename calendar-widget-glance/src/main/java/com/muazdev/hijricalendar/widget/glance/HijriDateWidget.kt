@@ -393,8 +393,8 @@ internal object DateTileTypography {
  *
  * The weekday name comes from `TodayHijriWidgetData.weekdayTileName`, the projection's **at-a-glance**
  * weekday name for a widget that names one single day — the three 1x1 tiles and the Today strip —
- * populated from the widget's own [WidgetLanguage], so it is localized per widget, not per device
- * (WG-12); the ticket adds no field to the options schema. It is the at-a-glance variant rather than
+ * populated from the widget's own [WidgetLanguage], so it is localized per widget, not per device;
+ * it needs no field in the options schema. It is the at-a-glance variant rather than
  * `weekdayName` because these widgets spell Urdu Monday its own way (`سوموار`) — the projection owns
  * that choice, so this composable just prints the field.
  *
@@ -408,7 +408,7 @@ internal fun DateTileRoot(
     /**
      * The bottom line: the month name alone, e.g. `محرم` / `August`.
      *
-     * **No year, and no era marker.** This line used to read `محرم ١٤٤٨ ھ` (FD-05) and was assembled
+     * **No year, and no era marker.** This line used to read `محرم ١٤٤٨ ھ` and was assembled
      * by the caller, which meant the year came from `TodayHijriWidgetData`'s era'd
      * `hijriYearText`. Both halves of that are gone: the projection still carries both, because the
      * grid widget shows them, but a tile has no room for either. A 1x1 is read at a glance from arm's
@@ -456,7 +456,7 @@ internal fun DateTileRoot(
                 contentAlignment = Alignment.Center,
             ) {
                 WidgetText(
-                    // Resolved from the widget's own language, not the device locale (WG-12) — see
+                    // Resolved from the widget's own language, not the device locale — see
                     // [WidgetLocalization.ChromeLabels].
                     text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
                     style = TextStyle(

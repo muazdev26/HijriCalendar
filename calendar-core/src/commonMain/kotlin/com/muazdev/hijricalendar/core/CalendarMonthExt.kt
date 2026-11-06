@@ -192,7 +192,7 @@ private fun HijrahYearMonth.toPakistanCalendarMonth(
     val days = (0 until CalendarMonth.TOTAL_DAYS).map { offset ->
         val anchor = gridStart.plus(offset, DateTimeUnit.DAY)
         val shifted = anchor.plus(adjustmentDays, DateTimeUnit.DAY)
-        // `overrides` is load-bearing here and was missing until UI-01's follow-up: it defaults to
+        // `overrides` is load-bearing here and is easy to forget: it defaults to
         // the process-global table, so with a *scoped* table every cell was converted against the
         // wrong calendar while the month's start anchor (which does pass it) came from the right
         // one. The result was a grid whose leading cells belonged to a different calendar than the

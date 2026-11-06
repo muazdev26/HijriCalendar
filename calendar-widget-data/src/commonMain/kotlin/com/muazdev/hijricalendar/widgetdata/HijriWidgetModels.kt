@@ -30,7 +30,7 @@ public enum class NumeralStyle {
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 public enum class WidgetLanguage(public val isRtl: Boolean) {
-    // `@JsonNames` aliases are permanent (WD-06): a stored widget outlives every release that ever
+    // `@JsonNames` aliases are permanent: a stored widget outlives every release that ever
     // wrote it, so any spelling that has ever been emitted must keep decoding forever. The aliases
     // here are the ones a renderer plausibly wrote by hand or from an older Swift/Java port.
     @JsonNames("urdu", "UR")
@@ -45,7 +45,7 @@ public enum class WidgetLanguage(public val isRtl: Boolean) {
  * Ruet-e-Hilal (Pakistan) calendar; [pakistan] is the flag the projection builders consume.
  *
  * The source is chosen from the host app's settings screen and nowhere else — the grid widget has
- * **no source pill** and no on-widget toggle (WD-10c). [CALCULATION] is the name persisted in the
+ * **no source pill** and no on-widget toggle. [CALCULATION] is the name persisted in the
  * wire format and therefore frozen; `WidgetLocalization.sourceLabel` already renders it as
  * "Umm al-Qura"/"Calculation", and `@JsonNames` carries the accurate `"UAQ"`/`"UM_AL_QURA"`
  * spellings so a future rename does not invalidate a stored widget.
@@ -55,7 +55,7 @@ public enum class WidgetLanguage(public val isRtl: Boolean) {
 public enum class WidgetSource(public val pakistan: Boolean) {
     // `UAQ` and `UM_AL_QURA` are the *accurate* spellings: this source is Umm al-Qura, and
     // `WidgetLocalization.sourceLabel` already renders it as "Umm al-Qura" in Urdu contexts. If the
-    // entry is ever renamed to match, these aliases keep every stored widget readable (WD-06).
+    // entry is ever renamed to match, these aliases keep every stored widget readable.
     @JsonNames("UAQ", "UM_AL_QURA", "CALCULATION_SOURCE")
     CALCULATION(pakistan = false),
 
@@ -83,7 +83,7 @@ public data class HijriDayWidgetData(
     val isCurrentMonth: Boolean,
     val isWeekend: Boolean,
     /**
-     * Whether this day carries a notable observance (FD-08).
+     * Whether this day carries a notable observance.
      *
      * A **flag, not the name**. Two renderers need two different things from the same cell: the grid
      * needs to know only that it should fill the cell, while the footer's line names the observance for
@@ -140,12 +140,12 @@ public data class HijriMonthWidgetData(
     val hijriYear: Int,
     /**
      * The Hijri year **with its era marker**, in the widget's own language and digit style: `1447 AH`
-     * or `١٤٤٧ ھ` (FD-05).
+     * or `١٤٤٧ ھ`.
      *
      * Separate from [hijriYear] rather than replacing it because the bare number is what arithmetic
      * and comparisons want, while this is what a header reads. A renderer must not format the year
      * itself — the era belongs to the widget's language, which is a `WidgetOptions` field and not a
-     * resource configuration (WG-12).
+     * resource configuration.
      */
     val hijriYearText: String = hijriYear.toString(),
     val hijriMonth: Int,
@@ -155,7 +155,7 @@ public data class HijriMonthWidgetData(
      * header stacks `hijriMonthName hijriYearText` over this, e.g. `محرم ۱۴۴۸ ھ` above
      * `August - September 2026 AD`.
      *
-     * A **range**, not the first in-month Gregorian month (FD-06). Roughly half of all Hijri months
+     * A **range**, not the first in-month Gregorian month. Roughly half of all Hijri months
      * straddle two Gregorian ones, and the header used to name only the first — so for those months it
      * described a Gregorian month the Hijri month had almost nothing to do with.
      *
@@ -174,7 +174,7 @@ public data class HijriMonthWidgetData(
      * That is what makes the second header line fit a phone-width widget beside the two nav arrows and
      * the two header icons, where the full range does not.
      *
-     * Built in the projection rather than by the renderer (WG-12), for the same reason
+     * Built in the projection rather than by the renderer, for the same reason
      * [hijriYearText] is: "which Gregorian month does this Hijri month mostly fall in" is a fact about
      * the calendar, and the era marker belongs to the widget's language, which a renderer cannot
      * answer for. iOS reads the same string with no Swift edit.
@@ -264,17 +264,17 @@ public data class TodayHijriWidgetData(
     val hijriMonth: Int,
     val hijriYear: Int,
     /**
-     * The Hijri year **with its era marker**, in the widget's own language and digit style (FD-05):
+     * The Hijri year **with its era marker**, in the widget's own language and digit style:
      * `1447 AH` or `١٤٤٧ ھ`.
      *
      * Separate from [hijriYear] for the same reason as [gregorianYearText]: the bare number is what
      * arithmetic wants, this is what a renderer displays, and the era belongs to the widget's language
-     * rather than to the device's resources (WG-12).
+     * rather than to the device's resources.
      */
     val hijriYearText: String = hijriYear.toString(),
     val hijriMonthName: String,
     /**
-     * [hijriMonthName] in the **short** form a narrow slot can hold (FD-10) — for **English** month
+     * [hijriMonthName] in the **short** form a narrow slot can hold — for **English** month
      * names: the four months whose name does not distinguish them from a sibling carry a Roman
      * ordinal, `Rabi' I`, `Rabi' II`, `Jumada I`, `Jumada II`, and the other eight are
      * [hijriMonthName] unchanged.
@@ -284,7 +284,7 @@ public data class TodayHijriWidgetData(
      * [gregorianMonthShortName] follows, and the honest answer for a script whose words are not
      * spelled as a stem plus a Latin suffix a trim could remove.
      *
-     * Built in the projection rather than by the renderer (WG-12), because a month name is text in
+     * Built in the projection rather than by the renderer, because a month name is text in
      * the widget's own language: the language belongs to a `WidgetOptions` field and not to the
      * device's resources, so a renderer cannot answer for it. Building it here is also what lets iOS
      * read the same string with no Swift edit.
@@ -316,12 +316,12 @@ public data class TodayHijriWidgetData(
     val gregorianMonthName: String,
     val gregorianYear: Int,
     /**
-     * The Gregorian year **with its era marker**, in the widget's own language and digit style (FD-05):
+     * The Gregorian year **with its era marker**, in the widget's own language and digit style:
      * `2026 AD` or `٢٠٢٦ ء`.
      *
      * The counterpart to [hijriYearText], for the same reason: the bare [gregorianYear] is what
      * arithmetic wants, this is what a renderer displays, and the marker belongs to the widget's
-     * language rather than to the device's resources (WG-12).
+     * language rather than to the device's resources.
      */
     val gregorianYearText: String = gregorianYear.toString(),
     /**
@@ -331,7 +331,7 @@ public data class TodayHijriWidgetData(
      *
      * English-only by design: Arabic script has no three-letter `اکتوبر` that is still `اکتوبر`, so
      * an Urdu tile keeps its full month name rather than a trim that would cut the word's root off.
-     * Built here for the same reasons as [hijriMonthShortName] (WG-12): the month-name language is a
+     * Built here for the same reasons as [hijriMonthShortName]: the month-name language is a
      * `WidgetOptions` field the renderer cannot answer for, and building it in the projection is
      * what lets iOS read the same string with no Swift edit.
      *
@@ -347,7 +347,7 @@ public data class TodayHijriWidgetData(
      * The small widgets are read at a glance from arm's length, so they use the everyday Urdu word for
      * Monday while the grid's column heading and the in-app calendar keep `پیر`, the form Urdu
      * calendars print in a column. Both are supplied by the projection rather than chosen by a renderer
-     * (WG-12) — see [WidgetLocalization.urduWeekdayTileNames] — and the two are separate fields rather
+     * — see [WidgetLocalization.urduWeekdayTileNames] — and the two are separate fields rather
      * than one because a surface either names a single day or heads a column, and which one it is
      * decides the name.
      *

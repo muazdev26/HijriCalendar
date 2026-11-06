@@ -69,7 +69,7 @@ internal const val MIN_TYPE_SCALE: Float = 0.3f
  * `TextStyle`), and this family is designed to be set in Urdu Nastaliq, whose ascent and descent are
  * far taller than a Latin face's. The number is deliberately above the Latin ratio: sizing a stack
  * against the Latin ratio is what pushed the month caption off the bottom of the Today strip on a
- * Pixel 6a (an 11sp Nastaliq caption measured 31px of ink at 420dpi — see `docs/FEEDBACK-TODOS-2.md`).
+ * Pixel 6a (an 11sp Nastaliq caption measured 31px of ink at 420dpi).
  * An over-estimate costs a little empty space; an under-estimate clips a line.
  */
 internal const val TEXT_LINE_RATIO: Float = 1.7f

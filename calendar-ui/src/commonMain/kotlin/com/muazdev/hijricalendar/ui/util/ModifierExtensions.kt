@@ -25,8 +25,6 @@ import androidx.compose.ui.semantics.Role
  * `Modifier.clip(CircleShape)` in `HijriCalendarDayCell`'s chain, so the indication draws inside the
  * clip. No `ripple(bounded = true)` is needed, and the default indication is used rather than a
  * constructed one so it follows `LocalIndication.current` and therefore the ambient theme.
- *
- * @see UI-08-touch-feedback.md
  */
 internal fun Modifier.clickableIfEnabled(
     enabled: Boolean,

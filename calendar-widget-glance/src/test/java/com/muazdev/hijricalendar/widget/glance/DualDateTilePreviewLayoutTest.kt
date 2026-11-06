@@ -16,7 +16,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToInt
 
 /**
- * FD-10: the dual-date tile takes its type sizes from the sibling tiles rather than inventing a set, and
+ * The dual-date tile takes its type sizes from the sibling tiles rather than inventing a set, and
  * its Android 12-14 `previewLayout` mirror is held to them.
  *
  * ## What this file is really about
@@ -522,7 +522,7 @@ class DualDateTilePreviewLayoutTest {
      *
      * The *string* is a literal, which is deliberate and worth pinning: a separator is punctuation, not
      * text, so it is not language-specific and does not belong in the projection — unlike the month name,
-     * the weekday and the numerals, which are per-widget by WG-12. The grid header joins its own two title
+     * the weekday and the numerals, which are per-widget. The grid header joins its own two title
      * halves with a literal for the same reason.
      */
     @Test
@@ -658,7 +658,7 @@ class DualDateTilePreviewLayoutTest {
      *
      * The reference tear-off page's header is blue. Giving this tile a blue would look right on one launcher
      * and wrong in night mode and against a themed host, and it would be the only colour in the family that
-     * did not re-resolve for night mode (FD-07). Asserted because it is exactly the kind of one-off that
+     * did not re-resolve for night mode. Asserted because it is exactly the kind of one-off that
      * looks like an improvement in a diff.
      */
     @Test
@@ -747,8 +747,7 @@ class DualDateTilePreviewLayoutTest {
      * The composable is not reachable from a JVM test, so this covers the render paths' inputs: the band
      * reads [com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData.weekdayName], the body reads the
      * Hijri day, the **full** [com.muazdev.hijricalendar.widgetdata.TodayHijriWidgetData.hijriMonthName], and
-     * the Gregorian line reads its month and day — all in the widget's language rather than the device's
-     * (WG-12).
+     * the Gregorian line reads its month and day — all in the widget's language rather than the device's.
      */
     @Test
     fun everyZoneReadsAProjectedFieldInTheWidgetsLanguage() {
@@ -795,7 +794,7 @@ class DualDateTilePreviewLayoutTest {
             )
         }
 
-        // The language follows the widget, not the device (WG-12) — the same claim the strip's and the
+        // The language follows the widget, not the device — the same claim the strip's and the
         // tiles' tests make, held for the dual tile because it is a fifth widget that could get it wrong.
         assertTrue(
             "an Urdu widget must not render an English weekday name; got '${urdu.weekdayName}'",

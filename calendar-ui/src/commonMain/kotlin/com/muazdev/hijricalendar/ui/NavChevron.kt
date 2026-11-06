@@ -25,8 +25,7 @@ import androidx.compose.ui.unit.dp
  *
  * Swapping `extended` for `core` does not fix it, because the JetBrains icons artifacts stopped
  * being published at the 1.7.x line — `org.jetbrains.compose.material:material-icons-core:1.12.0`
- * does not exist. So there was no version-aligned icons artifact to move to. See
- * `docs/issues/UI-13-dependency-hygiene.md`.
+ * does not exist. So there was no version-aligned icons artifact to move to.
  *
  * A chevron is two lines of geometry that will never need redrawing. Drawing it costs about a dozen
  * lines and removes a dependency from a published artifact, which is the better trade even if the

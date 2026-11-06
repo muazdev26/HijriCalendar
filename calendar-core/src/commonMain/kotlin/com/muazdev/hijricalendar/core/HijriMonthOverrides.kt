@@ -23,8 +23,8 @@ import kotlin.concurrent.atomics.incrementAndFetch
  * half-applied change. There is no `synchronized` in this module by design.
  *
  * Persistence is the app's responsibility, not the library's. Restore a saved table with
- * [replaceAll] before constructing the calendar; see `docs/MONTH-END-LENGTH-OVERRIDES.md` and the
- * sample app for a compact `"year-month:length"` encoding.
+ * [replaceAll] before constructing the calendar; the sample app has a compact
+ * `"year-month:length"` encoding.
  */
 @OptIn(ExperimentalAtomicApi::class)
 public class HijriMonthLengths(initial: Map<Pair<Int, Int>, Int> = emptyMap()) {
@@ -124,8 +124,7 @@ public class HijriMonthLengths(initial: Map<Pair<Int, Int>, Int> = emptyMap()) {
  * writes overrides should name the instance it is writing to, not reach for a global.
  *
  * The table is process-global and **not** persisted by the library. It lives for the lifetime of
- * the process; the app is responsible for durable persistence (see [HijriMonthLengths] and
- * `docs/MONTH-END-LENGTH-OVERRIDES.md`).
+ * the process; the app is responsible for durable persistence (see [HijriMonthLengths]).
  *
  * **Migration note.** Prefer the DataStore-backed `HijriMonthLengthsRepository` from
  * `calendar-widget-glance` to a process-global table: it persists overrides between processes and

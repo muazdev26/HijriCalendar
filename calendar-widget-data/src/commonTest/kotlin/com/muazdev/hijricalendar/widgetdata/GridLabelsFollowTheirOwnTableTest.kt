@@ -98,7 +98,7 @@ class GridLabelsFollowTheirOwnTableTest {
         }
     }
 
-    // ── the absolute anchors from the report ───────────────────────────────
+    // ── the absolute anchors ────────────────────────────────────────
 
     @Test
     fun theShortenedMonthLabelsItsFirstDaysWithTheRealGregorianDates() {

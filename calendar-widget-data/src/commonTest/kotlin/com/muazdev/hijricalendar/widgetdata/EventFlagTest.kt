@@ -11,7 +11,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * FD-08: `HijriDayWidgetData.hasEvent` — the observance flag a renderer fills its grid cell from.
+ * `HijriDayWidgetData.hasEvent` — the observance flag a renderer fills its grid cell from.
  *
  * Two properties this pins, and the second is the one that could silently rot.
  *

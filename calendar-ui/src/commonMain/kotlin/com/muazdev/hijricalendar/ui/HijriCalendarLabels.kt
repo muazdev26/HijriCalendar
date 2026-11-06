@@ -82,7 +82,7 @@ public data class HijriCalendarLabels(
     val eventName: (HijriEvent) -> String = { it.nameEn },
 
     /**
-     * A suffix for a date that carries an observance — the line under the grid (FD-08).
+     * A suffix for a date that carries an observance — the line under the grid.
      *
      * A function rather than a string because the *placement* of it is a locale's business too: Urdu
      * may want it on its own line under the header and English inline. Returning `""` renders nothing.
@@ -121,9 +121,9 @@ public data class HijriCalendarLabels(
     /**
      * The banner's text for a month that holds no observance at all.
      *
-     * **Non-empty by default**, which is what makes the bar permanently present: the report asked for
-     * an always-visible historical-events line, and a bar that disappears on most Hijri months is the
-     * thing it was reporting. The line is reserved rather than removed for the same reason the
+     * **Non-empty by default**, which is what makes the bar permanently present: the requirement is an
+     * always-visible historical-events line, and a bar that disappears on most Hijri months is the
+     * failure it guards against. The line is reserved rather than removed for the same reason the
      * widget's footer reserves one — a bar that comes and goes moves the calendar under the user's
      * finger.
      *

@@ -10,7 +10,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Regression coverage for [UI-05-pager-window-crash].
+ * Regression coverage for the pager window's bounds.
  *
  * The pager used to compute two page indices from the caller's `minDate` / `maxDate` and feed them
  * to a **two-argument** `Int.coerceIn`, which documents *"Requires `minimumValue <=

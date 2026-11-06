@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The sample's override of the dual-date tile's provider info: identical to the library's apart from
      `android:configure` and `widgetFeatures`, which route long-press to this app's own settings
-     screen (FD-10). Resource merging resolves the library manifest's @xml reference to this file, so
-     the sample declares no <receiver> of its own — the library is the single declaration site (WG-10).
+     screen. Resource merging resolves the library manifest's @xml reference to this file, so
+     the sample declares no <receiver> of its own — the library is the single declaration site.
 
      `widgetFeatures="reconfigurable|configuration_optional"` is what lets the pin flow run the configure
      activity *and* lets a user skip it: the tile follows the family options mirror either way. -->

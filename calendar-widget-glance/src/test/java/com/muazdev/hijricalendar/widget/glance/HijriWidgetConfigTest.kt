@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
  * The round-trip tests **drive `save` and hand its output to `restore`.** The previous version
  * re-implemented `save` as a literal list, which asserted that the two halves of one function agreed
  * with each other rather than that either was correct — a `save` that silently dropped a field, or
- * moved one, kept the suite green (WG-06).
+ * moved one, kept the suite green.
  */
 class HijriWidgetConfigTest {
 
@@ -128,7 +128,7 @@ class HijriWidgetConfigTest {
     @Test
     fun widgetOptionsSaver_savedValueIsAString() {
         // A single String, not a positional list. This is the property that makes the saver tolerant
-        // of another app version's Bundle (WG-06): nothing in it is positional, so nothing in it can
+        // of another app version's Bundle: nothing in it is positional, so nothing in it can
         // be indexed out of range.
         val saver = HijriWidgetConfig.widgetOptionsSaver()
         val saved = requireNotNull(savedValue(saver, WidgetOptions(adjustmentDays = 1)))
@@ -144,7 +144,7 @@ class HijriWidgetConfigTest {
         assertNull(saver.restore(42 as Any), "a value written by some other saver entirely")
 
         // An unknown enum *name* is no longer unreadable: `coerceInputValues` contains it to that one
-        // field (WD-06), so the other options survive. Before, this returned null.
+        // field, so the other options survive. Before, this returned null.
         val coerced = saver.restore("""{"adjustmentDays":-2,"language":"PERSIAN"}""")
         assertEquals(-2, assertNotNull(coerced).adjustmentDays)
 
@@ -159,7 +159,7 @@ class HijriWidgetConfigTest {
     @Test
     fun widgetOptionsSaver_readsAStoredPinAndFallsBackOnAHalfPin() {
         // The pin is stored as two independent nullable fields, so a stored value can carry one
-        // without the other (WD-03). It must come back meaning "not pinned", not as a half-pin.
+        // without the other. It must come back meaning "not pinned", not as a half-pin.
         val saver = HijriWidgetConfig.widgetOptionsSaver()
         val pinned = requireNotNull(
             saver.restore(WidgetOptionsJson.encode(WidgetOptions(pinnedYear = 1448, pinnedMonth = 3))),
@@ -201,7 +201,7 @@ class HijriWidgetConfigTest {
 
     @Test
     fun decodeOptionsJson_doesNotReinterpretANewerBlobAsLegacy() {
-        // WG-09's worked example. The discriminator is the *shape*, not "the shared decode failed":
+        // The worked example. The discriminator is the *shape*, not "the shared decode failed":
         // a blob whose enums are strings is in the current format even when this library cannot read
         // one of its values, and the legacy reader must never claim it.
         val modern = """{"adjustmentDays":-2,"numeralStyle":"ARABIC_INDIC","source":"PAKISTAN",
@@ -210,7 +210,7 @@ class HijriWidgetConfigTest {
         assertEquals(-2, options.adjustmentDays)
         assertEquals(WidgetSource.PAKISTAN, options.source)
         assertEquals(WeekStart.MONDAY, options.effectiveWeekStart)
-        // Only the field that is genuinely unreadable falls back — see WD-06.
+        // Only the field that is genuinely unreadable falls back.
         assertEquals(WidgetLanguage.ENGLISH, options.language)
     }
 
@@ -236,7 +236,7 @@ class HijriWidgetConfigTest {
 
     @Test
     fun decodeOptionsJson_keepsTheOtherFieldsWhenOneEnumIsUnreadable() {
-        // WD-06, reaching this module: `coerceInputValues` contains the damage to the one field, so
+        // The coercing decode, arriving in this module: it contains the damage to the one field, so
         // the blob decodes and the -2 adjustment survives. Under the old codec this returned null and
         // then, via the unfenced fallback, all-defaults.
         val options = requireNotNull(
@@ -272,7 +272,7 @@ class HijriWidgetConfigTest {
     fun decodeOptionsJson_legacyReaderSeedsNumeralsFromTheLanguage() {
         // A widget that predates the numeral-style option stored no value for it, so the shared
         // decoder must fall back to the language's default rather than the field default.
-        // `{"language":0}` is an *integer* enum, which is exactly what the fence looks for (WG-09).
+        // `{"language":0}` is an *integer* enum, which is exactly what the fence looks for.
         val legacy = """{"language":0}"""
         val urdu = requireNotNull(HijriWidgetConfig.decodeOptionsJson(legacy))
         assertEquals(NumeralStyle.ARABIC_INDIC, urdu.numeralStyle)

@@ -18,7 +18,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-02, on the `calendar-ui` side: how many rows the grid draws, and what it does to a
+ * `showAdjacentDays` on the `calendar-ui` side: how many rows the grid draws, and what it does to a
  * neighbouring month's day.
  *
  * The arithmetic here is a **second copy** of `HijriMonthWidgetData.weeksToRender` in
@@ -229,7 +229,7 @@ class AdjacentDaysGridMathTest {
 }
 
 /**
- * FD-04, and round 2 of the same report: the weekday header's *weight* and *tone*.
+ * The weekday header's *weight* and *tone*, revisited in the second round.
  *
  * The Urdu weekday names (`جمعرات`, `بدھ`) are the ones that read as weak at `labelSmall`: a longer
  * word at a lighter weight disappears into the row above it. The weight was raised to bold.
@@ -239,7 +239,7 @@ class AdjacentDaysGridMathTest {
  * and would move the grid's row height and every cell beneath it. That reasoning is not visible in
  * the composable, so the style is a named internal constant and the size is asserted alongside it.
  *
- * Round 2 reported the names as still not bold. The platform settles why more weight is not
+ * The second round reported the names as still not bold. The platform settles why more weight is not
  * available: Glance (the widget renderer) maps `fontWeight` onto a `TextAppearanceSpan` whose
  * `Medium` and `Bold` resolve to the same style, and a `fontFamily` becomes a `TypefaceSpan` that
  * re-applies the paint's current style and even synthesises bold when the face has none — so on
@@ -276,7 +276,8 @@ class DayOfWeekLabelStyleTest {
     }
 
     /**
-     * Round 2's fix: the weekday labels take the tone of the days they label, not the muted one.
+     * The second round's fix: the weekday labels take the tone of the days they label, not the muted
+     * `onSurfaceVariant` one.
      *
      * `onSurfaceVariant` is what made a `Bold` row read as a caption. Asserted as a *relationship*
      * with `dayContentColor` rather than as the literal `onSurface`, because "the weekday labels are

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Static preview shown in the Android 12-14 widget picker for the dual-date tile (FD-10).
+<!-- Static preview shown in the Android 12-14 widget picker for the dual-date tile.
      Mirrors DualDateTileRoot, top to bottom:
 
        1. the accent band — the WEEKDAY name ("Wed", "today");

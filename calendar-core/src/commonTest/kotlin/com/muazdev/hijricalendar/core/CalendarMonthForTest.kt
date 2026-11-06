@@ -6,10 +6,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Regression coverage for [UI-01-scoped-overrides-ignored], pinned against the builders that
- * replaced the hand-written call sites ([UI-03-one-month-builder]).
+ * Regression coverage for scoped month-length overrides, pinned against the builders that
+ * replaced the hand-written call sites.
  *
- * `monthLengths` is the scoped override table CORE-02 introduced, and it used to be unread by the
+ * `monthLengths` is the scoped override table, and it used to be unread by the
  * render path: every argument list in `calendar-ui` omitted `overrides`, so the grid fell back to
  * the process-global `HijriMonthOverrides.current` while the state reported the scoped table's
  * answer. A calendar with a scoped table rendered a month its own data model said did not exist.

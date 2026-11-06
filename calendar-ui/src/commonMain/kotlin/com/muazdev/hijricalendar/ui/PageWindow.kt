@@ -36,8 +36,6 @@ import com.muazdev.hijricalendar.core.toHijriYearMonth
  *
  * The fixed ±500 window is also gone: an unbounded side now reaches the edge of the Hijri table,
  * which is what `canGoToPreviousMonth` / `canGoToNextMonth` already allow. See [forBounds].
- *
- * @see UI-05-pager-window-crash
  */
 @Immutable
 internal data class PageWindow(
@@ -105,8 +103,8 @@ internal data class PageWindow(
 /**
  * How the pager should move from one page to another.
  *
- * This was a one-line `if` inside the pager's reconciliation effect, and it is the whole of
- * [UI-09-pager-effect-sync](UI-09-pager-effect-sync.md): a one-month move is a header-arrow tap and
+ * This was a one-line `if` inside the pager's reconciliation effect, and it is the whole rule: a
+ * one-month move is a header-arrow tap and
  * reads better animated, while anything larger is a `goToToday`, a cross-month selection, or a
  * month restored from saved state disagreeing with a restored page — and animating those scrolls
  * the user through every month in between.

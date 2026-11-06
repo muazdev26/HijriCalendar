@@ -3,7 +3,7 @@ package com.muazdev.hijricalendar.widgetdata
 /**
  * A Hijri year and month, as a type.
  *
- * **Why a named type instead of `Pair<Int, Int>`** (WD-07). A pair of ints has no type-level
+ * **Why a named type instead of `Pair<Int, Int>`**. A pair of ints has no type-level
  * distinction between a Hijri year-month and any other pair, so a renderer can swap the components
  * and get a grid for "month 1447" — which is out of range, returns `null`, and leaves a silently
  * blank widget. `.first` being the year is a convention, not a constraint, and the whole point of

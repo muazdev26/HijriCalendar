@@ -8,9 +8,9 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 /**
  * Pairs [HijriCompactDateWidget] with the app widget host.
  *
- * Its own receiver — and so its own picker entry and provider info — for the same reason every widget in
- * this family has one: the picker discovers a widget per `APPWIDGET_UPDATE` receiver carrying the
- * provider meta-data (WG-10).
+ * Its own receiver — and so its own picker entry and provider info — for the same reason every widget
+ * in this family has one: the picker discovers a widget per `APPWIDGET_UPDATE` receiver carrying the
+ * provider meta-data.
  *
  * The placement hooks and foreground gate are identical to the rest of the family: the first instance
  * arms the shared midnight alarm ([HijriWidgetRefreshScheduler.reconcile]) and removal reconciles rather

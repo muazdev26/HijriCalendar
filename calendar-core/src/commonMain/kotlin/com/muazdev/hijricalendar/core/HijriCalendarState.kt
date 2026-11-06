@@ -130,7 +130,7 @@ public constructor(
      */
     showAdjacentDays: Boolean = false,
     /**
-     * Whether the grid draws a hairline between every cell (FD-04).
+     * Whether the grid draws a hairline between every cell.
      *
      * `false` by default, so an existing calendar is unchanged. On a grid of 42 numbers an undivided
      * month is hard to scan — you read across, stop, re-read — and a hairline is the cheapest fix that
@@ -293,7 +293,7 @@ public constructor(
      *
      * Deliberately null in Pakistan mode: [selectedDateSummary] reads observed space first, so
      * deriving it there would make a Pakistan-mode card name the observed day instead of the Pakistan
-     * one.
+     * one. This derivation is only for the observed case.
      */
     private fun HijrahDate?.deriveObservedSelection(): ObservedHijriDate? {
         if (pakistanDates || !hasObservedOverrides) return null
@@ -378,8 +378,7 @@ public constructor(
      * [HijrahYearMonth.toCalendarMonth] itself, from an `11`-key `remember` list it maintained by
      * hand, and that list omitted [monthLengths] — so the render path silently read the
      * process-global override table while this state reported the scoped one, and the grid painted
-     * a month its own data model said did not exist. See
-     * `docs/issues/UI-01-scoped-overrides-ignored.md`.
+     * a month its own data model said did not exist.
      *
      * A renderer should call this rather than [HijrahYearMonth.toCalendarMonth], so a new input to
      * the builder cannot be added here and forgotten at the call site.
@@ -403,8 +402,8 @@ public constructor(
         // pager does not use [calendarMonth]: it builds the visible page and its two neighbours
         // through this function. When the revision lived only on the property, `calendarMonth`
         // reported a freshly-overridden month while every painted page kept serving the month built
-        // before the change — the state and the screen disagreed, which is the exact failure mode
-        // UI-01 documented. Verified by PakistanMonthEndOverrideTest in `calendar-ui`.
+        // before the change — the state and the screen disagreed. Verified by
+        // PakistanMonthEndOverrideTest in `calendar-ui`.
         _overridesRevision
         return yearMonth.toCalendarMonth(
             overrides = monthLengths,

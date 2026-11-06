@@ -10,8 +10,8 @@ import kotlin.test.assertEquals
  *
  * It enumerates the class's fields through `WidgetOptions::class.java.declaredFields`, and `java` is
  * not a member of `KClass` on Kotlin/Native — the whole file failed to compile for
- * `iosSimulatorArm64Test`. That is WD-08's own lesson arriving inside the fix for WD-06's symptom:
- * a common-source-set test that only the desktop run exercises compiles happily and is silently
+ * `iosSimulatorArm64Test`. That is the platform-boundary lesson again: a common-source-set test
+ * that only the desktop run exercises compiles happily and is silently
  * absent from the platform whose divergence matters.
  *
  * Moving it here is right rather than a compromise, because of *what* it checks. Every behavioural

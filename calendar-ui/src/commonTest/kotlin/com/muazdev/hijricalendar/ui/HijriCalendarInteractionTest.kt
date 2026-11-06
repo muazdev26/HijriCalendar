@@ -34,8 +34,8 @@ import kotlin.test.assertTrue
  * two-way handshake with [HijriCalendarState], the disabled-cell semantics, and the `require` that
  * [HijriWeekRow] executes inside composition.
  *
- * See [UI-02-compose-test-harness](UI-02-compose-test-harness.md). These are the tests that had to
- * live on a device before, and that now run in `./gradlew :calendar-ui:desktopTest`.
+ * These are the tests that had to live on a device before, and that now run in
+ * `./gradlew :calendar-ui:desktopTest`.
  */
 @OptIn(ExperimentalTestApi::class)
 class HijriCalendarInteractionTest {
@@ -98,7 +98,7 @@ class HijriCalendarInteractionTest {
      * The number of day cells the grid actually paints for [year]-[month].
      *
      * Counted from the month's own days rather than from a constant, because the count is now a
-     * function of the month (FD-02): with the neighbours hidden the grid paints exactly this month's
+     * function of the month: with the neighbours hidden the grid paints exactly this month's
      * days, and a hardcoded 42 would only pass for the months that happen to need six rows.
      */
     private fun paintedCells(year: Int, month: Int): Int =
@@ -114,8 +114,8 @@ class HijriCalendarInteractionTest {
     /**
      * With the neighbours shown, the grid is still the full padded 42.
      *
-     * The unchanged half of FD-02, and the half worth asserting: a host that turns the neighbours
-     * on must get exactly what it got before.
+     * The unchanged half of `showAdjacentDays`, and the half worth asserting: a host that turns the
+     * neighbours on must get exactly what it got before.
      */
     @Test
     fun withAdjacentDaysShown_theGridIsStillFortyTwoCells() = runComposeUiTest {
@@ -199,8 +199,7 @@ class HijriCalendarInteractionTest {
 
     /**
      * The pager and the state are two owners of "which month is showing", kept in agreement by two
-     * `LaunchedEffect`s and a `drop(1)`. The agreement is the invariant worth pinning; see
-     * [UI-09-pager-effect-sync](UI-09-pager-effect-sync.md) for the mechanism.
+     * `LaunchedEffect`s and a `drop(1)`. The agreement is the invariant worth pinning.
      */
     @Test
     fun afterNavigation_theStateAndTheRenderedMonthAgree() = runComposeUiTest {
@@ -226,7 +225,7 @@ class HijriCalendarInteractionTest {
      * `state.goToNextMonth()`, which exercises only the state → page effect. Deleting the
      * swipe collector's `state.goToMonth` call leaves all of them green, because nothing in the
      * suite ever moves the pager. This test swipes the grid, so it is the one that fails when the
-     * two effects stop agreeing — see [UI-09-pager-effect-sync](UI-09-pager-effect-sync.md).
+     * two effects stop agreeing.
      */
     @Test
     fun swipingTheGridAdvancesTheState() = runComposeUiTest {
@@ -269,7 +268,7 @@ class HijriCalendarInteractionTest {
 
     /**
      * A bounded calendar must not be swiped out of. The pager's `pageCount` is the window, so this
-     * is a property of the page count rather than of a clamp — see UI-05.
+     * is a property of the page count rather than of a clamp.
      */
     @Test
     fun aBoundedCalendarCannotBeSwipedBeforeItsMinDate() = runComposeUiTest {
@@ -362,7 +361,7 @@ class HijriCalendarInteractionTest {
         assertEquals(7, state.currentMonth.month.number)
     }
 
-    // ── the observance banner follows the displayed month (FD-08) ─────
+    // ── the observance banner follows the displayed month ─────
 
     /**
      * The banner answers two different questions, and the test walks the boundary between them.
@@ -471,8 +470,9 @@ class HijriCalendarInteractionTest {
      * convention that any custom label lambda is free to drop — rather than through semantics.
      *
      * This test pins the mechanism that actually works today, and the KDoc records the gap. The fix
-     * is to add `disabled()` to the cell's `semantics` block, which is a UI-06 change because it
-     * alters an observable accessibility surface of a published composable.
+     * is to add `disabled()` to the cell's `semantics` block, which alters an observable
+     * accessibility surface of a published composable and is therefore a deliberate compatibility
+     * decision rather than a quiet fix.
      */
     @Test
     fun aDisabledCellIsNotClickable() = runComposeUiTest {
@@ -528,7 +528,7 @@ class HijriCalendarInteractionTest {
     fun weekRow_rejectsAnythingButSevenDays() = runComposeUiTest {
         // HijriWeekRow's require() runs *inside* composition, so a short list crashes the calendar
         // rather than failing a test. Here the intent is only that the guard fires with a message
-        // naming the requirement; making it not consumer-reachable at all is UI-12's argument.
+        // naming the requirement; making it not consumer-reachable at all is the stronger fix.
         val short = stateFor().calendarMonth.days.take(6)
         val ex = assertFailsWith<IllegalArgumentException> {
             require(short.size == 7) { "HijriWeekRow requires exactly 7 days, got ${short.size}" }
@@ -543,7 +543,7 @@ class HijriCalendarInteractionTest {
      * [aDisabledCellIsNotClickable]. Together they are the semantic contract of the cell's
      * interactivity: offered when live, absent when not.
      *
-     * They are not evidence of a **visible** press indication — see the ticket's "Not covered".
+     * They are not evidence of a **visible** press indication.
      */
     @Test
     fun anEnabledCellOffersAClickAction() = runComposeUiTest {

@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 
 /**
  * Pins the mirroring `NavChevron` took over from `Icons.AutoMirrored` when
- * [UI-13](UI-13-dependency-hygiene.md) removed the icons dependency.
+ * the icons dependency was removed.
  *
  * `Icons.AutoMirrored.Filled.KeyboardArrowLeft` mirrored **itself** from the ambient layout
  * direction. A drawn glyph does not, so the mirroring became this library's responsibility. The

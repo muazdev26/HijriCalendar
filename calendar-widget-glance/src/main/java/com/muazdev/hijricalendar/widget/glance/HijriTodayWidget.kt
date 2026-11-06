@@ -187,7 +187,7 @@ internal object TodayStripTypography {
      * exactly rather than being a lookalike: same fill, same on-accent text, same weight. It was the
      * only bare-text weekday left in the family.
      *
-     * **A step smaller than it shipped** (17sp → 13sp, round 3). At a placed strip's height the band
+     * **A step smaller than it shipped** (17sp → 13sp). At a placed strip's height the band
      * was taking ~43% of the widget and leaving the month captions under it ~9.4sp, which is exactly
      * what the feedback reported: the weekday line "taking a large portion of day name ... which
      * shortens the month names which are almost un readable". The band is one full-width word with the
@@ -209,7 +209,7 @@ internal object TodayStripTypography {
     /**
      * The month + year (and era) caption under each day figure — the bottom line of each column.
      *
-     * **A step larger than it shipped** (11sp → 14sp, round 3): this is the line the strip's feedback
+     * **A step larger than it shipped** (11sp → 14sp): this is the line the strip's feedback
      * is about. It was the smallest text in the family — ~9.4sp at a placed strip's height, against a
      * 16sp weekday band and a 24sp figure — while carrying the month and year a reader needs in order
      * to know *when* the date is. The band above it gave the height up ([weekdaySize]), so this costs
@@ -333,7 +333,7 @@ internal object TodayStripTypography {
      *
      * [yearText] is the projection's era-appended year (`1448 ھ`, `2026 AH`) — the bare year is its
      * first space-separated part, so no extra projection field is needed and the era keeps the spelling
-     * the projection chose for the widget's language (WG-12). When the projection appended no era the
+     * the projection chose for the widget's language. When the projection appended no era the
      * first two candidates are the same string and the era rung is skipped.
      *
      * The width is *estimated* (see [estimatedCaptionWidthDp]); both wrong answers are benign, and the
@@ -516,7 +516,7 @@ internal fun HijriTodayRoot(
  * first, then the month's spelling, and never the year — and the projection's `*YearText` is
  * era-appended (`1448 ھ`, `2026 AH`), whose bare part is its first space-separated piece, so no extra
  * projection field is needed and the era keeps the spelling the projection chose for the widget's
- * language (WG-12, FD-05). Both halves go through here so that ladder is stated once rather than
+ * language. Both halves go through here so that ladder is stated once rather than
  * twice.
  */
 @Composable
@@ -555,7 +555,7 @@ private fun RowScope.DateHalf(
  * Its own composable rather than an inline branch because `HijriTodayRoot` had grown past detekt's
  * method-length limit, and this is the one part of it that is not the strip's layout: it is the
  * `ChromeLabels.monthUnavailable` message, resolved from the widget's own language rather than the
- * device locale (WG-12, the same rule every other string on this widget follows).
+ * device locale, the same rule every other string on this widget follows.
  */
 @Composable
 private fun StripUnavailable(colors: WidgetColors, language: WidgetLanguage) {
@@ -575,11 +575,10 @@ private fun StripUnavailable(colors: WidgetColors, language: WidgetLanguage) {
 /**
  * The hairline between the two date halves.
  *
- * `widget_cell_border` is the grid's own divider token (FD-04), reused rather than given a second
+ * `widget_cell_border` is the grid's own divider token, reused rather than given a second
  * near-identical colour: it is already a hairline alpha over the surface with a night variant, which
  * is exactly what this needs, and it is a `@ColorRes` `ColorProvider` like every other member of
- * [WidgetColors] so a night-mode switch re-resolves it at bind time rather than restarting the widget
- * (FD-07).
+ * [WidgetColors] so a night-mode switch re-resolves it at bind time rather than restarting the widget.
  *
  * Unweighted, so it stays a hairline rather than taking a share of the width from the two dates; the
  * [DIVIDER_GAP_DP] padding either side is what keeps it from touching their text, which matters because

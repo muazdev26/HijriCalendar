@@ -263,8 +263,8 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 selectedEventName = null,
                 colors = colors,
                 language = options.language,
-                // The picker preview is non-interactive by construction (WG-12's grouping makes
-                // that one value rather than four nulls a call site has to remember).
+                // The picker preview is non-interactive by construction: grouping the actions makes
+                // that one value rather than four nulls a call site has to remember.
                 actions = WidgetActions(),
             )
         }
@@ -317,7 +317,7 @@ internal data class HijriWidgetRenderData(
      */
     val datePrimary: WidgetDatePrimary,
     /**
-     * The day the user tapped, or `null` (FD-09). Read from the same reactive preferences snapshot as
+     * The day the user tapped, or `null`. Read from the same reactive preferences snapshot as
      * the viewed month, so a tap and the render it triggers cannot disagree about what is selected —
      * and so a render that races a tap sees the newest value rather than the one it started with.
      */
@@ -341,7 +341,7 @@ internal fun buildRenderData(
         "render:grid",
         "glance=$glanceId overrides=${options.monthLengthOverrides.size} language=${options.language} source=${options.source} optionsFrom=$optionsFrom",
     )
-    // Through [HijriWidgetRenderCache.render], which is what the live widget uses (WG-11). This used
+    // Through [HijriWidgetRenderCache.render], which is what the live widget uses. This used
     // to call the projection builders directly, so the preview and the widget shared a *function*
     // but not a *pipeline* — the live widget's grid was cached and the preview's was not, which is
     // precisely the difference the cache's KDoc claimed could not exist.
@@ -377,7 +377,7 @@ internal fun computeDeviceLayoutRtl(context: Context): Boolean =
     context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
 
 /**
- * The XOR on its own, so it can be tested without a `Configuration` (WG-16).
+ * The XOR on its own, so it can be tested without a `Configuration`.
  *
  * The split is deliberate and not just about the test: reading the device's layout direction is
  * plumbing that the platform owns, while the *decision* — whether the projection must pre-reverse
@@ -414,10 +414,10 @@ internal fun resolveGridMonth(
     ?: todayHijri?.let { HijriYearMonth(year = it.hijriYear, month = it.hijriMonth) }
 
 /**
- * Whether the grid is currently showing [year]-[month] (FD-09).
+ * Whether the grid is currently showing [year]-[month].
  *
  * Read through the same [resolveGridMonth] the render path uses, so "should this tap move the grid" and
- * "what month does the grid draw" cannot disagree about a half-set pin — which is exactly the WD-03
+ * "what month does the grid draw" cannot disagree about a half-set pin — which is exactly the
  * defect the single resolver exists to prevent.
  */
 internal fun isShowingMonth(
@@ -444,7 +444,7 @@ internal fun buildMonthData(
         hijriYear = year,
         hijriMonth = month,
         options = options,
-        // From the widget's own options (FD-03). This used to be the literal
+        // From the widget's own options. This used to be the literal
         // `WeekDay.WEEKEND_DAYS`, so every widget shaded Friday and Saturday and nobody could change
         // it — which is right for the Pakistan calendar the library also supports, and wrong for a
         // user whose weekend is not Friday and Saturday.
@@ -471,7 +471,7 @@ internal fun buildMonthData(
  * resolved month, the adjustment, the week start, the digit style, both languages, the source, the
  * reading direction and the override table. The cache used to be a pair of unbounded `HashMap`s
  * whose KDoc claimed "at most one month + one today per widget instance" — true when the key *was*
- * the id, wrong from the moment the key grew, and nothing forced it to be re-examined (WG-04). The
+ * the id, wrong from the moment the key grew, and nothing forced it to be re-examined. The
  * entries are large: a `HijriMonthWidgetData` is 42 cells of two `String`s each. And nothing in
  * this module ever learns that a widget was removed — Glance deletes its own DataStore and says
  * nothing — so an LRU is the only design that can be correct; a per-instance map cleaned on removal
@@ -484,8 +484,8 @@ internal fun buildMonthData(
  * thread on some devices, so that is a frame-time hazard in the host app, not just this module.
  *
  * The settings preview shares this cache too, under a stable synthetic id ([PREVIEW_CACHE_ID]), so
- * "the preview cannot drift from the widget" is true of the path and not just of the function
- * (WG-11). It used to key on the fresh random id that `GlanceAppWidget.compose()` mints per call —
+ * "the preview cannot drift from the widget" is true of the path and not just of the function.
+ * It used to key on the fresh random id that `GlanceAppWidget.compose()` mints per call —
  * an entry no future read could ever hit, so the preview path grew the cache without bound and
  * returned nothing for the cost.
  */
@@ -562,7 +562,7 @@ internal object HijriWidgetRenderCache {
         val rightToLeft: Boolean,
         val overrides: OverrideKey,
         /**
-         * FD-03. **This key omitted the weekend set for one commit**, and the symptom was that the
+         * **This key must include the weekend set**, and the symptom of leaving it out is that the
          * weekend setting appeared to do nothing: a render after the change served a month built with
          * the previous set, so the shaded columns stayed exactly where they were while the UI reported
          * a new choice.
@@ -613,7 +613,7 @@ internal object HijriWidgetRenderCache {
         val monthData = if (monthKey == null) {
             null
         } else {
-            // Read and write around the build, never across it (WG-04c). Two threads may build the
+            // Read and write around the build, never across it. Two threads may build the
             // same month concurrently — a wasted build, never a wrong result, since
             // `HijriMonthWidgetData` is immutable — and that is strictly better than serialising
             // every widget's render in the process on one monitor. The earlier `synchronized` also
@@ -658,7 +658,7 @@ internal object HijriWidgetRenderCache {
             overrideCacheKey(options),
         )
         // Same read-write-build-write shape as [render] — see there for why the build is outside
-        // the cache's own lock (WG-04c).
+        // the cache's own lock.
         return todayCache.get(key)
             ?: todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
                 ?.also { todayCache.put(key, it) }
@@ -666,7 +666,7 @@ internal object HijriWidgetRenderCache {
 }
 
 /**
- * The widget's palette, as **resource ids** rather than resolved colours (FD-07).
+ * The widget's palette, as **resource ids** rather than resolved colours.
  *
  * Each member is a `ColorProvider` built from an `@ColorRes`, so what Glance serialises into the
  * `RemoteViews` is the resource reference and the launcher resolves it against **its own**
@@ -676,7 +676,7 @@ internal object HijriWidgetRenderCache {
  * The previous shape resolved everything eagerly — `context.getColor(R.color.x)` — and handed Glance
  * a literal int. A number carries no idea of where it came from, so the launcher could not re-resolve
  * it, and a night-mode switch had to invalidate the whole view to change anything. That is the restart
- * the report describes, and no amount of `updatePeriodMillis` removes it: re-rendering is the restart.
+ * users see, and no amount of `updatePeriodMillis` removes it: re-rendering is the restart.
  * A `uiMode` broadcast receiver would only make the rebuild *faster*.
  *
  * Because a `ColorProvider` cannot carry an alpha (Glance 1.2 has only the `Color` and `Int` factories),
@@ -692,7 +692,7 @@ internal class WidgetColors(
     val accent: ColorProvider,
     val primaryText: ColorProvider,
     val secondaryText: ColorProvider,
-    /** A day of a neighbouring Hijri month, when `showAdjacentDays` paints them (FD-02). */
+    /** A day of a neighbouring Hijri month, when `showAdjacentDays` paints them. */
     val outOfMonthDay: ColorProvider,
     /** The Gregorian day under an in-month Hijri figure. */
     val gregorianDay: ColorProvider,
@@ -700,8 +700,7 @@ internal class WidgetColors(
     val outOfMonthGregorianDay: ColorProvider,
     val weekendText: ColorProvider,
     /**
-     * The content colour on a **filled** cell — the selected day's fill (FD-09) and an observance's
-     * wash (FD-08).
+     * The content colour on a **filled** cell — the selected day's fill and an observance's wash.
      *
      * Named for the fill it is drawn on rather than for the one day it once marked: the redesign moved
      * the selection from a corner ring to a full block, so the accent container's content colour is now
@@ -709,7 +708,7 @@ internal class WidgetColors(
      */
     val onTodayText: ColorProvider,
     /**
-     * The fill on a day carrying an observance (FD-08).
+     * The fill on a day carrying an observance.
      *
      * Deliberately **not** [selectedBackground]: reusing the accent would make an Eid indistinguishable
      * from the day the user tapped. This is the container tone — quiet enough to read as information
@@ -719,10 +718,10 @@ internal class WidgetColors(
     val eventDayBackground: ColorProvider,
     /** Content on [eventDayBackground]. Its own resource because a `ColorProvider` cannot tint. */
     val onEventDayText: ColorProvider,
-    /** The hairline between cells, when `showCellBorders` is on (FD-04). */
+    /** The hairline between cells, when `showCellBorders` is on. */
     val cellBorder: ColorProvider,
     /**
-     * The vertical rule between the weekday header's columns, when `showCellBorders` is on (round 3).
+     * The vertical rule between the weekday header's columns, when `showCellBorders` is on.
      *
      * Its own member rather than a second use of [cellBorder], because the two are drawn on different
      * fills: `cellBorder` is the accent at 40% over the widget background, and the weekday row's fill
@@ -731,7 +730,7 @@ internal class WidgetColors(
      */
     val bandDivider: ColorProvider,
     /**
-     * The fill on the day the widget presents as chosen (FD-09).
+     * The fill on the day the widget presents as chosen.
      *
      * A full block, matching the in-app selected day: the redesign replaced the corner ring with the
      * accent container, because a ring could not carry the accent without an alpha (which a
@@ -781,8 +780,8 @@ internal class WidgetColors(
          * resources with no night variant — see `values/colors_widget_theme.xml`.
          *
          * Selects resource ids; it never resolves one, so this stays a cheap `when` and the
-         * no-restart property of FD-07 survives for all three branches. A theme change therefore
-         * costs an ordinary re-compose of the widget, which is unavoidable — the option is a
+         * no-restart property of resource-id palettes survives for all three branches. A theme change
+         * therefore costs an ordinary re-compose of the widget, which is unavoidable — the option is a
          * configuration change, not a night-mode switch.
          */
         fun forTheme(theme: WidgetTheme): WidgetColors = when (theme) {
@@ -839,7 +838,7 @@ private val DARK: WidgetColors = WidgetColors(
 )
 
 /**
- * The action for one day cell (FD-09), or `null` when the widget cannot be tapped.
+ * The action for one day cell, or `null` when the widget cannot be tapped.
  *
  * Null in three cases, all of them deliberate:
  *
@@ -910,7 +909,7 @@ internal fun HijriWidgetRoot(
      */
     selectedEventName: String?,
     colors: WidgetColors,
-    // The widget's own language, for the chrome's accessibility labels (WG-12). Not derivable from
+    // The widget's own language, for the chrome's accessibility labels. Not derivable from
     // `monthData`: a widget that fell back to the today card has no month projection at all, and its
     // labels still have to be in the right language.
     language: WidgetLanguage,
@@ -1041,8 +1040,8 @@ private fun headerStepAvailable(
 /**
  * The grid's header row: the two month arrows flanking the centred title line.
  *
- * Split out of [MonthGrid] when WG-12 threaded the widget's language into it for the chrome's
- * accessibility labels and pushed the function past detekt's length limit. It is a natural seam —
+ * Split out of [MonthGrid] because threading the widget's language into the header for the chrome's
+ * accessibility labels pushed the function past detekt's length limit. It is a natural seam —
  * the header is the only part of the grid with a layout that depends on the reading direction, and
  * keeping the two mirroring branches together makes them easy to compare.
  */
@@ -1067,7 +1066,7 @@ private fun MonthHeader(
     val widthDp = LocalSize.current.width.value
     val arrowIcon = GridHeaderTypography.arrowIconDp(widthDp).dp
     val actionIcon = GridHeaderTypography.actionIconDp(widthDp).dp
-    // One size for both title lines (round 3) — see [MonthTitle].
+    // One size for both title lines — see [MonthTitle].
     val titleSize = GridHeaderTypography.titleSp(widthDp).sp
     // What the two title lines actually have to fit in: the widget, less both arrow targets and both
     // in-title action icons, each of which is its icon plus 4dp of padding a side. Handed to the title
@@ -1299,7 +1298,7 @@ private fun MonthGrid(
             //
             // When neither applies the line says **"No event"** rather than rendering empty: an empty
             // line is indistinguishable from a footer that failed to load, and the reserved line
-            // (FD-08) is only useful if the user can tell it is empty on purpose. A selection in a
+            // is only useful if the user can tell it is empty on purpose. A selection in a
             // *different* month than the one shown is treated as no selection here, exactly as
             // `isSelectedCell` does for the cells — the footer must describe the month on screen.
             eventName = if (selectedDay != null && selectedDay.isInMonth(month.hijriYear, month.hijriMonth)) {
@@ -1367,7 +1366,7 @@ private fun LoadingBar(colors: WidgetColors) {
  * structural rather than an oversight: Glance applies `fontWeight` as a `TextAppearanceSpan`, and its
  * `FontWeight` is a three-value set whose `Medium` and `Bold` resolve to the same style — there is no
  * weight left above `Bold` to reach for (see [GridCellWeights]). What does exist is the pair of levers
- * round 1 already used for the 1x1 tiles' weekday line ([CaptionBand]): tone and size. So the row takes
+ * the 1x1 tiles' weekday line already uses ([CaptionBand]): tone and size. So the row takes
  * `onTodayText` rather than a muted colour, because the weekday names label the days instead of being a
  * caption beneath them.
  *
@@ -1548,7 +1547,7 @@ private fun MonthDays(
                             datePrimary = datePrimary,
                             mainSize = mainSize,
                             subSize = subSize,
-                            // A rule after each column but the last (FD-04): one per column per row,
+                            // A rule after each column but the last: one per column per row,
                             // not a border on all 42 cells, because Glance's cost is per view.
                             dividerAfter = showCellBorders && column < week.lastIndex,
                             // Whether this cell is inside a divided grid. Not derivable from
@@ -1566,7 +1565,7 @@ private fun MonthDays(
                                 todayEpochDay = todayEpochDay,
                                 selectedDay = selectedDay,
                             ),
-                            // FD-09: the cell's own action. Null in every preview, because
+                            // The cell's own action. Null in every preview, because
                             // `WidgetActions` is null there — so "this preview cannot be tapped"
                             // stays one value rather than a fifth thing each preview must remember.
                             selectAction = selectActionFor(
@@ -1603,7 +1602,7 @@ private fun MonthDays(
  *
  * It used to be laid out only on a selection, on the reasoning that a permanently-reserved blank strip
  * is a cost every user pays for a feature most taps never use. That was the wrong trade once the grid
- * itself began marking observance days (FD-08): the filled cells say *which* days matter, and a line
+ * itself began marking observance days: the filled cells say *which* days matter, and a line
  * that names the nearest one is what turns a mark into information — but only if it is there before the
  * first tap.
  *
@@ -1656,7 +1655,7 @@ private fun EventFooter(
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,
-                // The footer is a reserved line (FD-08) under six weighted day rows, so its leading is
+                // The footer is a reserved line under six weighted day rows, so its leading is
                 // height taken from the cells like the header's. Its trim is the simplest of the three:
                 // one line, in a row of its own, with nothing to align against.
                 trimScriptLeading = true,
@@ -1704,7 +1703,7 @@ internal fun eventForKey(key: String?): CalendarEvent? {
 }
 
 /**
- * The name of the observance the footer shows when **no day is tapped** (FD-08).
+ * The name of the observance the footer shows when **no day is tapped**.
  *
  * The nearest one from today onwards within [month], or — when the month has none left this year — the
  * last one in it. Both fallbacks are deliberate:
@@ -1733,7 +1732,7 @@ internal fun nextEventName(
     return eventForKey(upcoming.eventKey)?.name(eventLanguage(language))
 }
 
-/** Maps a widget's language onto the events table's, which is a `calendar-core` concept (FD-08). */
+/** Maps a widget's language onto the events table's, which is a `calendar-core` concept. */
 internal fun eventLanguage(language: WidgetLanguage): HijriEventLanguage = when (language) {
     WidgetLanguage.URDU -> HijriEventLanguage.URDU
     WidgetLanguage.ENGLISH -> HijriEventLanguage.ENGLISH
@@ -1748,7 +1747,7 @@ internal fun eventLanguage(language: WidgetLanguage): HijriEventLanguage = when 
  * phone-width widget after the two arrows and the two action icons, which is narrower than any month
  * name; stacking the halves lets each take the full title width.
  *
- * **Both lines are drawn identically** (round 3): one size ([GridHeaderTypography.titleSp]), one weight
+ * **Both lines are drawn identically**: one size ([GridHeaderTypography.titleSp]), one weight
  * ([GridHeaderTypography.TITLE_WEIGHT]) and one colour ([titleColor]). They were a hierarchy before —
  * Hijri 13sp `primaryText` Bold over Gregorian 10sp `secondaryText` Medium — and on a device that read
  * as a caption beneath a title rather than as the same month named in the other calendar, which is what
@@ -1781,7 +1780,7 @@ private fun RowScope.MonthTitle(
     ) {
         Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
             WidgetText(
-                // Era-appended by the projection (FD-05): a Hijri year is four digits that look
+                // Era-appended by the projection: a Hijri year is four digits that look
                 // exactly like a Gregorian one, and `1447 ھ` alone leaves a reader guessing which
                 // calendar the number belongs to.
                 text = hijriTitle,
@@ -1873,7 +1872,7 @@ private fun NavigationArrow(
  * width: naming both months the Hijri month spans is worth more than the width the short form saves,
  * and a narrow widget ellipsizes the range rather than dropping a month.
  *
- * ## One size, one weight, one colour, for both lines (round 3)
+ * ## One size, one weight, one colour, for both lines
  *
  * Both lines name **the same month**, one calendar apart, so they are drawn identically — the size
  * comes from [GridHeaderTypography.titleSp], the weight from
@@ -1912,13 +1911,13 @@ internal object GridHeaderTypography {
     /**
      * The size of **both** title lines, in sp.
      *
-     * One size for both lines since round 3. The Gregorian line used to be a step down — 10sp against
+     * One size for both lines. The Gregorian line used to be a step down — 10sp against
      * the Hijri line's 13 — on the theory that the Hijri line is the header's hero. On a device the
      * pair read as two different facts rather than as one month named twice, which is what the
      * feedback reported: the Gregorian month and year looked like a caption to the Hijri one. They
      * are the same month in the same header, one calendar apart, so they take one size, one weight
      * ([TITLE_WEIGHT]) and one colour (`titleColor`), and the *content* is what distinguishes them:
-     * the Hijri line carries the era suffix the projection appends (FD-05), the Gregorian one the
+     * the Hijri line carries the era suffix the projection appends, the Gregorian one the
      * month the widget spans.
      *
      * The height is the cost, and it is deliberate: two lines at 13sp ask ~7dp more of the header
@@ -1965,7 +1964,7 @@ internal object GridHeaderTypography {
 }
 
 /**
- * The colour of both title lines (round 3).
+ * The colour of both title lines.
  *
  * A function rather than `colors.primaryText` written at each `Text`, because `MonthTitle` cannot be
  * called from a JVM unit test: this is the seam `GridHeaderTest` holds so the Gregorian line cannot
@@ -1978,7 +1977,7 @@ internal fun titleColor(colors: WidgetColors): ColorProvider = colors.primaryTex
  * The two weights a day cell's own text is drawn at.
  *
  * Reported as "the days in the grid is not bold as well", right after the weekday header was made
- * bold. The Hijri figure was *already* `Bold` — which is why the report was confusing — so the real
+ * bold. The Hijri figure was *already* `Bold` — which is why the complaint was confusing — so the real
  * reason a cell read as unbolded is that the Gregorian digit underneath it had no weight at all. The
  * eye weighs the pair, not the larger line: one bold number over a plain one reads as plain. Giving
  * the digit weight is the change that makes the cell read as bold, and it costs no height.
@@ -2011,7 +2010,7 @@ internal object GridCellWeights {
 }
 
 /**
- * What a day cell's figures and fill mean, in one value (FD-09, redesigned).
+ * What a day cell's figures and fill mean, in one value.
  *
  * The redesign replaced the old pair of booleans — `isToday || isEvent` for "filled", plus a separate
  * `isSelected` badge — with a single tone, because four of these states are now mutually exclusive *by
@@ -2041,7 +2040,7 @@ internal enum class DayCellTone {
     /** A neighbouring month's day, dimmed like the in-app grid. */
     OUT_OF_MONTH,
 
-    /** A day carrying an observance: a container wash, with its own content colour (FD-08). */
+    /** A day carrying an observance: a container wash, with its own content colour. */
     EVENT,
 
     /** A weekend day, shaded from the weekday palette. */
@@ -2133,10 +2132,10 @@ internal fun isSelectedCell(
  * from a JVM unit test; see `CellDecorationTest`.
  */
 internal enum class CellDecoration {
-    /** The chosen day's accent block (FD-09) — today is this until the user taps another day. */
+    /** The chosen day's accent block — today is this until the user taps another day. */
     SELECTION_BLOCK,
 
-    /** An observance's container wash (FD-08). */
+    /** An observance's container wash. */
     EVENT_WASH,
 
     /** The accent ring: today, once the block has moved to another day. */
@@ -2295,8 +2294,7 @@ private fun DayFigures(
 }
 
 /**
- * The filled background of a day cell — the selected day's block, or an observance's container wash
- * (FD-08).
+ * The filled background of a day cell — the selected day's block, or an observance's container wash.
  *
  * Its own composable because the two differ only in colour and share a shape, and folding the shape
  * into a conditional at the call site left `DayCell` over detekt's complexity threshold for no gain:
@@ -2331,7 +2329,8 @@ private fun CellFill(color: ColorProvider, cellHasDividers: Boolean) {
 // paint guard, then one tone resolved once and read by the fill and both figure colours; and the
 // `when`s over the tone/decoration enums are declarative colour mapping — one branch per enum value —
 // rather than the branching logic the complexity rule is aimed at. Reasoning inline rather than
-// baselined because the rule *is* being deviated from deliberately (the WG-07 precedent).
+// baselined because the rule *is* being deviated from deliberately, as the module's other deliberate
+// deviations are.
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun RowScope.DayCell(
@@ -2450,7 +2449,7 @@ private fun RowScope.DayCell(
 }
 
 /**
- * A full-width horizontal rule, above the first row of days and between each pair of rows (FD-04).
+ * A full-width horizontal rule, above the first row of days and between each pair of rows.
  *
  * The counterpart to [CellDivider]. Together they make the grid a *grid*: verticals alone divide the
  * columns but leave the reader counting rows by eye, which is most of the work the divider was meant
@@ -2469,7 +2468,7 @@ private fun RowDivider(colors: WidgetColors) {
 }
 
 /**
- * The hairline between two cells (FD-04).
+ * The hairline between two cells.
  *
  * One rule per column per row rather than a border on all 42 cells: Glance's cost is per view, and a
  * `RemoteViews` with 42 extra `Box`es is a heavier thing for the launcher to bind than the month needs

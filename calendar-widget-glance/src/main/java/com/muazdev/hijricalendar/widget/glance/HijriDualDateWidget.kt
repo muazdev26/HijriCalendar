@@ -170,7 +170,7 @@ public class HijriDualDateWidget : GlanceAppWidget() {
  *    72dp cell it produced a **6sp weekday**, smaller than the icon next to it.
  * 2. The remedy — a **width-only** rule with a floor, clipping whatever did not fit — fixed the
  *    unreadable-weekday case and reintroduced the failure the family is now arranged to prevent: on a
- *    short cell some lines grew (or held) while others were clipped, which is the report this change
+ *    short cell some lines grew (or held) while others were clipped, which is the failure this change
  *    answers.
  *
  * The scale rule is the smallest of the two axes' ratios, so a cell that is wide and short is bounded
@@ -182,7 +182,7 @@ public class HijriDualDateWidget : GlanceAppWidget() {
  * It bounds the **width** rule ([daySizeFor]) that a preview with no granted height uses, so a
  * preview never shows a smaller figure than a reference-width tile. It is deliberately *not* applied
  * inside [sizesFor]: applying it is what clipped the month line, and a complete tile the launcher
- * scaled down is the behaviour point 7 round 2 asked for.
+ * scaled down is the behaviour this rule is written for.
  */
 internal object DualDateTileTypography {
 
@@ -231,7 +231,7 @@ internal object DualDateTileTypography {
      * [sizesFor].
      *
      * There is no floor any more. The tile used to hold the figure at 20sp and **clip** the last zone
-     * rather than render it smaller, on FD-10's reasoning that a legible-but-cropped tile beats an
+     * rather than render it smaller, on the reasoning that a legible-but-cropped tile beats an
      * illegible-but-complete one. A device pass contradicted the premise: on a short cell the *month
      * name* was the line pushed off the bottom, so the tile was not "cropped but legible" — it was
      * missing the month, and the figure above it sat at its full size inside the space the month had
@@ -341,7 +341,7 @@ internal object DualDateTileTypography {
      * sibling tiles and the Today strip use ([widgetTypeScale]).
      *
      * The tile used to size on width alone and accept that a fourth zone did not fit a short cell.
-     * That is exactly the behaviour point 7 round 2 removed from this family: a resize that grows some
+     * That is exactly the behaviour this family removed: a resize that grows some
      * lines and hides others. Every line here is `reference * scale`, so the stack always fits the
      * granted height and the tile never drops a zone.
      */
@@ -460,7 +460,7 @@ internal fun DualDateTileRoot(
     ) {
         if (today == null) {
             WidgetText(
-                // Resolved from the widget's own language, not the device locale (WG-12) — see
+                // Resolved from the widget's own language, not the device locale — see
                 // [WidgetLocalization.ChromeLabels]. This is the whole body of the tile when the date
                 // does not resolve, so it is the one case a user most needs to be told about.
                 text = WidgetLocalization.ChromeLabels.monthUnavailable(language),

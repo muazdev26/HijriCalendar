@@ -11,12 +11,12 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * WG-14: the four hand-maintained `previewLayout` files must keep the same *shape* as the live
+ * The hand-maintained `previewLayout` files must keep the same *shape* as the live
  * render.
  *
  * **Why this needs a gate.** There are three preview tiers and only one of them is generated from
  * the same code as the widget. Android 15+ gets `providePreview` / `setWidgetPreviews`, built
- * through `buildRenderData` (WG-11), so it cannot drift. Android 12-14 gets a `previewLayout` XML
+ * through `buildRenderData`, so it cannot drift. Android 12-14 gets a `previewLayout` XML
  * inflated by the framework, and anything older gets a vector drawable. The middle tier is a
  * hand-written mirror of a Glance composition, maintained by hand and checked by nothing — and it
  * was already wrong when this was written: four grid rows where the widget paints six, no Gregorian
@@ -321,7 +321,7 @@ class StaticPreviewLayoutTest {
 
     @Test
     fun theStaticGridKeepsBothNavigationArrows() {
-        // The arrows are the grid's only interactive controls (WG-12), so a preview missing them
+        // The arrows are the grid's only interactive controls, so a preview missing them
         // misrepresents what the user can do with the widget they are about to place.
         val arrows = gridPreview().deep().filter { it.tagName == "ImageView" }
         assertEquals("the grid preview should show both nav arrows", 2, arrows.size)
@@ -414,7 +414,7 @@ class StaticPreviewLayoutTest {
     fun theTilePreviewsShowAWeekdayADayAndAMonthAndNoYear() {
         // Matches the live `DateTileRoot`: a weekday name, a day figure and a month, on three lines.
         // The year is still deliberately absent — the tile has no room for one — so the count is the
-        // assertion. Raised from two lines to three by FD-01, which added the weekday name; the
+        // assertion. Three lines because the tiles name the weekday; the
         // order and the sizes are asserted by `DateTilePreviewLayoutTest`, which is where that
         // concern lives now.
         listOf("hijri_date_widget_preview_layout", "gregorian_date_widget_preview_layout")

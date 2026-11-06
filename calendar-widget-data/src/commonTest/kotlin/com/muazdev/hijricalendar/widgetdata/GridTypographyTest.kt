@@ -6,9 +6,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * FD-04: the grid cell's two text sizes, and the one number that must not move.
+ * The grid cell's two text sizes, and the one number that must not move.
  *
- * The ticket was "the date is hard to read — it has padding but the text size is small as per the
+ * The complaint was "the date is hard to read — it has padding but the text size is small as per the
  * cell". The cause was a pair of fixed sizes: **13sp** for the Hijri figure and **8sp** for the
  * Gregorian day underneath, at every widget size. So resizing the widget larger bought more padding
  * around the same 8sp glyph.
@@ -73,7 +73,7 @@ class GridTypographyTest {
             assertTrue(
                 size >= GridTypography.GREGORIAN_FLOOR_SP,
                 "at ${cell}dp the Gregorian figure fell to ${size}sp, below the " +
-                    "${GridTypography.GREGORIAN_FLOOR_SP}sp floor — 8sp is what this ticket is about",
+                    "${GridTypography.GREGORIAN_FLOOR_SP}sp floor — 8sp is what this rule is about",
             )
             assertTrue(
                 size <= GridTypography.GREGORIAN_CEILING_SP,
@@ -211,6 +211,6 @@ class GridTypographyTest {
 
         val decoded = assertNotNull(WidgetOptionsJson.decodeOrNull(legacy), "the legacy blob must decode")
         assertTrue(decoded.showCellBorders)
-        assertTrue(decoded.showAdjacentDays, "an earlier ticket's field must survive too")
+        assertTrue(decoded.showAdjacentDays, "a field from an earlier schema revision must survive")
     }
 }

@@ -15,7 +15,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToInt
 
 /**
- * FD-01: the 1x1 tiles must name the day they are showing, the day name must be sized to the cell
+ * The 1x1 tiles must name the day they are showing, the day name must be sized to the cell
  * the launcher granted, and the hand-maintained Android 12-14 `previewLayout` mirror must keep
  * saying the same thing.
  *
@@ -397,7 +397,7 @@ class DateTilePreviewLayoutTest {
     /**
      * The 1x1 tiles' bottom line is the month name alone — no year, and no era marker.
      *
-     * It used to read `محرم ١٤٤٨ ھ` / `August 2026 AD` (FD-05). Both halves are gone: the projection
+     * It used to read `محرم ١٤٤٨ ھ` / `August 2026 AD`. Both halves are gone: the projection
      * still carries the year and the marker because the grid widget shows them, but a tile has no
      * room for either.
      *

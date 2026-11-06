@@ -9,8 +9,8 @@ import org.junit.Test
  * The day cell's two text weights.
  *
  * Reported as "the days in the grid is not bold as well", right after the weekday header was made
- * bold. The Hijri figure turned out to be **already** `Bold` — which is what made the report read as
- * a contradiction — so the cause was the Gregorian digit underneath it carrying no weight at all.
+ * bold. The Hijri figure turned out to be **already** `Bold` — which is what made the complaint read
+ * as a contradiction — so the cause was the Gregorian digit underneath it carrying no weight at all.
  * The eye weighs the pair, not the larger line: a bold figure over a plain digit still reads plain.
  *
  * These assert [GridCellWeights], which the two `Text` calls in `DayCell` reference directly. There

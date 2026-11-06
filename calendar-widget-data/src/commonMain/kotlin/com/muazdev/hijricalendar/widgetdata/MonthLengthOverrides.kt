@@ -11,13 +11,12 @@ import com.muazdev.hijricalendar.core.HijriMonthLengths
  * by the library and does not cross a process boundary. That matters most on iOS: the WidgetKit
  * extension runs in its own process from the host app, so an app that sets an override in-process
  * can never reach the extension's copy of the global. Putting the table in [WidgetOptions] — which
- * already travels through the shared app group — is what lets the widget agree with the app at
- * all. See `docs/widgets/WD-01-no-overrides-threading.md`.
+ * already travels through the shared app group — is what lets the widget agree with the app at all.
  *
  * **The key is `"<year>-<month>"` rather than a packed int** so the JSON is self-describing (a
  * hand-inspected or hand-edited store stays readable) and so [monthLengthsToMap] /
  * [monthLengthsFrom] round-trip without a lossy arithmetic convention. `Pair<Int, Int>` is
- * deliberately absent from the published surface: see `WD-07-alpha-types-in-abi.md`.
+ * deliberately absent from the published surface.
  */
 
 /** The map key for [year]/[month], e.g. `monthLengthKey(1447, 9) == "1447-9"`. */
@@ -48,8 +47,8 @@ public fun monthLengthsToMap(lengths: HijriMonthLengths): Map<String, Int> =
  *
  * Tolerant by construction: a key that is not `year-month`, or a value outside 29/30, is dropped
  * rather than thrown on. `WidgetOptionsJson` is `ignoreUnknownKeys`, and the stored JSON is
- * user-reachable through a shared app group, so the decode path has to degrade to a usable widget
- * (WD-09). [HijriMonthLengths]'s own constructor `require`s 29/30 — this is the fence that keeps a
+ * user-reachable through a shared app group, so the decode path has to degrade to a usable widget.
+ * [HijriMonthLengths]'s own constructor `require`s 29/30 — this is the fence that keeps a
  * hand-edited store from turning into a crash inside a Glance composition.
  */
 public fun monthLengthsFrom(overrides: Map<String, Int>): HijriMonthLengths {
@@ -69,7 +68,7 @@ public fun monthLengthsFrom(overrides: Map<String, Int>): HijriMonthLengths {
  * Flattens [overrides] to the single comma-separated `"<year>-<month>:<length>"` string a
  * `rememberSaveable` `listSaver` can carry.
  *
- * A `Map` is not reliably Bundle-safe (see AGENTS.md on `SavedStateHandle`), so the Android saver
+ * A `Map` is not reliably Bundle-safe in a `SavedStateHandle`, so the Android saver
  * writes the CSV rather than the map. Same convention as the sample app's own override store.
  */
 public fun encodeMonthLengthsCsv(overrides: Map<String, Int>): String =

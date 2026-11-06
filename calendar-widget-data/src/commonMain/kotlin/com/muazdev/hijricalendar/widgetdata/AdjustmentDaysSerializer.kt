@@ -13,12 +13,12 @@ import kotlinx.serialization.json.JsonPrimitive
  * A lenient `Int` serializer for [WidgetOptions.adjustmentDays]: a number that does not fit the
  * field is **clamped**, not rejected.
  *
- * **Why this exists.** `coerceInputValues` (WD-06) contains an unknown *enum* value and a `null` for
+ * **Why this exists.** `coerceInputValues` contains an unknown *enum* value and a `null` for
  * a non-nullable field, but it does **not** contain a number that overflows the target type: a
  * `99999999999999` where an `Int` is expected fails the whole decode, so every *other* field is lost
- * too. That is the exact failure WD-06 exists to prevent — one unreadable value resetting the
- * widget's language, numerals, week start, pin and source — just arriving through the number parser
- * instead of the enum parser.
+ * too. That is the exact failure the coercing decode exists to prevent — one unreadable value
+ * resetting the widget's language, numerals, week start, pin and source — just arriving through the
+ * number parser instead of the enum parser.
  *
  * Clamping is the right answer for this field specifically. A moon-sighting adjustment is a handful
  * of days; a stored value of a billion is a corrupt blob, and the useful reading of it is "some

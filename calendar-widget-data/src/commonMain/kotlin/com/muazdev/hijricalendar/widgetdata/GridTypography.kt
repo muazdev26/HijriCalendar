@@ -1,7 +1,7 @@
 package com.muazdev.hijricalendar.widgetdata
 
 /**
- * The shared sizing rule for a Hijri month grid's two lines of text (FD-04).
+ * The shared sizing rule for a Hijri month grid's two lines of text.
  *
  * ## Why this is a function and not two constants
  *
@@ -47,7 +47,7 @@ public object GridTypography {
      * The Hijri day figure's size, in sp, for a [cellSizeDp] cell.
      *
      * Scaled, so a wider widget gets a proportionally larger figure — which is the whole point of the
-     * ticket. Bounded, because the figure is one of two lines in a cell that also has to fit its month
+     * rule. Bounded, because the figure is one of two lines in a cell that also has to fit its month
      * row underneath.
      */
     public fun hijriSizeSp(cellSizeDp: Float): Float =
@@ -57,7 +57,7 @@ public object GridTypography {
      * The Gregorian day figure's size, in sp, for a [cellSizeDp] cell.
      *
      * **Never below [GREGORIAN_FLOOR_SP]**, whatever the cell. This is the assertion that matters most in
-     * the file: the old fixed 8sp is why the ticket exists, and a purely proportional rule would take it
+     * the file: the old fixed 8sp is why the floor exists, and a purely proportional rule would take it
      * *lower* on a small widget, which is the direction that made it illegible.
      */
     public fun gregorianSizeSp(cellSizeDp: Float): Float =

@@ -414,7 +414,7 @@ class CalendarViewModel(
         // syncs to. The toggle is in the settings list for anyone who wants the overlap.
         private const val DEFAULT_SHOW_ADJACENT_DAYS = false
 
-        // On, matching the widget grid's own default (FD-04): an undivided grid of 42 numbers is hard
+        // On, matching the widget grid's own default: an undivided grid of 42 numbers is hard
         // to scan, and the in-app calendar should not open looking different from the widget.
         private const val DEFAULT_SHOW_CELL_BORDERS = true
         private const val DEFAULT_AUTO_SYNC_TO_WIDGET = true

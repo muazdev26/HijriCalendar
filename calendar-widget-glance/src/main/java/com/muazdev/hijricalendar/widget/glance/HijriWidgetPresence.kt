@@ -13,7 +13,7 @@ import android.content.Context
  * that is not on a home screen needs a midnight rollover, yet a user who installed the library
  * (or the sample app) and never placed one still ended up with a pending alarm on the device —
  * which Android surfaces to the user: the status bar shows the next-alarm indicator and Settings
- * > Apps > Special access > Alarms & reminders lists the app. That is the report this check
+ * > Apps > Special access > Alarms & reminders lists the app. That is the question this check
  * answers: "I never added the widget, so why is the alarm icon there?".
  *
  * **Where the truth comes from.** [AppWidgetManager.getAppWidgetIds] for the provider components
@@ -25,7 +25,7 @@ import android.content.Context
  * **Fails open.** A query that throws answers `true`. The two failure directions are not
  * symmetric: wrongly arming costs one alarm that the next lifecycle event reconciles, while
  * wrongly answering `false` silently stops every placed widget from rolling over at midnight —
- * the stale-day failure WG-07/WG-08 spent their budget on. The conservative answer is the one
+ * the stale-day failure a missed midnight alarm produces. The conservative answer is the one
  * that keeps the widget working.
  */
 internal object HijriWidgetPresence {
@@ -74,7 +74,7 @@ internal object HijriWidgetPresence {
     /**
      * The ids of [provider]'s placed instances, straight from [AppWidgetManager].
      *
-     * **Why the renderer asks this instead of `GlanceAppWidget.updateAll`** (WG-19).
+     * **Why the renderer asks this instead of `GlanceAppWidget.updateAll`**.
      * `updateAll` does not enumerate the platform: it answers from Glance's own
      * receiver→providers registry, a DataStore map written by `GlanceAppWidgetReceiver.onUpdate`
      * when it calls `super.onUpdate` — the very call the family's foreground gate skips, so that a

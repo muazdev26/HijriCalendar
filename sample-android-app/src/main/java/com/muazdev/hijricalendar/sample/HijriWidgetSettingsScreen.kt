@@ -67,7 +67,7 @@ enum class WidgetKind {
     HIJRI_DATE,
     GREGORIAN_DATE,
 
-    /** FD-10: the fixed 1x1 tile showing both dates together. */
+    /** The fixed 1x1 tile showing both dates together. */
     DUAL_DATE,
 
     /** The compact dual-date tile: two figures side by side inside one cell, icon-dense. */
@@ -510,7 +510,7 @@ internal fun HijriWidgetSettingsScreen(
                     label = { Text("Auto (follow today)") },
                 )
             }
-            // Read as a unit: a stored half-pin is "not pinned" (WD-03), and splitting the check
+            // Read as a unit: a stored half-pin is "not pinned", and splitting the check
             // is what let the widget render a stored year against today's month.
             options.pinned?.let { (pinnedYear, pinnedMonth) ->
                 Row(
@@ -603,7 +603,7 @@ private fun WidgetDateDisplayMode.settingsLabel(): String = when (this) {
  * The primary-date chips.
  *
  * A name-backed enum read straight off `WidgetOptions.datePrimary`, not an index: an ordinal in a
- * settings screen is how the WD-05 bug would come back through the UI instead of the wire format.
+ * settings screen is how the ordinal bug would come back through the UI instead of the wire format.
  */
 private fun WidgetDatePrimary.settingsLabel(): String = when (this) {
     WidgetDatePrimary.HIJRI -> "Hijri"

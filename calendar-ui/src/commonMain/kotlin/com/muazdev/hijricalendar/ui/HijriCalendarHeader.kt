@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
  *   only when [dateDisplayMode] is not [DateDisplayMode.HIJRI_ONLY].
  * @param contentDescription Merges the header into one node for screen readers. Pass the month and
  *   year; pass null and the header's children are announced separately.
- * @param eventText A line naming the observance on the selected day, e.g. "Ashura" (FD-08). Shown
+ * @param eventText A line naming the observance on the selected day, e.g. "Ashura". Shown
  *   under the Gregorian extent, and **regardless of [dateDisplayMode]** — an observance is not a
  *   Gregorian figure, so hiding it behind `HIJRI_ONLY` would make it unreachable in the default mode,
  *   which is where most people see it. Null or empty renders nothing.

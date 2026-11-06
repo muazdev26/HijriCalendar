@@ -267,7 +267,7 @@ public fun HijriCalendarConsumerRtlDarkGlassyPreview() {
 /**
  * The default path at 150% text scale. This is the preview that now *demonstrates* support rather
  * than documenting a limitation — the day figures grow while the 48dp cells do not, which is the
- * whole point of the decoupling in UI-04.
+ * whole point of the font-scale decoupling.
  *
  * It was previously named the same but rendered identically to the 1.0 preview, because the
  * calendar forced `fontScale = 1f`. A preview named for a feature that is silently absent is worse

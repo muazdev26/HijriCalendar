@@ -10,10 +10,10 @@ import kotlin.test.assertTrue
  *
  * ## Why this test exists at all
  *
- * `WidgetOptions` normalises its values (a half-set pin is "not pinned", WD-03), so it has a
+ * `WidgetOptions` normalises its values (a half-set pin is "not pinned"), so it has a
  * hand-written `equals`/`hashCode` rather than the generated pair. A generated one falls behind its
  * class loudly — the compiler regenerates it. A hand-written one falls behind **silently**: nothing
- * tells you a field added three tickets ago is not being compared.
+ * tells you a field added three releases ago is not being compared.
  *
  * The failure is total and invisible. Three options — `showAdjacentDays`, `weekendPattern` and
  * `showCellBorders` — shipped in exactly that state, and the symptom was that the three settings chips
@@ -114,7 +114,7 @@ class WidgetOptionsEqualityTest {
         assertEquals(
             noPin,
             halfPin,
-            "a half-set pin means the same thing as no pin (WD-03), and equals must say so",
+            "a half-set pin means the same thing as no pin, and equals must say so",
         )
         assertEquals(noPin.hashCode(), halfPin.hashCode(), "and hashCode with it")
 

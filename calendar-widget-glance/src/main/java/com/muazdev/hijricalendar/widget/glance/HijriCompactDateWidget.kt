@@ -294,7 +294,7 @@ internal object CompactDateTileTypography {
     /**
      * The weekday band's type: half the figure, by the family-wide rule ([WeekdayBandFit]).
      *
-     * The largest single gain in the report's fix, and it comes from the band no longer sharing the
+     * The largest single win, and it comes from the band no longer sharing the
      * caption scale *or* the line box: at the drawn 62dp square of a Pixel 6a the word went from
      * ~6.9sp in an 18.6dp band to ~9.1sp in a ~14dp band.
      */
@@ -508,7 +508,7 @@ private fun CompactDateUnavailable(
         contentAlignment = Alignment.Center,
     ) {
         WidgetText(
-            // Resolved from the widget's own language, not the device locale (WG-12).
+            // Resolved from the widget's own language, not the device locale.
             text = WidgetLocalization.ChromeLabels.monthUnavailable(language),
             style = TextStyle(
                 color = colors.secondaryText,

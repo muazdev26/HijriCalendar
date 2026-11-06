@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * the final state. Every render pass — instance or sweep — also updates every other widget class
  * ([HijriTodayWidget], [HijriDateWidget], [GregorianDateWidget], [HijriDualDateWidget]): they have no
  * settings screen of their own and render the family options mirror, so any render triggered by a
- * settings apply must re-read it too. (There is no on-widget source toggle: the source is chosen only from the host's
- * settings screen — WD-10c.)
+ * settings apply must re-read it too. There is no on-widget source toggle: the source is chosen only
+ * from the host's settings screen.
  *
  * Why this exists: Glance's `update()` is fire-and-forget — it only enqueues an `UpdateGlanceState`
  * event on the widget session and returns (GlanceAppWidget.update -> Session.sendEvent on an
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * as empty but *before* the lock was released found the lock held, recorded itself, and returned —
  * leaving nothing holding the lock to drain it. The intent then sat unrendered until some unrelated
  * future request happened to win the lock, which for a navigation tap means the widget shows the
- * previous month (WG-13).
+ * previous month until the next tap.
  *
  * Here the queue and the "someone is draining" flag are the only state, and the drainer hands the
  * role back with a **release-then-recheck** loop: it clears [draining] and *then* looks at the
@@ -74,7 +74,7 @@ internal object HijriWidgetRenderQueue {
      * The distinction is not cosmetic. A *render* genuinely does not need the caller to know — the
      * drainer will pick the work up, so it still happens. A *marker* does:
      * `HijriWidgetConfig.markUpdatedNow` means "the display now shows today", and writing it after a
-     * coalesced no-op is a lie the same-day dedupe then believes for the rest of the day (WG-02).
+     * coalesced no-op is a lie the same-day dedupe then believes for the rest of the day.
      */
     internal sealed interface RenderOutcome {
         /** A Glance `update` was called for every target of this call's own drain. */
@@ -214,7 +214,7 @@ internal object HijriWidgetRenderQueue {
      *
      * **Not `GlanceAppWidget.updateAll`**, which answers from Glance's receiver→providers registry
      * rather than from the platform, so it misses every instance whose receiver was never
-     * registered by an ungated `onUpdate` (WG-19; `HijriWidgetPresence.placedIds` has the full
+     * registered by an ungated `onUpdate`. `HijriWidgetPresence.placedIds` has the full
      * story — in short, a widget added from the in-app catalog is bound while the app is visible,
      * its `onUpdate` is skipped by the foreground gate, and `updateAll` stays empty forever).
      * `update(context, glanceId)` drives the session for that id directly and needs no registry, so
@@ -224,7 +224,8 @@ internal object HijriWidgetRenderQueue {
      * a live Glance session: the pair "which ids" and "did each get an update" is the contract.
      */
     // Glance marks AppWidgetId @RestrictTo(LIBRARY_GROUP) because a full Glance app is expected to
-    // reach it through the receiver registry; that registry is exactly what fails here (see WG-19),
+    // reach it through the receiver registry; that registry is exactly what fails here (see
+    // `HijriWidgetPresence.placedIds`),
     // so the id is constructed directly, as Glance's own `updateAll` constructs it.
     @SuppressLint("RestrictedApi")
     internal suspend fun renderPlaced(
