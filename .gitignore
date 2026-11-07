@@ -18,6 +18,10 @@ local.properties
 # Agent plans and session scratch (not published to GitHub)
 /docs/phases/
 /docs/SESSION-*.md
+# One agent session's working notes: ticket files, plans, run output. Useful locally, meaningless to
+# a consumer, and it was already committed once by accident.
+/.junie/
+/.scratch/
 
 # Architecture reviews. These ARE tracked: they are the audit trail for the CORE- and UI- ticket
 # sets, they are linked from CHANGELOG.md, and two reviews have already been lost in place when
