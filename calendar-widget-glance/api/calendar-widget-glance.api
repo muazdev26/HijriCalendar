@@ -1,0 +1,302 @@
+public final class com/muazdev/hijricalendar/widget/glance/GregorianDateWidget : androidx/glance/appwidget/GlanceAppWidget {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getPreviewSizeMode ()Landroidx/glance/appwidget/PreviewSizeMode;
+	public fun getSizeMode ()Landroidx/glance/appwidget/SizeMode;
+	public fun provideGlance (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun providePreview (Landroid/content/Context;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/GregorianDateWidgetReceiver : androidx/glance/appwidget/GlanceAppWidgetReceiver {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getGlanceAppWidget ()Landroidx/glance/appwidget/GlanceAppWidget;
+	public fun onDisabled (Landroid/content/Context;)V
+	public fun onEnabled (Landroid/content/Context;)V
+	public fun onUpdate (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;[I)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriCalendarWidget : androidx/glance/appwidget/GlanceAppWidget {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getPreviewSizeMode ()Landroidx/glance/appwidget/PreviewSizeMode;
+	public fun getSizeMode ()Landroidx/glance/appwidget/SizeMode;
+	public fun provideGlance (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun providePreview (Landroid/content/Context;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriCalendarWidgetKt {
+	public static final field HIJRI_DEEP_LINK_TODAY Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriCalendarWidgetReceiver : androidx/glance/appwidget/GlanceAppWidgetReceiver {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getGlanceAppWidget ()Landroidx/glance/appwidget/GlanceAppWidget;
+	public fun onAppWidgetOptionsChanged (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;ILandroid/os/Bundle;)V
+	public fun onDisabled (Landroid/content/Context;)V
+	public fun onEnabled (Landroid/content/Context;)V
+	public fun onUpdate (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;[I)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriCompactDateWidget : androidx/glance/appwidget/GlanceAppWidget {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getPreviewSizeMode ()Landroidx/glance/appwidget/PreviewSizeMode;
+	public fun getSizeMode ()Landroidx/glance/appwidget/SizeMode;
+	public fun provideGlance (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun providePreview (Landroid/content/Context;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriCompactDateWidgetReceiver : androidx/glance/appwidget/GlanceAppWidgetReceiver {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getGlanceAppWidget ()Landroidx/glance/appwidget/GlanceAppWidget;
+	public fun onDisabled (Landroid/content/Context;)V
+	public fun onEnabled (Landroid/content/Context;)V
+	public fun onUpdate (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;[I)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriDateWidget : androidx/glance/appwidget/GlanceAppWidget {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getPreviewSizeMode ()Landroidx/glance/appwidget/PreviewSizeMode;
+	public fun getSizeMode ()Landroidx/glance/appwidget/SizeMode;
+	public fun provideGlance (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun providePreview (Landroid/content/Context;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriDateWidgetReceiver : androidx/glance/appwidget/GlanceAppWidgetReceiver {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getGlanceAppWidget ()Landroidx/glance/appwidget/GlanceAppWidget;
+	public fun onDisabled (Landroid/content/Context;)V
+	public fun onEnabled (Landroid/content/Context;)V
+	public fun onUpdate (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;[I)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriDaySelection {
+	public static final field $stable I
+	public fun <init> (III)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (III)Lcom/muazdev/hijricalendar/widget/glance/HijriDaySelection;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/widget/glance/HijriDaySelection;IIIILjava/lang/Object;)Lcom/muazdev/hijricalendar/widget/glance/HijriDaySelection;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDay ()I
+	public final fun getMonth ()I
+	public final fun getYear ()I
+	public final fun getYearMonth ()Lcom/muazdev/hijricalendar/core/HijriYearMonth;
+	public fun hashCode ()I
+	public final fun isInMonth (II)Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriDualDateWidget : androidx/glance/appwidget/GlanceAppWidget {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getPreviewSizeMode ()Landroidx/glance/appwidget/PreviewSizeMode;
+	public fun getSizeMode ()Landroidx/glance/appwidget/SizeMode;
+	public fun provideGlance (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun providePreview (Landroid/content/Context;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriDualDateWidgetReceiver : androidx/glance/appwidget/GlanceAppWidgetReceiver {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getGlanceAppWidget ()Landroidx/glance/appwidget/GlanceAppWidget;
+	public fun onDisabled (Landroid/content/Context;)V
+	public fun onEnabled (Landroid/content/Context;)V
+	public fun onUpdate (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;[I)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriMonthLengthsRepository {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/widget/glance/HijriMonthLengthsRepository$Companion;
+	public static final field FILE_NAME Ljava/lang/String;
+	public final fun clearAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearMonthLength (IILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun load (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun loadTable (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun replaceAll (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setMonthLength (IIILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriMonthLengthsRepository$Companion {
+	public final fun shared (Landroid/content/Context;)Lcom/muazdev/hijricalendar/widget/glance/HijriMonthLengthsRepository;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriTodayWidget : androidx/glance/appwidget/GlanceAppWidget {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getPreviewSizeMode ()Landroidx/glance/appwidget/PreviewSizeMode;
+	public fun getSizeMode ()Landroidx/glance/appwidget/SizeMode;
+	public fun provideGlance (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun providePreview (Landroid/content/Context;ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriTodayWidgetReceiver : androidx/glance/appwidget/GlanceAppWidgetReceiver {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun getGlanceAppWidget ()Landroidx/glance/appwidget/GlanceAppWidget;
+	public fun onAppWidgetOptionsChanged (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;ILandroid/os/Bundle;)V
+	public fun onDisabled (Landroid/content/Context;)V
+	public fun onEnabled (Landroid/content/Context;)V
+	public fun onUpdate (Landroid/content/Context;Landroid/appwidget/AppWidgetManager;[I)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetConfig {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetConfig;
+	public final fun clearSelectedDay (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearViewedMonth (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun decodeLoading (Landroidx/datastore/preferences/core/Preferences;)Z
+	public final fun decodeOptions (Landroidx/datastore/preferences/core/Preferences;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun decodeOptionsJson (Ljava/lang/String;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun decodeSelectedDay (Landroidx/datastore/preferences/core/Preferences;)Lcom/muazdev/hijricalendar/widget/glance/HijriDaySelection;
+	public final fun decodeViewed (Landroidx/datastore/preferences/core/Preferences;)Lcom/muazdev/hijricalendar/core/HijriYearMonth;
+	public final fun getDEFAULTS ()Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun hasFamily (Landroid/content/Context;)Z
+	public final fun load (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun loadFamily (Landroid/content/Context;)Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;
+	public final fun loadOwn (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun loadSelectedDay (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun loadViewedMonth (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun migrateLegacyIfNeeded (Landroid/content/Context;Landroidx/glance/GlanceId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun moveViewedMonth (Landroid/content/Context;Landroidx/glance/GlanceId;IILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun save (Landroid/content/Context;Landroidx/glance/GlanceId;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun save$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetConfig;Landroid/content/Context;Landroidx/glance/GlanceId;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun saveFamily (Landroid/content/Context;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;)V
+	public static synthetic fun saveFamily$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetConfig;Landroid/content/Context;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun saveFamilyOptions (Landroid/content/Context;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;)V
+	public static synthetic fun saveFamilyOptions$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetConfig;Landroid/content/Context;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun saveWidgetOptions (Landroid/content/Context;Landroidx/glance/GlanceId;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun saveWidgetOptions$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetConfig;Landroid/content/Context;Landroidx/glance/GlanceId;Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setLoading (Landroid/content/Context;Landroidx/glance/GlanceId;ZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setSelectedDay (Landroid/content/Context;Landroidx/glance/GlanceId;IIILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setViewedMonth (Landroid/content/Context;Landroidx/glance/GlanceId;IILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun widgetOptionsSaver ()Landroidx/compose/runtime/saveable/Saver;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetFonts {
+	public static final field $stable I
+	public static final field Companion Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetFonts$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetFonts;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetFonts;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetFonts;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBundledUrduFont ()Z
+	public final fun getDayNumber ()Ljava/lang/String;
+	public final fun getGregorianTitle ()Ljava/lang/String;
+	public final fun getMonthTitle ()Ljava/lang/String;
+	public final fun getWeekday ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetFonts$Companion {
+	public final fun getDefault ()Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetFonts;
+	public final fun setDefault (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetFonts;)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetForegroundWatcher : android/app/Application$ActivityLifecycleCallbacks {
+	public static final field $stable I
+	public fun <init> (Landroid/content/Context;)V
+	public fun onActivityCreated (Landroid/app/Activity;Landroid/os/Bundle;)V
+	public fun onActivityDestroyed (Landroid/app/Activity;)V
+	public fun onActivityPaused (Landroid/app/Activity;)V
+	public fun onActivityResumed (Landroid/app/Activity;)V
+	public fun onActivitySaveInstanceState (Landroid/app/Activity;Landroid/os/Bundle;)V
+	public fun onActivityStarted (Landroid/app/Activity;)V
+	public fun onActivityStopped (Landroid/app/Activity;)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetNextMonthCallback : androidx/glance/appwidget/action/ActionCallback {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun onAction (Landroid/content/Context;Landroidx/glance/GlanceId;Landroidx/glance/action/ActionParameters;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetPrevMonthCallback : androidx/glance/appwidget/action/ActionCallback {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun onAction (Landroid/content/Context;Landroidx/glance/GlanceId;Landroidx/glance/action/ActionParameters;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetPreviewKt {
+	public static final fun GregorianDateWidgetLivePreview-YuIfr8w (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;JLandroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriCompactDateWidgetLivePreview-YuIfr8w (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;JLandroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriDateWidgetLivePreview-YuIfr8w (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;JLandroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriDualDateWidgetLivePreview-YuIfr8w (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;JLandroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriTodayWidgetLivePreview-YuIfr8w (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;JLandroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun HijriWidgetLivePreview-MMVEmd4 (Lcom/muazdev/hijricalendar/widgetdata/WidgetOptions;Lcom/muazdev/hijricalendar/core/HijriYearMonth;JLandroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetPreviewPublisher {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetPreviewPublisher;
+	public final fun publishIfDue (Landroid/content/Context;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun publishIfDueAsync (Landroid/content/Context;)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetRefreshCallback : androidx/glance/appwidget/action/ActionCallback {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun onAction (Landroid/content/Context;Landroidx/glance/GlanceId;Landroidx/glance/action/ActionParameters;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetRefreshLog {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetRefreshLog;
+	public static final field TAG Ljava/lang/String;
+	public final fun d (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun e (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+	public static synthetic fun e$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetRefreshLog;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetRefreshScheduler {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetRefreshScheduler;
+	public final fun armMidnightAlarm (Landroid/content/Context;)V
+	public final fun schedule (Landroid/content/Context;)V
+	public final fun todayEpochDay ()J
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetRefresher {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetRefresher;
+	public final fun refreshAll (Landroid/content/Context;Ljava/lang/String;ZZLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun refreshAll$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetRefresher;Landroid/content/Context;Ljava/lang/String;ZZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun refreshAllAsync (Landroid/content/Context;Ljava/lang/String;ZZ)V
+	public static synthetic fun refreshAllAsync$default (Lcom/muazdev/hijricalendar/widget/glance/HijriWidgetRefresher;Landroid/content/Context;Ljava/lang/String;ZZILjava/lang/Object;)V
+	public final fun refreshInstance (Landroid/content/Context;Landroidx/glance/GlanceId;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun refreshInstanceAsync (Landroid/content/Context;Landroidx/glance/GlanceId;Ljava/lang/String;)V
+	public final fun scheduleCatchUp (Landroid/content/Context;Ljava/lang/String;)V
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetSelectDayCallback : androidx/glance/appwidget/action/ActionCallback {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun onAction (Landroid/content/Context;Landroidx/glance/GlanceId;Landroidx/glance/action/ActionParameters;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/HijriWidgetTodayResetCallback : androidx/glance/appwidget/action/ActionCallback {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun onAction (Landroid/content/Context;Landroidx/glance/GlanceId;Landroidx/glance/action/ActionParameters;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/muazdev/hijricalendar/widget/glance/PakistanWarmUp {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/widget/glance/PakistanWarmUp;
+	public final fun ensureWarm (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+

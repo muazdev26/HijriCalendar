@@ -25,11 +25,6 @@ apiValidation {
     ignoredProjects += listOf(
         // Not published; it reuses the library convention only for the Compose/iOS wiring.
         "sample-shared",
-        // Plain `com.android.library` under AGP 9's built-in Kotlin support. The validator does not
-        // recognise that Kotlin plugin, so it silently registers no dump task — there is nothing
-        // to gate yet. Listed explicitly so the gap is visible rather than looking like coverage.
-        // To close it, apply the standalone `org.jetbrains.kotlin.android` plugin here.
-        "calendar-widget-glance",
     )
 }
 
