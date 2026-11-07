@@ -25,6 +25,8 @@ local.properties
 # re-ignore the two volatile files above.
 /docs/*
 !/docs/issues/
+# The consumer-facing CHANGELOG is a summary and links here for the reasoning behind each entry.
+!/docs/CHANGELOG-ARCHIVE.md
 
 # Contributor guides, not published to GitHub
 /AGENTS.md

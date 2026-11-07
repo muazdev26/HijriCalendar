@@ -1,3 +1,6 @@
+import kotlinx.validation.KotlinApiBuildTask
+import kotlinx.validation.KotlinApiCompareTask
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -86,7 +89,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 }
 
-// `StaticPreviewLayoutTest` (WG-14) reads `src/main/res/layout/*.xml` off disk rather than off the
+// `StaticPreviewLayoutTest` reads `src/main/res/layout/*.xml` off disk rather than off the
 // classpath, because a `previewLayout` is inflated by the framework at runtime and never reaches a
 // unit test's resources.
 //
@@ -101,3 +104,65 @@ tasks.withType<Test>().configureEach {
         .withPropertyName("staticPreviewLayouts")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
+
+// ── Public-surface gate ──────────────────────────────────────────────────────────────────────────
+//
+// AGP 9 compiles Kotlin through its built-in support, which registers no plugin id the
+// binary-compatibility validator recognises — applying `org.jetbrains.kotlin.android` is rejected
+// outright ("no longer required for Kotlin support since AGP 9.0"). The root plugin therefore
+// configures nothing here, and this module's public surface was reviewed by a hand-written list of
+// declaration *names* instead. A name list cannot see a changed signature, a default that moved, or
+// a reordered companion object — the three shapes of break that actually reach a consumer.
+//
+// These tasks wire the validator's own task types to the release class output, so
+// `api/calendar-widget-glance.api` is a real ABI dump and `apiCheck` fails on any of them.
+val apiFileName = "${project.name}.api"
+
+// `bcv-rt-jvm-cp` is the declarable half of the validator's own worker classpath;
+// `bcv-rt-jvm-cp-resolver` is the resolvable one that extends it and is what the task consumes.
+// The validator adds the Kotlin metadata reader to the former only when it sees a Kotlin plugin id,
+// and AGP 9's built-in Kotlin is invisible to it for the reason above — so without this dependency
+// the dump task succeeds and reports no Kotlin declarations at all, an empty API file that reads as
+// coverage.
+dependencies.add("bcv-rt-jvm-cp", "org.jetbrains.kotlin:kotlin-metadata-jvm:${libs.versions.kotlin.get()}")
+val bcvRuntimeClasspath = configurations.named("bcv-rt-jvm-cp-resolver")
+
+// The Kotlin compile output, not the AAR and not the javac output: the AAR's `classes.jar` carries
+// the generated `R` classes, which the validator would dump as several hundred public fields.
+//
+// The copy drops the Compose compiler's `ComposableSingletons$<File>Kt` holders. Those classes are
+// public in the bytecode but compiler-generated, and their member names embed a hash of the lambda
+// they cache (`getLambda$-1823173490$calendar_widget_glance`) — a hash that changes when anything
+// inside that lambda changes. Dumped, they would fail `apiCheck` on an edit that altered no
+// signature at all, which is the definition of a gate nobody trusts. Filtering by pattern rather
+// than by name means a new composable file needs no build change here.
+val apiClasses = tasks.register<Sync>("apiClasses") {
+    description = "Stages the release class output for the API dump, minus compiler-generated holders."
+    from(tasks.named("compileReleaseKotlin").map { it.outputs.files }) {
+        exclude("**/ComposableSingletons*.class")
+    }
+    into(layout.buildDirectory.dir("api-classes/release"))
+}
+
+val apiBuild = tasks.register<KotlinApiBuildTask>("apiBuild") {
+    description = "Builds the release ABI dump. Complementary to `apiDump`, do not call directly."
+    inputClassesDirs.from(apiClasses.map { it.destinationDir })
+    outputApiFile.set(layout.buildDirectory.file("api/$apiFileName"))
+    runtimeClasspath.from(bcvRuntimeClasspath)
+}
+
+val apiCheck = tasks.register<KotlinApiCompareTask>("apiCheck") {
+    group = "verification"
+    description = "Checks the release ABI against api/$apiFileName."
+    projectApiFile.set(layout.projectDirectory.file("api/$apiFileName"))
+    generatedApiFile.set(apiBuild.flatMap { it.outputApiFile })
+}
+
+tasks.register<Copy>("apiDump") {
+    group = "other"
+    description = "Writes the release ABI dump to api/$apiFileName."
+    from(apiBuild.flatMap { it.outputApiFile })
+    into(layout.projectDirectory.dir("api"))
+}
+
+tasks.named("check") { dependsOn(apiCheck) }

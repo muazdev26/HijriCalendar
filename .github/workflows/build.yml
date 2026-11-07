@@ -73,12 +73,6 @@ jobs:
       - name: Consumer resolution (published POMs are consumable)
         run: ./.github/scripts/check-consumer-resolution.sh
 
-      # calendar-widget-glance is in `apiValidation.ignoredProjects`, so apiCheck registers no dump
-      # task for it and no signature change there is visible to any gate. This diffs its public
-      # surface against a checked-in, per-declaration list.
-      - name: Widget-glance public surface is reviewed
-        run: ./.github/scripts/check-widget-glance-surface.sh
-
   ios:
     name: iOS (compile arm64 + simulator)
     runs-on: macos-latest
