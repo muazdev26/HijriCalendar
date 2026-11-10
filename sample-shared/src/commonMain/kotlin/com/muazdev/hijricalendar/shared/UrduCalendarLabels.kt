@@ -3,6 +3,7 @@ package com.muazdev.hijricalendar.shared
 import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.UrduCalendarNames
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
+import com.muazdev.hijricalendar.ui.withEventLanguage
 import kotlinx.datetime.LocalDate
 
 /** Urdu *hijri sani*: U+06BE, the Heh-goal that suffixes a Hijri year. Not `ہ`, which is a word letter. */
@@ -21,7 +22,7 @@ private const val URDU_GREGORIAN_ERA = "\u0621"
  * The Urdu label bundle, built **once and held**.
  *
  * That is not a style preference — `HijriCalendar` uses `labels` as a `remember` key at three sites
- * and its four function fields compare by reference, so a bundle constructed inline in a composable
+ * and its function fields compare by reference, so a bundle constructed inline in a composable
  * produces a new object on every recomposition and discards all three caches. This is a `val`, so it
  * is a single instance for the process.
  *
@@ -30,6 +31,13 @@ private const val URDU_GREGORIAN_ERA = "\u0621"
  * wrong script. The **library's** defaults stay empty — see `HijriCalendarLabels.hijriEra` — because
  * that type is published API and a default that changed output would silently restyle every existing
  * consumer's header. Opting in is a host's decision.
+ *
+ * The event names come from `withEventLanguage`, not from four hand-written overrides. Hand-writing
+ * them is what let a new banner slot ship half-localised: the national-day lambda was added after
+ * this bundle was written, and every Pakistan-mode month fell back to English names joined with a
+ * Latin dot — "Iqbal Day" across an otherwise Urdu screen, caught by running the app rather than by
+ * any build. `withEventLanguage` rebuilds all four slots from one answer, so a fifth slot cannot
+ * drift from the first four.
  */
 val UrduCalendarLabels = HijriCalendarLabels(
     hijriMonthName = { _, month -> UrduCalendarNames.hijriMonths[month - 1] },
@@ -44,37 +52,19 @@ val UrduCalendarLabels = HijriCalendarLabels(
     // The Gregorian range line, which the default formatter cannot era-mark: it takes two dates and
     // returns the whole string, so the markers have to be composed here where the era is in scope.
     gregorianMonthRangeLabel = { first, last -> urduGregorianRange(first, last) },
-    // An observance in Urdu, and the line announced for it. "آج" (today) reads naturally with the
-    // default banner, which renders the name alone; a host that wants "Today is Ashura" writes that
-    // here rather than in the composable, because how a date is announced next to its observance is a
-    // locale's decision.
-    eventName = { event -> event.name(HijriEventLanguage.URDU) },
-    eventBanner = { event, _ -> event.name(HijriEventLanguage.URDU) },
-    // A national day is a `CalendarEvent` too, and it needs its own slot: `eventName` takes a
-    // `HijriEvent`, so it cannot answer for 14 August. Its default is `nameEn`, which is why a
-    // Pakistan-mode month printed "Iqbal Day" in Latin script across an otherwise Urdu screen —
-    // caught by running the app, not by a build. Same rule as `eventName`: the language the bundle
-    // is for, never the library's English fallback.
-    pakistanEventName = { event -> event.name(HijriEventLanguage.URDU) },
-    // The month's whole observance set, joined with the Urdu comma (U+060C). The day is no longer
-    // spelled out ("دن 10"): the banner names the events alone, without the day attached, because
-    // the filled cells already say when. The separator is Urdu punctuation rather than the English
-    // middle dot, and the names stay in Urdu.
-    monthEventBanner = { events ->
-        events.joinToString("، ") { event -> event.name(HijriEventLanguage.URDU) }
-    },
-    // **Both** banner lambdas, because the library picks one per month: a month with no national day
-    // goes through `monthEventBanner` above, and a Pakistan-mode month goes through this one. With
-    // only the first overridden, every month holding a Pakistani national day fell back to the
-    // default — English names joined with " · " — so "Iqbal Day" replaced "یوم اقبال" precisely in
-    // the months the Pakistan source is for.
-    monthEventBannerWithPakistan = { events ->
-        events.joinToString("، ") { event -> event.name(HijriEventLanguage.URDU) }
-    },
-    // The bar is permanently present, so a month with no observance still needs a line: silence on
-    // most Hijri months is the behaviour this replaced.
-    noEventBanner = "اس ماہ کوئی تاریخی واقعہ نہیں",
-)
+    // The separator between names in the banner lines is the Urdu comma (U+060C), not the English
+    // middle dot. `withEventLanguage` reads it, so the names and the punctuation stay one locale's.
+    eventSeparator = "، ",
+    // The bar is permanently present, so a selected day with nothing on it still needs a line: the bar
+    // names the *tapped day's* events, never the month's, so the empty case is a day rather than a month.
+    noEventBanner = "اس دن کوئی واقعہ نہیں",
+    // ...and before anything is tapped the bar asks for the tap, because silence there is
+    // indistinguishable from a bar that failed to load.
+    eventBannerHint = "واقعہ دیکھنے کے لیے کسی دن پر ٹیپ کریں",
+    // ...and when the whole month holds nothing, there is nothing to tap for, so the bar says so
+    // rather than asking.
+    noEventInMonth = "کوئی واقعہ نہیں",
+).withEventLanguage(HijriEventLanguage.URDU)
 
 /**
  * The header's Gregorian line in Urdu, with its era.

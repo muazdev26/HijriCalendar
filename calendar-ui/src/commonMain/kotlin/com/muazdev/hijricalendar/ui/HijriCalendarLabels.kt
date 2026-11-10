@@ -87,49 +87,43 @@ public data class HijriCalendarLabels(
      * A function rather than a string because the *placement* of it is a locale's business too: Urdu
      * may want it on its own line under the header and English inline. Returning `""` renders nothing.
      *
-     * **No longer called by [HijriCalendar]'s banner**, which names the month's whole observance list
-     * through [monthEventBanner]. Kept because it is published API and a host's own header or
-     * selected-day card can still phrase a single observance's day this way; a locale that overrides
-     * it for that purpose should override [monthEventBanner] too, since the two now answer different
-     * questions.
+     * **No longer called by [HijriCalendar]'s banner**, which names the selected day's events through
+     * [monthEventBanner] / [monthEventBannerWithPakistan]. Kept because it is published API and a
+     * host's own header or selected-day card can still phrase a single observance's day this way; a
+     * locale that overrides it for that purpose should override [monthEventBanner] too, since the two
+     * now answer different questions.
      */
     val eventBanner: (HijriEvent, isToday: Boolean) -> String = { event, _ -> eventName(event) },
 
     /**
-     * The line the banner shows: **every** observance the displayed month holds, in calendar order —
-     * or, once a day that carries an observance has been tapped, that **one** observance.
+     * The line the banner shows for the **selected day's** events, in calendar order.
      *
-     * Takes the whole list rather than one event because the bar is permanently present: while the
-     * user pages through months it is the calendar's only opportunity to say what the month *is*, and
-     * one nearest event left the rest of the month's history unsaid. The tap narrows it to a list of
-     * one — so an implementation needs no second entry point, and a locale that styles or joins the
-     * names styles the tapped day the same way.
-     *
-     * It no longer attaches the day to the name ("Ashura · Day 10"): the filled cells already answer
-     * *when*, while a day number in a single line made the bar read as a footnote on a date the user
-     * had not asked about.
+     * A list rather than a single event because one day can carry more than one thing in Pakistan
+     * mode, and because [HijriCalendar] should not need a second entry point to name a second mark.
+     * The tap that fills a cell is what asks the question, so the answer is a list of at most the few
+     * things that day holds — never the month's whole history.
      *
      * The default joins [eventName] with a middle dot, and never returns an empty string for a
-     * non-empty list. [noEventBanner] covers the month that holds none. A locale owns the separator
-     * and any conjunction it wants, which is why this is a lambda rather than a `List` and a constant
-     * glue string.
+     * non-empty list. [noEventBanner] covers a selected day that holds nothing, and
+     * [eventBannerHint] covers "nothing has been selected yet". A locale owns the separator and any
+     * conjunction it wants, which is why this is a lambda rather than a `List` and a constant glue
+     * string.
      */
     val monthEventBanner: (List<HijriEvent>) -> String = { events ->
         events.joinToString(" · ") { eventName(it) }
     },
 
     /**
-     * The banner's text for a month that holds no observance at all.
+     * The banner's text for a **selected day that carries nothing**.
      *
-     * **Non-empty by default**, which is what makes the bar permanently present: the requirement is an
-     * always-visible historical-events line, and a bar that disappears on most Hijri months is the
-     * failure it guards against. The line is reserved rather than removed for the same reason the
-     * widget's footer reserves one — a bar that comes and goes moves the calendar under the user's
-     * finger.
+     * **Non-empty by default**: the bar keeps its height in either state, because a bar that comes and
+     * goes moves the calendar under the user's finger — and an empty line is indistinguishable from one
+     * that failed to load, so the reserved space is only useful if the user can tell it is empty on
+     * purpose.
      *
-     * Return `""` to draw nothing when the month is empty.
+     * Return `""` to draw nothing when the selected day is empty.
      */
-    val noEventBanner: String = "No historical event this month",
+    val noEventBanner: String = "No event on this day",
 
     /** A Gregorian [year] with its era appended, or bare when [gregorianEra] is empty. */
     val gregorianYearWithEra: (year: Int) -> String = { year ->
@@ -223,6 +217,51 @@ public data class HijriCalendarLabels(
             }
         }
     },
+
+    /**
+     * The banner's text while **no day in the displayed month is selected**.
+     *
+     * The bar does not describe the month any more — [monthEventBanner] names only what the user
+     * touched — so its resting state has to say what touching a day will do. Silence there is
+     * indistinguishable from a bar that failed to load, and "no event" would be a claim about a day
+     * the user has not chosen yet.
+     *
+     * **Appended at the end** rather than beside [noEventBanner], for the `componentN` reason
+     * [pakistanEventName] documents: a mid-list insertion changes the return type of every later
+     * component and is a `NoSuchMethodError` in an already-compiled consumer.
+     *
+     * Return `""` to draw nothing before the first tap.
+     */
+    val eventBannerHint: String = "Tap a day to see its event",
+
+    /**
+     * The separator between names in [monthEventBanner] and [monthEventBannerWithPakistan].
+     *
+     * A field rather than a literal inside those defaults for the same reason they are lambdas at
+     * all: a locale owns its punctuation. The English `" · "` is what the library uses; an Urdu
+     * bundle wants the Urdu comma `"، "`, and a host can no longer express that without replacing
+     * both lambdas and re-deriving their join logic — which is how a new banner slot silently
+     * falls back to English.
+     *
+     * **Appended at the end** for the `componentN` reason [pakistanEventName] documents: a mid-list
+     * insertion changes the return type of every later `component` and is a `NoSuchMethodError` in an
+     * already-compiled consumer rather than a recompile.
+     */
+    val eventSeparator: String = " · ",
+
+    /**
+     * The line the banner shows when the **whole displayed month holds no notable date at all**.
+     *
+     * The hint ([eventBannerHint]) only makes sense when there is something to discover by tapping, so
+     * an eventless month must not ask the user to tap for an answer that does not exist. It says so
+     * instead — a different sentence from [noEventBanner], which answers a day that was tapped and
+     * found empty.
+     *
+     * **Appended at the end** for the `componentN` reason [pakistanEventName] documents.
+     *
+     * Return `""` to draw nothing for an eventless month.
+     */
+    val noEventInMonth: String = "No event",
 )
 
 /**

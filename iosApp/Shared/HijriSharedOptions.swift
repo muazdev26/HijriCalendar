@@ -91,6 +91,7 @@ enum HijriShared {
     /// decode path: the extension renders on a background thread and must stay quiet otherwise.
     private static func describe(_ options: WidgetOptions) -> String {
         "language=\(options.language.name) monthNames=\(options.effectiveMonthNameLanguage.name) "
+            + "eventNames=\(options.effectiveEventLanguage.name) "
             + "source=\(options.source.name) numerals=\(options.numeralStyle.name) "
             + "adjustment=\(options.adjustmentDays) firstDay=\(options.effectiveWeekStart) "
             + "pinned=\(options.isPinned)"
@@ -141,6 +142,10 @@ enum HijriShared {
         return WidgetOptionsKt.createWidgetOptions(
             language: widgetLanguage,
             monthNameLanguage: language("monthNameLanguage") ?? widgetLanguage,
+            // The pre-1.0 schema had no event-name language either, so a migrated widget names
+            // events in the widget's own language — the behaviour every release before the option
+            // had.
+            eventLanguage: widgetLanguage,
             source: (object["source"] as? String).flatMap { $0.lowercased() == "pakistan" ? .pakistan : .calculation } ?? .calculation,
             adjustmentDays: object["adjustmentDays"] as? Int32 ?? 0,
             numeralStyle: (object["numeralStyle"] as? String)

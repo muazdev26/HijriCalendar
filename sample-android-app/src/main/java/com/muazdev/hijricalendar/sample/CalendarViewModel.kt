@@ -12,6 +12,7 @@ import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriDate
@@ -77,6 +78,20 @@ class CalendarViewModel(
         private set
 
     /**
+     * The language the **event names** render in, independently of the calendar's own language.
+     *
+     * Persisted beside [primaryDate] for the same reason, and with the same `HijriEventLanguage`
+     * type: it is a rendering choice the calendar component consumes. The surrounding text — months,
+     * weekdays, era markers, the "no event" line — does not move with it, because that is the
+     * calendar's language rather than a name from the events table.
+     *
+     * Defaults to **Urdu** to preserve what the sample rendered before the setting existed: its
+     * bundle is the Urdu one, and switching it to English is now one chip.
+     */
+    var eventLanguage: HijriEventLanguage by mutableStateOf(restoreEventLanguage())
+        private set
+
+    /**
      * Whether in-app settings are mirrored onto the placed widgets.
      *
      * The user asked for this as an option rather than as behaviour, because the mirror also overwrites
@@ -96,6 +111,12 @@ class CalendarViewModel(
         primaryDate = primary
         savedStateHandle[KEY_PRIMARY_DATE] = primary.name
         prefs.edit().putString(KEY_PRIMARY_DATE, primary.name).apply()
+    }
+
+    fun onEventLanguageChange(language: HijriEventLanguage) {
+        eventLanguage = language
+        savedStateHandle[KEY_EVENT_LANGUAGE] = language.name
+        prefs.edit().putString(KEY_EVENT_LANGUAGE, language.name).apply()
     }
 
     /**
@@ -304,6 +325,13 @@ class CalendarViewModel(
             ?: DEFAULT_PRIMARY_DATE
     }
 
+    private fun restoreEventLanguage(): HijriEventLanguage {
+        val saved = prefs.getString(KEY_EVENT_LANGUAGE, null)
+            ?: savedStateHandle.get<String>(KEY_EVENT_LANGUAGE)
+        return saved?.let { runCatching { HijriEventLanguage.valueOf(it) }.getOrNull() }
+            ?: DEFAULT_EVENT_LANGUAGE
+    }
+
     private fun restoreWeekendPattern(): WeekendPattern {
         val saved = prefs.getString(KEY_WEEKEND_PATTERN, null)
             ?: savedStateHandle.get<String>(KEY_WEEKEND_PATTERN)
@@ -387,6 +415,7 @@ class CalendarViewModel(
         private const val KEY_SELECTED_DAY = "selected_day"
         private const val KEY_DATE_DISPLAY_MODE = "date_display_mode"
         private const val KEY_PRIMARY_DATE = "primary_date"
+        private const val KEY_EVENT_LANGUAGE = "event_language"
         private const val KEY_WEEKEND_PATTERN = "weekend_pattern"
         private const val KEY_SHOW_ADJACENT_DAYS = "show_adjacent_days"
         private const val KEY_SHOW_CELL_BORDERS = "show_cell_borders"
@@ -404,6 +433,10 @@ class CalendarViewModel(
         private val DEFAULT_MONTH = HijrahYearMonth(1447, 1)
         private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
         private val DEFAULT_PRIMARY_DATE = PrimaryDate.HIJRI
+
+        // Urdu, matching the sample's label bundle: before this setting existed the banner named
+        // observances in Urdu, and restoring onto English would restyle every upgrading install.
+        private val DEFAULT_EVENT_LANGUAGE = HijriEventLanguage.URDU
 
         // Friday+Saturday is the library's own default and what every release before the option
         // rendered, so restoring onto it keeps an upgrading install looking untouched.

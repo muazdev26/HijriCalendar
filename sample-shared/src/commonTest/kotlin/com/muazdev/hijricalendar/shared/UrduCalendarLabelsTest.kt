@@ -34,10 +34,10 @@ class UrduCalendarLabelsTest {
 
         events.forEach { event ->
             val name = UrduCalendarLabels.pakistanEventName(event)
-            assertEquals(event.nameUr, name, "${event.key} must keep its own Urdu name")
+            assertEquals(event.nameUr, name, "$event.key must keep its own Urdu name")
             assertFalse(
                 name.hasLatinLetters(),
-                "${event.key} printed '${name}' — that is the library's nameEn default, " +
+                event.key + " printed '" + name + "' — that is the library's nameEn default, " +
                     "which means `pakistanEventName` is not overridden",
             )
         }

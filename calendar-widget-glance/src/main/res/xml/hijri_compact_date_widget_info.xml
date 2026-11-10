@@ -4,9 +4,12 @@
      Android has no sub-cell widgets, so the physical cell is the host's 1x1; the tile draws itself at a
      fixed 72dp square centred inside it (CompactDateTileTypography.DRAWN_EDGE_DP), so it renders at the
      same size on every launcher instead of growing with the grid, and shrinks only when a host grants
-     less than that square. `resizeMode="none"` is deliberate and differs from the other two fixed tiles
-     (which are resizable so they can grow their type): this tile is a fixed at-a-glance glance, and a
-     stretch would turn it into a second, worse copy of `HijriDualDateWidget`.
+     less than that square. `resizeMode="horizontal|vertical"` is what lets the host *offer* a resize —
+     the user asked for the handle, not a second dual tile — while the drawn edge stays capped at 72dp,
+     so a bigger cell adds transparent margin rather than a stretched rectangle. That is a deliberate
+     departure from `resizeMode="none"`, which offered no handle at all and was reported as a missing
+     option; it is **not** a switch to fill-the-cell, which was built, rejected as looking stretched, and
+     reverted (the fill-the-cell variant turned the square into a 62x88 rectangle).
 
      `minWidth`/`minHeight` stay at 40dp: on launchers before Android 12 the cell count is derived from
      them (`cells = ceil((size + 30) / 70)`), so a larger minimum would make this a two-cell widget
@@ -18,9 +21,11 @@
     android:initialLayout="@layout/hijri_widget_loading"
     android:minWidth="40dp"
     android:minHeight="40dp"
+    android:minResizeWidth="40dp"
+    android:minResizeHeight="40dp"
     android:previewImage="@drawable/hijri_compact_date_widget_preview"
     android:previewLayout="@layout/hijri_compact_date_widget_preview_layout"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:targetCellWidth="1"
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"

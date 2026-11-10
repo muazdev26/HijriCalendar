@@ -169,6 +169,24 @@ public data class WidgetOptions(
      * decides which line each is drawn on.
      */
     val datePrimary: WidgetDatePrimary = WidgetDatePrimary.HIJRI,
+    /**
+     * Which language a **notable date's name** renders in, independently of [language] and
+     * [monthNameLanguage].
+     *
+     * Lets one widget print Urdu month names, weekdays and digits while naming Ashura or
+     * Independence Day in English — or the reverse, which is the case that prompted it: an Urdu
+     * calendar whose exempt events came out in Latin script because no option could say otherwise.
+     *
+     * **Names only.** The footer's "no event" line, the month and weekday names, the digits and the
+     * reading direction all keep following [language] / [monthNameLanguage], because those are the
+     * widget's own chrome rather than a name from the events table. A setting that also restyled the
+     * chrome would be a second `language` under a misleading name.
+     *
+     * `null` falls back to [language], which is what every release before this option did — so a
+     * widget stored without the field keeps naming events exactly as it does today. Read it through
+     * [effectiveEventLanguage], never the raw field.
+     */
+    val eventLanguage: WidgetLanguage? = null,
 ) {
     /**
      * The first day of week to render with.
@@ -194,6 +212,15 @@ public data class WidgetOptions(
 
     /** [monthNameLanguage] with the backward-compatible fallback applied. */
     val effectiveMonthNameLanguage: WidgetLanguage get() = monthNameLanguage ?: language
+
+    /**
+     * [eventLanguage] with the backward-compatible fallback applied.
+     *
+     * Read this everywhere instead of the raw field, for the same reason as
+     * [effectiveMonthNameLanguage]: a widget stored before the option existed carries `null`, and
+     * `null` means "the widget's own language", not "unset".
+     */
+    val effectiveEventLanguage: WidgetLanguage get() = eventLanguage ?: language
 
     /**
      * The month-length table the projection must render with: [HijriMonthOverrides.current] when
@@ -291,7 +318,8 @@ public data class WidgetOptions(
             showCellBorders == other.showCellBorders &&
             theme == other.theme &&
             dateDisplayMode == other.dateDisplayMode &&
-            datePrimary == other.datePrimary
+            datePrimary == other.datePrimary &&
+            eventLanguage == other.eventLanguage
     }
 
     override fun hashCode(): Int {
@@ -309,6 +337,7 @@ public data class WidgetOptions(
         result = 31 * result + theme.hashCode()
         result = 31 * result + dateDisplayMode.hashCode()
         result = 31 * result + datePrimary.hashCode()
+        result = 31 * result + (eventLanguage?.hashCode() ?: 0)
         return result
     }
 
@@ -317,7 +346,8 @@ public data class WidgetOptions(
         "weekStart=$weekStart, pinned=$pinned, source=$source, " +
         "language=$language, monthNameLanguage=$monthNameLanguage, " +
         "monthLengthOverrides=$monthLengthOverrides, theme=$theme, " +
-        "dateDisplayMode=$dateDisplayMode, datePrimary=$datePrimary)"
+        "dateDisplayMode=$dateDisplayMode, datePrimary=$datePrimary, " +
+        "eventLanguage=$eventLanguage)"
 
     val localizedHijriMonthNames: List<String>?
         get() = WidgetLocalization.hijriMonthNames(effectiveMonthNameLanguage)
@@ -568,6 +598,14 @@ public fun createWidgetOptions(
     theme: WidgetTheme = WidgetTheme.SYSTEM,
     dateDisplayMode: WidgetDateDisplayMode = WidgetDateDisplayMode.BOTH,
     datePrimary: WidgetDatePrimary = WidgetDatePrimary.HIJRI,
+    /**
+     * Which language event names render in; `null` follows [language].
+     *
+     * Materialised to [language] rather than left `null`, exactly as [monthNameLanguage] is: a
+     * native settings screen that never exposes this control should still get a value that answers
+     * the question, and the two must not disagree about whether "not chosen" is representable.
+     */
+    eventLanguage: WidgetLanguage? = null,
 ): WidgetOptions = WidgetOptions(
     adjustmentDays = adjustmentDays,
     numeralStyle = numeralStyle,
@@ -584,6 +622,7 @@ public fun createWidgetOptions(
     theme = theme,
     dateDisplayMode = dateDisplayMode,
     datePrimary = datePrimary,
+    eventLanguage = eventLanguage ?: language,
 )
 
 /**

@@ -100,6 +100,11 @@ private fun CalendarApp(
                 viewModel.onPrimaryDateChange(primary)
                 syncIfEnabled()
             },
+            eventLanguage = viewModel.eventLanguage,
+            onEventLanguageChange = { language ->
+                viewModel.onEventLanguageChange(language)
+                syncIfEnabled()
+            },
             onJumpToToday = viewModel::goToToday,
             labels = UrduCalendarLabels,
             showAdjustmentSelector = true,
@@ -195,6 +200,7 @@ private fun rememberWidgetSyncWiring(
             showCellBorders = viewModel.state.showCellBorders,
             dateDisplayMode = viewModel.dateDisplayMode,
             primaryDate = viewModel.primaryDate,
+            eventLanguage = viewModel.eventLanguage,
         )
     }
     return remember(viewModel, widgetSync) {

@@ -8,7 +8,7 @@ moved, a default that changed, an ABI that needs a recompile. The reasoning, the
 the alternatives that were tried live in [`docs/CHANGELOG-ARCHIVE.md`](docs/CHANGELOG-ARCHIVE.md),
 under the same version headings.
 
-## Unreleased
+## 2.4.0 - 2026-11-10
 
 ### Added
 

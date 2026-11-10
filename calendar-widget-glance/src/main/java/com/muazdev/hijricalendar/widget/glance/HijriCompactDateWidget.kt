@@ -85,8 +85,10 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  * > directly with the two captions a reader is trying to read.
  *
  * The provider info asks for `minWidth/minHeight = 40dp`, `targetCellWidth/Height = 1`, and
- * `resizeMode="none"`, so the host picks exactly one cell and does not offer a resize that would turn
- * this into a second copy of the dual tile.
+ * `resizeMode="horizontal|vertical"`, so the host offers the resize handle — the user asked for the
+ * *option*, not for a second dual tile. It still draws its own 72dp square, so a larger grant adds
+ * transparent margin instead of stretching the stack; filling the cell was built and reverted as
+ * looking stretched, and the tile stays a square rather than a rectangle.
  *
  * No settings screen and no per-widget state: like the other tiles it follows the family options mirror
  * ([HijriWidgetConfig.loadFamily]). Tapping anywhere opens the app.
