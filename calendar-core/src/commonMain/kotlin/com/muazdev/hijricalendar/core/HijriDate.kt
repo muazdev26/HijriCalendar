@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import com.abdulrahman_b.hijrahdatetime.HijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import kotlinx.serialization.Serializable
+import kotlin.experimental.ExperimentalObjCName
+import kotlin.native.ObjCName
 
 /**
  * A Hijri (AH) calendar date, owned by this library.
@@ -26,6 +28,16 @@ import kotlinx.serialization.Serializable
  * @property day Day of month, `1`-`30`. A 29-day month's `30` is a value that converts to an
  *   invalid [HijrahDate]; [toHijrahDate] surfaces that by throwing, exactly as the engine does.
  */
+// `@ObjCName` is what keeps these two types addressable from Swift under their own names.
+// Kotlin/Native names an exported class after its *package* whenever that package's last segment is
+// not unique across the framework, and `com.muazdev.hijricalendar.core` collides with
+// `kotlinx.serialization.core` — without the annotation both would reach Swift as
+// `Calendar_coreHijriDate` / `Calendar_coreHijriYearMonth`, and the widget code's `HijriYearMonth(…)`
+// stops compiling. `exact = true` suppresses that mangling; it also requires an explicit ObjC name,
+// hence the prefixed one. The pinned name is identical in every framework, which is what lets one
+// Swift call site serve both the app and the widget extension.
+@OptIn(ExperimentalObjCName::class)
+@ObjCName(name = "CalendarHijriDate", swiftName = "HijriDate", exact = true)
 @Immutable
 @Serializable
 public data class HijriDate(
@@ -62,6 +74,8 @@ public data class HijriDate(
  * @property year Hijri (AH) year, e.g. `1448`.
  * @property month Hijri month, `1`-`12` (`1` = Muharram).
  */
+@OptIn(ExperimentalObjCName::class)
+@ObjCName(name = "CalendarHijriYearMonth", swiftName = "HijriYearMonth", exact = true)
 @Immutable
 @Serializable
 public data class HijriYearMonth(
