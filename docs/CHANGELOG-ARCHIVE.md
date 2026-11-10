@@ -8,7 +8,7 @@ Headings match the changelog's, so an entry can be looked up by version. Nothing
 after the release it describes: it is a record, not a guide. For the current shape of an API, read
 the KDoc.
 
-## Unreleased
+## 2.4.0 - 2026-11-10
 
 ### Added
 

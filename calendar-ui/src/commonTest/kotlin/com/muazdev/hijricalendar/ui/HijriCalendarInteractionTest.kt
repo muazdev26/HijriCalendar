@@ -382,29 +382,36 @@ class HijriCalendarInteractionTest {
      * again, which is why the last assertion is the single name and not the list.
      */
     @Test
-    fun theObservanceBannerFollowsTheDisplayedMonthAndNarrowsToATappedObservance() = runComposeUiTest {
+    fun theObservanceBannerNamesOnlyTheSelectedDay() = runComposeUiTest {
         val state = stateFor(year = 1447, month = 1)
         setContent { host(state)() }
         waitForIdle()
-
-        onNodeWithText("Islamic New Year · Ashura (9th Muharram) · Ashura").assertExists()
+        // Nothing selected: the bar asks for a selection and names **none** of the month's three
+        // observances. This is the state the old behaviour got wrong — it listed all three.
+        onNodeWithText("event", substring = true, ignoreCase = true).assertExists()
+        onNodeWithText("Islamic New Year", substring = true).assertDoesNotExist()
+        onNodeWithText("Ashura (9th Muharram)", substring = true).assertDoesNotExist()
 
         runOnIdle { state.selectDate(HijrahDate(1447, 1, 1)) }
         waitForIdle()
         onNodeWithText("Islamic New Year").assertExists()
         onNodeWithText("Ashura (9th Muharram)", substring = true).assertDoesNotExist()
 
+        // A selected day holding nothing says so, rather than falling back to the month's list.
         runOnIdle { state.selectDate(HijrahDate(1447, 1, 2)) }
         waitForIdle()
-        onNodeWithText("Islamic New Year · Ashura (9th Muharram) · Ashura").assertExists()
+        onNodeWithText("No event on this day").assertExists()
+        onNodeWithText("Islamic New Year", substring = true).assertDoesNotExist()
 
+        // A selection left in a month the user paged away from is ignored, exactly as the widget's
+        // footer ignores it: the bar must describe the month on screen.
         runOnIdle { state.selectDate(HijrahDate(1447, 1, 1)) }
         waitForIdle()
         runOnIdle { state.goToNextMonth() }
         waitForIdle()
         onNodeWithText(hijriMonthLabel(1447, 2)).assertExists()
         onNodeWithText("Islamic New Year", substring = true).assertDoesNotExist()
-        onNodeWithText("No historical event this month").assertExists()
+        onNodeWithText("event", substring = true, ignoreCase = true).assertExists()
 
         runOnIdle { state.goToPreviousMonth() }
         waitForIdle()

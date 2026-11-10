@@ -28,6 +28,7 @@ import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
+import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
@@ -37,6 +38,7 @@ import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
 import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
+import com.muazdev.hijricalendar.ui.withEventLanguage
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -61,6 +63,20 @@ fun CalendarScreen(
     onDateDisplayModeChange: (DateDisplayMode) -> Unit = {},
     primaryDate: PrimaryDate = PrimaryDate.HIJRI,
     onPrimaryDateChange: ((PrimaryDate) -> Unit)? = null,
+    /**
+     * The language notable-date names render in, or `null` to leave the supplied [labels] alone.
+     *
+     * `null` is the back-compat default: a caller that never offers the control keeps whatever its
+     * bundle says, which for the sample's Urdu bundle is Urdu. A caller that does offer it must pass
+     * the current value so the selector can show the selection, exactly as [primaryDate] does.
+     */
+    eventLanguage: HijriEventLanguage? = null,
+    /**
+     * Called when the user picks a different [eventLanguage]. Non-null is what makes the selector
+     * appear; a caller that has no such setting (or whose bundle is already correct) simply omits it,
+     * the same shape as [onPrimaryDateChange].
+     */
+    onEventLanguageChange: ((HijriEventLanguage) -> Unit)? = null,
     onJumpToToday: (() -> Unit)? = null,
     labels: HijriCalendarLabels? = null,
     showAdjustmentSelector: Boolean = false,
@@ -80,7 +96,13 @@ fun CalendarScreen(
     onAutoSyncToWidgetChange: ((Boolean) -> Unit)? = null,
     onSyncNow: (() -> Unit)? = null,
 ) {
-    val effectiveLabels = labels ?: HijriCalendarLabels()
+    val effectiveLabels = remember(labels, eventLanguage) {
+        val base = labels ?: HijriCalendarLabels()
+        // Only rewrite the bundle when the caller offers the control at all. A `withEventLanguage`
+        // call per recomposition would build a new bundle each time and discard `HijriCalendar`'s
+        // three `remember` caches, so this is remembered on both inputs.
+        if (eventLanguage != null) base.withEventLanguage(eventLanguage) else base
+    }
     val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, primaryDate, effectiveLabels)
 
     Column(
@@ -112,6 +134,17 @@ fun CalendarScreen(
             PrimaryDateSelector(
                 selected = primaryDate,
                 onSelect = onPrimaryDateChange,
+            )
+        }
+
+        // The event *name* language, independent of the calendar's own language: the surrounding
+        // text (months, weekdays, eras, the "no event" line) stays whatever the label bundle says.
+        // Gated on the callback, so a host that has no such setting never shows a dead control.
+        if (onEventLanguageChange != null && eventLanguage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            EventLanguageSelector(
+                selected = eventLanguage,
+                onSelect = onEventLanguageChange,
             )
         }
 
@@ -343,6 +376,45 @@ private fun PrimaryDateSelector(
         }
         Text(
             text = "The primary date is the top, bold line; the other one is drawn under it.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+/**
+ * The language the **notable-date names** render in, independently of the calendar's own language.
+ *
+ * Two chips rather than a switch because neither choice is an on/off: "Urdu" and "English" are two
+ * equal answers to "what language are the names in". The months, weekdays, digits and reading
+ * direction do not move — they belong to the calendar, not to the events table.
+ */
+@Composable
+private fun EventLanguageSelector(
+    selected: HijriEventLanguage,
+    onSelect: (HijriEventLanguage) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Event language", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            HijriEventLanguage.entries.forEachIndexed { index, language ->
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = HijriEventLanguage.entries.size),
+                    onClick = { onSelect(language) },
+                    selected = selected == language,
+                    label = {
+                        Text(
+                            when (language) {
+                                HijriEventLanguage.URDU -> "Urdu"
+                                HijriEventLanguage.ENGLISH -> "English"
+                            },
+                        )
+                    },
+                )
+            }
+        }
+        Text(
+            text = "The names of observances and national days, only — the months, weekdays and " +
+                "digits stay in the calendar's language.",
             style = MaterialTheme.typography.bodySmall,
         )
     }

@@ -75,9 +75,9 @@ internal class HijriCalendarWidgetPreview(
                 // loading bar belongs to a real navigation step, and showing one here would imply a
                 // wait that is not happening.
                 isLoading = false,
-                selectedEventName = null,
                 colors = colors,
                 language = options.language,
+                eventLanguage = options.effectiveEventLanguage,
                 // Non-interactive by construction: the settings preview shows what the widget will
                 // look like, and tapping it must not open the app or move the real widget's month.
                 actions = WidgetActions(),

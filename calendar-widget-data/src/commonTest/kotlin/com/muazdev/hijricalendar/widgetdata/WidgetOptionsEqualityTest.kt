@@ -43,6 +43,7 @@ class WidgetOptionsEqualityTest {
         theme = WidgetTheme.DARK,
         dateDisplayMode = WidgetDateDisplayMode.GREGORIAN_ONLY,
         datePrimary = WidgetDatePrimary.GREGORIAN,
+        eventLanguage = WidgetLanguage.ENGLISH,
     )
 
     /** Each field paired with a copy of [base] that differs in *only* that field. */
@@ -62,6 +63,7 @@ class WidgetOptionsEqualityTest {
         "theme" to base.copy(theme = WidgetTheme.LIGHT),
         "dateDisplayMode" to base.copy(dateDisplayMode = WidgetDateDisplayMode.HIJRI_ONLY),
         "datePrimary" to base.copy(datePrimary = WidgetDatePrimary.HIJRI),
+        "eventLanguage" to base.copy(eventLanguage = WidgetLanguage.URDU),
     )
 
     /**

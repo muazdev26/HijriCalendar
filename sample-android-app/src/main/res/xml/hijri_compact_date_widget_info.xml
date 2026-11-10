@@ -4,10 +4,11 @@
      settings screen. Resource merging resolves the library manifest's @xml reference to this file, so
      the sample declares no <receiver> of its own — the library is the single declaration site.
 
-     `resizeMode="none"` is kept from the library's info: this tile is a fixed at-a-glance glance with
-     two figures side by side, and a resize would turn it into a second, worse copy of the dual tile.
-     `widgetFeatures="reconfigurable|configuration_optional"` is what lets the pin flow run the configure
-     activity *and* lets a user skip it: the tile follows the family options mirror either way. -->
+     `resizeMode="horizontal|vertical"` is kept from the library's info: the tile itself still draws a
+     fixed 72dp square, so a resize adds transparent margin rather than stretching it, but the host
+     offers the handle the user asked for. `widgetFeatures="reconfigurable|configuration_optional"` is
+     what lets the pin flow run the configure activity *and* lets a user skip it: the tile follows the
+     family options mirror either way. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/hijri_compact_date_widget_description"
@@ -15,9 +16,11 @@
     android:initialLayout="@layout/hijri_widget_loading"
     android:minWidth="40dp"
     android:minHeight="40dp"
+    android:minResizeWidth="40dp"
+    android:minResizeHeight="40dp"
     android:previewImage="@drawable/hijri_compact_date_widget_preview"
     android:previewLayout="@layout/hijri_compact_date_widget_preview_layout"
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
     android:targetCellWidth="1"
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"

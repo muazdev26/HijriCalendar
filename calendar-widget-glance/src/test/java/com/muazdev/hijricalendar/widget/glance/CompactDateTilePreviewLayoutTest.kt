@@ -271,7 +271,7 @@ class CompactDateTilePreviewLayoutTest {
         val info = widgetInfoFile()
         val root = parse(info)
         assertEquals("appwidget-provider", root.tagName)
-        assertEquals("none", attr(root, "android:resizeMode"))
+        assertEquals("horizontal|vertical", attr(root, "android:resizeMode"))
         assertEquals("1", attr(root, "android:targetCellWidth"))
         assertEquals("1", attr(root, "android:targetCellHeight"))
         assertEquals("${CompactDateTileTypography.TILE_MIN_HEIGHT_DP}dp", attr(root, "android:minHeight"))

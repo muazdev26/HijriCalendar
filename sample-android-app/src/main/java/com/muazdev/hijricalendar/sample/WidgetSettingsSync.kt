@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.PrimaryDate
@@ -19,6 +20,7 @@ import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefresher
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import com.muazdev.hijricalendar.widgetdata.WidgetDateDisplayMode
 import com.muazdev.hijricalendar.widgetdata.WidgetDatePrimary
+import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.monthLengthsToMap
@@ -46,6 +48,14 @@ internal data class WidgetSettings(
     val showCellBorders: Boolean,
     val dateDisplayMode: DateDisplayMode,
     val primaryDate: PrimaryDate,
+    /**
+     * The language event names render in, as a `calendar-ui` enum.
+     *
+     * Carried rather than translated to a `WidgetLanguage` here so the same value drives both the
+     * in-app banner and the widget footer; the translation is one lookup in `applyTo`, the same as
+     * [dateDisplayMode] and [primaryDate].
+     */
+    val eventLanguage: HijriEventLanguage,
 )
 
 /**
@@ -86,7 +96,8 @@ internal class WidgetSettingsSync(private val context: Context) {
                 "sync:start",
                 "inAppOverrides=${overrideTable.size} adjustmentDays=${settings.adjustmentDays} pakistan=${settings.pakistanDates} " +
                     "weekend=${settings.weekendPattern} adjacent=${settings.showAdjacentDays} borders=${settings.showCellBorders} " +
-                    "mode=${settings.dateDisplayMode} primary=${settings.primaryDate} grids=${gridAppWidgetIds.size}",
+                    "mode=${settings.dateDisplayMode} primary=${settings.primaryDate} " +
+                    "eventNames=${settings.eventLanguage} grids=${gridAppWidgetIds.size}",
             )
 
             val currentFamily = HijriWidgetConfig.loadFamily(context)
@@ -149,4 +160,8 @@ private fun WidgetSettings.applyTo(options: WidgetOptions) = options.copy(
     dateDisplayMode = WidgetDateDisplayMode.entries.firstOrNull { it.name == dateDisplayMode.name }
         ?: options.dateDisplayMode,
     datePrimary = WidgetDatePrimary.entries.firstOrNull { it.name == primaryDate.name } ?: options.datePrimary,
+    // Names, not ordinals: `HijriEventLanguage` and `WidgetLanguage` agree by name by design, and a
+    // mismatch degrades to the option's current value rather than losing the whole write.
+    eventLanguage = WidgetLanguage.entries.firstOrNull { it.name == eventLanguage.name }
+        ?: options.eventLanguage,
 )

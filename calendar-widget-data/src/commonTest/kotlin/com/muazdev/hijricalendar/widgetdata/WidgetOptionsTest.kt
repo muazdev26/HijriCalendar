@@ -88,6 +88,10 @@ class WidgetOptionsTest {
                 source = WidgetSource.PAKISTAN,
                 language = WidgetLanguage.ENGLISH,
                 monthNameLanguage = WidgetLanguage.URDU,
+                // `createWidgetOptions` materialises an unchosen event language to the widget's
+                // own, exactly as it does for `monthNameLanguage`, so a native screen's picker always
+                // has a value to show.
+                eventLanguage = WidgetLanguage.ENGLISH,
             ),
             options,
         )
@@ -129,8 +133,41 @@ class WidgetOptionsTest {
             source = WidgetSource.PAKISTAN,
             language = WidgetLanguage.URDU,
             monthNameLanguage = WidgetLanguage.ENGLISH,
+            eventLanguage = WidgetLanguage.ENGLISH,
         )
         assertEquals(options, WidgetOptionsJson.decode(WidgetOptionsJson.encode(options)))
+    }
+
+    @Test
+    fun eventLanguageFallsBackToLanguageWhenAbsent() {
+        // Options written before `eventLanguage` existed deserialize with it absent, and the
+        // widget must keep naming events the way its own language says.
+        val stored = WidgetOptions(language = WidgetLanguage.URDU)
+        assertNull(stored.eventLanguage)
+        assertEquals(WidgetLanguage.URDU, stored.effectiveEventLanguage)
+
+        // ...and an explicit choice overrides it, which is the whole point of the option.
+        val explicit = WidgetOptions(
+            language = WidgetLanguage.URDU,
+            eventLanguage = WidgetLanguage.ENGLISH,
+        )
+        assertEquals(WidgetLanguage.ENGLISH, explicit.effectiveEventLanguage)
+    }
+
+    @Test
+    fun createWidgetOptionsSeedsTheEventLanguageFromTheWidgetsLanguage() {
+        // A native settings screen that never exposes this control still needs a picker value.
+        assertEquals(
+            WidgetLanguage.URDU,
+            createWidgetOptions(language = WidgetLanguage.URDU).effectiveEventLanguage,
+        )
+        assertEquals(
+            WidgetLanguage.ENGLISH,
+            createWidgetOptions(
+                language = WidgetLanguage.URDU,
+                eventLanguage = WidgetLanguage.ENGLISH,
+            ).effectiveEventLanguage,
+        )
     }
 
     @Test

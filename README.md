@@ -18,7 +18,7 @@ Distributed via [JitPack](https://jitpack.io/#muazdev26/HijriCalendar).
 ```kotlin
 repositories { maven("https://jitpack.io") }
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.3.5")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.4.0")
 }
 ```
 
@@ -156,7 +156,7 @@ A shared projection module (`calendar-widget-data`, `WidgetCalendar` framework o
 ### Adding the widget to your app
 
 ```kotlin
-dependencies { implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.3.5") }
+dependencies { implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.4.0") }
 ```
 
 The library's manifest declares all six receivers; widgets work on defaults. Optional setup:

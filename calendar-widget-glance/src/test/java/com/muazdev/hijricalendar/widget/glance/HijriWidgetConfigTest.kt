@@ -85,6 +85,7 @@ class HijriWidgetConfigTest {
             weekendPattern = WeekendPattern.SUNDAY,
             showCellBorders = true,
             datePrimary = WidgetDatePrimary.GREGORIAN,
+            eventLanguage = WidgetLanguage.URDU,
         )
         val restored = HijriWidgetConfig.widgetOptionsSaver().roundTrip(options)
 
@@ -121,6 +122,7 @@ class HijriWidgetConfigTest {
             if (options.theme == restored.theme) add("theme")
             if (options.dateDisplayMode == restored.dateDisplayMode) add("dateDisplayMode")
             if (options.datePrimary == restored.datePrimary) add("datePrimary")
+            if (options.eventLanguage == restored.eventLanguage) add("eventLanguage")
         }
         return surviving
     }

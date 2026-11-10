@@ -348,6 +348,25 @@ internal fun HijriWidgetSettingsScreen(
             style = MaterialTheme.typography.bodySmall,
         )
 
+        // ── Event-name language ────────────────────────────────────────────────
+        SectionTitle("Event names")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            WidgetLanguage.entries.forEach { option ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = options.effectiveEventLanguage == option,
+                        onClick = { update(options.copy(eventLanguage = option)) },
+                    )
+                    Text(option.name.lowercase().replaceFirstChar { it.uppercase() })
+                }
+            }
+        }
+        Text(
+            text = "Names of observances and national days in the footer, only — the month names, " +
+                    "weekdays, digits and reading direction stay in the widget's own Language.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
         // ── Hijri source ──────────────────────────────────────────────────────
         SectionTitle("Calculation")
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {

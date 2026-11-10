@@ -218,12 +218,9 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 datePrimary = data.datePrimary,
                 selectedDay = selectedDay,
                 isLoading = isLoading,
-                // Resolved here, where the options live: the footer must name an observance in the
-                // *widget's* language and calendar space, and this is the only place that knows both.
-                selectedEventName = selectedDay
-                    ?.let { eventFor(it, options)?.name(eventLanguage(options.language)) },
                 colors = colors,
                 language = options.language,
+                eventLanguage = options.effectiveEventLanguage,
                 actions = WidgetActions(
                     open = openAction,
                     prev = prevAction,
@@ -260,9 +257,9 @@ public class HijriCalendarWidget : GlanceAppWidget() {
                 datePrimary = data.datePrimary,
                 selectedDay = null,
                 isLoading = false,
-                selectedEventName = null,
                 colors = colors,
                 language = options.language,
+                eventLanguage = options.effectiveEventLanguage,
                 // The picker preview is non-interactive by construction: grouping the actions makes
                 // that one value rather than four nulls a call site has to remember.
                 actions = WidgetActions(),
@@ -899,20 +896,18 @@ internal fun HijriWidgetRoot(
      * double-tap would skip a month.
      */
     isLoading: Boolean,
-    /**
-     * The observance on [selectedDay], already named in the widget's language — or `null` when the
-     * selected day carries none.
-     *
-     * Resolved by the caller rather than here because this is where the *projection's* language and
-     * calendar space live. A footer re-deriving them would be a second place to get the space wrong,
-     * and the two answers would differ on a Pakistan-calendar widget.
-     */
-    selectedEventName: String?,
     colors: WidgetColors,
     // The widget's own language, for the chrome's accessibility labels. Not derivable from
     // `monthData`: a widget that fell back to the today card has no month projection at all, and its
     // labels still have to be in the right language.
     language: WidgetLanguage,
+    /**
+     * The language the event footer names an observance in — `options.effectiveEventLanguage`.
+     *
+     * Threaded separately from [language] because the two are separate options: a widget can print an
+     * Urdu grid and an English "Ashura". Only the footer reads it; the chrome's labels keep [language].
+     */
+    eventLanguage: WidgetLanguage,
     actions: WidgetActions,
 ) {
     val size = LocalSize.current
@@ -947,9 +942,9 @@ internal fun HijriWidgetRoot(
                 datePrimary = datePrimary,
                 selectedDay = selectedDay,
                 isLoading = isLoading,
-                selectedEventName = selectedEventName,
                 colors = colors,
                 language = language,
+                eventLanguage = eventLanguage,
                 actions = liveActions,
             )
         }
@@ -1229,8 +1224,9 @@ private fun MonthGrid(
     datePrimary: WidgetDatePrimary,
     selectedDay: HijriDaySelection?,
     isLoading: Boolean,
-    selectedEventName: String?,
     language: WidgetLanguage,
+    /** The event footer's language; see [HijriWidgetRoot.eventLanguage]. */
+    eventLanguage: WidgetLanguage,
     colors: WidgetColors,
     actions: WidgetActions,
 ) {
@@ -1292,21 +1288,19 @@ private fun MonthGrid(
         )
 
         EventFooter(
-            // The tapped day's observance when there is one, else the month-next one — so the line
-            // says something before the first tap, not only after it. Resolved here rather than in
-            // `EventFooter` because the fallback needs the month projection, which only this frame has.
+            // The tapped day's observance, and **nothing before the first tap**. This used to fall back
+            // to the month's next upcoming event, so the line always said something — and that fallback
+            // is exactly what made the footer read as if it described the shown month: the line changed
+            // as months were paged while the selection had not moved, which is the confusion this
+            // removes. The filled cells are the month's calendar; the line names what was touched.
             //
-            // When neither applies the line says **"No event"** rather than rendering empty: an empty
-            // line is indistinguishable from a footer that failed to load, and the reserved line
-            // is only useful if the user can tell it is empty on purpose. A selection in a
-            // *different* month than the one shown is treated as no selection here, exactly as
-            // `isSelectedCell` does for the cells — the footer must describe the month on screen.
-            eventName = if (selectedDay != null && selectedDay.isInMonth(month.hijriYear, month.hijriMonth)) {
-                selectedEventName ?: WidgetLocalization.ChromeLabels.noEvent(language)
-            } else {
-                nextEventName(month, todayEpochDay, language)
-                    ?: WidgetLocalization.ChromeLabels.noEvent(language)
-            },
+            // When there is nothing to name the line says **"No event"** rather than rendering empty: an
+            // empty line is indistinguishable from a footer that failed to load, and the reserved line
+            // is only useful if the user can tell it is empty on purpose. A selection in a *different*
+            // month than the one shown is treated as no selection here, exactly as `isSelectedCell` does
+            // for the cells — the footer must describe the month on screen.
+            eventName = footerEventName(month, selectedDay, eventLanguage)
+                ?: WidgetLocalization.ChromeLabels.noEvent(language),
             colors = colors,
         )
     }
@@ -1703,37 +1697,41 @@ internal fun eventForKey(key: String?): CalendarEvent? {
 }
 
 /**
- * The name of the observance the footer shows when **no day is tapped**.
+ * The name the footer shows for the widget's selection, or `null` when there is nothing to name.
  *
- * The nearest one from today onwards within [month], or — when the month has none left this year — the
- * last one in it. Both fallbacks are deliberate:
+ * `null` covers all three ways of having nothing: no selection, a selection left in a month the user
+ * has navigated away from, and a selected day whose cell carries no mark. The caller renders
+ * `WidgetLocalization.ChromeLabels.noEvent` for it, because a reserved line that is empty is
+ * indistinguishable from one that failed to load.
  *
- * - "nearest from today" rather than "first in the month", because on the 20th a widget naming an Eid
- *   that has already passed is answering a question the user did not ask.
- * - "the last one in it" rather than nothing, because the alternative is an empty line on a month that
- *   visibly contains a filled cell, which reads as a bug rather than as an absence.
+ * **It deliberately does not look past the selection.** The footer used to fall back to the month's next
+ * upcoming observance, so the line always said something — and on a widget the footer sits directly
+ * under a grid whose selection moves with every tap, so a line that changed while *paging months* made
+ * paging look like selecting. The filled cells are the month's calendar; the line names what was
+ * touched.
  *
- * `null` only when the month holds no observance at all, which for the current table is most months.
+ * [eventLanguage] is `options.effectiveEventLanguage`, not `options.language`: naming an event is the
+ * one thing the widget lets the user language separately from its own chrome. The empty line stays on
+ * the caller's `language`, because "no event" is chrome rather than a name from the events table.
  *
- * Resolved from the projection's own [HijriDayWidgetData.hasEvent] rather than from a second lookup
- * keyed on day numbers, so the line and the filled cells cannot disagree — the same reason
- * [eventFor] goes through the projection.
+ * Read from the projection's own cell rather than re-derived from `(month, day)`: in Pakistan mode the
+ * mark may be a Gregorian-fixed national day, and in observed mode the month's day numbers are not Umm
+ * al-Qura's, so a second lookup could name a different date than the grid filled.
  */
-internal fun nextEventName(
+internal fun footerEventName(
     month: HijriMonthWidgetData,
-    todayEpochDay: Long,
-    language: WidgetLanguage,
+    selection: HijriDaySelection?,
+    eventLanguage: WidgetLanguage,
 ): String? {
-    val observances = month.days.filter { it.isCurrentMonth && it.hasEvent }
-    if (observances.isEmpty()) return null
-
-    val upcoming = observances.firstOrNull { it.gregorianEpochDay >= todayEpochDay }
-        ?: observances.last()
-    return eventForKey(upcoming.eventKey)?.name(eventLanguage(language))
+    val day = selection?.takeIf { it.isInMonth(month.hijriYear, month.hijriMonth) }
+        ?: return null
+    return month.days
+        .firstOrNull { it.isCurrentMonth && it.hijriDay == day.day }
+        ?.let { eventForKey(it.eventKey)?.name(eventLanguage.toEventLanguage()) }
 }
 
 /** Maps a widget's language onto the events table's, which is a `calendar-core` concept. */
-internal fun eventLanguage(language: WidgetLanguage): HijriEventLanguage = when (language) {
+internal fun WidgetLanguage.toEventLanguage(): HijriEventLanguage = when (this) {
     WidgetLanguage.URDU -> HijriEventLanguage.URDU
     WidgetLanguage.ENGLISH -> HijriEventLanguage.ENGLISH
 }

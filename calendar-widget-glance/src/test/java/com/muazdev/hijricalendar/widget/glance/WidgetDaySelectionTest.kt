@@ -145,8 +145,8 @@ class WidgetDaySelectionTest {
             monthNameLanguage = WidgetLanguage.ENGLISH,
         )
 
-        val urduName = eventFor(selection, urdu)?.name(eventLanguage(WidgetLanguage.URDU))
-        val englishName = eventFor(selection, english)?.name(eventLanguage(WidgetLanguage.ENGLISH))
+        val urduName = eventFor(selection, urdu)?.name(WidgetLanguage.URDU.toEventLanguage())
+        val englishName = eventFor(selection, english)?.name(WidgetLanguage.ENGLISH.toEventLanguage())
 
         assertNotNull("the Urdu widget resolved no observance", urduName)
         assertNotNull("the English widget resolved no observance", englishName)
@@ -186,10 +186,10 @@ class WidgetDaySelectionTest {
     @Test
     fun everyWidgetLanguageMapsToAnEventLanguage() {
         for (language in WidgetLanguage.entries) {
-            assertNotNull("$language did not map to an event language", eventLanguage(language))
+            assertNotNull("$language did not map to an event language", language.toEventLanguage())
         }
-        assertEquals(HijriEventLanguage.URDU, eventLanguage(WidgetLanguage.URDU))
-        assertEquals(HijriEventLanguage.ENGLISH, eventLanguage(WidgetLanguage.ENGLISH))
+        assertEquals(HijriEventLanguage.URDU, WidgetLanguage.URDU.toEventLanguage())
+        assertEquals(HijriEventLanguage.ENGLISH, WidgetLanguage.ENGLISH.toEventLanguage())
     }
 
     /**

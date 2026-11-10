@@ -12,7 +12,7 @@ import calendar
 /// The option *schema* is `calendar-widget-data`'s `WidgetOptions`: this view never declares a
 /// field of its own, it keeps the currently-edited value of each option in `@State` and rebuilds
 /// the shared options value through `createWidgetOptions` (a flat factory, because Swift cannot
-/// call a Kotlin constructor with eight parameters and two nullables). Saving writes that value
+/// call a Kotlin constructor with nine parameters and three nullables). Saving writes that value
 /// into the app group via `WidgetOptionsJson`, which is the exact JSON the widget extension
 /// decodes — so the screen and the four widgets are reading one definition.
 ///
@@ -28,6 +28,7 @@ struct WidgetCatalogView: View {
 
     @State private var language: WidgetLanguage
     @State private var monthNameLanguage: WidgetLanguage
+    @State private var eventLanguage: WidgetLanguage
     @State private var numeralStyle: NumeralStyle
     @State private var source: WidgetSource
     @State private var adjustmentDays: Int32
@@ -41,6 +42,7 @@ struct WidgetCatalogView: View {
         let options = HijriShared.loadOptions()
         _language = State(initialValue: options.language)
         _monthNameLanguage = State(initialValue: options.effectiveMonthNameLanguage)
+        _eventLanguage = State(initialValue: options.effectiveEventLanguage)
         _numeralStyle = State(initialValue: options.numeralStyle)
         _source = State(initialValue: options.source)
         _adjustmentDays = State(initialValue: options.adjustmentDays)
@@ -72,6 +74,7 @@ struct WidgetCatalogView: View {
         return WidgetOptionsKt.createWidgetOptions(
             language: language,
             monthNameLanguage: monthNameLanguage,
+            eventLanguage: eventLanguage,
             source: source,
             adjustmentDays: adjustmentDays,
             numeralStyle: numeralStyle,
@@ -120,14 +123,18 @@ struct WidgetCatalogView: View {
                     Picker("Month names", selection: $monthNameLanguage) {
                         ForEach(Self.languages) { Text($0.title).tag($0.value) }
                     }
+                    Picker("Event names", selection: $eventLanguage) {
+                        ForEach(Self.languages) { Text($0.title).tag($0.value) }
+                    }
                     Picker("Numerals", selection: $numeralStyle) {
                         ForEach(Self.numeralStyles) { Text($0.title).tag($0.value) }
                     }
                 } header: {
                     Text("Language")
                 } footer: {
-                    Text("Month names are independent of the widget language, so you can show " +
-                         "Urdu month names inside an English (left-to-right) widget.")
+                    Text("Month names and event names are independent of the widget language, so you " +
+                         "can show Urdu month names inside an English (left-to-right) widget, and " +
+                         "name observances in either script.")
                 }
 
                 Section {

@@ -60,11 +60,13 @@ import com.muazdev.hijricalendar.core.HijriCalendarState
  *   `false` by default; see the class KDoc for why that default changed.
  * @param labels All user-visible text. Build it once and hold it — it is used as a `remember` key.
  * @param showEventBanner Whether the observances bar below the grid is drawn. `true` — the default —
- *   keeps it **permanently present**. It lists **every** observance the shown month holds while the
- *   user pages through months — names only, no day numbers — and narrows to the tapped day's single
- *   observance once a day that carries one is selected. With neither it falls back to
- *   [HijriCalendarLabels.noEventBanner]. Set `false` to draw no bar at all, or supply empty banner
- *   labels to keep the bar but hide the cases you do not want.
+ *   keeps it **permanently present**, so the calendar never jumps as a selection moves, but it only
+ *   ever names the **selected day's** events: [HijriCalendarLabels.eventBannerHint] before the first
+ *   selection in the shown month, [HijriCalendarLabels.noEventBanner] for a selected day that holds
+ *   nothing, and [HijriCalendarLabels.monthEventBanner] / [monthEventBannerWithPakistan] for the day
+ *   that does. The month's whole history is deliberately *not* listed; the filled cells are the
+ *   month's calendar. Set `false` to draw no bar at all, or supply empty banner labels to keep the bar
+ *   but hide the cases you do not want.
  */
 // Suppressed rather than satisfied: the function's job is to resolve the header's strings from the
 // state and hand them to the header, and every one of those resolutions needs a `remember` keyed on
@@ -153,24 +155,30 @@ public fun HijriCalendar(
     // previous observance.
     val bannerDays by remember(state) { derivedStateOf { state.calendarMonth.days } }
 
-    // What the bar shows: the month's whole observance list, or — once a day has been tapped and that
-    // day carries one — just that observance. Pure and separately tested (`MonthEventListTest`); this
-    // composable only decides how to phrase the list. See [eventBannerEvents] for why the two states
-    // answer different questions.
+    // What the bar shows: the **selected day's** marks, and nothing else. `null` means no day in the
+    // displayed month is selected, which is a different answer from "selected, and empty" — the first
+    // asks the user to choose a day, the second tells them the chosen one holds nothing. Pure and
+    // separately tested (`MonthEventListTest`); this composable only decides how to phrase each case.
     val bannerEvents = remember(bannerDays) { eventBannerEvents(bannerDays) }
 
-    // The banner is **always** drawn, which is the point of the field: it lists the month's whole
-    // observance set, names only — the filled cells already answer *when* — and the empty-month label
-    // when there are none. It used to render only for a tapped observance, so on most months the
-    // "historical events" line simply was not there; naming a single day then made it read as a
-    // footnote to a tap rather than as the month's description.
-    val eventBannerText = remember(bannerEvents, labels, showEventBanner) {
+    // Whether the displayed month holds *any* notable date. The hint only makes sense when there is
+    // something to discover by tapping; an eventless month must not ask the user to tap for an answer
+    // that does not exist, so it says so instead.
+    val monthHasAnyEvent = bannerDays.any { it.isCurrentMonth && it.hasNotableEvent }
+
+    // The banner is **always** drawn, so the calendar never jumps as a selection moves; what changes is
+    // which of three lines it holds.
+    val eventBannerText = remember(bannerEvents, labels, showEventBanner, monthHasAnyEvent) {
         when {
             !showEventBanner -> null
+            bannerEvents == null -> {
+                val line = if (monthHasAnyEvent) labels.eventBannerHint else labels.noEventInMonth
+                line.takeIf { it.isNotEmpty() }
+            }
             bannerEvents.isEmpty -> labels.noEventBanner.takeIf { it.isNotEmpty() }
-            // A month with no Pakistani national day keeps the published Hijri-only lambda, so an
-            // existing custom `monthEventBanner` is still what renders. Only a Pakistan-mode month that
-            // actually holds a national day routes through the additive combined label.
+            // A selected day with no Pakistani national day keeps the published Hijri-only lambda, so
+            // an existing custom `monthEventBanner` is still what renders. Only a day that actually
+            // holds a national day routes through the additive combined label.
             bannerEvents.pakistan.isEmpty() ->
                 labels.monthEventBanner(bannerEvents.hijri).takeIf { it.isNotEmpty() }
             else ->
