@@ -74,7 +74,6 @@ struct WidgetCatalogView: View {
         return WidgetOptionsKt.createWidgetOptions(
             language: language,
             monthNameLanguage: monthNameLanguage,
-            eventLanguage: eventLanguage,
             source: source,
             adjustmentDays: adjustmentDays,
             numeralStyle: numeralStyle,
@@ -90,7 +89,8 @@ struct WidgetCatalogView: View {
             showCellBorders: stored.showCellBorders,
             theme: stored.theme,
             dateDisplayMode: stored.dateDisplayMode,
-            datePrimary: stored.datePrimary
+            datePrimary: stored.datePrimary,
+            eventLanguage: eventLanguage
         )
     }
 
