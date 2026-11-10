@@ -50,11 +50,25 @@ val UrduCalendarLabels = HijriCalendarLabels(
     // locale's decision.
     eventName = { event -> event.name(HijriEventLanguage.URDU) },
     eventBanner = { event, _ -> event.name(HijriEventLanguage.URDU) },
+    // A national day is a `CalendarEvent` too, and it needs its own slot: `eventName` takes a
+    // `HijriEvent`, so it cannot answer for 14 August. Its default is `nameEn`, which is why a
+    // Pakistan-mode month printed "Iqbal Day" in Latin script across an otherwise Urdu screen —
+    // caught by running the app, not by a build. Same rule as `eventName`: the language the bundle
+    // is for, never the library's English fallback.
+    pakistanEventName = { event -> event.name(HijriEventLanguage.URDU) },
     // The month's whole observance set, joined with the Urdu comma (U+060C). The day is no longer
     // spelled out ("دن 10"): the banner names the events alone, without the day attached, because
     // the filled cells already say when. The separator is Urdu punctuation rather than the English
     // middle dot, and the names stay in Urdu.
     monthEventBanner = { events ->
+        events.joinToString("، ") { event -> event.name(HijriEventLanguage.URDU) }
+    },
+    // **Both** banner lambdas, because the library picks one per month: a month with no national day
+    // goes through `monthEventBanner` above, and a Pakistan-mode month goes through this one. With
+    // only the first overridden, every month holding a Pakistani national day fell back to the
+    // default — English names joined with " · " — so "Iqbal Day" replaced "یوم اقبال" precisely in
+    // the months the Pakistan source is for.
+    monthEventBannerWithPakistan = { events ->
         events.joinToString("، ") { event -> event.name(HijriEventLanguage.URDU) }
     },
     // The bar is permanently present, so a month with no observance still needs a line: silence on
