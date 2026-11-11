@@ -412,6 +412,7 @@ public fun buildHijriMonthWidgetData(
     localizedHijriMonthNames: List<String>? = null,
     localizedGregorianMonthNames: List<String>? = null,
     localizedWeekdayNames: List<String>? = null,
+    /** Defaults to the deprecated process-global table. Widget code must pass an explicit table; see HijriMonthLengthsRepository. */
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
     hijriEra: String? = null,
     gregorianEra: String? = null,
@@ -641,6 +642,7 @@ public fun todayHijriWidgetData(
     localizedWeekdayNames: List<String>? = null,
     numeralStyle: NumeralStyle = NumeralStyle.WESTERN,
     pakistan: Boolean = false,
+    /** Defaults to the deprecated process-global table. Widget code must pass an explicit table; see HijriMonthLengthsRepository. */
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
     hijriEra: String? = null,
     gregorianEra: String? = null,

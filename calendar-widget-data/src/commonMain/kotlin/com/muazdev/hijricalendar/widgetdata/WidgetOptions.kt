@@ -715,3 +715,77 @@ public fun todayHijriWidgetData(
     // heads a column. Urdu Monday is `پیر` in a column heading and `سوموار` at a glance.
     localizedWeekdayTileNames = options.localizedWeekdayTileNames,
 )
+
+/**
+ * Explicit-table form of [buildHijriMonthWidgetData].
+ *
+ * The render path uses this overload so no call reads the process-global table.
+ * The [overrides] table is passed directly; [options.monthLengthOverrides] is ignored.
+ */
+public fun buildHijriMonthWidgetData(
+    hijriYear: Int,
+    hijriMonth: Int,
+    options: WidgetOptions,
+    weekendDays: Set<WeekDay>,
+    rightToLeft: Boolean,
+    overrides: HijriMonthLengths,
+): HijriMonthWidgetData? = buildHijriMonthWidgetData(
+    hijriYear = hijriYear,
+    hijriMonth = hijriMonth,
+    adjustmentDays = options.adjustmentDays,
+    weekStart = options.effectiveWeekStart,
+    numeralStyle = options.numeralStyle,
+    pakistan = options.source.pakistan,
+    weekendDays = weekendDays,
+    rightToLeft = rightToLeft,
+    localizedHijriMonthNames = options.localizedHijriMonthNames,
+    localizedGregorianMonthNames = options.localizedGregorianMonthNames,
+    localizedWeekdayNames = options.localizedWeekdayNames,
+    overrides = overrides,
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
+)
+
+/**
+ * Explicit-table form of [buildHijriMonthWidgetData] with reading direction from [options.language].
+ *
+ * The render path uses this overload so no call reads the process-global table.
+ */
+public fun buildHijriMonthWidgetData(
+    hijriYear: Int,
+    hijriMonth: Int,
+    options: WidgetOptions,
+    weekendDays: Set<WeekDay>,
+    overrides: HijriMonthLengths,
+): HijriMonthWidgetData? = buildHijriMonthWidgetData(
+    hijriYear = hijriYear,
+    hijriMonth = hijriMonth,
+    options = options,
+    weekendDays = weekendDays,
+    rightToLeft = options.language.isRtl,
+    overrides = overrides,
+)
+
+/**
+ * Explicit-table form of [todayHijriWidgetData].
+ *
+ * The render path uses this overload so no call reads the process-global table.
+ */
+public fun todayHijriWidgetData(
+    anchorEpochDay: Long,
+    options: WidgetOptions,
+    overrides: HijriMonthLengths,
+): TodayHijriWidgetData? = todayHijriWidgetData(
+    anchorEpochDay = anchorEpochDay,
+    adjustmentDays = options.adjustmentDays,
+    localizedHijriMonthNames = options.localizedHijriMonthNames,
+    localizedGregorianMonthNames = options.localizedGregorianMonthNames,
+    localizedWeekdayNames = options.localizedWeekdayNames,
+    numeralStyle = options.numeralStyle,
+    pakistan = options.source.pakistan,
+    overrides = overrides,
+    hijriEra = WidgetLocalization.ChromeLabels.hijriEra(options.effectiveMonthNameLanguage),
+    gregorianEra = WidgetLocalization.ChromeLabels.gregorianEra(options.effectiveMonthNameLanguage),
+    monthNameLanguage = options.effectiveMonthNameLanguage,
+    localizedWeekdayTileNames = options.localizedWeekdayTileNames,
+)
