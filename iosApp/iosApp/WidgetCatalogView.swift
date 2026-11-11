@@ -49,9 +49,8 @@ struct WidgetCatalogView: View {
         _weekStart = State(initialValue: options.effectiveWeekStart)
         _pinsMonth = State(initialValue: options.isPinned)
         // The seed for a fresh pin. Not a *fallback* — the "Auto" chip is what clears the pin, and
-        // the user must be able to step a year in either direction from here (WD-07 removed the
-        // other hardcoded 1447, which stood in for a value the resolver should have been able to
-        // say it did not know).
+        // the user must be able to step a year in either direction from here. The resolver
+        // returns nil when today is unknown, so the initial pin starts from a fixed year.
         _pinnedYear = State(initialValue: options.pinnedYear?.int32Value ?? Self.initialPinnedYear)
         _pinnedMonth = State(initialValue: options.pinnedMonth?.int32Value ?? 1)
     }
@@ -157,8 +156,8 @@ struct WidgetCatalogView: View {
                 Section {
                     Picker("First day of week", selection: $weekStart) {
                         // Tagged by the enum, not by an index: the stored option is a name, and a
-                        // picker that speaks indices would reintroduce the ordinal hazard WD-05
-                        // removed. `entries` is the Kotlin enum's, bridging to a Swift `[WeekStart]` —
+                        // picker that speaks indices would reintroduce the ordinal hazard.
+                        // `entries` is the Kotlin enum's, bridging to a Swift `[WeekStart]` —
                         // a Kotlin enum class is not a Swift enum, so there is no `allCases`, and
                         // `values()` would hand back a `KotlinArray` that `ForEach` cannot walk.
                         ForEach(WeekStart.entries, id: \.self) { start in

@@ -84,7 +84,7 @@ struct HijriGridEntryView: View {
     ///
     /// The arithmetic mirrors `HijriMonthWidgetData.weeksToRender` on the Kotlin side, which the
     /// Glance and Compose grids use.
-    /// The cell divider (FD-04), drawn on the trailing edge of every cell but the last.
+    /// The cell divider, drawn on the trailing edge of every cell but the last.
     ///
     /// SwiftUI has no per-cell border, so the rule is the trailing padding of a `Divider`-shaped view:
     /// a 1pt-wide, full-height rectangle at the cell's right edge, in the same colour the in-app

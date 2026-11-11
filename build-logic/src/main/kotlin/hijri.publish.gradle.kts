@@ -55,7 +55,7 @@ mavenPublishing {
     }
 }
 
-// A scratch file repository for the consumer-resolution gate (docs/widgets/glance/WG-01).
+// A scratch file repository for the consumer-resolution gate.
 //
 // `calendar-widget-glance` publishes `androidx.compose.ui` as `api` because its public live-preview
 // composables take `Modifier`/`DpSize`, but nothing inside this build can observe that: the sample

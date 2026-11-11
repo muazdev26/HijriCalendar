@@ -63,7 +63,7 @@ enum HijriWidgetProjection {
             hijriYear: year,
             hijriMonth: month,
             options: options,
-            // From the widget's own options (FD-03), like Android. This is still the default pattern's
+            // From the widget's own options, like Android. This is still the default pattern's
             // set until a host sets one, but the two platforms now resolve it the same way instead of
             // each hardcoding `WEEKEND_DAYS` and agreeing only by coincidence.
             //
@@ -81,7 +81,7 @@ enum HijriWidgetProjection {
     ///
     /// Returns `nil` when none of the three is available — the app has no viewed month, no pin, and
     /// today's date could not be resolved. That used to be a hardcoded `(1447, 1)`, which is a month
-    /// that is simply wrong whenever today is unknown (WD-07); the placeholder widget has a real
+    /// that is simply wrong whenever today is unknown; the placeholder widget has a real
     /// value to show instead.
     static func resolveGridMonth(
         kind: HijriWidgetKind,
@@ -159,7 +159,7 @@ struct HijriGridTimelineProvider: TimelineProvider {
         let today = HijriWidgetProjection.today(at: epoch, options: options)
         // `nil` here means: no viewed month, no pin, and today unresolvable — an app whose local
         // calendar could not produce a date. Falling back to a named placeholder month is honest;
-        // a hardcoded literal inlined here would have looked like a real answer (WD-07).
+        // a hardcoded literal inlined here would have looked like a real answer.
         let grid = HijriWidgetProjection.resolveGridMonth(kind: .calendar, options: options, today: today)
             ?? HijriWidgetProjection.placeholderGridMonth
         if grid == HijriWidgetProjection.placeholderGridMonth, today == nil, !options.isPinned {

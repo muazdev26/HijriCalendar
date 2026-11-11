@@ -6,10 +6,9 @@
 # Rationale for the rule set below: each one corresponds to a defect class that actually occurred
 # in this codebase or in its review, not to a general style preference.
 #   SwallowedException, TooGenericExceptionCaught -> the eleven `catch (_: Exception)` sites found
-#                                                     in calendar-core (docs/issues/CORE-05).
+#                                                     in calendar-core where catching Exception hid real defects.
 #   LongParameterList                               -> the optional-parameter surface that grew
-#                                                     until it needed a config object
-#                                                     (docs/issues/CORE-02).
+#                                                     until it needed a config object.
 #   ReturnCount, ComplexMethod, LargeClass          -> the month-walking functions whose bounds
 #                                                     and terminations were the hard part of
 #                                                     making conversion total.
@@ -48,8 +47,8 @@ exceptions:
       - 'NumberFormatException'
       - 'ParseException'
   TooGenericExceptionCaught:
-    # Keep the default list. The whole point of CORE-05 is that catching Exception here means a
-    # real defect becomes indistinguishable from "date is out of range".
+    # Keep the default list. Catching `Exception` here means a real defect becomes
+    # indistinguishable from "date is out of range".
     active: true
 
 naming:

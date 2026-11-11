@@ -175,7 +175,7 @@ enum HijriShared {
     // iOS hands an extension no widget instance id, so the viewed month is keyed by widget kind
     // and lives in the same app-group store the app reads.
 
-    /// The viewed month is now a `HijriYearMonth` (WD-07), which is what `HijriWidgetConfig` speaks.
+    /// The viewed month is stored as a `HijriYearMonth`, which is what `HijriWidgetConfig` speaks.
     static func viewedMonth(for kind: HijriWidgetKind) -> HijriYearMonth? {
         guard let raw = defaults.string(forKey: viewedPrefix + kind.rawValue) else { return nil }
         // Parsed straight to `Int32` rather than `Int`: `HijriYearMonth`'s fields are Kotlin `Int`,
