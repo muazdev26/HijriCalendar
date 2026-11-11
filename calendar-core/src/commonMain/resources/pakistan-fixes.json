@@ -1,8 +1,24 @@
 {
-  "verifiedOn": "2026-10-28",
+  "verifiedOn": "2026-11-11",
   "sources": {
-    "official-scrap": "Ruet-e-Hilal (bilgrami/hijri-calendar) scrap of the official Central Ruet-e-Hilal Committee table, recorded in the library at 2026-10-28.",
-    "current-window": "Central Ruet-e-Hilal Committee announcements for Safar/Rabi al-Awwal 1448 (1448-02 start and length are the announced Safar decision; 1448-03 start is the announced continuation; 1448-04's start is the continuation of 1448-03's 30th day and is an estimate, not an official decision). Recorded at 2026-10-28."
+    "official-scrap": {
+      "note": "Third-party repository (bilgrami/hijri-calendar) that reproduces a table of the Central Ruet-e-Hilal Committee's decisions. Not an official source. Retrieved 2026-10-28.",
+      "url": "https://github.com/bilgrami/hijri-calendar",
+      "retrievedOn": "2026-10-28",
+      "kind": "derived"
+    },
+    "current-window": {
+      "note": "Secondary news report of the Central Ruet-e-Hilal Committee's Safar and Rabi al-Awwal 1448 decisions. Not an official announcement. The URL is a news tag page and has not been checked against the committee's own publication. Retrieved 2026-10-28.",
+      "url": "https://www.pakistantoday.com.pk/ruet-e-hilal",
+      "retrievedOn": "2026-10-28",
+      "kind": "derived"
+    },
+    "author-verified": {
+      "note": "Manually verified by the library author against the official Central Ruet-e-Hilal Committee announcement.",
+      "kind": "author-verified",
+      "verifiedBy": "library author",
+      "verifiedOn": "2026-11-11"
+    }
   },
   "fixes": [
     { "year": 1440, "month": 10, "firstGregorian": "2019-06-05", "length": 29, "source": "official-scrap" },
@@ -26,6 +42,8 @@
     { "year": 1442, "month": 4, "firstGregorian": "2020-11-17", "length": 29, "source": "official-scrap" },
     { "year": 1448, "month": 2, "firstGregorian": "2026-07-16", "length": 30, "source": "current-window" },
     { "year": 1448, "month": 3, "firstGregorian": "2026-08-15", "length": 30, "source": "current-window" },
-    { "year": 1448, "month": 4, "firstGregorian": "2026-09-14", "length": 30, "source": "current-window" }
+    { "year": 1448, "month": 4, "firstGregorian": "2026-09-14", "length": 29, "source": "author-verified", "lengthDerived": true },
+    { "year": 1448, "month": 5, "firstGregorian": "2026-10-13", "length": 30, "source": "author-verified", "lengthDerived": true },
+    { "year": 1448, "month": 6, "firstGregorian": "2026-11-12", "source": "author-verified", "status": "pending-length" }
   ]
 }
