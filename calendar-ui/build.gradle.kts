@@ -12,15 +12,16 @@ kotlin {
             implementation(libs.hijrah.datetime)
             implementation(libs.kotlinx.datetime)
             // Declared here rather than injected by the `hijri.multiplatform.library` convention:
-            // this module draws, so it names the Compose artifacts it draws with (review-remediation
-            // 04). `compose.ui` arrives transitively with foundation.
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
+            // this module draws, so it names the Compose artifacts it draws with. `compose.ui`
+            // arrives transitively with foundation. These are `api` because the public API
+            // includes @Composable functions that reference Compose types in their signatures.
+            api(compose.runtime)
+            api(compose.foundation)
+            api(compose.material3)
         }
         // Previews live in androidMain, so the @Preview annotation is an androidMain dependency
         // rather than a commonMain one. It used to be commonMain, which put an annotation from a
-        // non-api dependency on 14 public declarations in the published ABI — see UI-07.
+        // non-api dependency on 14 public declarations in the published ABI.
         androidMain.dependencies {
             implementation(libs.compose.multiplatform.ui.tooling.preview)
         }
@@ -29,7 +30,7 @@ kotlin {
             // Multiplatform composable-test harness. runComposeUiTest resolves to a Skiko-backed
             // desktop runner, so these land in `./gradlew :calendar-ui:desktopTest` — the command
             // AGENTS.md already names as the verification loop — rather than only in an
-            // instrumented `connectedAndroidTest` on a device. See UI-02.
+            // instrumented `connectedAndroidTest` on a device.
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(libs.compose.multiplatform.ui.test)
         }
