@@ -72,11 +72,11 @@ public class HijriDateWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        HijriMonthOverridesSeed.seed(context)
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.load(context, id)
+        val overrides = resolveHijriOverrides(context, peeked)
         if (peeked.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val openAction = actionStartActivity(openAppIntent(context))
 
@@ -93,6 +93,7 @@ public class HijriDateWidget : GlanceAppWidget() {
             val today = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
+                overrides = overrides.table,
                 todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
             )
             // The 1x1 tile's caption is one line at 40dp, where the full month name clips. `Oct` and
@@ -117,8 +118,9 @@ public class HijriDateWidget : GlanceAppWidget() {
      */
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val options = HijriWidgetConfig.loadFamily(context)
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         HijriWidgetRefreshLog.d(
             "render:tile",
@@ -126,7 +128,14 @@ public class HijriDateWidget : GlanceAppWidget() {
         )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
+            val data = buildRenderData(
+                context = context,
+                options = options,
+                overrides = overrides.table,
+                viewedMonth = null,
+                glanceId = "preview",
+                optionsFrom = "family",
+            )
             DateTileRoot(
                 dayText = data.todayHijri?.hijriDayText,
                 monthText = data.todayHijri?.hijriMonthShortName,
@@ -154,11 +163,11 @@ public class GregorianDateWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        HijriMonthOverridesSeed.seed(context)
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.load(context, id)
+        val overrides = resolveHijriOverrides(context, peeked)
         if (peeked.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val openAction = actionStartActivity(openAppIntent(context))
 
@@ -175,6 +184,7 @@ public class GregorianDateWidget : GlanceAppWidget() {
             val today = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
+                overrides = overrides.table,
                 todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
             )
             DateTileRoot(
@@ -195,8 +205,9 @@ public class GregorianDateWidget : GlanceAppWidget() {
      */
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val options = HijriWidgetConfig.loadFamily(context)
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         HijriWidgetRefreshLog.d(
             "render:tile",
@@ -204,7 +215,14 @@ public class GregorianDateWidget : GlanceAppWidget() {
         )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
+            val data = buildRenderData(
+                context = context,
+                options = options,
+                overrides = overrides.table,
+                viewedMonth = null,
+                glanceId = "preview",
+                optionsFrom = "family",
+            )
             DateTileRoot(
                 dayText = data.todayHijri?.gregorianDayText,
                 monthText = data.todayHijri?.gregorianMonthShortName,

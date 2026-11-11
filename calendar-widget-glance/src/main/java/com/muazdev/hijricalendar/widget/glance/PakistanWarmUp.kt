@@ -1,6 +1,6 @@
 package com.muazdev.hijricalendar.widget.glance
 
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -20,8 +20,8 @@ import kotlin.time.TimeSource
  * The build itself is owned by [PakistanHijriCalendar.prewarm]; this object only makes sure
  * that when the table is cold, exactly one build runs and everyone else suspends on the same
  * [Deferred] instead of starting their own uncoordinated build on whatever thread they happen
- * to be on. Callers that arrive after the table is warm for the current
- * [HijriMonthOverrides] revision return without touching a thread pool.
+ * to be on. Callers that arrive after the table is warm for the current overrides revision
+ * return without touching a thread pool.
  */
 public object PakistanWarmUp {
 
@@ -29,40 +29,40 @@ public object PakistanWarmUp {
 
     private val mutex = Mutex()
     private var warmUpJob: Deferred<Unit>? = null
+    private var warmRevision: Long = -1L
 
     /**
      * Test hook: replaces the actual century-table build so a test can count how many times the
      * real [PakistanHijriCalendar.prewarm] would run. Defaults to the real build.
      */
-    internal var buildAction: () -> Unit = { PakistanHijriCalendar.prewarm() }
+    internal var buildAction: (HijriMonthLengths) -> Unit = { PakistanHijriCalendar.prewarm(it) }
 
     /**
-     * Suspends until the Pakistan century table is built for the current overrides revision.
+     * Suspends until the Pakistan century table is built for the given [overrides] table.
      * Idempotent: joins an in-flight build or returns immediately when the table is already
      * warm. Safe to call from anywhere (main thread included).
      */
-    public suspend fun ensureWarm() {
-        if (PakistanHijriCalendar.isWarmForCurrentOverrides()) return
+    public suspend fun ensureWarm(overrides: HijriMonthLengths) {
+        if (PakistanHijriCalendar.isWarmForCurrentOverrides(overrides)) return
 
         val watch = TimeSource.Monotonic.markNow()
         val job = mutex.withLock {
             // Re-check inside the lock: whoever held the mutex before us may have finished
             // (or started and finished) a build while we waited.
-            if (PakistanHijriCalendar.isWarmForCurrentOverrides()) {
+            if (PakistanHijriCalendar.isWarmForCurrentOverrides(overrides)) {
                 warmUpJob = null
                 return
             }
-            // A completed job is a stale reference for an older overrides revision (the
-            // table is not warm for the current one, so it is exactly the "revision
-            // changed" case) — replace it rather than awaiting a finished build.
+            // A completed job is a stale reference for an older overrides revision — replace it
+            // rather than awaiting a finished build.
             warmUpJob?.takeUnless { it.isCompleted }
-                ?: scope.async { buildAction() }.also { warmUpJob = it }
+                ?: scope.async { buildAction(overrides) }.also { warmUpJob = it }
         }
         job.await()
+        warmRevision = 0L
         HijriWidgetRefreshLog.d(
             "warmup",
-            "warm in ${watch.elapsedNow().inWholeMilliseconds}ms " +
-                "(revision ${HijriMonthOverrides.currentRevision})",
+            "warm in ${watch.elapsedNow().inWholeMilliseconds}ms",
         )
     }
 }

@@ -73,11 +73,11 @@ public class HijriDualDateWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        HijriMonthOverridesSeed.seed(context)
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.load(context, id)
+        val overrides = resolveHijriOverrides(context, peeked)
         if (peeked.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val openAction = actionStartActivity(openAppIntent(context))
 
@@ -94,6 +94,7 @@ public class HijriDualDateWidget : GlanceAppWidget() {
             val today = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
+                overrides = overrides.table,
                 todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
             )
             DualDateTileRoot(
@@ -116,8 +117,9 @@ public class HijriDualDateWidget : GlanceAppWidget() {
      */
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val options = HijriWidgetConfig.loadFamily(context)
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         HijriWidgetRefreshLog.d(
             "render:tile",
@@ -125,7 +127,14 @@ public class HijriDualDateWidget : GlanceAppWidget() {
         )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
+            val data = buildRenderData(
+                context = context,
+                options = options,
+                overrides = overrides.table,
+                viewedMonth = null,
+                glanceId = "preview",
+                optionsFrom = "family",
+            )
             DualDateTileRoot(
                 today = data.todayHijri,
                 colors = colors,

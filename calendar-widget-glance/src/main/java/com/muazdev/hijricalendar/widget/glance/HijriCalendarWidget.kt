@@ -54,7 +54,7 @@ import com.muazdev.hijricalendar.core.CalendarEvent
 import com.muazdev.hijricalendar.core.CalendarMonth
 import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriEvents
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
+import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.core.PakistanEvents
 import com.muazdev.hijricalendar.widgetdata.GridTypography
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
@@ -156,11 +156,6 @@ public class HijriCalendarWidget : GlanceAppWidget() {
 
     @OptIn(ExperimentalGlanceApi::class)
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Seed the process-global override table from the durable store, so a process woken by an
-        // alarm renders the month lengths a settings screen wrote — not the calculated calendar.
-        // The app and its widgets share one DataStore file, so both see the same table.
-        HijriMonthOverridesSeed.seed(context)
-
         // One-shot, non-reactive peek for things that must not wait for the live state read: port
         // any legacy flat-file config and decide whether the Pakistan century table must be warm
         // before a render can build the grid. Reading state here also means the first composition
@@ -169,10 +164,11 @@ public class HijriCalendarWidget : GlanceAppWidget() {
         val peeked = HijriWidgetConfig.decodeOptions(
             getAppWidgetState(context, HijriWidgetConfig.PREFS, id),
         ) ?: HijriWidgetConfig.loadFamily(context)
+        val overrides = resolveHijriOverrides(context, peeked)
         if (peeked.source.pakistan) {
             // A render can race the app's warm-up coroutine (process restart on a widget tap);
             // join it instead of building the century table inline on this composition.
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val openAction = actionStartActivity(openAppIntent(context))
         val prevAction = actionRunCallback<HijriWidgetPrevMonthCallback>()
@@ -240,12 +236,13 @@ public class HijriCalendarWidget : GlanceAppWidget() {
     @OptIn(ExperimentalGlanceApi::class)
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val options = HijriWidgetConfig.loadFamily(context)
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null)
+            val data = buildRenderData(context, options, overrides.table, viewedMonth = null)
             HijriWidgetRoot(
                 monthData = data.monthData,
                 todayHijri = data.todayHijri,
@@ -324,10 +321,13 @@ internal data class HijriWidgetRenderData(
 /**
  * Builds the projection for [options]. Used by both [HijriCalendarWidget.provideGlance] and the
  * settings-screen and picker previews, so the preview cannot drift from the real widget.
+ *
+ * @param overrides explicit month-length table; if `null` the global is used (deprecated path).
  */
 internal fun buildRenderData(
     context: Context,
     options: WidgetOptions,
+    overrides: HijriMonthLengths? = null,
     viewedMonth: HijriYearMonth?,
     glanceId: String = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
     optionsFrom: String = "family",
@@ -338,13 +338,10 @@ internal fun buildRenderData(
         "render:grid",
         "glance=$glanceId overrides=${options.monthLengthOverrides.size} language=${options.language} source=${options.source} optionsFrom=$optionsFrom",
     )
-    // Through [HijriWidgetRenderCache.render], which is what the live widget uses. This used
-    // to call the projection builders directly, so the preview and the widget shared a *function*
-    // but not a *pipeline* — the live widget's grid was cached and the preview's was not, which is
-    // precisely the difference the cache's KDoc claimed could not exist.
     return HijriWidgetRenderCache.render(
         glanceId = glanceId,
         options = options,
+        overrides = overrides,
         viewedMonth = viewedMonth,
         todayEpochDay = todayEpochDay,
         layoutRtl = layoutRtl,
@@ -432,24 +429,30 @@ internal fun isShowingMonth(
  */
 internal fun buildMonthData(
     options: WidgetOptions,
+    overrides: HijriMonthLengths?,
     viewedMonth: HijriYearMonth?,
     todayHijri: TodayHijriWidgetData?,
     layoutRtl: Boolean,
 ): HijriMonthWidgetData? {
     val (year, month) = resolveGridMonth(options, viewedMonth, todayHijri) ?: return null
-    return buildHijriMonthWidgetData(
-        hijriYear = year,
-        hijriMonth = month,
-        options = options,
-        // From the widget's own options. This used to be the literal
-        // `WeekDay.WEEKEND_DAYS`, so every widget shaded Friday and Saturday and nobody could change
-        // it — which is right for the Pakistan calendar the library also supports, and wrong for a
-        // user whose weekend is not Friday and Saturday.
-        weekendDays = options.weekendPattern.toWeekDays(),
-        // The projection is pre-reversed for the device's mirroring, so the net visual order is
-        // the option language's — which is what `layoutRtl` already encodes.
-        rightToLeft = layoutRtl,
-    )
+    return if (overrides != null) {
+        buildHijriMonthWidgetData(
+            hijriYear = year,
+            hijriMonth = month,
+            options = options,
+            weekendDays = options.weekendPattern.toWeekDays(),
+            rightToLeft = layoutRtl,
+            overrides = overrides,
+        )
+    } else {
+        buildHijriMonthWidgetData(
+            hijriYear = year,
+            hijriMonth = month,
+            options = options,
+            weekendDays = options.weekendPattern.toWeekDays(),
+            rightToLeft = layoutRtl,
+        )
+    }
 }
 
 /**
@@ -512,8 +515,7 @@ internal object HijriWidgetRenderCache {
 
     /**
      * Everything about a [WidgetOptions]'s month lengths that can change the projection: the
-     * widget's own override map, plus the process global's revision **only when that map is
-     * empty** — because that is the only case where the global is the table being read.
+     * widget's own override map, plus the source revision when the map is empty.
      *
      * Structural, not a hash. A single-entry `Map`'s `hashCode()` is `key.hashCode() xor
      * value.hashCode()`, so two *different* override tables collide routinely (`{"1448-3" to 30}`
@@ -523,16 +525,12 @@ internal object HijriWidgetRenderCache {
      */
     private data class OverrideKey(
         val overrides: Map<String, Int>,
-        val globalRevision: Long,
+        val sourceRevision: Long,
     )
 
-    private fun overrideCacheKey(options: WidgetOptions): OverrideKey = OverrideKey(
+    private fun overrideCacheKey(options: WidgetOptions, resolved: HijriResolvedOverrides): OverrideKey = OverrideKey(
         overrides = options.monthLengthOverrides,
-        globalRevision = if (options.monthLengthOverrides.isEmpty()) {
-            HijriMonthOverrides.currentRevision
-        } else {
-            0L
-        },
+        sourceRevision = if (resolved.fromWidgetOptions) 0L else resolved.revision,
     )
 
     private data class TodayKey(
@@ -585,12 +583,18 @@ internal object HijriWidgetRenderCache {
     fun render(
         glanceId: String,
         options: WidgetOptions,
+        overrides: HijriMonthLengths?,
         viewedMonth: HijriYearMonth?,
         todayEpochDay: Long,
         layoutRtl: Boolean,
     ): HijriWidgetRenderData {
-        val todayHijri = today(glanceId, options, todayEpochDay)
-        val overrideKey = overrideCacheKey(options)
+        val resolved = if (overrides != null) {
+            HijriResolvedOverrides(table = overrides, revision = 0L, fromWidgetOptions = true)
+        } else {
+            HijriResolvedOverrides(table = HijriMonthLengths(), revision = 0L, fromWidgetOptions = false)
+        }
+        val todayHijri = today(glanceId, options, overrides, todayEpochDay)
+        val overrideKey = overrideCacheKey(options, resolved)
         val monthKey = resolveGridMonth(options, viewedMonth, todayHijri)?.let { (year, month) ->
             MonthKey(
                 glanceId,
@@ -610,14 +614,8 @@ internal object HijriWidgetRenderCache {
         val monthData = if (monthKey == null) {
             null
         } else {
-            // Read and write around the build, never across it. Two threads may build the
-            // same month concurrently — a wasted build, never a wrong result, since
-            // `HijriMonthWidgetData` is immutable — and that is strictly better than serialising
-            // every widget's render in the process on one monitor. The earlier `synchronized` also
-            // held this across a cold Pakistan century-table build, so a settings preview could
-            // block a real widget's render behind it.
             monthCache.get(monthKey)
-                ?: buildMonthData(options, viewedMonth, todayHijri, layoutRtl)
+                ?: buildMonthData(options, overrides, viewedMonth, todayHijri, layoutRtl)
                     ?.also { monthCache.put(monthKey, it) }
         }
         return HijriWidgetRenderData(
@@ -636,14 +634,20 @@ internal object HijriWidgetRenderCache {
     /**
      * Cached "today" projection shared by the month grid and the Today strip: keyed by
      * everything that affects the output (anchor day, adjustment, language, numerals, source and
-     * [WidgetOptions.overridesTable]), so a recompose of an unchanged day skips the Hijri
+     * the resolved override table), so a recompose of an unchanged day skips the Hijri
      * math — including a cold Pakistan century-table build.
      */
     fun today(
         glanceId: String,
         options: WidgetOptions,
+        overrides: HijriMonthLengths?,
         todayEpochDay: Long,
     ): TodayHijriWidgetData? {
+        val resolved = if (overrides != null) {
+            HijriResolvedOverrides(table = overrides, revision = 0L, fromWidgetOptions = true)
+        } else {
+            HijriResolvedOverrides(table = HijriMonthLengths(), revision = 0L, fromWidgetOptions = false)
+        }
         val key = TodayKey(
             glanceId,
             todayEpochDay,
@@ -652,13 +656,16 @@ internal object HijriWidgetRenderCache {
             options.effectiveMonthNameLanguage,
             options.numeralStyle,
             options.source.pakistan,
-            overrideCacheKey(options),
+            overrideCacheKey(options, resolved),
         )
-        // Same read-write-build-write shape as [render] — see there for why the build is outside
-        // the cache's own lock.
         return todayCache.get(key)
-            ?: todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
-                ?.also { todayCache.put(key, it) }
+            ?: if (overrides != null) {
+                todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options, overrides = overrides)
+                    ?.also { todayCache.put(key, it) }
+            } else {
+                todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
+                    ?.also { todayCache.put(key, it) }
+            }
     }
 }
 

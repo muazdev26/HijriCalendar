@@ -117,16 +117,18 @@ internal suspend fun stepViewedMonth(context: Context, glanceId: GlanceId, step:
         HijriWidgetRenderQueue.render(context, glanceId, reason = "nav:step_start")
         val options = HijriWidgetConfig.load(context, glanceId)
         HijriWidgetRefreshLog.d("nav:step($step)", "options.language=${options.language}")
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
             HijriWidgetRefreshLog.d("nav:step($step)", "sampling Pakistan warm-up before tap math")
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
         // Only resolve "today" when it is genuinely the last fallback (never navigated, no pin);
         // a widget that has navigated once resolves straight from `viewed` and never touches
         // PakistanHijriCalendar on subsequent taps.
+        val resolvedTable = overrides.table
         val todayHijri by lazy {
-            todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options)
+            todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options, overrides = resolvedTable)
         }
         val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
         // The same resolver the projection and the render cache use, so a tap steps from exactly the
@@ -241,10 +243,11 @@ internal suspend fun selectDay(
     }
 
     val options = HijriWidgetConfig.load(context, glanceId)
+    val overrides = resolveHijriOverrides(context, options)
     if (options.source.pakistan) {
         // The same rule as month navigation: never make a tap the thread that builds a cold century
         // table. `ensureWarm` suspends onto the app's build rather than doing the work here.
-        PakistanWarmUp.ensureWarm()
+        PakistanWarmUp.ensureWarm(overrides.table)
     }
 
     HijriWidgetRefreshLog.d("nav:select", "$year-$month-$day")
@@ -254,7 +257,14 @@ internal suspend fun selectDay(
     val todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay()
     // Only resolve "today" when it is genuinely the last fallback, for the same reason month
     // navigation does: a widget that has navigated once never touches PakistanHijriCalendar again.
-    val todayHijri by lazy { todayHijriWidgetData(anchorEpochDay = todayEpochDay, options = options) }
+    val resolvedTable = overrides.table
+    val todayHijri by lazy {
+        todayHijriWidgetData(
+            anchorEpochDay = todayEpochDay,
+            options = options,
+            overrides = resolvedTable,
+        )
+    }
     val viewed = HijriWidgetConfig.loadViewedMonth(context, glanceId)
     if (!isShowingMonth(options, viewed, todayHijri, year, month)) {
         HijriWidgetConfig.setViewedMonth(context, glanceId, year, month)

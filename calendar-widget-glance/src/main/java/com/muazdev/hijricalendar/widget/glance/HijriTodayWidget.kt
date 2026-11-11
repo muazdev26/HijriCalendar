@@ -87,11 +87,11 @@ public class HijriTodayWidget : GlanceAppWidget() {
         // warm up the Pakistan century table if needed. The options themselves come from the
         // process-global family mirror below — the strip has no settings screen of its own and
         // follows whatever the family's most recent configure-screen save configured.
-        HijriMonthOverridesSeed.seed(context)
         HijriWidgetConfig.migrateLegacyIfNeeded(context, id)
         val peeked = HijriWidgetConfig.load(context, id)
+        val overrides = resolveHijriOverrides(context, peeked)
         if (peeked.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val openAction = actionStartActivity(openAppIntent(context))
 
@@ -108,6 +108,7 @@ public class HijriTodayWidget : GlanceAppWidget() {
             val data = HijriWidgetRenderCache.today(
                 glanceId = id.toString(),
                 options = options,
+                overrides = overrides.table,
                 todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
             )
             HijriTodayRoot(
@@ -127,8 +128,9 @@ public class HijriTodayWidget : GlanceAppWidget() {
     @OptIn(ExperimentalGlanceApi::class)
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val options = HijriWidgetConfig.loadFamily(context)
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         HijriWidgetRefreshLog.d(
             "render:tile",
@@ -136,7 +138,14 @@ public class HijriTodayWidget : GlanceAppWidget() {
         )
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
-            val data = buildRenderData(context, options, viewedMonth = null, glanceId = "preview", optionsFrom = "family")
+            val data = buildRenderData(
+                context = context,
+                options = options,
+                overrides = overrides.table,
+                viewedMonth = null,
+                glanceId = "preview",
+                optionsFrom = "family",
+            )
             HijriTodayRoot(
                 today = data.todayHijri,
                 colors = colors,

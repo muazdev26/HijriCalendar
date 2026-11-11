@@ -53,12 +53,13 @@ internal class HijriCalendarWidgetPreview(
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
             // The preview composes on the main dispatcher; never let the first Pakistan render
             // build the century table inline here either.
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
-        val data = buildRenderData(context, options, viewedMonth)
+        val data = buildRenderData(context, options, overrides.table, viewedMonth)
         val colors = WidgetColors.forTheme(options.theme)
         provideContent {
             HijriWidgetRoot(
@@ -137,16 +138,15 @@ internal class HijriTodayWidgetPreview(
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val colors = WidgetColors.forTheme(options.theme)
-        // The stable preview id, never `id.toString()`: `compose()` mints a fresh random
-        // fake app-widget id per call, so keying on it inserted an entry no future read could ever
-        // hit — the settings screen grew the cache without bound and got nothing for the cost.
         val data = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
+            overrides = overrides.table,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
         provideContent {
@@ -202,14 +202,16 @@ internal class HijriDateWidgetPreview(
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
+            overrides = overrides.table,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
         provideContent {
@@ -234,14 +236,16 @@ internal class GregorianDateWidgetPreview(
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
+            overrides = overrides.table,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
         provideContent {
@@ -309,14 +313,16 @@ internal class HijriDualDateWidgetPreview(
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
+            overrides = overrides.table,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
         provideContent {
@@ -377,14 +383,16 @@ internal class HijriCompactDateWidgetPreview(
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val overrides = resolveHijriOverrides(context, options)
         if (options.source.pakistan) {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(overrides.table)
         }
         val colors = WidgetColors.forTheme(options.theme)
         // The stable preview id — see the note in `HijriTodayWidgetPreview`.
         val today = HijriWidgetRenderCache.today(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = options,
+            overrides = overrides.table,
             todayEpochDay = HijriWidgetRefreshScheduler.todayEpochDay(),
         )
         provideContent {
