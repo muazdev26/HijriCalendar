@@ -218,23 +218,23 @@ class MonthLengthOverridesTest {
 
     @Test
     fun pakistan_forcedMonthMovesNextStartUntilFixReanchors() {
-        // 1448-05 onward has no fix: forcing 1448-05 to the opposite of its calculation
-        // shifts the 1448-06 start by the same delta off the precomputed table.
-        val defaultLength = PakistanHijriCalendar.defaultLengthOfMonth(1448, 5)
+        // 1448-07 onward has no fix: forcing 1448-07 to the opposite of its calculation
+        // shifts the 1448-08 start by the same delta off the precomputed table.
+        val defaultLength = PakistanHijriCalendar.defaultLengthOfMonth(1448, 7)
         val forced = if (defaultLength == 30) 29 else 30
-        val unforced6Start = PakistanHijriCalendar.hijriToGregorian(1448, 6, 1)
+        val unforced8Start = PakistanHijriCalendar.hijriToGregorian(1448, 8, 1)
 
-        HijriMonthOverrides.setMonthLength(1448, 5, forced)
+        HijriMonthOverrides.setMonthLength(1448, 7, forced)
 
-        assertEquals(forced, PakistanHijriCalendar.lengthOfMonth(1448, 5))
-        // The 5th's own start is untouched (fix-less chain starts from the previous fix).
-        assertEquals(LocalDate(2026, 10, 14), PakistanHijriCalendar.hijriToGregorian(1448, 5, 1))
-        // The 6th's start slides by (forced - defaultLength).
+        assertEquals(forced, PakistanHijriCalendar.lengthOfMonth(1448, 7))
+        // The 8th's start slides by (forced - defaultLength).
         val expectedShift = (forced - defaultLength).toLong()
         assertEquals(
-            unforced6Start.toEpochDays() + expectedShift,
-            PakistanHijriCalendar.hijriToGregorian(1448, 6, 1).toEpochDays(),
+            unforced8Start.toEpochDays() + expectedShift,
+            PakistanHijriCalendar.hijriToGregorian(1448, 8, 1).toEpochDays(),
         )
+
+        HijriMonthOverrides.clearMonthLength(1448, 7)
     }
 
     @Test
@@ -296,37 +296,45 @@ class MonthLengthOverridesTest {
 
     @Test
     fun state_setMonthLength_reanchorsPakistanSelectionToTheSameRealDay() {
-        // Reproduces the crash reported from the sample: 2026-10-13 is 1448-04-30, the last day
-        // of a 30-day month. Forcing the month to 29 days must move the *selection* to the real
-        // day's new label (1448-05-01), not leave it naming a day the month no longer has —
-        // otherwise `selectedPakistanDate.localDate` throws `Invalid day 30` during composition.
+        // 1448-04 has 29 days (2026-09-14 to 2026-10-12). Forcing it to 30 adds day 30
+        // (2026-10-13). Then forcing it back to 29 must move the selection that named day 30
+        // to the next month's day 1, keeping the same real Gregorian day.
+        HijriMonthOverrides.setMonthLength(1448, 4, 30)
         val state = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 4),
             pakistanDates = true,
             initialSelectedPakistanDate = pakistanDate(1448, 4, 30),
         )
         val selectedRealDay = state.selectedPakistanDate!!.localDate
+        assertEquals(LocalDate(2026, 10, 13), selectedRealDay)
 
         state.setMonthLength(1448, 4, 29)
 
-        assertEquals(LocalDate(2026, 10, 13), selectedRealDay)
         assertEquals(pakistanDate(1448, 5, 1), state.selectedPakistanDate)
         assertEquals(selectedRealDay, state.selectedPakistanDate?.localDate)
     }
 
     @Test
     fun state_clearMonthLength_reanchorsPakistanSelectionBack() {
-        HijriMonthOverrides.setMonthLength(1448, 4, 29)
+        // 1448-04 naturally has 29 days (fix). Forcing it to 30 adds day 30 (2026-10-13).
+        // 1448-05 has its own fix (starts 2026-10-13), so the override on 1448-04 is
+        // isolated — it doesn't propagate past the 1448-05 fix.
+        // Selecting 1448-04-30 (which exists only with the override) and then clearing
+        // the override should clamp the selection to 1448-04-29.
+        HijriMonthOverrides.setMonthLength(1448, 4, 30)
         val state = HijriCalendarState(
-            initialMonth = HijrahYearMonth(1448, 5),
+            initialMonth = HijrahYearMonth(1448, 4),
             pakistanDates = true,
-            initialSelectedPakistanDate = pakistanDate(1448, 5, 1),
+            initialSelectedPakistanDate = pakistanDate(1448, 4, 30),
         )
+        assertEquals(LocalDate(2026, 10, 13), state.selectedPakistanDate?.localDate)
 
         state.clearMonthLength(1448, 4)
 
+        // After clearing, 1448-04 has 29 days. Day 30 no longer exists.
+        // The real day 2026-10-13 is now 1448-05-01 (the fix).
         assertEquals(LocalDate(2026, 10, 13), state.selectedPakistanDate?.localDate)
-        assertEquals(pakistanDate(1448, 4, 30), state.selectedPakistanDate)
+        assertEquals(pakistanDate(1448, 5, 1), state.selectedPakistanDate)
     }
 
     @Test
@@ -334,7 +342,8 @@ class MonthLengthOverridesTest {
         // A saved override table and a saved selection are restored independently, so an upgrade
         // can hand the state a selection whose day the month no longer has. It must resolve
         // (clamped) rather than throw from `localDate`.
-        HijriMonthOverrides.setMonthLength(1448, 4, 29)
+        // 1448-04 naturally has 29 days. A saved selection naming day 30 (from when it was
+        // temporarily forced to 30) must be clamped to day 29.
         val state = HijriCalendarState(
             initialMonth = HijrahYearMonth(1448, 4),
             pakistanDates = true,

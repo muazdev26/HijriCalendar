@@ -26,7 +26,7 @@ import kotlin.test.assertEquals
  * defect was in what the grid did with that month.
  *
  * The month is chosen by searching for one where forcing actually changes the length, rather than
- * hardcoded. A fixed month is a trap: 1448-04 is naturally 30 days, so "force it to 30" is a no-op
+ * hardcoded. A fixed month is a trap: 1448-04 is naturally 29 days, so "force it to 29" is a no-op
  * and the test passes while proving nothing. 1445-01 is naturally 29.
  */
 @OptIn(ExperimentalTestApi::class)

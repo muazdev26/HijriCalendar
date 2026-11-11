@@ -15,9 +15,7 @@ import kotlin.test.assertTrue
  *
  * The forward `monthStart` chain must include the fix month's own length. Without it the
  * month immediately after a fix reuses the fix's own start day, shifting every following
- * month a full 29-30 days early — reproduced as 2026-10-14 resolving to 1448-04-01 again,
- * the 1448-05 grid being skipped entirely, and the today cell (1448-03-30) leaking into
- * the 1448-04/1448-05 pages. Plain roundtrip tests cannot catch this because the two
+ * month a full 29-30 days early. Plain roundtrip tests cannot catch this because the two
  * conversion directions share the same off-by-one and stay self-consistent.
  */
 class PakistanCalendarMonthTest {
@@ -27,13 +25,50 @@ class PakistanCalendarMonthTest {
 
     @Test
     fun monthsAfterLastFixResolveToAbsoluteGregorianDays() {
-        assertEquals(LocalDate(2026, 10, 14), PakistanHijriCalendar.hijriToGregorian(1448, 5, 1))
-        assertEquals(LocalDate(2026, 10, 13), PakistanHijriCalendar.hijriToGregorian(1448, 4, 30))
-        assertEquals(pakistanDate(1448, 5, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 14)))
-        assertEquals(pakistanDate(1448, 4, 30), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 13)))
-        assertEquals(pakistanDate(1448, 5, 7), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 20)))
-        assertEquals(pakistanDate(1448, 6, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 11, 13)))
-        assertEquals(pakistanDate(1448, 6, 23), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 12, 5)))
+        // 1448-04 (Rabi al-Thani) starts 2026-09-14, length 29 → ends 2026-10-12
+        assertEquals(LocalDate(2026, 9, 14), PakistanHijriCalendar.hijriToGregorian(1448, 4, 1))
+        assertEquals(LocalDate(2026, 10, 12), PakistanHijriCalendar.hijriToGregorian(1448, 4, 29))
+
+        // 1448-05 (Jumada al-Ula) starts 2026-10-13, length 30 → ends 2026-11-11
+        assertEquals(LocalDate(2026, 10, 13), PakistanHijriCalendar.hijriToGregorian(1448, 5, 1))
+        assertEquals(LocalDate(2026, 11, 11), PakistanHijriCalendar.hijriToGregorian(1448, 5, 30))
+
+        // 1448-06 (Jumada al-Akhirah) starts 2026-11-12
+        assertEquals(pakistanDate(1448, 5, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 13)))
+        assertEquals(pakistanDate(1448, 4, 29), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 12)))
+        assertEquals(pakistanDate(1448, 5, 7), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 10, 19)))
+        assertEquals(pakistanDate(1448, 6, 1), PakistanHijriCalendar.gregorianToHijri(LocalDate(2026, 11, 12)))
+    }
+
+    /**
+     * Verify that derived lengths are arithmetically consistent with consecutive month starts.
+     *
+     * 1448-04 start (2026-09-14) + length (29) = 1448-05 start (2026-10-13)
+     * 1448-05 start (2026-10-13) + length (30) = 1448-06 start (2026-11-12)
+     */
+    @Test
+    fun derivedLengthsAreArithmeticallyConsistent() {
+        // 1448-04: start + length should equal 1448-05's start
+        val rabiThaniStart = PakistanHijriCalendar.hijriToGregorian(1448, 4, 1)
+        val rabiThaniLength = PakistanHijriCalendar.lengthOfMonth(1448, 4)
+        val jumadaUlaStart = PakistanHijriCalendar.hijriToGregorian(1448, 5, 1)
+
+        assertEquals(
+            rabiThaniStart.plus(rabiThaniLength, DateTimeUnit.DAY),
+            jumadaUlaStart,
+            "1448-04 start ($rabiThaniStart) + length ($rabiThaniLength) should equal 1448-05 start ($jumadaUlaStart)",
+        )
+
+        // 1448-05: start + length should equal 1448-06's start
+        val jumadaUlaLength = PakistanHijriCalendar.lengthOfMonth(1448, 5)
+        val jumadaAkhirahStart = PakistanHijriCalendar.hijriToGregorian(1448, 6, 1)
+
+        assertEquals(
+            jumadaUlaStart.plus(jumadaUlaLength, DateTimeUnit.DAY),
+            jumadaAkhirahStart,
+            "1448-05 start ($jumadaUlaStart) + length ($jumadaUlaLength) " +
+                "should equal 1448-06 start ($jumadaAkhirahStart)",
+        )
     }
 
     @Test
