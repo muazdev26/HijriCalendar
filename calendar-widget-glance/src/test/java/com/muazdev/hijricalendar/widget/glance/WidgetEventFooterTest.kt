@@ -6,6 +6,7 @@ import com.muazdev.hijricalendar.core.PakistanEvents
 import com.muazdev.hijricalendar.widgetdata.HijriDayWidgetData
 import com.muazdev.hijricalendar.widgetdata.HijriMonthWidgetData
 import com.muazdev.hijricalendar.widgetdata.WidgetLanguage
+import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 import com.muazdev.hijricalendar.widgetdata.WidgetOptions
 import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import com.muazdev.hijricalendar.widgetdata.buildHijriMonthWidgetData
@@ -17,17 +18,20 @@ import java.time.LocalDate
 import kotlin.test.assertNotNull
 
 /**
- * The grid footer names **only the selected day**, never the month.
+ * The grid footer: `footerEventName` names **only the selected day**, and `footerLine` turns that into the
+ * line the widget draws — the in-app event bar's three-way answer.
  *
- * It used to resolve a "nearest upcoming observance" while nothing was tapped, so the line always said
- * something. On a widget the footer sits directly under a grid whose selection moves with every tap, and
- * that fallback made paging months look like selecting a date: the line changed while the selection had
- * not. The filled cells are the month's calendar; the line names what was touched.
+ * The name used to fall back to a "nearest upcoming observance" while nothing was tapped, so the line
+ * always said something. On a widget the footer sits directly under a grid whose selection moves with
+ * every tap, and that fallback made paging months look like selecting a date: the line changed while the
+ * selection had not. The filled cells are the month's calendar; the line names what was touched.
  *
- * What is pinned here is the *guard* on the selection, because that is where the plausible
+ * What is pinned for the **name** is the guard on the selection, because that is where the plausible
  * implementations differ: a selection in the displayed month names its cell's mark, a selection in
- * another month names nothing, a selected day with no mark names nothing, and no selection names
- * nothing.
+ * another month names nothing, a selected day with no mark names nothing, and no selection names nothing.
+ * What is pinned for the **line** is the resting state, which is where the widget disagreed with the app:
+ * a month with marks asks for a tap, a month without them says there is nothing, and a tapped ordinary day
+ * says so rather than describing the month.
  *
  * **Two calendar spaces, two tables.** A Pakistan-mode grid can fill a cell for a Gregorian-fixed
  * national day (Independence Day, Defence Day), which the Hijri table cannot name at all. The fixtures
@@ -338,6 +342,127 @@ class WidgetEventFooterTest {
                 HijriDaySelection(1447, 1, lastDay + 1),
                 WidgetLanguage.ENGLISH,
             ),
+        )
+    }
+
+    // ── the whole line: the app's three-way answer ────────────────────────
+
+    /**
+     * The resting state **asks for a tap** when the month holds something to find.
+     *
+     * This is the reported defect: every month with filled cells in the grid directly above it said
+     * "No event", which is simply false — and the app's own event bar asks the question instead. The
+     * hint is only honest because the same projection says whether there is anything to tap for, which
+     * is the next assertion.
+     */
+    @Test
+    fun aMonthWithEventsAsksForATapUntilOneIsSelected() {
+        val muharram = month(1)
+        assertTrue(
+            "Muharram must hold observances for this test to mean anything",
+            monthHasAnyEvent(muharram),
+        )
+
+        assertEquals(
+            WidgetLocalization.ChromeLabels.eventBannerHint(WidgetLanguage.ENGLISH),
+            footerLine(muharram, selection = null, WidgetLanguage.ENGLISH, WidgetLanguage.ENGLISH),
+        )
+        assertEquals(
+            "the hint is chrome, so it follows the widget's own language",
+            WidgetLocalization.ChromeLabels.eventBannerHint(WidgetLanguage.URDU),
+            footerLine(muharram, selection = null, WidgetLanguage.ENGLISH, WidgetLanguage.URDU),
+        )
+        assertEquals(
+            "the English label is what the hint says",
+            "Tap a day to see its event",
+            WidgetLocalization.ChromeLabels.eventBannerHint(WidgetLanguage.ENGLISH),
+        )
+    }
+
+    /**
+     * A month holding **nothing** says so, rather than asking for a tap that can only disappoint.
+     *
+     * The two "nothing" sentences are different claims and the month one is the weaker: there is no day
+     * in it whose cell carries a mark, so the resting line describes the month.
+     */
+    @Test
+    fun aMonthWithoutEventsSaysThereIsNoEvent() {
+        val quietMonth = (1..12)
+            .map { month(it) }
+            .firstOrNull { !monthHasAnyEvent(it) }
+
+        assertNotNull(
+            quietMonth,
+            "no eventless Hijri month in 1447, so this assertion cannot be made",
+        )
+        assertEquals(
+            WidgetLocalization.ChromeLabels.noEvent(WidgetLanguage.ENGLISH),
+            footerLine(quietMonth, selection = null, WidgetLanguage.ENGLISH, WidgetLanguage.ENGLISH),
+        )
+        assertEquals(
+            "the line is chrome, so it follows the widget's own language",
+            WidgetLocalization.ChromeLabels.noEvent(WidgetLanguage.URDU),
+            footerLine(quietMonth, selection = null, WidgetLanguage.ENGLISH, WidgetLanguage.URDU),
+        )
+    }
+
+    /**
+     * A tapped day that carries nothing answers **the question the user asked** — "no event on this
+     * day", not the month's "no event".
+     *
+     * The distinction is the reason the footer needs three sentences: the month plainly has filled cells,
+     * so saying "No event" over it is the confusion the report described.
+     */
+    @Test
+    fun aTappedOrdinaryDaySaysNoEventOnThisDay() {
+        val muharram = month(1)
+        val ordinaryDay = inMonthDays(muharram).first { !it.hasEvent }
+
+        assertEquals(
+            WidgetLocalization.ChromeLabels.noEventOnDay(WidgetLanguage.ENGLISH),
+            footerLine(
+                muharram,
+                selectionFor(muharram, ordinaryDay.hijriDay),
+                WidgetLanguage.ENGLISH,
+                WidgetLanguage.ENGLISH,
+            ),
+        )
+        assertEquals(
+            "No event on this day",
+            WidgetLocalization.ChromeLabels.noEventOnDay(WidgetLanguage.ENGLISH),
+        )
+    }
+
+    /** A tapped day that carries a mark names it — the case the footer already had, unchanged. */
+    @Test
+    fun aTappedObservanceIsStillNamed() {
+        val muharram = month(1)
+
+        assertEquals(
+            "Ashura",
+            footerLine(
+                muharram,
+                selectionFor(muharram, 10),
+                WidgetLanguage.ENGLISH,
+                WidgetLanguage.ENGLISH,
+            ),
+        )
+    }
+
+    /**
+     * A selection left in another month falls back to the month's resting sentence, not to a day answer.
+     *
+     * The viewed month is persisted per widget, so paging away with a day still selected is ordinary.
+     * The footer must describe the month on screen: the tap it asks for is about *this* grid.
+     */
+    @Test
+    fun aSelectionInAnotherMonthFallsBackToTheMonthsLine() {
+        val muharram = month(1)
+        val safarSelection = HijriDaySelection(1447, 2, 14)
+
+        assertEquals(
+            WidgetLocalization.ChromeLabels.eventBannerHint(WidgetLanguage.ENGLISH),
+            footerLine(muharram, safarSelection, WidgetLanguage.ENGLISH, WidgetLanguage.ENGLISH),
         )
     }
 }

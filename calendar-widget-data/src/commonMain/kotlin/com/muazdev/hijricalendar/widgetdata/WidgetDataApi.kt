@@ -149,6 +149,37 @@ public object WidgetLocalization {
         }
 
         /**
+         * The grid footer's line while **nothing in the shown month is selected and the month does
+         * hold notable dates** — the resting state of every grid, which is most of the time.
+         *
+         * It asks for the tap instead of answering a question nobody asked. The same three-state rule
+         * the in-app calendar's event bar follows (`HijriCalendarLabels.eventBannerHint`): a resting
+         * line that claimed "no event" would be **false** for the many months that carry observances,
+         * and one that listed the month's events read as if they all belonged to the selected day —
+         * which is why the month listing was removed from both surfaces.
+         *
+         * This is chrome rather than a name from the events table, so it follows the widget's own
+         * language even when [WidgetOptions.eventLanguage] names events in the other one.
+         */
+        public fun eventBannerHint(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "واقعہ دیکھنے کے لیے کسی دن پر ٹیپ کریں"
+            WidgetLanguage.ENGLISH -> "Tap a day to see its event"
+        }
+
+        /**
+         * The grid footer's line for a **selected day that carries no notable date**.
+         *
+         * A tapped day is a question — "what happened on this one?" — and the honest answer is that
+         * nothing did. It is deliberately distinct from [noEvent], which describes a *month* with
+         * nothing in it: the two are different claims, and saying "No event" over a month that plainly
+         * has filled cells is the confusion that made the footer reportable as broken.
+         */
+        public fun noEventOnDay(language: WidgetLanguage): String = when (language) {
+            WidgetLanguage.URDU -> "اس دن کوئی واقعہ نہیں"
+            WidgetLanguage.ENGLISH -> "No event on this day"
+        }
+
+        /**
          * The Hijri era marker, appended to a Hijri year: `1447 AH` / `١٤٤٧ ھ`.
          *
          * **Why this is here rather than in `res/values`.** A widget's language is a

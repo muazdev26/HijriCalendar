@@ -35,6 +35,12 @@ complexity:
   TooManyFunctions:
     thresholdInClasses: 30
     thresholdInFiles: 40
+    # A label table is not a behaviour: `WidgetLocalization.ChromeLabels` carries one function per
+    # widget-chrome string (next/previous/today/refresh/era/…/footer lines), so it grows by one entry
+    # every time a new control or state gains a localized sentence. Detekt's default of 11 is reached
+    # by the footer's three states alone; the surface is deliberately exhaustive so no renderer
+    # invents its own string.
+    thresholdInObjects: 16
     ignorePrivate: true
     ignoreOverridden: true
 

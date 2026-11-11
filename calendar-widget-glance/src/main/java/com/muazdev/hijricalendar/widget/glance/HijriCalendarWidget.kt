@@ -1295,19 +1295,17 @@ private fun MonthGrid(
         )
 
         EventFooter(
-            // The tapped day's observance, and **nothing before the first tap**. This used to fall back
-            // to the month's next upcoming event, so the line always said something — and that fallback
-            // is exactly what made the footer read as if it described the shown month: the line changed
-            // as months were paged while the selection had not moved, which is the confusion this
-            // removes. The filled cells are the month's calendar; the line names what was touched.
+            // The footer says the same three things the in-app calendar's event bar does, in the same
+            // order: it **asks for a tap** while nothing in the shown month is selected and the month
+            // holds something to find; it names the tapped day's observance; and it says the month —
+            // or the day — holds nothing when that is the truth. It used to say "No event" whenever
+            // nothing was selected, which was simply false for a month whose cells are filled, and is
+            // exactly what was reported as the widget disagreeing with the app.
             //
-            // When there is nothing to name the line says **"No event"** rather than rendering empty: an
-            // empty line is indistinguishable from a footer that failed to load, and the reserved line
-            // is only useful if the user can tell it is empty on purpose. A selection in a *different*
-            // month than the one shown is treated as no selection here, exactly as `isSelectedCell` does
-            // for the cells — the footer must describe the month on screen.
-            eventName = footerEventName(month, selectedDay, eventLanguage)
-                ?: WidgetLocalization.ChromeLabels.noEvent(language),
+            // A selection in a *different* month than the one shown is treated as no selection here,
+            // exactly as `isSelectedCell` does for the cells — the footer must describe the month on
+            // screen.
+            eventName = footerLine(month, selectedDay, eventLanguage, language),
             colors = colors,
         )
     }
@@ -1589,23 +1587,28 @@ private fun MonthDays(
 }
 
 /**
- * One line naming an observance: the tapped day's, the month-next one when nothing is tapped, or an
- * explicit "No event" when neither applies.
+ * One line under the grid: the tapped day's observance, the ask for a tap while the month holds
+ * something to find, or one of two explicit "nothing" sentences.
  *
  * ## Why the line is always laid out
  *
- * The footer is laid out for **every** month grid, whether or not a day is selected, and says
- * "No event" when there is nothing to name. A grid whose height changes depending on *which day you
- * tapped* is unusable — the thing you are aiming at moves under your finger — and the same argument
- * applies to the untapped state: a widget that grows a strip the moment it is touched is one whose
- * layout the user cannot predict. So the height is a constant of "this is a month grid" and only the
- * text varies.
+ * The footer is laid out for **every** month grid, whether or not a day is selected. A grid whose
+ * height changes depending on *which day you tapped* is unusable — the thing you are aiming at moves
+ * under your finger — and the same argument applies to the untapped state: a widget that grows a strip
+ * the moment it is touched is one whose layout the user cannot predict. So the height is a constant of
+ * "this is a month grid" and only the text varies — which is also why every state has a sentence
+ * rather than an empty line: a reserved line that renders empty is indistinguishable from a footer
+ * that failed to load.
+ *
+ * **Which sentence** is [footerLine]'s decision, and it is the in-app event bar's three-way answer:
+ * ask for a tap ([WidgetLocalization.ChromeLabels.eventBannerHint]), name the tapped day, or say the
+ * month / the day holds nothing. The resting state used to claim "No event" outright, which was false
+ * for every month with filled cells in the grid directly above it.
  *
  * It used to be laid out only on a selection, on the reasoning that a permanently-reserved blank strip
  * is a cost every user pays for a feature most taps never use. That was the wrong trade once the grid
- * itself began marking observance days: the filled cells say *which* days matter, and a line
- * that names the nearest one is what turns a mark into information — but only if it is there before the
- * first tap.
+ * itself began marking observance days: the filled cells say *which* days matter, and the hint is what
+ * turns a mark into something to touch — but only if it is there before the first tap.
  *
  * ## Why it is omitted on the compact layout
  *
@@ -1707,9 +1710,10 @@ internal fun eventForKey(key: String?): CalendarEvent? {
  * The name the footer shows for the widget's selection, or `null` when there is nothing to name.
  *
  * `null` covers all three ways of having nothing: no selection, a selection left in a month the user
- * has navigated away from, and a selected day whose cell carries no mark. The caller renders
- * `WidgetLocalization.ChromeLabels.noEvent` for it, because a reserved line that is empty is
- * indistinguishable from one that failed to load.
+ * has navigated away from, and a selected day whose cell carries no mark. [footerLine] is what turns
+ * that `null` into the right sentence — the hint, or one of the two "nothing" lines — because the three
+ * cases are not the same answer and a reserved line that renders empty is indistinguishable from one
+ * that failed to load.
  *
  * **It deliberately does not look past the selection.** The footer used to fall back to the month's next
  * upcoming observance, so the line always said something — and on a widget the footer sits directly
@@ -1736,6 +1740,56 @@ internal fun footerEventName(
         .firstOrNull { it.isCurrentMonth && it.hijriDay == day.day }
         ?.let { eventForKey(it.eventKey)?.name(eventLanguage.toEventLanguage()) }
 }
+
+/**
+ * The whole footer line, which is the in-app event bar's three-way answer rather than a single
+ * "has a selection or not" test:
+ *
+ * | state | line |
+ * | --- | --- |
+ * | nothing in the shown month selected, and the month holds notable dates | [WidgetLocalization.ChromeLabels.eventBannerHint] |
+ * | nothing selected, and the month holds none | [WidgetLocalization.ChromeLabels.noEvent] |
+ * | a selected day that holds nothing | [WidgetLocalization.ChromeLabels.noEventOnDay] |
+ * | a selected day that holds something | the observance's name, in [eventLanguage] |
+ *
+ * The resting state is the one that was wrong: every month with observances in it rendered "No
+ * event" until something was tapped, so the widget contradicted both itself — the cells above were
+ * visibly filled — and the app, whose bar asks for the tap. The hint can be offered honestly because
+ * [monthHasAnyEvent] is resolved from the projection's own cells, the same field the grid fills from.
+ *
+ * The two "nothing" sentences are deliberately different claims, exactly as in the app: a month with
+ * no notable date at all has nothing to tap for, while a tapped day that happens to be ordinary is
+ * answering a question the user did ask.
+ */
+internal fun footerLine(
+    month: HijriMonthWidgetData,
+    selection: HijriDaySelection?,
+    eventLanguage: WidgetLanguage,
+    language: WidgetLanguage,
+): String {
+    val named = footerEventName(month, selection, eventLanguage)
+    if (named != null) return named
+    // A selection that is in this month and carries no mark is a *different* answer from silence:
+    // the user asked about a day, and the day is ordinary.
+    val selectedHere = selection?.isInMonth(month.hijriYear, month.hijriMonth) == true
+    return when {
+        selectedHere -> WidgetLocalization.ChromeLabels.noEventOnDay(language)
+        monthHasAnyEvent(month) -> WidgetLocalization.ChromeLabels.eventBannerHint(language)
+        else -> WidgetLocalization.ChromeLabels.noEvent(language)
+    }
+}
+
+/**
+ * Whether the shown month holds **any** notable date — a Hijri observance or, in Pakistan mode, a
+ * Gregorian-fixed national day.
+ *
+ * Read from the projection's cells rather than from `HijriEvents.forMonth`, for the reason the footer
+ * itself reads the cell: in Pakistan and observed modes a month's day numbers are not Umm al-Qura's,
+ * and the cells are the one list that already agrees with both the fills and the event language. A
+ * padded neighbouring-month cell cannot answer, because `isCurrentMonth` excludes it.
+ */
+internal fun monthHasAnyEvent(month: HijriMonthWidgetData): Boolean =
+    month.days.any { it.isCurrentMonth && it.hasEvent }
 
 /** Maps a widget's language onto the events table's, which is a `calendar-core` concept. */
 internal fun WidgetLanguage.toEventLanguage(): HijriEventLanguage = when (this) {

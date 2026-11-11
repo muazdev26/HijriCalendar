@@ -204,8 +204,8 @@ internal object TodayStripTypography {
      * the figure is still the loudest thing on the strip.
      *
      * **Now derived, and cheaper than it was at 13sp.** The band costs its *ink* rather than its line
-     * box ([WeekdayBandFit]) — every widget's weekday does — so the 14sp this reads from the figure
-     * takes 14dp of the strip where 13sp took 22.1dp. That is the point: the word is bigger and the
+     * box ([WeekdayBandFit]) — every widget's weekday does — so the 16.8sp this reads from the figure
+     * takes ~17dp of the strip where 13sp took 22.1dp. That is the point: the word is bigger and the
      * band shorter, so the captions under it gained height in the same change that grew the weekday,
      * rather than paying for it. The round-3 trade still stands as the reason the band may not take a
      * line box's worth of the strip.

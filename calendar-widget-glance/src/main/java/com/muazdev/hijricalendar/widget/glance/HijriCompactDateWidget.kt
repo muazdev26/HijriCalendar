@@ -39,17 +39,16 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
 
 /**
  * The **compact** dual-date tile: the weekday in the family accent band, then — centred, one under
- * another — the Hijri month name, a Gregorian row with the day and the month pushed to opposite ends,
- * the Hijri day as the tile's largest figure, and the weekday again as the last line.
+ * another — a Gregorian row with the day and the month pushed to opposite ends, the Hijri day as the
+ * tile's largest figure, and the Hijri month name below it.
  *
  * ```
  * ┌──────────────────┐
- * │     WEDNESDAY     │  weekday, in the family accent band
+ * │     WEDNESDAY    │  weekday, in the family accent band
  * ├──────────────────┤
- * │       جمادى       │  Hijri month name — the month only, never the year
  * │  21 ······· أكتوبر│  Gregorian day and month, spread to the two ends
  * │        ٩         │  the Hijri day — the largest line in the tile
- * │      الأربعاء     │  the weekday, again, as the closing line
+ * │       جمادى       │  Hijri month name — the month only, never the year
  * └──────────────────┘
  * ```
  *
@@ -57,25 +56,26 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  *
  * The previous revision put the Gregorian and Hijri halves in two weighted columns, each a figure over
  * a short month name. That is the denser arrangement, but it makes the reader compare two equal halves
- * to work out which is which. This revision answers a glance in one pass: the Hijri month titles the
- * body, the Gregorian date qualifies it, the Hijri figure is the one large number, and the weekday
- * closes the tile. The Hijri figure keeps the accent colour, as it does on every widget in the family.
+ * to work out which is which. This revision answers a glance in one pass: the Gregorian date qualifies
+ * the day, the Hijri figure is the one large number, and the Hijri month names what it belongs to. The
+ * Hijri figure keeps the accent colour, as it does on every widget in the family.
  *
- * ## "The size of an app icon" — a fixed square inside the cell
+ * ## A square that grows with its cell
  *
  * Android does not expose sub-cell widgets: a host grants a **whole number of cells**, and the
- * smallest an `AppWidgetProviderInfo` can ask for is one. What this tile therefore does is draw
- * **itself** at a fixed [CompactDateTileTypography.DRAWN_EDGE_DP] square and centre that square in
- * whatever cell it was granted, rather than filling the cell. A placed widget is a launcher cell wide
- * (~85dp on a phone), so the tile inside it reads at roughly one and a half app icons — and, unlike a
- * cell-filling design, it renders the *same* size on every host instead of growing with the grid.
+ * smallest an `AppWidgetProviderInfo` can ask for is one. What this tile does is draw **itself** as a
+ * square on the cell's smaller side and centre it
+ * (see [CompactDateTileTypography.drawnEdgeDp]) — so a placed 1×1 on a five-column phone launcher draws
+ * 62×62dp inside its 62×88dp cell, and a **resized** cell draws a larger square with larger type and a
+ * larger background, rather than the same square surrounded by new transparent margin.
  *
- * The one exception is a cell **smaller** than the square: the drawn edge then shrinks to the cell
- * (see [CompactDateTileTypography.drawnEdgeDp]), because a fixed 72dp box inside a 40dp grant would be
- * clipped rather than scaled.
+ * It stays a square: a cell that is wider than it is tall keeps clear margin at the sides. Stretching
+ * the stack to fill the cell exactly — a 62×88 rectangle — was built, rejected as looking stretched,
+ * and reverted. Capping the square at 72dp was likewise built and reported as the resize doing
+ * nothing; see [CompactDateTileTypography.drawnEdgeDp] for the rule that survived both.
  *
  * > **Four lines in a 72dp square is the tightest stack in the family.** The band plus three body lines
- * > leaves ~17dp per line, so the captions render around 7sp at the drawn edge and the figure around
+ * > leaves ~17dp per line, so the captions render around 7sp at the reference cell and the figure around
  * > 16sp. That is what the geometry allows, not a tuning oversight: the fit rule below shrinks the
  * > whole stack together rather than letting any one line clip, and `logcat -s HijriWidgetRefresh`
  * > prints the sizes it settled on (`compact-tile-sizes`). The band is the one line that does *not* pay
@@ -85,10 +85,7 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  * > directly with the two captions a reader is trying to read.
  *
  * The provider info asks for `minWidth/minHeight = 40dp`, `targetCellWidth/Height = 1`, and
- * `resizeMode="horizontal|vertical"`, so the host offers the resize handle — the user asked for the
- * *option*, not for a second dual tile. It still draws its own 72dp square, so a larger grant adds
- * transparent margin instead of stretching the stack; filling the cell was built and reverted as
- * looking stretched, and the tile stays a square rather than a rectangle.
+ * `resizeMode="horizontal|vertical"`, so the host offers the resize handle and the tile grows into it.
  *
  * No settings screen and no per-widget state: like the other tiles it follows the family options mirror
  * ([HijriWidgetConfig.loadFamily]). Tapping anywhere opens the app.
@@ -99,9 +96,10 @@ public class HijriCompactDateWidget : GlanceAppWidget() {
      * `SizeMode.Exact`, not `Single`.
      *
      * `Single` hands the composition the provider's declared minimum (40dp), not the cell the launcher
-     * granted. The tile draws at a fixed edge (see [CompactDateTileTypography.DRAWN_EDGE_DP]) and only
-     * needs the granted size to know whether the cell is **smaller** than that edge, so `Single` would
-     * also work — but `Exact` keeps the composition honest about the host it is on, and it is safe here
+     * granted — and the tile's whole size, and therefore its whole type scale, comes from that grant
+     * (see [CompactDateTileTypography.drawnEdgeDp]), so under `Single` a resize could never reach the
+     * renderer. `Exact` composes once per size in the host's options bundle, so a resize re-runs the
+     * composition with the new size and the background and every line grow with it. It is safe here
      * because the tile's only interaction is one `actionStartActivity`, a `PendingIntent` on the
      * `RemoteViews`; a tap fires the one attached to the displayed view, so per-size compositions
      * cannot double-launch the app.
@@ -109,8 +107,8 @@ public class HijriCompactDateWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     /**
-     * The picker preview composes at the tile's drawn edge rather than the bare 40dp minimum, so the
-     * picker shows the square a placed widget actually paints.
+     * The picker preview composes at the reference square rather than the bare 40dp minimum, so the
+     * picker shows the tile a 1×1 placement actually draws.
      */
     override val previewSizeMode: PreviewSizeMode = SizeMode.Responsive(
         setOf(COMPACT_DATE_TILE_PREVIEW_SIZE),
@@ -206,22 +204,21 @@ public class HijriCompactDateWidget : GlanceAppWidget() {
  * without inheriting a caption's small size. It is the same size within a scale, so the stack stays
  * predictable: a line growing on its own is still the per-line rule this family removed.
  *
- * ## The tile draws at a fixed 72dp, not at the cell
+ * ## The tile grows with its cell, as a square
  *
- * The tile is centred in its cell at [DRAWN_EDGE_DP] (see [drawnEdgeDp]), so the scale is 1 on every
- * host that grants at least that much: a wider 1x1 does **not** grow the type, it only leaves more
- * clear space around the square. The one place the scale moves is a grant *below* the edge — the 40dp
- * declared minimum — where the whole stack shrinks together rather than being clipped.
+ * The tile is centred in its cell and drawn at the cell's **smaller side** (see [drawnEdgeDp]), so a
+ * resize enlarges the background and every line with it, while the shape stays a square: a cell wider
+ * than it is tall keeps clear margin at the sides rather than stretching the stack into a rectangle.
+ * The scale is therefore 1 at the 72dp reference cell (where the sizes are tuned) and moves in both
+ * directions from there.
  *
- * 72dp is therefore both the drawn edge and the sizing reference, and the reference sizes are chosen so
- * that the stack fills it at [TEXT_LINE_RATIO]: 10sp × 1 (the band's **worst-case** ink) + 2 × 9sp × 1.7
- * + 20sp × 1.3 + 5dp ≈ 72dp. A real weekday measures less than that worst case — 0.77em for `بدھ`
- * against the 2.1em reserved — and [rememberWeekdayInkEm] hands the difference to the body, so a placed
- * tile renders its captions *above* the reference scale instead of leaving a gap under the band. Sizing
- * the reference at the 40dp floor instead would make every real placement render well above scale 1 and
- * clamp at the ceiling, which is how the sibling tiles once ended up unable to grow.
- * The cap is also why a 1x1 on a five-column Pixel launcher — a 62x88dp cell — draws 62x62dp: the
- * square is never larger than the cell, and what is left of the cell stays transparent.
+ * 72dp is the sizing reference, and the reference sizes are chosen so that the stack fills it at
+ * [TEXT_LINE_RATIO]: 12sp × 1 (the band's **worst-case** ink) + 2 × 8.5sp × 1.7 + 20sp × 1.3 + 5dp ≈ 72dp.
+ * A real weekday measures less than that worst case — 0.77em for `بدھ` against the 2.1em reserved —
+ * and [rememberWeekdayInkEm] hands the difference to the body, so a placed tile renders its captions
+ * *above* the reference scale instead of leaving a gap under the band. Sizing the reference at the 40dp
+ * floor instead would make every real placement render well above scale 1 and clamp at the ceiling,
+ * which is how the sibling tiles once ended up unable to grow.
  *
  * ## Why the captions are measured with the ink ratio, not the declared line box
  *
@@ -243,28 +240,36 @@ internal object CompactDateTileTypography {
     const val REFERENCE_HEIGHT_DP: Float = 72f
 
     /**
-     * The edge the tile paints itself at, in dp — a fixed square centred in the granted cell.
+     * The edge the tile's type is tuned against, and the square the picker preview composes at.
      *
-     * It is also the size the type is tuned against, and the picker's preview size, because both are
-     * meant to show what a placed widget draws.
+     * It is **no longer a cap on the drawn tile** — see [drawnEdgeDp]. It stays the sizing reference
+     * (the scale is 1 here) and the preview size, because that is the cell a 1×1 is tuned for and the
+     * one a preview should advertise.
      */
-    const val DRAWN_EDGE_DP: Float = REFERENCE_WIDTH_DP
+    const val REFERENCE_EDGE_DP: Float = REFERENCE_WIDTH_DP
 
     val REFERENCE_CELL: DpSize = DpSize(REFERENCE_WIDTH_DP.dp, REFERENCE_HEIGHT_DP.dp)
 
     /**
-     * The square the tile actually paints, given the cell the host granted.
+     * The **square** the tile paints, given the cell the host granted: always the cell's smaller side.
      *
-     * [DRAWN_EDGE_DP] normally, and the cell's smaller side when the host granted less than that — a
-     * fixed 72dp box inside a 40dp grant would be clipped rather than scaled, and a clipped month
-     * caption is the failure the whole family is arranged to avoid. An unspecified axis (Glance's
-     * `Dp.Unspecified`, a `NaN` dp) is ignored rather than compared, because a `minOf` against `NaN`
-     * answers `NaN` and the tile would draw at no size at all.
+     * The tile grows with its cell — a resize enlarges the background and every line — but it stays a
+     * square rather than becoming a rectangle, so a cell that is wider than it is tall leaves clear
+     * margin at the sides instead of stretching the stack. That is the one shape rule left: an
+     * earlier revision capped the square at [REFERENCE_EDGE_DP], so a resize on a larger cell added
+     * nothing but transparent margin and was reported as the resize doing nothing; the opposite
+     * extreme — filling the whole cell, 62×88 and every rectangle in between — was tried, rejected as
+     * looking stretched, and reverted.
+     *
+     * An unspecified axis (Glance's `Dp.Unspecified`, a `NaN` dp) is ignored rather than compared,
+     * because `minOf` against `NaN` answers `NaN` and the tile would then draw at no size. A
+     * composition with **neither** axis known falls back to [REFERENCE_EDGE_DP].
      */
     fun drawnEdgeDp(grantedWidthDp: Float, grantedHeightDp: Float): Float {
-        var edge = DRAWN_EDGE_DP
+        var edge = Float.POSITIVE_INFINITY
         if (!grantedWidthDp.isNaN()) edge = minOf(edge, grantedWidthDp)
         if (!grantedHeightDp.isNaN()) edge = minOf(edge, grantedHeightDp)
+        if (edge == Float.POSITIVE_INFINITY) edge = REFERENCE_EDGE_DP
         return edge.coerceAtLeast(1f)
     }
 
@@ -278,17 +283,18 @@ internal object CompactDateTileTypography {
      * band's word rendered at 8sp of a 72dp tile — under a seventh of it — inside a band as tall as
      * that size's line box. The band now has its own size ([weekdaySizeAtReference]) and its own
      * height ([WeekdayBandFit]), so the tile's tightest stack gained a legible weekday *and* gave the
-     * body back ~3dp: the band cost `8 × 1.7 + 5 = 18.6dp` of a 72dp square before, and costs
-     * `10 × 1 + 5 = 15dp` now, with the word 25% larger.
+     * body back height.
      *
-     * Reference 9sp, up from 8sp: the Gregorian date and the Hijri month are the two lines a reader
-     * actually reads, and at a placed 62dp cell they rendered at ~5.7sp under the bundled face — a
-     * report described the date as unreadable. What pays for the increase is the band: the compact
-     * tile is the one fitted typography whose stack arithmetic sets its scale, and it now reserves the
-     * word's **measured** ink ([rememberWeekdayInkEm]) rather than the face's worst case, which hands
-     * the body back ~1.3em of height a typical weekday never uses.
+     * **Reference 8.5sp, and that is a budget, not a preference.** The tile's stack is
+     * `bandInk + 2 · caption · ratio + day · 1.3 + band padding`, and the reference edge is 72dp — the
+     * square a 1x1 is tuned at — so at scale 1 the captions can have
+     * `(72 − 5 − 12 − 26) / 3.4 = 8.5sp` and no more. The band's word went 10 → 12sp in the same change
+     * that raised the share to [WeekdayBandFit.SHARE_OF_FIGURE], which costs ~2sp of the stack, and
+     * [daySize] is the line that must not give. At a placed 62dp cell the captions therefore render
+     * ~5% smaller than before and the weekday ~20% larger; keeping both would need either a smaller
+     * figure or a stack that no longer fits the cell it declares.
      */
-    val captionSizeAtReference = 9.sp
+    val captionSizeAtReference = 8.5.sp
 
     /**
      * The Hijri day figure. The tile's largest line by construction — the reference design asks for
@@ -297,11 +303,11 @@ internal object CompactDateTileTypography {
     val daySize = 20.sp
 
     /**
-     * The weekday band's type: half the figure, by the family-wide rule ([WeekdayBandFit]).
+     * The weekday band's type: [WeekdayBandFit]'s family-wide share of the figure.
      *
      * The largest single win, and it comes from the band no longer sharing the
      * caption scale *or* the line box: at the drawn 62dp square of a Pixel 6a the word went from
-     * ~6.9sp in an 18.6dp band to ~9.1sp in a ~14dp band.
+     * ~6.9sp in an 18.6dp band to ~9.6sp in a ~15dp band.
      */
     val weekdaySizeAtReference: TextUnit = WeekdayBandFit.sizeFor(daySize)
 
@@ -445,8 +451,9 @@ internal fun CompactDateTileRoot(
     val fonts = HijriWidgetFonts.default
     val cell = LocalSize.current
 
-    // Exactly 72dp square, never larger, centred in whatever cell the host granted — and never bigger
-    // than the cell, because a 72dp box inside a 63dp-wide grant would be clipped rather than scaled.
+    // The square is the cell's smaller side, so a resize grows both the background and every line;
+    // it is centred rather than filled, so a cell wider than it is tall keeps clear margin at the
+    // sides. See [CompactDateTileTypography.drawnEdgeDp] for why that is the shape rule.
     val edgeDp = CompactDateTileTypography.drawnEdgeDp(cell.width.value, cell.height.value)
     val edge = edgeDp.dp
 
@@ -698,11 +705,12 @@ private fun logSizes(edgeDp: Float, scriptRatio: Float, sizes: CompactDateTileSi
 }
 
 /**
- * The picker/preview square: exactly the edge the tile paints, so a preview shows the square a placed
- * widget draws rather than advertising the cell around it.
+ * The picker/preview square: exactly the reference edge the type is tuned at — the square a 1×1
+ * placement draws — so a preview shows the tile at its natural size rather than advertising the
+ * larger cells a resize can produce.
  */
 internal val COMPACT_DATE_TILE_PREVIEW_SIZE: DpSize =
-    DpSize(CompactDateTileTypography.DRAWN_EDGE_DP.dp, CompactDateTileTypography.DRAWN_EDGE_DP.dp)
+    DpSize(CompactDateTileTypography.REFERENCE_EDGE_DP.dp, CompactDateTileTypography.REFERENCE_EDGE_DP.dp)
 
 /**
  * The figure is the point of the tile, so no caption may ever exceed it.

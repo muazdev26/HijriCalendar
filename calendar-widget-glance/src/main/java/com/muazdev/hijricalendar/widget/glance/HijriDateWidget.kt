@@ -307,13 +307,13 @@ internal object DateTileTypography {
      */
     val REFERENCE_CELL = DpSize(WEEKDAY_REFERENCE_WIDTH_DP.dp, REFERENCE_HEIGHT_DP.dp)
 
-    /** The caption's ceiling at a large cell. The figure is twice it; see [sizesFor]. */
+    /** The caption's ceiling at a large cell; see [sizesAtScale], which is what enforces it. */
     val weekdaySizeCeiling = 32.sp
 
     val daySize = 26.sp
 
     /**
-     * The weekday's size at the reference — half the figure, by [WeekdayBandFit]'s family-wide share.
+     * The weekday's size at the reference — [WeekdayBandFit]'s family-wide share of the figure.
      *
      * Stated as the rule rather than as a number: it used to be a hand-picked 13 sp that happened to
      * be half of [daySize], and the two tiles that sized their weekday from a *caption* instead
@@ -398,11 +398,20 @@ internal object DateTileTypography {
 
     fun weekdaySizeFor(availableWidth: Dp): TextUnit = weekdaySizeFor(availableWidth.value)
 
-    private fun sizesAtScale(scale: Float): DateTileSizes = DateTileSizes(
-        captionSize = (weekdaySizeAtReference.value * scale).sp,
-        daySize = (daySize.value * scale).sp,
-        weekdaySize = (weekdaySizeAtReference.value * scale).sp,
-    )
+    private fun sizesAtScale(scale: Float): DateTileSizes {
+        // The caption and the band word are one size on this tile, and both stop at
+        // [weekdaySizeCeiling]: the figure keeps growing to its own ceiling, and a caption that grew
+        // past the figure's half would be the "small print turns into a headline" drift the single
+        // scale exists to prevent.
+        val caption = (weekdaySizeAtReference.value * scale)
+            .coerceAtMost(weekdaySizeCeiling.value)
+            .sp
+        return DateTileSizes(
+            captionSize = caption,
+            daySize = (daySize.value * scale).sp,
+            weekdaySize = caption,
+        )
+    }
 }
 
 /**

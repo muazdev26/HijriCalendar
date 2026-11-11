@@ -8,6 +8,56 @@ Headings match the changelog's, so an entry can be looked up by version. Nothing
 after the release it describes: it is a record, not a guide. For the current shape of an API, read
 the KDoc.
 
+## Unreleased
+
+### Added
+
+- `WidgetLocalization.ChromeLabels.eventBannerHint` / `noEventOnDay` — the grid footer's resting line
+  and its tapped-and-empty line. `noEvent` already existed and keeps its own meaning ("this month has
+  nothing in it"), so the three claims are now distinct strings instead of one string answering three
+  different questions. Both are chrome rather than event names, so they follow
+  `WidgetOptions.language` even when `eventLanguage` names the events in the other language.
+
+### Changed
+
+- **The weekday band's share, 0.5 → 0.6 of the day figure** (`WeekdayBandFit.SHARE_OF_FIGURE`,
+  ceiling `MAX_SIZE` 22sp → 38sp). Half the figure was legible in *proportion* but not in *size*: at a
+  placed 1×1 the word rendered ~11sp and on the compact tile's drawn square ~8sp, while the band above
+  them had the full width to itself. Three fifths buys the word about 20% in every direction on all
+  six widgets and leaves the figure it belongs to clearly the loudest line. The 22sp ceiling was the
+  second half of the report ("it does not grow when I resize"): it sat at a ~2×2 cell, so every resize
+  past that rendered the identical word. It now sits at ~3×3.
+
+  The taller share has to come out of the fitted stacks' height budgets, and it does — the captions
+  pay, not the figure:
+  - dual tile `CAPTION_RATIO` 0.78 → 0.60, which is what keeps its four-zone Nastaliq stack inside
+    the `(40 − 7) / 0.3 = 110dp` the declared 40dp floor allows. Measured stack ≈108.2dp at the
+    worst-case band ink. `subRowSizeCeiling` 16 → 14sp, because 16sp no longer binds once the caption
+    ratio drops; `RESIDUAL_MARGIN_DP` is now derived from this tile's own `captionAtReference`
+    (3.28dp) rather than a sibling's (5.46dp).
+  - compact tile `captionSizeAtReference` 9 → 8.5sp, so its reference stack still fills the 72dp
+    reference square at scale 1 (12 × 1 + 2 × 8.5 × 1.7 + 20 × 1.3 + 5dp ≈ 72dp).
+- **The compact dual-date tile grows with its cell.** `CompactDateTileTypography.drawnEdgeDp` is now
+  `min(granted width, granted height)` over the axes Glance reports, ignoring `NaN` rather than
+  comparing against it, with `REFERENCE_EDGE_DP` (72dp) as the sizing and preview reference only. The
+  72dp cap this replaces was the report "resizing does nothing": a larger cell added transparent margin
+  while the background and the type stayed exactly as they were. The shape rule is unchanged — a
+  *square* at the cell's smaller side, never a rectangle (the fill-the-cell variant was built and
+  reverted: it produced a 62×88 rectangle, which is what "background above and below" was). On a
+  Pixel 6a at 420dpi a five-column launcher grants a 1×1 a 62×88dp area, so a placed tile draws
+  62×62dp and a resize up draws the larger square; type is derived from the drawn edge, so every line
+  moves with it. The tile's `sizeMode` is `SizeMode.Exact` because `Single` would compose at the
+  declared 40dp minimum and the granted cell would never be seen, and its widget info declares
+  `resizeMode="horizontal|vertical"` because a resize is the only way the tile grows.
+- **The grid footer follows the in-app event bar.** `footerLine(month, selection, eventLanguage,
+  language)` now answers in three states: a month with no notable dates reads `noEvent`; a month that
+  has them and no selection in the shown month reads `eventBannerHint`; a selected day in the shown
+  month reads its event's name, or `noEventOnDay` when that day carries nothing. The previous
+  behaviour printed a resting line that said "No event" over months that plainly had filled cells,
+  which is the footer being reported as broken. `footerEventName(..., selection = null, ...)` still
+  answers `null` — the hint is assembled one level up, in `footerLine`, so the pure name lookup is
+  unchanged and `WidgetEventFooterTest.anUnselectedMonthNamesNothing` still holds.
+
 ## 2.4.0 - 2026-11-10
 
 ### Added

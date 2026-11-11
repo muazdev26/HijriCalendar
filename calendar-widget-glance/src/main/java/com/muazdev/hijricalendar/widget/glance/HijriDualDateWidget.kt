@@ -272,11 +272,24 @@ internal object DualDateTileTypography {
     val daySizeCeiling = 40.sp
 
     /**
-     * The caption at scale 1 as a share of the family's reference weekday. Dialled back from 0.85 when
-     * [daySize] went up: the two constants are one budget, and the captions give the figure its extra
-     * share rather than the stack growing tall enough to lose the month at 40dp. See [daySize].
+     * The caption at scale 1 as a share of the family's reference weekday.
+     *
+     * **A budget, not a preference**, and it has now been moved twice in opposite directions for the
+     * same reason. [daySize] went 20 → 24 with this ratio dropped 0.85 → 0.78 so the figure could take a
+     * larger share of the 40dp floor without the stack growing past it. It drops again, 0.78 → 0.60,
+     * because the weekday band's word grew to [WeekdayBandFit.SHARE_OF_FIGURE] and *something* in this
+     * four-zone stack has to pay: at the Nastaliq ratio the scalably-counted height is
+     * `bandInk + day·1.3 + 2 · caption · 2.5`, and the declared 40dp minimum only has
+     * `(40 − 7) / 0.3 = 110dp` of it before [MIN_TYPE_SCALE] clamps and a line is pushed off the tile —
+     * the failure this tile already carries two redesigns about.
+     *
+     * What the reader sees on a placed 62dp cell (bundled face, `بدھ`): the weekday is ~19% larger, the
+     * figure is unchanged, and the two captions are ~8% smaller. That is the direction the feedback
+     * asked for — "the day name bar is very small although we have space in every widget" — and the
+     * figure stays the tile's dominant line either way; the alternative of holding the captions and
+     * shrinking the figure would undo the rebalance [daySize] documents.
      */
-    const val CAPTION_RATIO = 0.78f
+    const val CAPTION_RATIO = 0.60f
     internal const val CAPTION_MAX_SHARE = 0.8f
 
     /**
@@ -292,7 +305,17 @@ internal object DualDateTileTypography {
     val weekdaySizeAtReference: TextUnit = WeekdayBandFit.sizeFor(daySize)
 
     val subRowSize = 10.5.sp
-    val subRowSizeCeiling = 16.sp
+
+    /**
+     * The Gregorian line's own ceiling — and it has to sit **under** the largest size the month name
+     * above it can reach, or it stops being a ceiling and the month's size does the work.
+     *
+     * The month name's largest size is `captionAtReference × MAX_SCALE` (9.36 × 1.67 ≈ 15.6sp at
+     * [CAPTION_RATIO]'s current value), so 16sp — the value this held while the caption ran at 10.14sp —
+     * could no longer bind at any cell. It is 14sp now: still above the reference caption (9.36sp), so a
+     * large tile still grows the Gregorian date, and still below the month, so the tile keeps one heading.
+     */
+    val subRowSizeCeiling = 14.sp
 
     val monthSizeCeiling = 22.sp
 
@@ -407,8 +430,23 @@ internal object DualDateTileTypography {
     fun verticalBudgetDp(availableWidthDp: Float): Float =
         verticalBudgetDp(availableWidthDp, REFERENCE_HEIGHT_DP)
 
+    /**
+     * How far the *painted* margins drift from the equal insets, in dp, quoted rather than claimed away.
+     *
+     * Glance boxes every `Text` at the font's ascent + descent, and most of that box is empty leading, so
+     * the space a reader sees above the month name or below the Gregorian line is the inset plus half a
+     * caption's leading. This is that half-leading for the tile's own caption, which is the line whose
+     * box carries it ([captionAtReference]).
+     *
+     * It used to read `DateTileTypography.weekdaySizeAtReference` — the *sibling* tiles' caption size —
+     * because this tile's caption was derived from it and the two happened to be close. That stopped
+     * being true when [CAPTION_RATIO] moved, and a quoted bound computed from another widget's type is
+     * exactly the kind of number that quietly stops describing its subject.
+     * `DualDateTilePreviewLayoutTest.theResidualIsBounded` fails if this grows past a few dp, so the
+     * honest form of the "equal to within 1dp" claim cannot become false in silence.
+     */
     val RESIDUAL_MARGIN_DP: Float =
-        DateTileTypography.weekdaySizeAtReference.value * (TEXT_LINE_RATIO - 1f) / 2f
+        captionAtReference.value * (TEXT_LINE_RATIO - 1f) / 2f
 }
 
 /**

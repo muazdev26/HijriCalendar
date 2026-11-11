@@ -80,61 +80,76 @@ class CompactDateTilePreviewLayoutTest {
     }
 
     @Test
-    fun thePreviewSquareIsTheDrawnEdge() {
+    fun thePreviewSquareIsTheReferenceEdge() {
         assertEquals(72.0, COMPACT_DATE_TILE_PREVIEW_SIZE.width.value.toDouble(), 0.01)
         assertEquals(COMPACT_DATE_TILE_PREVIEW_SIZE.width.value, COMPACT_DATE_TILE_PREVIEW_SIZE.height.value, 0.01f)
         assertEquals(
-            CompactDateTileTypography.DRAWN_EDGE_DP.toDouble(),
+            CompactDateTileTypography.REFERENCE_EDGE_DP.toDouble(),
             COMPACT_DATE_TILE_PREVIEW_SIZE.width.value.toDouble(),
             0.01,
         )
     }
 
     @Test
-    fun theDrawnSquareIsSeventyTwoAndNeverLarger() {
-        assertEquals(72f, CompactDateTileTypography.DRAWN_EDGE_DP, 0.01f)
+    fun theDrawnSquareGrowsWithTheCellAndStaysSquare() {
+        assertEquals(72f, CompactDateTileTypography.REFERENCE_EDGE_DP, 0.01f)
         val grants = listOf(40f, 48f, 56f, 63f, 72f, 80f, 88f, 120f, 160f, 240f, 400f)
         for (width in grants) {
             for (height in grants) {
                 val edge = CompactDateTileTypography.drawnEdgeDp(width, height)
-                assertTrue(
+                // The square is the smaller side, so a resize must reach it in both directions.
+                assertEquals(
                     "a ${width}x${height}dp grant drew a ${edge}dp tile",
-                    edge <= CompactDateTileTypography.DRAWN_EDGE_DP + 0.01f,
+                    minOf(width, height).toDouble(),
+                    edge.toDouble(),
+                    0.01,
                 )
-                // Never wider or taller than the cell: a 72dp square inside a 63dp grant would be
-                // clipped, not scaled.
-                assertTrue("a ${width}x${height}dp grant drew a ${edge}dp tile", edge <= minOf(width, height) + 0.01f)
             }
         }
-        // A cell that already contains the square in both axes keeps the full 72dp.
-        assertEquals(
-            72f,
-            CompactDateTileTypography.drawnEdgeDp(300f, 88f),
-            0.01f,
+        // A resize grows the square — this is the report the cap caused: enlarging the cell added
+        // transparent margin and left the background and type exactly as they were.
+        assertEquals(88f, CompactDateTileTypography.drawnEdgeDp(300f, 88f), 0.01f)
+        assertTrue(
+            CompactDateTileTypography.drawnEdgeDp(160f, 160f) >
+                CompactDateTileTypography.drawnEdgeDp(72f, 72f),
         )
-        // The one thing that moves it: a cell *smaller* than the square. 63x88 is what a Pixel 6a
-        // launcher grants a 1x1, so this is the case a placed tile actually hits there.
-        assertEquals(63f, CompactDateTileTypography.drawnEdgeDp(63f, 88f), 0.01f)
+        // A cell wider than it is tall keeps side margin rather than becoming a rectangle — the
+        // fill-the-cell variant was built, rejected as stretched, and reverted.
+        assertEquals(88f, CompactDateTileTypography.drawnEdgeDp(120f, 88f), 0.01f)
         assertEquals(48f, CompactDateTileTypography.drawnEdgeDp(120f, 48f), 0.01f)
+        // 63x88 is what a Pixel 6a launcher grants a 1x1, so this is the case a placed tile hits.
+        assertEquals(63f, CompactDateTileTypography.drawnEdgeDp(63f, 88f), 0.01f)
     }
 
     @Test
     fun anUnspecifiedAxisIsIgnoredRatherThanCollapsingTheSquare() {
-        assertEquals(72f, CompactDateTileTypography.drawnEdgeDp(Float.NaN, 88f), 0.01f)
-        assertEquals(72f, CompactDateTileTypography.drawnEdgeDp(300f, Float.NaN), 0.01f)
+        // A known axis answers for the square; `minOf` against NaN would answer NaN and the tile
+        // would draw at no size at all.
+        assertEquals(88f, CompactDateTileTypography.drawnEdgeDp(Float.NaN, 88f), 0.01f)
+        assertEquals(300f, CompactDateTileTypography.drawnEdgeDp(300f, Float.NaN), 0.01f)
+        // Neither axis known is the only case that has no answer, so the reference is used.
         assertEquals(72f, CompactDateTileTypography.drawnEdgeDp(Float.NaN, Float.NaN), 0.01f)
-        // A known axis still caps: an unspecified height does not rescue a 63dp-wide cell.
         assertEquals(63f, CompactDateTileTypography.drawnEdgeDp(63f, Float.NaN), 0.01f)
         assertEquals(1f, CompactDateTileTypography.drawnEdgeDp(0f, 88f), 0.01f)
     }
 
     @Test
-    fun theSquareSizesTheTypeAtTheCellItActuallyDraws() {
-        // The tile is sized from its drawn edge, not from the cell: a 300x88 grant draws 72dp, so it
-        // renders the reference type rather than 300dp-wide type.
-        val edge = CompactDateTileTypography.drawnEdgeDp(300f, 88f)
-        val sizes = CompactDateTileTypography.sizesFor(edge, edge)
-        assertEquals(CompactDateTileTypography.daySize.value.toDouble(), sizes.daySize.value.toDouble(), 0.01)
+    fun aLargerCellDrawsLargerType() {
+        // The type is derived from the drawn square, so a resize has to move it: that is the whole
+        // difference between "the tile grows" and "the tile gains transparent margin".
+        val small = CompactDateTileTypography.drawnEdgeDp(63f, 88f)
+        val large = CompactDateTileTypography.drawnEdgeDp(160f, 160f)
+        val smallSizes = CompactDateTileTypography.sizesFor(small, small)
+        val largeSizes = CompactDateTileTypography.sizesFor(large, large)
+        assertTrue(largeSizes.daySize.value > smallSizes.daySize.value + 1f)
+        assertTrue(largeSizes.captionSize.value > smallSizes.captionSize.value)
+        assertTrue(largeSizes.weekdaySize.value > smallSizes.weekdaySize.value)
+        // And a cell at the reference still renders the reference type.
+        val reference = CompactDateTileTypography.sizesFor(
+            CompactDateTileTypography.REFERENCE_EDGE_DP,
+            CompactDateTileTypography.REFERENCE_EDGE_DP,
+        )
+        assertEquals(CompactDateTileTypography.daySize.value.toDouble(), reference.daySize.value.toDouble(), 0.01)
     }
 
     @Test

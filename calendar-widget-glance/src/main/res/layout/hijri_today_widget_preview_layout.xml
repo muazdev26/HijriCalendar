@@ -39,7 +39,7 @@
         android:paddingBottom="3dp"
         android:text="بدھ"
         android:textColor="@color/widget_on_today"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:textStyle="bold" />
 
     <!-- The two date halves, with the divider between them, centred in the height the band left. -->
@@ -68,7 +68,7 @@
                 android:maxLines="1"
                 android:text="18"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="25sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -113,7 +113,7 @@
                 android:maxLines="1"
                 android:text="۲۱"
                 android:textColor="@color/widget_accent"
-                android:textSize="25sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView

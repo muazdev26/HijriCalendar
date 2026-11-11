@@ -26,7 +26,7 @@ import org.junit.Test
 class WeekdayBandFitTest {
 
     @Test
-    fun theSizeIsHalfTheFigureAndNoWidgetDisagrees() {
+    fun theSizeIsTheSameShareOfTheFigureAndNoWidgetDisagrees() {
         // Every fitted typography, at its own reference figure.
         val pairs = listOf(
             "the 1x1 tiles" to (
@@ -150,8 +150,8 @@ class WeekdayBandFitTest {
             WeekdayBandFit.sizeFor(0.sp).value >= 0f,
         )
         assertEquals(
-            "and the share itself is the family's half",
-            0.5f,
+            "and the share itself is the family's three fifths",
+            0.6f,
             WeekdayBandFit.SHARE_OF_FIGURE,
             0.0001f,
         )

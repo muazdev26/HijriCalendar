@@ -8,6 +8,31 @@ moved, a default that changed, an ABI that needs a recompile. The reasoning, the
 the alternatives that were tried live in [`docs/CHANGELOG-ARCHIVE.md`](docs/CHANGELOG-ARCHIVE.md),
 under the same version headings.
 
+## Unreleased
+
+### Added
+
+- `WidgetLocalization.ChromeLabels.eventBannerHint` and `ChromeLabels.noEventOnDay`: the two new grid
+  footer lines, resolved from `WidgetOptions.language` like the rest of the widget chrome.
+
+### Changed
+
+- The weekday band on all six widgets is now three fifths of the widget's day figure
+  (`WeekdayBandFit.SHARE_OF_FIGURE = 0.6f`, ceiling `38sp`), up from half, and still as tall as its
+  ink rather than a line box — so the word grew on every widget without taking height from the body.
+- The compact dual-date tile now grows with its cell instead of capping at 72dp: it draws a square at
+  the cell's smaller side, so a resize enlarges the background and every line with it. Its widget
+  info declares `resizeMode="horizontal|vertical"`.
+- The month grid footer mirrors the in-app event bar's three states: an eventless month reads
+  "No event", a month with notable dates asks for a tap, and a tapped day names its event (or reads
+  "No event on this day"). The month's whole event list is no longer printed on the resting grid.
+
+### Migration
+
+- A host that copies the widget-info XMLs must refresh its `hijri_compact_date_widget_info.xml`.
+  Resizing the compact tile is new, and a stale copy carrying `resizeMode="none"` silently keeps the
+  tile fixed.
+
 ## 2.4.0 - 2026-11-10
 
 ### Changed

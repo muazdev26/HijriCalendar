@@ -18,11 +18,11 @@ import androidx.compose.ui.unit.sp
  *
  * ## The two halves of the rule
  *
- * 1. **The size is a share of the figure beside it**, not of a caption: `weekday = figure × 0.5`.
- *    That is what makes the weekday the same object on all five widgets instead of 0.4 of the figure
+ * 1. **The size is a share of the figure beside it**, not of a caption: `weekday = figure × 0.6`.
+ *    That is what makes the weekday the same object on all six widgets instead of 0.4 of the figure
  *    here and 0.46 there, and it is why the compact and dual tiles — the two that sized it from a
  *    caption — grew most. It also keeps the day figure the loudest line, which is the family's rule:
- *    the weekday never exceeds half of it.
+ *    the weekday never approaches it.
  * 2. **The band is as tall as the ink, not as tall as the line box**: `band = inkEm × size +
  *    paddings`. The word still paints its own ink, so filling the band costs the *body* nothing —
  *    distinguishing this from the round-3 change on the Today strip, which was the opposite trade
@@ -47,21 +47,31 @@ internal object WeekdayBandFit {
     /**
      * The weekday's size as a share of the widget's dominant figure.
      *
-     * `0.5` is where the three 1×1 tiles already were (13 sp against a 26 sp figure) and a touch above
-     * the Today strip's old 13/28 — so the two widgets that were already legible stay where they are,
-     * and the two that derived the weekday from a caption (the dual tile's `CAPTION_RATIO`, the
-     * compact tile's 8 sp) are lifted to the same proportion as their siblings.
+     * `0.6` — up from the `0.5` this shipped at, reported as "the day name bar is very small although
+     * we have space in every widget". Half the figure was legible in proportion but not in *size*: at
+     * a placed 1×1 it rendered ~11sp, and at the compact tile's drawn square ~8sp, while the band
+     * above them had the whole width to itself and nothing else competing for it. Three fifths buys
+     * the word roughly 20% in every direction on all six widgets and still leaves the figure it
+     * belongs to clearly the loudest line — which is the one rule the share exists to protect.
+     *
+     * The four fitted typographies read this single constant, so the word cannot drift apart across
+     * widgets that sit side by side on one home screen, and [WeekdayBandFitTest] holds each of them to
+     * it at its own placed cell.
      */
-    const val SHARE_OF_FIGURE: Float = 0.5f
+    const val SHARE_OF_FIGURE: Float = 0.6f
 
     /**
      * The largest the weekday ever renders at, however large the widget.
      *
      * A ceiling at all — rather than only the share — because a 1×1 tile stretched to 3×3 is read at the
-     * same distance as one at 1×1, and a weekday at 32 sp would compete with the figure it belongs to.
-     * Read off the tiles' own ceiling: half of [DateTileTypography.daySizeCeiling].
+     * same distance as one at 1×1, and a weekday the size of a paragraph would compete with the figure
+     * it belongs to. Read off the tiles' own ceiling: `SHARE_OF_FIGURE × [DateTileTypography.daySize]`'s
+     * ceiling (64sp) is 38.4sp, and this is that rounded down. In practice it never binds a placed
+     * widget — the dual and compact tiles' figures stop at 40sp (24sp words) and the Today strip's at
+     * 40sp too — so it exists to bound what [sizeFor] may return for a figure larger than any this
+     * family draws rather than to clip a real cell.
      */
-    val MAX_SIZE: TextUnit = 22.sp
+    val MAX_SIZE: TextUnit = 38.sp
 
     /**
      * The weekday's size for a figure of [figureSize] — the whole of rule 1.

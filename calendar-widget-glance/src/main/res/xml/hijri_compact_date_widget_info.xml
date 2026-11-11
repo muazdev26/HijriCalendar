@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The compact dual-date tile (sixth widget): both dates at the smallest placement a launcher grants.
 
-     Android has no sub-cell widgets, so the physical cell is the host's 1x1; the tile draws itself at a
-     fixed 72dp square centred inside it (CompactDateTileTypography.DRAWN_EDGE_DP), so it renders at the
-     same size on every launcher instead of growing with the grid, and shrinks only when a host grants
-     less than that square. `resizeMode="horizontal|vertical"` is what lets the host *offer* a resize —
-     the user asked for the handle, not a second dual tile — while the drawn edge stays capped at 72dp,
-     so a bigger cell adds transparent margin rather than a stretched rectangle. That is a deliberate
-     departure from `resizeMode="none"`, which offered no handle at all and was reported as a missing
-     option; it is **not** a switch to fill-the-cell, which was built, rejected as looking stretched, and
-     reverted (the fill-the-cell variant turned the square into a 62x88 rectangle).
+     Android has no sub-cell widgets, so the physical cell is the host's 1x1; the tile draws itself as a
+     square on that cell's **smaller side** (CompactDateTileTypography.drawnEdgeDp) and centres it, so a
+     placed 1x1 on a five-column phone launcher draws ~62x62dp inside its 62x88dp cell and a larger cell
+     draws a larger square with larger type and background rather than extra transparent margin.
+     `resizeMode="horizontal|vertical"` is what makes that growth reachable; it is **not** a switch to
+     fill-the-cell, which was built, rejected as looking stretched, and reverted (the fill-the-cell
+     variant turned the square into a 62x88 rectangle).
 
      `minWidth`/`minHeight` stay at 40dp: on launchers before Android 12 the cell count is derived from
      them (`cells = ceil((size + 30) / 70)`), so a larger minimum would make this a two-cell widget

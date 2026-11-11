@@ -307,12 +307,14 @@ public final class com/muazdev/hijricalendar/widgetdata/WidgetLocalization {
 
 public final class com/muazdev/hijricalendar/widgetdata/WidgetLocalization$ChromeLabels {
 	public static final field INSTANCE Lcom/muazdev/hijricalendar/widgetdata/WidgetLocalization$ChromeLabels;
+	public final fun eventBannerHint (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun goToCurrentMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun gregorianEra (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun hijriEra (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun monthUnavailable (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun nextMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun noEvent (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
+	public final fun noEventOnDay (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun previousMonth (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun refreshWidget (Lcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;)Ljava/lang/String;
 	public final fun yearWithEra (ILcom/muazdev/hijricalendar/widgetdata/WidgetLanguage;Z)Ljava/lang/String;
