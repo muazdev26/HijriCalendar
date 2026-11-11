@@ -6,10 +6,6 @@
 # The 2026-09-15 review caught Kotlin 2.4.0 / Compose 1.11.1 / alpha08 in prose while the catalog
 # said 2.4.20 / 1.12.0. Hand-syncing does not hold, so this checks instead.
 #
-# AGENTS.md and CONTRIBUTING.md have each carried a stale version at least once — the 2026-09-15
-# review caught Kotlin 2.4.0 / Compose 1.11.1 / alpha08 in prose while the catalog said 2.4.20 /
-# 1.12.0. Hand-syncing does not hold, so this checks instead.
-#
 # Deliberately narrow: it only asserts the two things that can drift without anyone noticing —
 # the README's publish version, and the toolchain floor it promises consumers. The catalog's own
 # internal coherence (every Compose artifact on the composeMultiplatform train) is asserted below.
@@ -36,7 +32,8 @@ check_file_contains() {
   local file="$1" label="$2" pattern="$3"
 
   if [[ ! -f "$file" ]]; then
-    echo "skip: $file does not exist"
+    echo "error: $file does not exist — required file is missing" >&2
+    status=1
     return
   fi
 
@@ -50,11 +47,9 @@ check_file_contains() {
 
 # Compose artifacts must not sit on their own version inside one release train.
 #
-# Compose artifacts must not sit on their own version inside one release train.
-#
 # The failure this exists to catch: material-icons-extended was pinned to 1.7.3 while everything else
 # resolved from Compose 1.12.0, five minors apart, in a *published* artifact -- and it still compiled,
-# so nothing noticed until the ticket asked. See UI-13.
+# so nothing noticed until the ticket asked. See docs/issues/UI-13-dependency-hygiene.md.
 #
 # A version-less entry is legitimate only when it is always consumed alongside a platform/BOM, which
 # is how the androidx.compose.* entries below are used. Those are allow-listed rather than inferred,
@@ -80,7 +75,7 @@ is_bom_managed() {
 # The Compose *platform* train is `composeMultiplatform`. Every org.jetbrains.compose.* artifact
 # must resolve from it, either directly or through a shared `version.ref = "composeMultiplatform"`
 # indirection (the `compose.*` aliases in the catalog). Anything else means a second train on the
-# graph, which is the defect UI-13 describes.
+# graph, which is the defect described in docs/issues/UI-13-dependency-hygiene.md.
 #
 # Note what is deliberately NOT allowed: a bare `version = "1.7.3"`, or a `version.ref` to some
 # other key in this file. Both resolve, both compile, and both were invisible to a check that only
@@ -113,7 +108,7 @@ check_catalog_coherence() {
     printf '%s' "$offenders" >&2
     echo "  -- point it at version.ref = \"composeMultiplatform\" (directly or via a compose.*" >&2
     echo "     alias), or add it to BOM_MANAGED_COMPOSE_ENTRIES with a note on why the BOM covers" >&2
-    echo "     it. A second train in a published artifact is a consumer's problem; see UI-13." >&2
+    echo "     it. A second train in a published artifact is a consumer's problem." >&2
     status=1
   else
     echo "ok:   every Compose artifact in $CATALOG is on the composeMultiplatform train or BOM-managed"
