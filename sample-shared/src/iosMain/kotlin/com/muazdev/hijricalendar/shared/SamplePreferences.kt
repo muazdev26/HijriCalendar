@@ -1,7 +1,6 @@
 package com.muazdev.hijricalendar.shared
 
 import com.muazdev.hijricalendar.ui.DateDisplayMode
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import platform.Foundation.NSUserDefaults
 
 /**
@@ -18,7 +17,6 @@ internal object SamplePreferences {
     private const val KEY_DATE_DISPLAY_MODE = "hijri_sample_date_display_mode"
     private const val KEY_ADJUSTMENT_DAYS = "hijri_sample_adjustment_days"
     private const val KEY_PAKISTAN_DATES = "hijri_sample_pakistan_dates"
-    private const val KEY_MONTH_LENGTH_OVERRIDES = "hijri_sample_month_length_overrides"
 
     private const val DEFAULT_ADJUSTMENT_DAYS = 0
     private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
@@ -58,34 +56,15 @@ internal object SamplePreferences {
     }
 
     /**
-     * Restores the persisted month-length overrides into the process-global
-     * [HijriMonthOverrides] singleton. Must run before the calendar state is constructed so its
-     * observed grid starts from the restored calendar rather than snapping to it on first read.
+     * Restores the persisted month-length overrides. No-op: iOS does not use the process-global
+     * override table; the calendar state holds its own explicit table.
      */
     fun restoreMonthLengthOverrides() {
-        val encoded = defaults.stringForKey(KEY_MONTH_LENGTH_OVERRIDES)?.takeIf { it.isNotBlank() } ?: return
-        val restored = runCatching {
-            encoded.split(",").mapNotNull { token ->
-                val period = token.substringBefore(":")
-                val length = token.substringAfter(":").toIntOrNull() ?: return@mapNotNull null
-                val year = period.substringBefore("-").toIntOrNull() ?: return@mapNotNull null
-                val month = period.substringAfter("-").toIntOrNull() ?: return@mapNotNull null
-                (year to month) to length
-            }.toMap()
-        }.getOrNull() ?: return
-        HijriMonthOverrides.replaceAll(restored)
+        // iOS no longer seeds the global table.
     }
 
-    /** Persists the current global month-length overrides, clearing the key when there are none. */
+    /** Persists month-length overrides. No-op: iOS does not use the process-global table. */
     fun persistMonthLengthOverrides() {
-        val all = HijriMonthOverrides.all()
-        if (all.isEmpty()) {
-            defaults.removeObjectForKey(KEY_MONTH_LENGTH_OVERRIDES)
-            return
-        }
-        val encoded = all.entries.joinToString(",") { (period, length) ->
-            "${period.first}-${period.second}:$length"
-        }
-        defaults.setObject(encoded, KEY_MONTH_LENGTH_OVERRIDES)
+        // iOS no longer reads the global table.
     }
 }

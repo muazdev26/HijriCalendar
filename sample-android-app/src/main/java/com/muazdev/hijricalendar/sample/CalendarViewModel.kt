@@ -13,7 +13,6 @@ import com.abdulrahman_b.hijrahdatetime.toHijrahDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.HijriEventLanguage
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriDate
 import com.muazdev.hijricalendar.ui.DateDisplayMode
@@ -225,8 +224,6 @@ class CalendarViewModel(
             HijriWidgetRefreshLog.e("inapp:restore", "could not read DataStore; keeping the calculated calendar")
             return
         }
-        @Suppress("DEPRECATION")
-        HijriMonthOverrides.replaceAll(restored)
         HijriWidgetRefreshLog.d("inapp:restore", "entries=${restored.size} ok=true")
     }
 

@@ -1,6 +1,7 @@
 package com.muazdev.hijricalendar.sample
 
 import android.app.Application
+import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetForegroundWatcher
 import com.muazdev.hijricalendar.widget.glance.HijriWidgetRefreshScheduler
 import com.muazdev.hijricalendar.widget.glance.PakistanWarmUp
@@ -34,7 +35,7 @@ class HijriCalendarApp : Application() {
         // PakistanWarmUp is single-flight + joinable: an ActionCallback or render that beats this
         // coroutine to the cold table suspends on the same build instead of starting a second one.
         appScope.launch {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(HijriMonthLengths())
         }
 
         // Tracks real foreground state across every activity and triggers the catch-up render

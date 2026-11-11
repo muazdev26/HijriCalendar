@@ -22,7 +22,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
 import com.muazdev.hijricalendar.core.CalendarNames
-import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.core.todayHijriDate
@@ -68,7 +67,7 @@ class CalendarScreenDeviceUiTest {
 
     @After
     fun tearDown() {
-        HijriMonthOverrides.clearAll()
+        // No global overrides to clear — the test uses explicit tables.
     }
 
     // ── Shared state helpers ────────────────────────────────────────────
