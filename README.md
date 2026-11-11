@@ -13,7 +13,17 @@ A Compose Multiplatform calendar for displaying and interacting with Hijri (Isla
 
 ## Installation
 
-Distributed via [JitPack](https://jitpack.io/#muazdev26/HijriCalendar).
+Distributed via Maven Central.
+
+```kotlin
+dependencies {
+    implementation("com.muazdev.hijricalendar:hijri-calendar-compose:2.4.0")
+}
+```
+
+### Legacy: JitPack (2.4.x only)
+
+JitPack will not receive releases after 2.4.x.
 
 ```kotlin
 repositories { maven("https://jitpack.io") }
@@ -156,7 +166,7 @@ A shared projection module (`calendar-widget-data`, `WidgetCalendar` framework o
 ### Adding the widget to your app
 
 ```kotlin
-dependencies { implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-widget-glance:2.4.0") }
+dependencies { implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:2.4.0") }
 ```
 
 The library's manifest declares all six receivers; widgets work on defaults. Optional setup:
@@ -170,10 +180,24 @@ The library's manifest declares all six receivers; widgets work on defaults. Opt
 The library's own manifest declares what the widget refresh needs, so a consumer does not have to add it:
 
 - `RECEIVE_BOOT_COMPLETED` — re-arms the midnight rollover after a reboot.
-- `USE_EXACT_ALARM` (Android 13+) — auto-granted and not user-revocable. Play policy reserves it for apps whose core function is an alarm clock or a calendar, which a Hijri calendar is; check that policy before shipping if your app bundles this library for some other primary purpose.
+- `USE_EXACT_ALARM` (Android 13+) — auto-granted and not user-revocable.
 - `SCHEDULE_EXACT_ALARM` (Android 12+) — a special app access. Android 12 pre-grants it; **from Android 14 it is not pre-granted to most apps**, and the user can revoke it at any time under *Settings → Special app access → Alarms & reminders*.
 
 `HijriWidgetRefreshScheduler` never assumes the access. It asks `canScheduleExactAlarms()` and arms `setExactAndAllowWhileIdle` when granted, `setAndAllowWhileIdle` otherwise — so the widget still rolls over, just at the platform's next opportunity instead of exactly at 00:00. Both the alarm and the daily WorkManager backstop exist only while at least one widget is placed.
+
+### Google Play: exact alarm permission
+
+The library declares `USE_EXACT_ALARM` and `SCHEDULE_EXACT_ALARM` through its manifest; the host app's merged manifest will include them. If the host app is not an alarm or calendar app, declare the removal in the host manifest:
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"
+        tools:node="remove" />
+</manifest>
+```
+
+See the [official Play policy on exact alarms](https://developer.android.com/about/versions/13/changes/user-exact-alarms) for requirements.
 
 ## Requirements
 
