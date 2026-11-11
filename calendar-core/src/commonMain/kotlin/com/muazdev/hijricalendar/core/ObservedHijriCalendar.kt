@@ -37,7 +37,8 @@ public object ObservedHijriCalendar {
     /**
      * The effective length of [year]/[month] after applying user overrides.
      *
-     * @param overrides table to consult; defaults to the process-wide one.
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun observedLength(year: Int, month: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current): Int =
         overrides.monthLength(year, month) ?: defaultLength(year, month)
@@ -45,7 +46,8 @@ public object ObservedHijriCalendar {
     /**
      * The absolute Gregorian epoch-day on which the observed "1" of [year]/[month] falls.
      *
-     * @param overrides table to consult; defaults to the process-wide one.
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun observedMonthStartEpoch(year: Int, month: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current): Long =
         observedMonthStartEpoch(prolepticMonth(year, month), overrides)
@@ -66,7 +68,8 @@ public object ObservedHijriCalendar {
      * by a window sized to the total override drift. This terminates in O(log drift) probes
      * regardless of how extreme the override set is.
      *
-     * @param overrides table to consult; defaults to the process-wide one.
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun observedDateAt(epochDay: Long, overrides: HijriMonthLengths = HijriMonthOverrides.current): ObservedHijriDate? {
         // A date outside Umm al-Qura's table is the only legitimate null here. Anything else
@@ -114,7 +117,8 @@ public object ObservedHijriCalendar {
     /**
      * The Gregorian day [day] of observed [year]/[month] falls on.
      *
-     * @param overrides table to consult; defaults to the process-wide one.
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun observedToGregorian(year: Int, month: Int, day: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current): LocalDate =
         LocalDate.fromEpochDays(observedMonthStartEpoch(year, month, overrides) + (day - 1))
@@ -126,7 +130,8 @@ public object ObservedHijriCalendar {
      * Null here means the **environment** failed (an unusable system clock or timezone
      * database). "Date is out of range" is [observedDateAt]'s case, and it logs separately.
      *
-     * @param overrides table to consult; defaults to the process-wide one.
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun today(adjustmentDays: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current): ObservedHijriDate? {
         return try {

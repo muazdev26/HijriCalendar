@@ -67,6 +67,7 @@ public fun resolveGregorianMonthRange(
     month: Int,
     pakistan: Boolean = false,
     adjustmentDays: Int = 0,
+    /** Defaults to the deprecated process-global table. New code should pass an explicit [HijriMonthLengths]. */
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
 ): GregorianMonthRange {
     val first: LocalDate

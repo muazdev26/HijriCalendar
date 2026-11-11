@@ -145,6 +145,8 @@ public constructor(
      * Month-length overrides owned by this state holder. Defaults to the process-wide
      * [HijriMonthOverrides.current]; pass your own [HijriMonthLengths] to scope overrides to this
      * calendar so two calendars in one process can disagree about month lengths.
+     *
+     * Defaults to the deprecated process-global table. New code should pass an explicit [HijriMonthLengths].
      */
     public val monthLengths: HijriMonthLengths = HijriMonthOverrides.current,
 ) {
@@ -170,6 +172,7 @@ public constructor(
         weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
         showAdjacentDays: Boolean = false,
         showCellBorders: Boolean = false,
+        /** Defaults to the deprecated process-global table. New code should pass an explicit [HijriMonthLengths]. */
         monthLengths: HijriMonthLengths = HijriMonthOverrides.current,
     ) : this(
         initialMonth = initialHijriMonth.toHijrahYearMonth(),

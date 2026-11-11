@@ -90,10 +90,9 @@ public object PakistanHijriCalendar {
      *
      * The table is generated at build time from `src/commonMain/resources/pakistan-fixes.json` —
      * see [PAKISTAN_FIXES] for the data, its `source`/`verifiedOn` provenance, and the freshness
-     * rule. 1440-10..1442-04 come from the official Ruet-e-Hilal scrap; 1448-02..1448-04 cover the
-     * user-verified current window (1448-02's start and length are the announced Safar decision that
-     * the verified 1448-03 anchor requires; 1448-04's start is the continuation of 1448-03's 30th and
-     * is an estimate, not an official decision).
+     * rule. 1440-10..1442-04 come from the official Ruet-e-Hilal scrap; 1448-02..1448-05 are
+     * author-verified against the official Central Ruet-e-Hilal Committee announcements.
+     * 1448-06 start is confirmed but its length is not yet known.
      */
     public val FIXES: Map<Pair<Int, Int>, Fix> = PAKISTAN_FIXES
 
@@ -226,6 +225,9 @@ public object PakistanHijriCalendar {
      * startup so the one-time warm-up never runs on the main thread during a
      * composition.  Overrides are folded in at this point, so a later override
      * change rebuilds the table on the next access.
+     *
+     * @param overrides table to use; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun prewarm(overrides: HijriMonthLengths = HijriMonthOverrides.current) {
         monthTableIfNeeded(overrides)
@@ -238,7 +240,8 @@ public object PakistanHijriCalendar {
      * never triggers a build; [prewarm] and the date math functions are the
      * only entry points that construct the table.
      *
-     * @param overrides table to check; defaults to the process-wide one.
+     * @param overrides table to check; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun isWarmForCurrentOverrides(overrides: HijriMonthLengths = HijriMonthOverrides.current): Boolean {
         val current = monthTables.load()[overrides]
@@ -248,6 +251,9 @@ public object PakistanHijriCalendar {
     /**
      * Effective length of the Pakistani [year]/[month] (1-12): a user override wins, then
      * the [FIXES] table, then the Umm al-Qura default.
+     *
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun lengthOfMonth(year: Int, month: Int, overrides: HijriMonthLengths = HijriMonthOverrides.current): Int {
         require(year in MIN_YEAR..MAX_YEAR) { "Year $year is out of the supported range $MIN_YEAR..$MAX_YEAR" }
@@ -265,7 +271,12 @@ public object PakistanHijriCalendar {
         return defaultLengthsIfNeeded().getValue(prolepticMonth(year, month))
     }
 
-    /** The Gregorian day [day] of Pakistani [year]/[month] falls on. */
+    /**
+     * The Gregorian day [day] of Pakistani [year]/[month] falls on.
+     *
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
+     */
     public fun hijriToGregorian(
         year: Int,
         month: Int,
@@ -285,6 +296,9 @@ public object PakistanHijriCalendar {
      * Returns null for exactly one reason — the date is out of range. A fault inside the walk
      * (a missing table entry, an exhausted iteration budget) is logged and also returns null, but
      * it is logged at `ERROR` precisely so it can be told apart; see [CalendarLog].
+     *
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun gregorianToHijri(
         date: LocalDate,
@@ -312,6 +326,9 @@ public object PakistanHijriCalendar {
      * Null here means the **environment** failed (an unusable system clock or timezone database),
      * not that the date is out of range — [gregorianToHijri] owns that case and logs it
      * separately.
+     *
+     * @param overrides table to consult; defaults to the deprecated process-global table.
+     *   New code should pass an explicit [HijriMonthLengths].
      */
     public fun today(overrides: HijriMonthLengths = HijriMonthOverrides.current): PakistanHijriDate? {
         return try {

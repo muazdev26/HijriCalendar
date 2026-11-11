@@ -51,6 +51,7 @@ public fun HijrahYearMonth.toCalendarMonth(
     adjustmentDays: Int = 0,
     pakistan: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /** Defaults to the deprecated process-global table. New code should pass an explicit [HijriMonthLengths]. */
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
 ): CalendarMonth {
     val window = DateWindow.of(minDate, maxDate, adjustmentDays)
@@ -148,6 +149,7 @@ public fun HijriYearMonth.toCalendarMonth(
     adjustmentDays: Int = 0,
     pakistan: Boolean = false,
     weekendDays: Set<WeekDay> = WeekDay.WEEKEND_DAYS,
+    /** Defaults to the deprecated process-global table. New code should pass an explicit [HijriMonthLengths]. */
     overrides: HijriMonthLengths = HijriMonthOverrides.current,
 ): CalendarMonth = this.toHijrahYearMonth().toCalendarMonth(
     firstDayOfWeek = firstDayOfWeek,
