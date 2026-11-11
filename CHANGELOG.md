@@ -10,6 +10,28 @@ under the same version headings.
 
 ## 2.4.0 - 2026-11-10
 
+### Changed
+
+- Widget renders read month-length overrides from `HijriMonthLengthsRepository` (or the widget's
+  own map) and never from the process-global `HijriMonthOverrides`.
+
+### Added
+
+- `buildHijriMonthWidgetData`, `todayHijriWidgetData` and the options-taking overloads gain explicit-table
+  overloads that take `overrides: HijriMonthLengths`. Existing overloads are unchanged.
+- `HijriMonthLengthsRepository.revision()`: the DataStore now tracks a revision counter that changes
+  only when the stored table changes content, used by the render cache for invalidation.
+
+### Deprecated
+
+- Default `overrides` arguments that read `HijriMonthOverrides.current` remain for source compatibility.
+  New code must pass an explicit table.
+
+### Migration
+
+- None required for consumers that already pass an explicit table. Consumers that relied on widgets
+  reading the global must write their overrides through `HijriMonthLengthsRepository` instead.
+
 ### Added
 
 - `HijriMonthLengthsRepository` (`calendar-widget-glance`): month-length overrides now persist to one
@@ -35,8 +57,9 @@ under the same version headings.
 ### Migration
 
 - `calendar-widget-data`'s `HijriYearMonth` moved to `com.muazdev.hijricalendar.core`. Source
-  compatible, but the class file moved, so recompile when you upgrade. Signatures that changed:
-  `offsetHijriMonth`, `WidgetOptions.pinned`, `resolveGridMonth`, `resolveGridMonthOrNull`.
+  compatible, but **binary incompatible**: the class moved package, so consumers compiled against
+  2.3.x must recompile. Signatures that changed: `offsetHijriMonth`, `WidgetOptions.pinned`,
+  `resolveGridMonth`, `resolveGridMonthOrNull`.
 - Replace the alpha types with the library-owned ones: `HijrahDate` → `HijriDate`,
   `HijrahYearMonth` → `HijriYearMonth`, `CalendarDay.hijrahDate` → `CalendarDay.hijri`,
   `CalendarMonth.yearMonth` → `hijriYearMonth`, `firstDay` / `lastDay` → `firstHijriDay` /
