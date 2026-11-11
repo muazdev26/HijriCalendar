@@ -165,4 +165,49 @@ tasks.register<Copy>("apiDump") {
     into(layout.projectDirectory.dir("api"))
 }
 
-tasks.named("check") { dependsOn(apiCheck) }
+// ── R8 callback name check ─────────────────────────────────────────────────────────────────────
+//
+// Every ActionCallback subclass must be named HijriWidget*Callback so the consumer R8 rule
+// (`-keep public class HijriWidget*Callback { <init>(); }`) keeps its no-arg constructor.
+// A callback that slips through with a different name is kept as a class but loses its
+// constructor, so every tap dies with NoSuchMethodException.
+//
+// Uses a source scan (regex) rather than class scanning — simpler and catches the problem
+// before compilation.
+val verifyWidgetCallbackNames = tasks.register("verifyWidgetCallbackNames") {
+    description = "Verifies all ActionCallback subclasses match the HijriWidget*Callback naming pattern."
+    val sourceDir = layout.projectDirectory.dir("src/main/java")
+    inputs.dir(sourceDir).withPropertyName("callbackSources").withPathSensitivity(PathSensitivity.RELATIVE)
+    doLast {
+        val violations = mutableListOf<String>()
+
+        // Whole-file regex that matches class or object declarations whose supertype list
+        // mentions ActionCallback. The [^{]*? part spans newlines (DOTALL) so multi-line
+        // supertype lists are matched, and stops at the body's opening brace.
+        val declaration = Regex(
+            """\b(?:class|object)\s+(\w+)[^{]*?\bActionCallback\b""",
+            setOf(RegexOption.DOT_MATCHES_ALL),
+        )
+
+        sourceDir.asFileTree.matching { include("**/*.kt") }.forEach { file ->
+            val content = file.readText()
+            declaration.findAll(content).forEach { match ->
+                val className = match.groupValues[1]
+                if (!className.startsWith("HijriWidget") || !className.endsWith("Callback")) {
+                    // Compute line number from the match's start offset
+                    val lineNumber = content.substring(0, match.range.first).count { it == '\n' } + 1
+                    violations.add("${file.path}:${lineNumber}: $className does not match HijriWidget*Callback pattern")
+                }
+            }
+        }
+
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "R8 callback naming violations found:\n" +
+                    violations.joinToString("\n")
+            )
+        }
+    }
+}
+
+tasks.named("check") { dependsOn(apiCheck, verifyWidgetCallbackNames) }
