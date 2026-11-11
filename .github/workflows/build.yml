@@ -59,7 +59,7 @@ jobs:
       # names Glance resolves *reflectively* at tap time — so a stripped callback is a silently dead
       # button, not a build error, and `debug` can never show it. This assembles the minified APK
       # and then asserts R8's mapping still contains every widget callback, receiver and worker.
-      - name: Assemble minified release APK (widget taps survive R8)
+      - name: Assemble minified release APK and verify R8 keeps widget callback constructors
         run: |
           ./gradlew \
             :sample-android-app:assembleRelease \
@@ -115,7 +115,7 @@ jobs:
 
       # `WidgetOptionsJson` is the shared wire format for BOTH platforms — Android on the JVM, iOS
       # through the `WidgetCalendar` K/N framework — and compiling the target only proves the code
-      # builds, not that it *behaves* the same. These are `commonTest` cases (WD-08): number width at
+      # builds, not that it *behaves* the same. These are `commonTest` cases: number width at
       # the Int/Long boundary, Unicode escaping, map keys, and which inputs are rejected at all. A
       # divergence is not a crash but a widget rendering the wrong content forever, because
       # `HijriSharedOptions.swift` re-encodes through this codec on every `loadOptions`.
@@ -132,3 +132,35 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -configuration Debug \
             build
+
+  floor-build:
+    name: Floor build (Kotlin 2.4.10, Compose 1.11.0, AGP 9.4.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Patch catalog to floor versions
+        run: |
+          cp gradle/libs.versions.toml gradle/libs.versions.toml.bak
+          sed -i 's/kotlin = "2\.4\.20"/kotlin = "2.4.10"/' gradle/libs.versions.toml
+          sed -i 's/composeMultiplatform = "1\.12\.0"/composeMultiplatform = "1.11.0"/' gradle/libs.versions.toml
+          sed -i 's/agp = "9\.4\.1"/agp = "9.4.0"/' gradle/libs.versions.toml
+
+      - name: Run core + UI + widget unit tests at floor versions
+        run: |
+          ./gradlew \
+            :calendar-core:desktopTest \
+            :calendar-ui:desktopTest \
+            :calendar-widget-data:desktopTest \
+            --console=plain
+
+      - name: Restore catalog
+        run: mv gradle/libs.versions.toml.bak gradle/libs.versions.toml
