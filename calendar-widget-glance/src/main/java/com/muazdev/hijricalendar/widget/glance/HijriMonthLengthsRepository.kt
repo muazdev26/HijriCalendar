@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.muazdev.hijricalendar.core.HijriMonthLengths
 import kotlinx.coroutines.CoroutineScope
@@ -47,21 +48,46 @@ public class HijriMonthLengthsRepository internal constructor(
     /** A [HijriMonthLengths] built from the current store, for passing explicitly. */
     public suspend fun loadTable(): HijriMonthLengths = HijriMonthLengths(load())
 
+    /**
+     * The current revision counter. Changes only when the stored table changes content.
+     * Used as part of cache keys so the render cache invalidates when the stored table changes.
+     */
+    public suspend fun revision(): Long =
+        dataStore.data.first().get(revisionKey) ?: 0L
+
     /** Forces [length] (29 or 30) onto [year]/[month], overwriting any existing value. */
     public suspend fun setMonthLength(year: Int, month: Int, length: Int) {
         require(length in 29..30) { "Month length must be 29 or 30, got $length" }
         require(month in 1..12) { "Month must be in 1..12, got $month" }
-        dataStore.edit { prefs -> prefs[overrideKey(year, month)] = length }
+        dataStore.edit { prefs ->
+            val current = prefs[overrideKey(year, month)]
+            prefs[overrideKey(year, month)] = length
+            if (current != length) {
+                prefs[revisionKey] = (prefs[revisionKey] ?: 0L) + 1
+            }
+        }
     }
 
     /** Removes the override for [year]/[month], leaving no entry behind. */
     public suspend fun clearMonthLength(year: Int, month: Int) {
-        dataStore.edit { prefs -> prefs.remove(overrideKey(year, month)) }
+        dataStore.edit { prefs ->
+            val existed = prefs.contains(overrideKey(year, month))
+            prefs.remove(overrideKey(year, month))
+            if (existed) {
+                prefs[revisionKey] = (prefs[revisionKey] ?: 0L) + 1
+            }
+        }
     }
 
     /** Removes every override in the store. */
     public suspend fun clearAll() {
-        dataStore.edit { prefs -> prefs.clear() }
+        dataStore.edit { prefs ->
+            val hadOverrides = prefs.asMap().any { (key, _) -> key.name.startsWith("o.") }
+            prefs.clear()
+            if (hadOverrides) {
+                prefs[revisionKey] = (prefs[revisionKey] ?: 0L) + 1
+            }
+        }
     }
 
     /** Replaces the whole store in one step — for migrating callers with their own CSV overrides. */
@@ -71,10 +97,16 @@ public class HijriMonthLengthsRepository internal constructor(
             require(key.second in 1..12) { "Month must be in 1..12, got ${key.second}" }
         }
         dataStore.edit { prefs ->
+            val currentMap = load()
             prefs.clear()
             overrides.forEach { (key, length) -> prefs[overrideKey(key.first, key.second)] = length }
+            if (currentMap != overrides) {
+                prefs[revisionKey] = (prefs[revisionKey] ?: 0L) + 1
+            }
         }
     }
+
+    private val revisionKey = longPreferencesKey("revision")
 
     private fun overrideKey(year: Int, month: Int) =
         intPreferencesKey("o.$year.${month.toString().padStart(2, '0')}")
