@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.appwidget.SizeMode
+import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.widget.glance.HIJRI_DEEP_LINK_TODAY
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidget
 import com.muazdev.hijricalendar.widget.glance.GregorianDateWidgetLivePreview
@@ -199,7 +200,7 @@ private object ConsumerResolutionCheck {
         HijriWidgetRefresher.refreshInstanceAsync(context, glanceId = null, reason = "settings")
         HijriWidgetRefreshScheduler.schedule(context)
         HijriWidgetPreviewPublisher.publishIfDueAsync(context)
-        PakistanWarmUp.ensureWarm()
+        PakistanWarmUp.ensureWarm(HijriMonthLengths())
     }
 
     /**

@@ -1,8 +1,8 @@
 package com.muazdev.hijricalendar.widget.glance
 
+import com.muazdev.hijricalendar.core.HijriMonthLengths
 import com.muazdev.hijricalendar.core.HijriMonthOverrides
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
-import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -11,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Guards the single-flight warm-up that keeps on-widget Pakistan next/prev from paying for (or
@@ -20,21 +21,23 @@ import org.junit.Test
  */
 class PakistanWarmUpTest {
 
+    private val testOverrides = HijriMonthLengths()
+
     @Test
     fun concurrentCallersShareOneBuild() = runBlocking {
         forceColdTable()
         val buildCount = AtomicInteger(0)
         val original = PakistanWarmUp.buildAction
-        PakistanWarmUp.buildAction = {
+        PakistanWarmUp.buildAction = { overrides ->
             buildCount.incrementAndGet()
-            original()
+            original(overrides)
         }
         try {
             coroutineScope {
-                (1..5).map { async { PakistanWarmUp.ensureWarm() } }.awaitAll()
+                (1..5).map { async { PakistanWarmUp.ensureWarm(testOverrides) } }.awaitAll()
             }
             assertEquals(1, buildCount.get())
-            assertTrue(PakistanHijriCalendar.isWarmForCurrentOverrides())
+            assertTrue(PakistanHijriCalendar.isWarmForCurrentOverrides(testOverrides))
         } finally {
             PakistanWarmUp.buildAction = original
         }
@@ -43,15 +46,15 @@ class PakistanWarmUpTest {
     @Test
     fun warmTableReturnsWithoutBuilding() = runBlocking {
         forceColdTable()
-        PakistanWarmUp.ensureWarm()
+        PakistanWarmUp.ensureWarm(testOverrides)
         val buildCount = AtomicInteger(0)
         val original = PakistanWarmUp.buildAction
-        PakistanWarmUp.buildAction = {
+        PakistanWarmUp.buildAction = { overrides ->
             buildCount.incrementAndGet()
-            original()
+            original(overrides)
         }
         try {
-            PakistanWarmUp.ensureWarm()
+            PakistanWarmUp.ensureWarm(testOverrides)
             assertEquals(0, buildCount.get())
         } finally {
             PakistanWarmUp.buildAction = original
@@ -66,6 +69,6 @@ class PakistanWarmUpTest {
     private fun forceColdTable() {
         HijriMonthOverrides.setMonthLength(1450, 4, 29)
         HijriMonthOverrides.clearMonthLength(1450, 4)
-        assertFalse(PakistanHijriCalendar.isWarmForCurrentOverrides())
+        assertFalse(PakistanHijriCalendar.isWarmForCurrentOverrides(testOverrides))
     }
 }

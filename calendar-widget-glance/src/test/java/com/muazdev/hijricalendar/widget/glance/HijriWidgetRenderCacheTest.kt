@@ -11,6 +11,7 @@ import com.muazdev.hijricalendar.widgetdata.WidgetSource
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -46,6 +47,7 @@ class HijriWidgetRenderCacheTest {
                 val rendered = HijriWidgetRenderCache.render(
                     glanceId = "widget-$round-$i",
                     options = options(),
+                    overrides = null,
                     viewedMonth = null,
                     todayEpochDay = TODAY + i,
                     layoutRtl = false,
@@ -67,6 +69,7 @@ class HijriWidgetRenderCacheTest {
         val first = HijriWidgetRenderCache.render(
             glanceId = "repeat",
             options = options(),
+            overrides = null,
             viewedMonth = ym(1448, 3),
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -74,6 +77,7 @@ class HijriWidgetRenderCacheTest {
         val second = HijriWidgetRenderCache.render(
             glanceId = "repeat",
             options = options(),
+            overrides = null,
             viewedMonth = ym(1448, 3),
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -89,6 +93,7 @@ class HijriWidgetRenderCacheTest {
         val baseline = HijriWidgetRenderCache.render(
             glanceId = "key",
             options = options(),
+            overrides = null,
             viewedMonth = ym(1448, 3),
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -96,19 +101,19 @@ class HijriWidgetRenderCacheTest {
 
         val variants = listOf(
             "language" to HijriWidgetRenderCache.render(
-                "key", options(language = WidgetLanguage.ENGLISH), ym(1448, 3), TODAY, false,
+                "key", options(language = WidgetLanguage.ENGLISH), null, ym(1448, 3), TODAY, false,
             ).monthData,
             "source" to HijriWidgetRenderCache.render(
-                "key", options(source = WidgetSource.PAKISTAN), ym(1448, 3), TODAY, false,
+                "key", options(source = WidgetSource.PAKISTAN), null, ym(1448, 3), TODAY, false,
             ).monthData,
             "adjustment" to HijriWidgetRenderCache.render(
-                "key", options(adjustmentDays = 2), ym(1448, 3), TODAY, false,
+                "key", options(adjustmentDays = 2), null, ym(1448, 3), TODAY, false,
             ).monthData,
             "viewedMonth" to HijriWidgetRenderCache.render(
-                "key", options(), ym(1448, 4), TODAY, false,
+                "key", options(), null, ym(1448, 4), TODAY, false,
             ).monthData,
             "rightToLeft" to HijriWidgetRenderCache.render(
-                "key", options(), ym(1448, 3), TODAY, true,
+                "key", options(), null, ym(1448, 3), TODAY, true,
             ).monthData,
         )
         for ((what, data) in variants) {
@@ -135,6 +140,7 @@ class HijriWidgetRenderCacheTest {
             val rendered = HijriWidgetRenderCache.render(
                 glanceId = "key-$name",
                 options = opts,
+                overrides = null,
                 viewedMonth = viewed,
                 todayEpochDay = TODAY,
                 layoutRtl = false,
@@ -165,6 +171,7 @@ class HijriWidgetRenderCacheTest {
         val rendered = HijriWidgetRenderCache.render(
             glanceId = "half-pin",
             options = half,
+            overrides = null,
             viewedMonth = null,
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -183,8 +190,8 @@ class HijriWidgetRenderCacheTest {
     fun theAnchorDayIsKeyedOnTheTodayProjection() {
         // The month grid does *not* depend on the anchor day — a viewed month pins it — so this
         // asserts the keying where it actually matters, on the "today" projection.
-        val first = HijriWidgetRenderCache.today("anchor", options(), TODAY)
-        val second = HijriWidgetRenderCache.today("anchor", options(), TODAY + 1)
+        val first = HijriWidgetRenderCache.today("anchor", options(), null, TODAY)
+        val second = HijriWidgetRenderCache.today("anchor", options(), null, TODAY + 1)
         assertTrue(first !== second, "a different day must not reuse today's projection")
         assertTrue(
             second?.hijriDay != first?.hijriDay || second?.hijriMonth != first?.hijriMonth,
@@ -203,6 +210,7 @@ class HijriWidgetRenderCacheTest {
         val first = HijriWidgetRenderCache.render(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = opts,
+            overrides = null,
             viewedMonth = null,
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -211,13 +219,14 @@ class HijriWidgetRenderCacheTest {
         val second = HijriWidgetRenderCache.render(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = opts,
+            overrides = null,
             viewedMonth = null,
             todayEpochDay = TODAY,
             layoutRtl = false,
         )
         val afterSecond = HijriWidgetRenderCache.cachedEntryCountForTest
 
-        assertTrue(first.monthData === second.monthData, "a recompose must be served from the cache")
+        assertSame(first.monthData, second.monthData, "a recompose must be served from the cache")
         assertEquals(afterFirst, afterSecond, "a recompose must not grow the cache")
         assertTrue(afterFirst > 0, "the preview path must have populated the cache")
     }
@@ -230,6 +239,7 @@ class HijriWidgetRenderCacheTest {
         val widget = HijriWidgetRenderCache.render(
             glanceId = "widget-1",
             options = opts,
+            overrides = null,
             viewedMonth = null,
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -237,6 +247,7 @@ class HijriWidgetRenderCacheTest {
         val preview = HijriWidgetRenderCache.render(
             glanceId = HijriWidgetRenderCache.PREVIEW_CACHE_ID,
             options = opts,
+            overrides = null,
             viewedMonth = null,
             todayEpochDay = TODAY,
             layoutRtl = false,
@@ -252,9 +263,9 @@ class HijriWidgetRenderCacheTest {
     @Test
     fun todayProjectionsAreCachedTooAndStillBounded() {
         val first: TodayHijriWidgetData? =
-            HijriWidgetRenderCache.today("today-widget", options(), TODAY)
-        val second = HijriWidgetRenderCache.today("today-widget", options(), TODAY)
-        assertTrue(first === second)
+            HijriWidgetRenderCache.today("today-widget", options(), null, TODAY)
+        val second = HijriWidgetRenderCache.today("today-widget", options(), null, TODAY)
+        assertSame(first, second)
         assertTrue(
             HijriWidgetRenderCache.cachedEntryCountForTest <=
                 2 * HijriWidgetRenderCache.MAX_CACHE_ENTRIES,

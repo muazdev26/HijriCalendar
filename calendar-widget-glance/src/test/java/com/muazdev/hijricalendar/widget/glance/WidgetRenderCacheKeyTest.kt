@@ -183,6 +183,7 @@ class WidgetRenderCacheKeyTest {
         HijriWidgetRenderCache.render(
             glanceId = "cache-key-test",
             options = options,
+            overrides = null,
             viewedMonth = null,
             todayEpochDay = 20_731,
             layoutRtl = false,
