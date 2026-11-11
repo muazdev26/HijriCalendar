@@ -31,6 +31,8 @@ local.properties
 !/docs/issues/
 # The consumer-facing CHANGELOG is a summary and links here for the reasoning behind each entry.
 !/docs/CHANGELOG-ARCHIVE.md
+# Planning documents for future releases
+!/docs/3.0-plan.md
 
 # Contributor guides, not published to GitHub
 /AGENTS.md
