@@ -1,5 +1,6 @@
 package com.muazdev.hijricalendar.widget.glance
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -757,6 +758,17 @@ internal class WidgetColors(
     val arrowDimmed: ColorProvider,
 ) {
     companion object {
+        /**
+         * The palette that follows the system: resource ids from `values`/`values-night`, which the
+         * launcher re-resolves, so night mode needs no render from this process.
+         *
+         * `ColorProvider` is Glance's `@RestrictedApi`, and deliberately so — it is the only public
+         * way to hand a resource **id** to a widget and let the host resolve it later, which is
+         * exactly the property that makes this palette follow the system. Suppressed here rather than
+         * wrapped: there is no non-restricted call to wrap. The same suppression covers [LIGHT] and
+         * [DARK], which are the other two palettes and the only other `ColorProvider` call sites.
+         */
+        @SuppressLint("RestrictedApi")
         val DEFAULT: WidgetColors = WidgetColors(
             background = ColorProvider(R.color.widget_background),
             accent = ColorProvider(R.color.widget_accent),
@@ -803,7 +815,11 @@ internal class WidgetColors(
  * A file-level value rather than a second companion constant because the palette test walks
  * `WidgetColors`'s declared fields and holds them to be exactly the palette's members; three
  * constants in the companion would make "the members" ambiguous.
+ *
+ * The `ColorProvider` suppression is the one [WidgetColors.DEFAULT] explains: Glance's only public
+ * way to point at a resource id is a restricted API, and the palettes are made of resource ids.
  */
+@SuppressLint("RestrictedApi")
 private val LIGHT: WidgetColors = WidgetColors(
     background = ColorProvider(R.color.widget_light_background),
     accent = ColorProvider(R.color.widget_light_accent),
@@ -823,6 +839,7 @@ private val LIGHT: WidgetColors = WidgetColors(
 )
 
 /** The forced **dark** palette. See [LIGHT]. */
+@SuppressLint("RestrictedApi")
 private val DARK: WidgetColors = WidgetColors(
     background = ColorProvider(R.color.widget_dark_background),
     accent = ColorProvider(R.color.widget_dark_accent),
