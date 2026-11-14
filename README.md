@@ -17,7 +17,7 @@ Distributed via Maven Central.
 
 ```kotlin
 dependencies {
-    implementation("com.muazdev.hijricalendar:hijri-calendar-compose:2.4.0")
+    implementation("com.muazdev.hijricalendar:hijri-calendar-compose:2.5.0")
 }
 ```
 
@@ -28,7 +28,7 @@ JitPack will not receive releases after 2.4.x.
 ```kotlin
 repositories { maven("https://jitpack.io") }
 dependencies {
-    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.4.0")
+    implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.5.0")
 }
 ```
 
@@ -166,7 +166,7 @@ A shared projection module (`calendar-widget-data`, `WidgetCalendar` framework o
 ### Adding the widget to your app
 
 ```kotlin
-dependencies { implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:2.4.0") }
+dependencies { implementation("com.muazdev.hijricalendar:hijri-calendar-widget-glance:2.5.0") }
 ```
 
 The library's manifest declares all six receivers; widgets work on defaults. Optional setup:

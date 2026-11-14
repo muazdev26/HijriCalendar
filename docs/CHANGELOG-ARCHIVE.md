@@ -8,7 +8,7 @@ Headings match the changelog's, so an entry can be looked up by version. Nothing
 after the release it describes: it is a record, not a guide. For the current shape of an API, read
 the KDoc.
 
-## Unreleased
+## 2.5.0 - 2026-11-14
 
 ### Added
 
@@ -18,7 +18,24 @@ the KDoc.
   different questions. Both are chrome rather than event names, so they follow
   `WidgetOptions.language` even when `eventLanguage` names the events in the other language.
 
+- `overrides: HijriMonthLengths` overloads of `buildHijriMonthWidgetData`,
+  `todayHijriWidgetData` and the options-taking variants — the table a render uses was previously
+  reachable only through the process-global `HijriMonthOverrides`, which the widgets could not scope
+  and which evaporates with the process. A caller can now hand in the table it already has.
+
+- `HijriMonthLengthsRepository.revision()` — a counter that moves only when the stored table's
+  *content* changes, not on every write. The widget render cache keys on it, so a settings write
+  invalidates the cached projections exactly once instead of on a timer or on every write.
+
 ### Changed
+
+- **Widget renders resolve their overrides explicitly**, through the single
+  `internal suspend fun resolveHijriOverrides(context, options)`: `options.monthLengthOverrides` when
+  the instance carries its own map, otherwise `HijriMonthLengthsRepository.shared(context)`. The
+  process-global table is never read on a render path. The resolver returns the table *and* the
+  revision it should be cached under, plus whether the map came from the options — a widget with its
+  own map has no repository revision to key on, so that distinction is part of the cache key rather
+  than an afterthought.
 
 - **The weekday band's share, 0.5 → 0.6 of the day figure** (`WeekdayBandFit.SHARE_OF_FIGURE`,
   ceiling `MAX_SIZE` 22sp → 38sp). Half the figure was legible in *proportion* but not in *size*: at a
@@ -57,6 +74,24 @@ the KDoc.
   which is the footer being reported as broken. `footerEventName(..., selection = null, ...)` still
   answers `null` — the hint is assembled one level up, in `footerLine`, so the pure name lookup is
   unchanged and `WidgetEventFooterTest.anUnselectedMonthNamesNothing` still holds.
+
+### Deprecated
+
+- The default `overrides` arguments that read `HijriMonthOverrides.current` stay for source
+  compatibility, warning level. They are the last place a render can silently read a table it was not
+  given, so new code is expected to pass one.
+
+### Migration
+
+- Consumers that relied on the widget renderers picking up the process-global table must now write it
+  where the resolver looks: either `HijriMonthLengthsRepository` (shared by the app and its widgets)
+  or `WidgetOptions.monthLengthOverrides` per instance. A caller that already passes an explicit
+  table needs to do nothing — the overloads are additive and the old signatures keep working, they
+  just no longer imply where the table comes from.
+
+- Hosts that copy the widget-info XMLs must refresh `hijri_compact_date_widget_info.xml`.
+  `resizeMode="horizontal|vertical"` is what lets the compact tile grow, and a stale copy carrying
+  `resizeMode="none"` keeps it fixed — the same stale-XML footgun the single-date tiles hit in 2.3.2.
 
 ## 2.4.0 - 2026-11-10
 

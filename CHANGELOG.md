@@ -8,15 +8,21 @@ moved, a default that changed, an ABI that needs a recompile. The reasoning, the
 the alternatives that were tried live in [`docs/CHANGELOG-ARCHIVE.md`](docs/CHANGELOG-ARCHIVE.md),
 under the same version headings.
 
-## Unreleased
+## 2.5.0 - 2026-11-14
 
 ### Added
 
+- `buildHijriMonthWidgetData`, `todayHijriWidgetData` and the options-taking overloads gain
+  explicit-table overloads that take `overrides: HijriMonthLengths`. Existing overloads are unchanged.
+- `HijriMonthLengthsRepository.revision()`: the DataStore now tracks a revision counter that changes
+  only when the stored table changes content, used by the render cache for invalidation.
 - `WidgetLocalization.ChromeLabels.eventBannerHint` and `ChromeLabels.noEventOnDay`: the two new grid
   footer lines, resolved from `WidgetOptions.language` like the rest of the widget chrome.
 
 ### Changed
 
+- Widget renders read month-length overrides from the widget's own map or
+  `HijriMonthLengthsRepository`, and never from the process-global `HijriMonthOverrides`.
 - The weekday band on all six widgets is now three fifths of the widget's day figure
   (`WeekdayBandFit.SHARE_OF_FIGURE = 0.6f`, ceiling `38sp`), up from half, and still as tall as its
   ink rather than a line box — so the word grew on every widget without taking height from the body.
@@ -27,35 +33,21 @@ under the same version headings.
   "No event", a month with notable dates asks for a tap, and a tapped day names its event (or reads
   "No event on this day"). The month's whole event list is no longer printed on the resting grid.
 
+### Deprecated
+
+- Default `overrides` arguments that read `HijriMonthOverrides.current` remain for source
+  compatibility. New code must pass an explicit table.
+
 ### Migration
 
 - A host that copies the widget-info XMLs must refresh its `hijri_compact_date_widget_info.xml`.
   Resizing the compact tile is new, and a stale copy carrying `resizeMode="none"` silently keeps the
   tile fixed.
+- Consumers that relied on widgets reading the process-global overrides must write them through
+  `HijriMonthLengthsRepository` instead, or pass `options.monthLengthOverrides`. Consumers that
+  already pass an explicit table need do nothing.
 
 ## 2.4.0 - 2026-11-10
-
-### Changed
-
-- Widget renders read month-length overrides from `HijriMonthLengthsRepository` (or the widget's
-  own map) and never from the process-global `HijriMonthOverrides`.
-
-### Added
-
-- `buildHijriMonthWidgetData`, `todayHijriWidgetData` and the options-taking overloads gain explicit-table
-  overloads that take `overrides: HijriMonthLengths`. Existing overloads are unchanged.
-- `HijriMonthLengthsRepository.revision()`: the DataStore now tracks a revision counter that changes
-  only when the stored table changes content, used by the render cache for invalidation.
-
-### Deprecated
-
-- Default `overrides` arguments that read `HijriMonthOverrides.current` remain for source compatibility.
-  New code must pass an explicit table.
-
-### Migration
-
-- None required for consumers that already pass an explicit table. Consumers that relied on widgets
-  reading the global must write their overrides through `HijriMonthLengthsRepository` instead.
 
 ### Added
 
