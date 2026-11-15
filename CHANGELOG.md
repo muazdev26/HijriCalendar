@@ -16,6 +16,21 @@ under the same version headings.
   (`android.R.dimen.system_app_widget_background_radius`, 16dp below Android S). It is the one widget
   that paints inside its cell, so it did not inherit the launcher's rounded-corner clip the way the
   five cell-filling widgets do and read as the only square tile in the family.
+- The "fired N ms after arming" widget diagnostic is stamped per midnight rather than per arm, so it
+  keeps meaning "time since this boundary could first have been armed" now that the host sweep
+  re-arms it every 30 minutes, and reads "no arm recorded" instead of a negative delta in a process
+  that only ever ran because an alarm fired.
+
+### Fixed
+
+- A lost widget alarm is now repaired by the launcher's own 30-minute `onUpdate` sweep instead of
+  waiting for the user to open the app: the host owns that trigger, so it is the one that keeps
+  arriving on a device whose OEM power manager clears what the app scheduled. Every receiver
+  re-arms the midnight boundary from `onUpdate` while its provider still has instances.
+- A repeating six-hourly heartbeat is armed alongside the exact midnight alarm, as an independent
+  second chance. One missed arm used to cost a full day of a stale date; the heartbeat bounds it to
+  about six hours, and logs as `[heartbeat]` so a boundary that never fired is distinguishable from
+  one that woke on schedule.
 
 ## 2.5.0 - 2026-11-14
 

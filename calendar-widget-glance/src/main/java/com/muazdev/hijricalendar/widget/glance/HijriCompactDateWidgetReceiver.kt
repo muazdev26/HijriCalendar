@@ -35,6 +35,9 @@ public class HijriCompactDateWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // Repair the midnight alarm from the host's own sweep: see
+        // [HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate].
+        HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, appWidgetIds.size)
         if (HijriWidgetRefreshGate.isAppForeground()) {
             HijriWidgetConfig.markRefreshPending(context, true)
             HijriWidgetRefreshLog.d("host-update-compact-date", "skip: app foreground; marked pending")

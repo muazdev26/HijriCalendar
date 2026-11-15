@@ -29,6 +29,9 @@ public class HijriTodayWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // Repair the midnight alarm from the host's own sweep: see
+        // [HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate].
+        HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, appWidgetIds.size)
         if (HijriWidgetRefreshGate.isAppForeground()) {
             HijriWidgetConfig.markRefreshPending(context, true)
             HijriWidgetRefreshLog.d("host-update-today", "skip: app foreground; marked pending")

@@ -14,23 +14,33 @@ import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
 /**
- * Owns the two refresh mechanisms that keep the widget family day-accurate:
+ * Owns the three refresh mechanisms that keep the widget family day-accurate:
  *
  *  1. A periodic [WorkManager] backstop (daily, best-effort).
  *  2. An exact `AlarmManager` alarm for the next local midnight. This is the mechanism that
  *     actually ensures the grid rolls over at midnight. [schedule] is invoked centrally on app
  *     start and on boot, and the midnight receiver re-arms after it fires, so the alarm keeps
  *     re-arming without depending on the process staying alive between midnights.
+ *  3. A repeating `AlarmManager` heartbeat every [HEARTBEAT_INTERVAL_MS]. A one-shot alarm has one
+ *     chance per day, so a single lost arm — an OEM "battery saver" clearing alarms, a revoked
+ *     exact-alarm grant, a crash between the fire and the re-arm — costs a full day of stale
+ *     dates. The heartbeat is the second, independent chance. It is armed only by [reconcile]
+ *     (never by the host-sweep repair), because re-arming a repeating alarm restarts its phase.
  *
- * **Both mechanisms exist only while the user has a widget placed**. [schedule] therefore
+ * On top of that, [repairMidnightAlarmFromHostUpdate] makes the host's own `updatePeriodMillis`
+ * sweep a repair path: it is an alarm the *launcher* owns, so it is the one trigger that keeps
+ * firing on a device whose OEM power manager clears everything the app scheduled.
+ *
+ * **All three mechanisms exist only while the user has a widget placed**. [schedule] therefore
  * *reconciles* rather than arms unconditionally: with at least one instance bound it enqueues the
- * worker and arms the alarm, and with none it cancels both. A user who installed the library but
- * never placed a widget — or who has just removed the last one — is not left with a pending exact
- * alarm, which Android shows in the status bar and lists under Settings > Alarms & reminders. The
- * receivers call the same reconciliation from `onEnabled`/`onDisabled`, so placement is followed
- * in both directions without depending on the app process being restarted.
- * [armMidnightAlarm] remains the raw primitive for a caller that has already established a widget
- * exists; everything driven by an unconditional lifecycle event goes through [reconcile].
+ * worker, arms the midnight alarm and starts the heartbeat, and with none it cancels all three. A
+ * user who installed the library but never placed a widget — or who has just removed the last one —
+ * is not left with a pending exact alarm or a repeating wake-up, which Android shows in the status
+ * bar and lists under Settings > Alarms & reminders. The receivers call the same reconciliation from
+ * `onEnabled`/`onDisabled`, so placement is followed in both directions without depending on the app
+ * process being restarted. [armMidnightAlarm] remains the raw primitive for a caller that has
+ * already established a widget exists; everything driven by an unconditional lifecycle event goes
+ * through [reconcile].
  *
  * The alarm is exact via `USE_EXACT_ALARM` (auto-granted to calendar apps on Android 13+) and
  * `SCHEDULE_EXACT_ALARM` (the Android 12 mechanism). Exact-alarm access is not guaranteed on a
@@ -44,6 +54,36 @@ public object HijriWidgetRefreshScheduler {
 
     private const val WORK_NAME = "hijri_widget_daily_refresh"
     internal const val ALARM_REQUEST_CODE = 4_101
+
+    /**
+     * Request code of the repeating heartbeat, deliberately different from [ALARM_REQUEST_CODE].
+     *
+     * `PendingIntent` identity is (request code, `Intent` filter), and the two alarms are the same
+     * broadcast to the same receiver. Sharing a request code would make the heartbeat and the
+     * midnight boundary two names for one alarm: arming either would silently replace the other.
+     */
+    internal const val HEARTBEAT_REQUEST_CODE = 4_102
+
+    /**
+     * How often the heartbeat repeats: six hours.
+     *
+     * The trade-off is stale-ness against wake-ups. A one-shot daily alarm answers "nothing ran at
+     * midnight" with a whole day of a wrong date; four wake-ups a day bound that to about six hours
+     * (plus whatever Doze defers — a repeating alarm is not `allowWhileIdle`). It is also the same
+     * order as the 30-minute `updatePeriodMillis` sweeps the library already asks the launcher for,
+     * so it does not change the battery profile of the family.
+     */
+    internal const val HEARTBEAT_INTERVAL_MS: Long = 6L * 60 * 60 * 1000
+
+    /**
+     * Action on the heartbeat's [Intent], so the receiver can tell which of its two alarms fired and
+     * label the rollover in [HijriWidgetRefreshLog] accordingly.
+     *
+     * The midnight boundary's intent deliberately has **no** action: its shape is frozen, because a
+     * `PendingIntent` is matched by `filterEquals` and changing the shape would leave an alarm armed
+     * by an older build uncancellable.
+     */
+    internal const val HEARTBEAT_ACTION: String = "com.muazdev.hijricalendar.widget.HEARTBEAT"
 
     /**
      * `RTC_WAKEUP`, not `RTC`.
@@ -60,19 +100,30 @@ public object HijriWidgetRefreshScheduler {
     internal const val ALARM_TYPE = AlarmManager.RTC_WAKEUP
 
     /**
-     * When the alarm was last armed, so the receiver can report how long it actually took to fire.
+     * When the alarm was first armed **for the upcoming midnight**, so the receiver can report how
+     * long it actually took to fire.
      *
      * This is what turns "the widget said yesterday" into a number. A device that fired
      * the alarm at the armed time needs no investigation; one that fired hours later did not wake at
      * midnight, and the log says so directly.
+     *
+     * **Stamped per boundary, not per arm.** [repairMidnightAlarmFromHostUpdate] re-arms on every
+     * host sweep, so a plain "last arm" timestamp would read "fired 12 minutes after arming" on
+     * every device and say nothing. The stamp therefore moves only when the *target* changes — see
+     * [restampArmedAt] — which keeps the measurement "time since we could first have armed this
+     * midnight", whether or not a sweep has re-armed it since.
      */
     @Volatile
     private var armedAtMillis: Long = 0L
 
-    /** Milliseconds between the last [armMidnightAlarm] and now; [Long.MIN_VALUE] if never armed. */
+    /** The boundary [armedAtMillis] describes; `0` while nothing has been armed. */
+    @Volatile
+    private var armedForTriggerAtMillis: Long = 0L
+
+    /** Milliseconds since the alarm was first armed for the next midnight; `-1` if never armed. */
     internal fun lastArmedAtMillis(): Long {
         val armedAt = armedAtMillis
-        return if (armedAt == 0L) Long.MIN_VALUE else System.currentTimeMillis() - armedAt
+        return if (armedAt == 0L) -1L else System.currentTimeMillis() - armedAt
     }
 
     public fun schedule(context: Context) {
@@ -86,9 +137,9 @@ public object HijriWidgetRefreshScheduler {
     }
 
     /**
-     * Brings the daily backstop and the midnight alarm in line with widget placement. Idempotent,
-     * so it is safe from every trigger: app start, boot, a time/locale change, a widget being added
-     * (`onEnabled`) and the last one being removed (`onDisabled`).
+     * Brings the daily backstop, the midnight alarm and the repeating heartbeat in line with widget
+     * placement. Idempotent, so it is safe from every trigger: app start, boot, a time/locale change,
+     * a widget being added (`onEnabled`) and the last one being removed (`onDisabled`).
      *
      * The two sides are behind seams rather than inlined because `AppWidgetManager`, `WorkManager`
      * and `AlarmManager` are all stubbed in a local unit test, so the *decision* — activate versus
@@ -104,9 +155,9 @@ public object HijriWidgetRefreshScheduler {
         HijriWidgetRefreshLog.d(
             "schedule",
             if (placed) {
-                "widget placed; daily worker + midnight alarm active"
+                "widget placed; daily worker + midnight alarm + heartbeat active"
             } else {
-                "no widget placed; daily worker + midnight alarm cancelled"
+                "no widget placed; daily worker + midnight alarm + heartbeat cancelled"
             },
         )
     }
@@ -128,6 +179,33 @@ public object HijriWidgetRefreshScheduler {
     }
 
     /**
+     * Repairs the midnight alarm from the host's own periodic sweep.
+     *
+     * `android:updatePeriodMillis` is not our alarm — the launcher/`AppWidgetService` owns it and
+     * calls the receiver every 30 minutes for as long as the provider is bound. That makes it the
+     * most resilient trigger the family has on a device whose OEM power manager clears what the app
+     * itself scheduled (Transsion/XOS "Power Marathon" and friends): when it still delivers, a lost
+     * midnight alarm is restored within the half hour instead of waiting for the user to open the
+     * app and reach [schedule].
+     *
+     * Costs one exact-alarm re-arm per sweep for the one provider whose `onUpdate` runs, and is
+     * idempotent: the trigger time is recomputed from the clock, so re-arming mid-day still targets
+     * the same upcoming midnight.
+     *
+     * [instanceCount] is the ids the host just sent. Zero means the provider is unbound — a sweep
+     * racing widget removal — and arming there would resurrect the alarm [deactivateAction] exists
+     * to drop.
+     */
+    internal fun repairMidnightAlarmFromHostUpdate(context: Context, instanceCount: Int) {
+        if (instanceCount <= 0) {
+            HijriWidgetRefreshLog.d("host-update", "skip repair: no instances in this sweep")
+            return
+        }
+        armMidnightAlarm(context)
+        HijriWidgetRefreshLog.d("host-update", "re-armed midnight alarm from the host sweep")
+    }
+
+    /**
      * Presence check, behind a seam so [reconcile]'s decision is testable on the JVM. The real
      * query is [HijriWidgetPresence.anyPlaced].
      */
@@ -137,12 +215,17 @@ public object HijriWidgetRefreshScheduler {
     internal var activateAction: (Context) -> Unit = { context ->
         enqueuePeriodic(context)
         armMidnightAlarm(context)
+        // Only here, never from the host-sweep repair: re-arming a repeating alarm restarts its
+        // phase, so a 30-minute sweep would push a 6-hour heartbeat out forever and it would never
+        // fire. Reconciling is the rare event (app start, boot, placement change), and a lost
+        // heartbeat is harmless while a sweep keeps the one-shot alive anyway.
+        armHeartbeatAlarm(context)
     }
 
     /** What "no widget is placed" releases. Behind a seam for the reason in [reconcile]. */
     internal var deactivateAction: (Context) -> Unit = { context ->
         cancelPeriodic(context)
-        cancelMidnightAlarm(context)
+        cancelAlarms(context)
     }
 
     private fun enqueuePeriodic(context: Context) {
@@ -165,20 +248,31 @@ public object HijriWidgetRefreshScheduler {
     }
 
     /**
-     * Cancels the exact midnight alarm. The [PendingIntent] is looked up with `FLAG_NO_CREATE` so
-     * a device that never armed one is not made to create it just to cancel it — an app with no
-     * widget is the common case for this path.
+     * Cancels both alarms — the exact midnight boundary and the repeating heartbeat — once the last
+     * widget is gone. The [PendingIntent]s are looked up with `FLAG_NO_CREATE` so a device that never
+     * armed one is not made to create it just to cancel it; an app with no widget is the common case
+     * for this path.
+     *
+     * Both, not just the boundary: the heartbeat is a `RTC_WAKEUP` alarm, so leaving it behind would
+     * keep waking the device every [HEARTBEAT_INTERVAL_MS] for an app with nothing on a home screen —
+     * exactly the status-bar-indicator complaint placement gating exists to answer.
      */
-    private fun cancelMidnightAlarm(context: Context) {
+    private fun cancelAlarms(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_REQUEST_CODE,
-            Intent(context, HijriWidgetMidnightAlarmReceiver::class.java),
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-        ) ?: return
-        alarmManager.cancel(pendingIntent)
-        pendingIntent.cancel()
+        val alarms = listOf(
+            ALARM_REQUEST_CODE to midnightAlarmIntent(context),
+            HEARTBEAT_REQUEST_CODE to heartbeatAlarmIntent(context),
+        )
+        for ((requestCode, intent) in alarms) {
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            ) ?: continue
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
     }
 
     /**
@@ -206,7 +300,7 @@ public object HijriWidgetRefreshScheduler {
     internal fun armMidnightAlarmForReal(context: Context) {
         val armer = armerAction(context)
         val triggerAt = nextLocalMidnightMillis()
-        armedAtMillis = System.currentTimeMillis()
+        restampArmedAt(triggerAt)
 
         when (alarmKindFor(armer.apiLevel(), armer.canScheduleExactAlarms())) {
             AlarmKind.INEXACT -> {
@@ -223,6 +317,39 @@ public object HijriWidgetRefreshScheduler {
                 armer.armExact(triggerAt)
             }
         }
+    }
+
+    /**
+     * Moves the "armed at" stamp onto [triggerAt], but only when the boundary actually changed.
+     *
+     * Called on every arm, including the host-sweep repair, so the stamp describes *the first arm for
+     * this midnight* rather than the most recent re-arm. That is the number the receiver's
+     * "fired N ms after arming" log is worth reading for; refreshing it every 30 minutes would make
+     * every device look punctual.
+     */
+    private fun restampArmedAt(triggerAt: Long) {
+        if (triggerAt == armedForTriggerAtMillis) return
+        armedForTriggerAtMillis = triggerAt
+        armedAtMillis = System.currentTimeMillis()
+    }
+
+    /**
+     * Arms the repeating heartbeat (idempotent in the sense that a new repeating alarm replaces the
+     * previous one — but re-arming restarts its phase, see [activateAction]).
+     *
+     * It wakes the process through the same [HijriWidgetMidnightAlarmReceiver] as the midnight
+     * boundary and performs the same rollover, so there is no second code path to keep in step.
+     *
+     * No seam of its own: unlike [armAction], the only thing worth asserting is that a heartbeat was
+     * armed and that it did not touch the boundary, and [armerAction] already exposes both.
+     */
+    internal fun armHeartbeatAlarm(context: Context) {
+        val triggerAt = System.currentTimeMillis() + HEARTBEAT_INTERVAL_MS
+        armerAction(context).armHeartbeat(triggerAt)
+        HijriWidgetRefreshLog.d(
+            "heartbeat",
+            "arm repeating wake-up every ${HEARTBEAT_INTERVAL_MS / 60_000} min from $triggerAt",
+        )
     }
 
     private fun nextLocalMidnightMillis(): Long {
@@ -264,6 +391,23 @@ internal fun alarmKindFor(sdkInt: Int, canScheduleExactAlarms: Boolean): AlarmKi
     }
 
 /**
+ * The intent behind the midnight-boundary alarm.
+ *
+ * Its shape is deliberately frozen — no action, no extras — because `PendingIntent` identity is
+ * `requestCode` + `filterEquals(intent)`: a builder that started adding either would make an alarm
+ * armed by an older build impossible to look up, and therefore impossible to cancel.
+ */
+internal fun midnightAlarmIntent(context: Context): Intent =
+    Intent(context, HijriWidgetMidnightAlarmReceiver::class.java)
+
+/**
+ * The heartbeat's intent: the same broadcast, tagged so [HijriWidgetMidnightAlarmReceiver] can log
+ * which of its two alarms fired. Safe to shape freely — the heartbeat did not exist before it.
+ */
+internal fun heartbeatAlarmIntent(context: Context): Intent =
+    midnightAlarmIntent(context).setAction(HijriWidgetRefreshScheduler.HEARTBEAT_ACTION)
+
+/**
  * The platform calls the alarm arm makes, behind an interface.
  *
  * `AlarmManager` and `PendingIntent` are stubbed in a local unit test, so the *choice* between the
@@ -289,15 +433,33 @@ internal interface MidnightAlarmArmer {
 
     /** `setAndAllowWhileIdle(RTC_WAKEUP, …)`. */
     fun armInexact(triggerAtMillis: Long)
+
+    /**
+     * `setInexactRepeating(RTC_WAKEUP, …, HEARTBEAT_INTERVAL_MS, …)` on the heartbeat's own
+     * `PendingIntent`, so it does not replace the midnight boundary.
+     *
+     * Inexact on purpose: a repeating alarm cannot be exact from API 19 on, and the heartbeat is a
+     * second chance rather than the boundary itself — spending the exact-alarm grant on it would buy
+     * nothing.
+     */
+    fun armHeartbeat(triggerAtMillis: Long)
 }
 
-/** The real [MidnightAlarmArmer]: one `AlarmManager` and the receiver's `PendingIntent`. */
+/** The real [MidnightAlarmArmer]: one `AlarmManager` and the receiver's two `PendingIntent`s. */
 internal class PlatformAlarmArmer(context: Context) : MidnightAlarmArmer {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
     private val pendingIntent = PendingIntent.getBroadcast(
         context,
         HijriWidgetRefreshScheduler.ALARM_REQUEST_CODE,
-        Intent(context, HijriWidgetMidnightAlarmReceiver::class.java),
+        midnightAlarmIntent(context),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    private val heartbeatPendingIntent = PendingIntent.getBroadcast(
+        context,
+        HijriWidgetRefreshScheduler.HEARTBEAT_REQUEST_CODE,
+        heartbeatAlarmIntent(context),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
@@ -319,6 +481,15 @@ internal class PlatformAlarmArmer(context: Context) : MidnightAlarmArmer {
             HijriWidgetRefreshScheduler.ALARM_TYPE,
             triggerAtMillis,
             pendingIntent,
+        )
+    }
+
+    override fun armHeartbeat(triggerAtMillis: Long) {
+        alarmManager.setInexactRepeating(
+            HijriWidgetRefreshScheduler.ALARM_TYPE,
+            triggerAtMillis,
+            HijriWidgetRefreshScheduler.HEARTBEAT_INTERVAL_MS,
+            heartbeatPendingIntent,
         )
     }
 }

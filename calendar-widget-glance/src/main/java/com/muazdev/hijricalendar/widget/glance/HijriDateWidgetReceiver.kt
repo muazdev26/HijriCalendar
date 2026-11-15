@@ -28,6 +28,9 @@ public class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // Repair the midnight alarm from the host's own sweep: see
+        // [HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate].
+        HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, appWidgetIds.size)
         if (HijriWidgetRefreshGate.isAppForeground()) {
             HijriWidgetConfig.markRefreshPending(context, true)
             HijriWidgetRefreshLog.d("host-update-hijri-date", "skip: app foreground; marked pending")
@@ -69,6 +72,9 @@ public class HijriDualDateWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // Repair the midnight alarm from the host's own sweep: see
+        // [HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate].
+        HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, appWidgetIds.size)
         if (HijriWidgetRefreshGate.isAppForeground()) {
             HijriWidgetConfig.markRefreshPending(context, true)
             HijriWidgetRefreshLog.d("host-update-dual-date", "skip: app foreground; marked pending")
@@ -99,6 +105,9 @@ public class GregorianDateWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // Repair the midnight alarm from the host's own sweep: see
+        // [HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate].
+        HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, appWidgetIds.size)
         if (HijriWidgetRefreshGate.isAppForeground()) {
             HijriWidgetConfig.markRefreshPending(context, true)
             HijriWidgetRefreshLog.d("host-update-gregorian-date", "skip: app foreground; marked pending")
