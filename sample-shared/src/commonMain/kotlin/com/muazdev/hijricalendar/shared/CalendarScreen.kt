@@ -26,6 +26,7 @@ import com.abdulrahman_b.hijrahdatetime.HijrahMonth
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
 import com.abdulrahman_b.hijrahdatetime.yearMonth
 import com.abdulrahman_b.hijrahdatetime.yearmonth.HijrahYearMonth
+import com.muazdev.hijricalendar.core.CalendarDay
 import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.HijriEventLanguage
@@ -95,6 +96,13 @@ fun CalendarScreen(
     autoSyncToWidget: Boolean = true,
     onAutoSyncToWidgetChange: ((Boolean) -> Unit)? = null,
     onSyncNow: (() -> Unit)? = null,
+    /**
+     * Custom cell content, passed through to [HijriCalendar].
+     *
+     * `null` — the default — uses the built-in cell rendering. A caller that wants to show
+     * an additional date (e.g. Nanakshahi) in each cell can provide a composable here.
+     */
+    dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
     val effectiveLabels = remember(labels, eventLanguage) {
         val base = labels ?: HijriCalendarLabels()
@@ -118,6 +126,7 @@ fun CalendarScreen(
             primaryDate = primaryDate,
             modifier = Modifier.fillMaxWidth(),
             labels = effectiveLabels,
+            dayContent = dayContent,
         )
 
         Spacer(modifier = Modifier.height(16.dp))

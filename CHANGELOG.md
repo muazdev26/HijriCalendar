@@ -10,6 +10,16 @@ under the same version headings.
 
 ## Unreleased
 
+### Added
+
+- Nanakshahi (Sikh solar) calendar in `calendar-core`: `NanakshahiVersion` (currently only
+  `MOOL_2003`), `NanakshahiLeapRule` (`FEB29_IN_PHAGUN` default, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP`
+  alternative), `NanakshahiRules`, `NanakshahiDate`, and `NanakshahiCalendar` object with
+  `toNanakshahi`/`toGregorian` conversions, `isLeapYear`, `monthLength`, `yearLength`, `chetOneOf`,
+  and `yearOf`. The Gregorian calendar is proleptic before 1582. `NanakshahiMonthNames` carries
+  English and Gurmukhi month names; Shahmukhi names are pending. The SGPC printed calendar is not
+  included — it is a different, lunisolar calendar.
+
 ### Changed
 
 - The compact dual-date tile rounds its drawn square to the platform's widget-background radius
