@@ -8,6 +8,15 @@ moved, a default that changed, an ABI that needs a recompile. The reasoning, the
 the alternatives that were tried live in [`docs/CHANGELOG-ARCHIVE.md`](docs/CHANGELOG-ARCHIVE.md),
 under the same version headings.
 
+## Unreleased
+
+### Changed
+
+- The compact dual-date tile rounds its drawn square to the platform's widget-background radius
+  (`android.R.dimen.system_app_widget_background_radius`, 16dp below Android S). It is the one widget
+  that paints inside its cell, so it did not inherit the launcher's rounded-corner clip the way the
+  five cell-filling widgets do and read as the only square tile in the family.
+
 ## 2.5.0 - 2026-11-14
 
 ### Added
