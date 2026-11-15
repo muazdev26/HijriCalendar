@@ -1,7 +1,10 @@
 package com.muazdev.hijricalendar.widget.glance
 
 import android.content.Context
+import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -9,6 +12,7 @@ import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
@@ -16,6 +20,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
@@ -73,6 +78,11 @@ import com.muazdev.hijricalendar.widgetdata.WidgetLocalization
  * the stack to fill the cell exactly — a 62×88 rectangle — was built, rejected as looking stretched,
  * and reverted. Capping the square at 72dp was likewise built and reported as the resize doing
  * nothing; see [CompactDateTileTypography.drawnEdgeDp] for the rule that survived both.
+ *
+ * Because the square is drawn inside the cell rather than filling it, the launcher's own rounded-corner
+ * clip — which is what gives the other five widgets their soft corners — runs around the transparent
+ * margin instead of the square. The tile therefore rounds its own background with the platform's
+ * widget radius ([rememberWidgetCornerRadius]), so it reads as the same object as its neighbours.
  *
  * > **Four lines in a 72dp square is the tightest stack in the family.** The band plus three body lines
  * > leaves ~17dp per line, so the captions render around 7sp at the reference cell and the figure around
@@ -456,6 +466,9 @@ internal fun CompactDateTileRoot(
     // sides. See [CompactDateTileTypography.drawnEdgeDp] for why that is the shape rule.
     val edgeDp = CompactDateTileTypography.drawnEdgeDp(cell.width.value, cell.height.value)
     val edge = edgeDp.dp
+    // The square is the one thing in the family the launcher does not round for us; see
+    // [rememberWidgetCornerRadius].
+    val cornerRadius = rememberWidgetCornerRadius()
 
     val scriptRatio = fonts.scriptInkBandRatio()
     // The band's word is the one thing in this stack whose height cannot be derived from a ratio: a
@@ -479,7 +492,9 @@ internal fun CompactDateTileRoot(
 
     Box(modifier = clickableCell, contentAlignment = Alignment.Center) {
         Column(
-            modifier = GlanceModifier.size(edge).background(colors.background),
+            modifier = GlanceModifier.size(edge)
+                .background(colors.background)
+                .cornerRadius(cornerRadius),
             horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
         ) {
             if (today == null) {
@@ -711,6 +726,58 @@ private fun logSizes(edgeDp: Float, scriptRatio: Float, sizes: CompactDateTileSi
  */
 internal val COMPACT_DATE_TILE_PREVIEW_SIZE: DpSize =
     DpSize(CompactDateTileTypography.REFERENCE_EDGE_DP.dp, CompactDateTileTypography.REFERENCE_EDGE_DP.dp)
+
+/**
+ * The radius the tile rounds its drawn square to — **the platform's own widget-background radius**.
+ *
+ * The other five widgets fill their cell, so the launcher rounds them for us: it clips the widget's
+ * background to `system_app_widget_background_radius` (`RoundedCornerEnforcement`), which is why the
+ * grid, the Today strip and the three 1×1 tiles come out with soft corners without asking for them.
+ * This tile is the one that paints *inside* its cell — a square on the cell's smaller side, see
+ * [CompactDateTileTypography.drawnEdgeDp] — so the launcher's clip runs around the transparent margin
+ * it left and the square itself stayed sharp. That is the whole of the report that this widget alone
+ * looks square next to the others.
+ *
+ * Reading the same dimension the launcher rounds its neighbours with is what makes the corners
+ * *match* rather than merely resemble them; a hand-picked constant would be right on a device whose
+ * launcher uses the AOSP value and wrong on one that overrides it.
+ *
+ * The clip is on the square's own `Column`, so the accent band's top corners are rounded with it —
+ * `cornerRadius` sets `clipToOutline` on that view, and an outline clip applies to everything the
+ * view draws, children included.
+ *
+ * `cornerRadius` is an Android S+ modifier (Glance logs and skips it below that), so the fallback is
+ * only a defined number rather than a matched one: 16dp is the AOSP default of the dimension being
+ * read.
+ */
+@Composable
+private fun rememberWidgetCornerRadius(): Dp {
+    val resources = LocalContext.current.resources
+    return remember(resources) {
+        val platformRadiusPx = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            resources.getDimension(android.R.dimen.system_app_widget_background_radius)
+        } else {
+            null
+        }
+        widgetCornerRadiusDp(platformRadiusPx, resources.displayMetrics.density).dp
+    }
+}
+
+/**
+ * The tile's corner radius in dp: the platform's value when it has one, the AOSP default otherwise.
+ *
+ * Split out from the composition so the fallback is a stated rule rather than a branch nobody can
+ * exercise off-device — [platformRadiusPx] is `null` below Android S, where Glance cannot round a
+ * view at all and `system_app_widget_background_radius` does not exist yet, and a platform that
+ * answers `0` is treated the same way rather than squaring the tile off silently.
+ */
+internal fun widgetCornerRadiusDp(platformRadiusPx: Float?, density: Float): Float {
+    val px = platformRadiusPx?.takeIf { it > 0f } ?: (WIDGET_CORNER_RADIUS_FALLBACK_DP * density)
+    return px / density
+}
+
+/** The AOSP `system_app_widget_background_radius`; used only where the platform cannot state it. */
+internal const val WIDGET_CORNER_RADIUS_FALLBACK_DP = 16f
 
 /**
  * The figure is the point of the tile, so no caption may ever exceed it.

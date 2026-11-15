@@ -8,6 +8,27 @@ Headings match the changelog's, so an entry can be looked up by version. Nothing
 after the release it describes: it is a record, not a guide. For the current shape of an API, read
 the KDoc.
 
+## Unreleased
+
+### Changed
+
+- **The compact dual-date tile rounds its own square.** The report was that this widget alone looks
+  square on the home screen while the other five have soft corners. The cause is its shape rule, not
+  its colours: it is the only widget that paints *inside* its cell (a square at the cell's smaller
+  side, so a resize grows it), and every other widget fills its cell. The launcher rounds what it is
+  handed — Launcher3's `RoundedCornerEnforcement` clips the widget's background to
+  `system_app_widget_background_radius` — so a cell-filling widget inherits the corner for free, while
+  on this tile that clip runs around the transparent margin and the square itself is never touched.
+  The fix is `cornerRadius(widgetCornerRadiusDp(...))` on the square's own `Column`, which also rounds
+  the accent band's top corners because `cornerRadius` sets `clipToOutline` and an outline clip covers
+  children. The radius is read from `android.R.dimen.system_app_widget_background_radius` rather than
+  hand-picked, so the corners match a launcher that overrides the AOSP 16dp as well as one that does
+  not; the constant is only the pre-S fallback, where Glance cannot round a view at all. Two
+  alternatives were rejected: a fixed 16dp constant (right on AOSP, wrong on a launcher that uses
+  another value — the whole point is matching the neighbours) and moving the modifier to the outer
+  `Box` (it paints nothing; the margin has to stay transparent). The Android 12-14 `previewLayout`
+  mirror needs no change: it fills the cell, so the picker's own rounded frame is the clip.
+
 ## 2.5.0 - 2026-11-14
 
 ### Added
