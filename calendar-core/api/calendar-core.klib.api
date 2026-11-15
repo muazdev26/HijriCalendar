@@ -30,6 +30,27 @@ final enum class com.muazdev.hijricalendar.core/HijriEventLanguage : kotlin/Enum
     final fun values(): kotlin/Array<com.muazdev.hijricalendar.core/HijriEventLanguage> // com.muazdev.hijricalendar.core/HijriEventLanguage.values|values#static(){}[0]
 }
 
+final enum class com.muazdev.hijricalendar.core/NanakshahiLeapRule : kotlin/Enum<com.muazdev.hijricalendar.core/NanakshahiLeapRule> { // com.muazdev.hijricalendar.core/NanakshahiLeapRule|null[0]
+    enum entry FEB29_IN_PHAGUN // com.muazdev.hijricalendar.core/NanakshahiLeapRule.FEB29_IN_PHAGUN|null[0]
+    enum entry GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP // com.muazdev.hijricalendar.core/NanakshahiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP|null[0]
+
+    final val entries // com.muazdev.hijricalendar.core/NanakshahiLeapRule.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.muazdev.hijricalendar.core/NanakshahiLeapRule> // com.muazdev.hijricalendar.core/NanakshahiLeapRule.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.muazdev.hijricalendar.core/NanakshahiLeapRule // com.muazdev.hijricalendar.core/NanakshahiLeapRule.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.muazdev.hijricalendar.core/NanakshahiLeapRule> // com.muazdev.hijricalendar.core/NanakshahiLeapRule.values|values#static(){}[0]
+}
+
+final enum class com.muazdev.hijricalendar.core/NanakshahiVersion : kotlin/Enum<com.muazdev.hijricalendar.core/NanakshahiVersion> { // com.muazdev.hijricalendar.core/NanakshahiVersion|null[0]
+    enum entry MOOL_2003 // com.muazdev.hijricalendar.core/NanakshahiVersion.MOOL_2003|null[0]
+
+    final val entries // com.muazdev.hijricalendar.core/NanakshahiVersion.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.muazdev.hijricalendar.core/NanakshahiVersion> // com.muazdev.hijricalendar.core/NanakshahiVersion.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.muazdev.hijricalendar.core/NanakshahiVersion // com.muazdev.hijricalendar.core/NanakshahiVersion.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.muazdev.hijricalendar.core/NanakshahiVersion> // com.muazdev.hijricalendar.core/NanakshahiVersion.values|values#static(){}[0]
+}
+
 final enum class com.muazdev.hijricalendar.core/WeekDay : kotlin/Enum<com.muazdev.hijricalendar.core/WeekDay> { // com.muazdev.hijricalendar.core/WeekDay|null[0]
     enum entry FRIDAY // com.muazdev.hijricalendar.core/WeekDay.FRIDAY|null[0]
     enum entry MONDAY // com.muazdev.hijricalendar.core/WeekDay.MONDAY|null[0]
@@ -413,6 +434,46 @@ final class com.muazdev.hijricalendar.core/HijriYearMonth { // com.muazdev.hijri
     }
 }
 
+final class com.muazdev.hijricalendar.core/NanakshahiDate { // com.muazdev.hijricalendar.core/NanakshahiDate|null[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int) // com.muazdev.hijricalendar.core/NanakshahiDate.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+
+    final val day // com.muazdev.hijricalendar.core/NanakshahiDate.day|{}day[0]
+        final fun <get-day>(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.day.<get-day>|<get-day>(){}[0]
+    final val month // com.muazdev.hijricalendar.core/NanakshahiDate.month|{}month[0]
+        final fun <get-month>(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.month.<get-month>|<get-month>(){}[0]
+    final val year // com.muazdev.hijricalendar.core/NanakshahiDate.year|{}year[0]
+        final fun <get-year>(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.year.<get-year>|<get-year>(){}[0]
+
+    final fun component1(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.component3|component3(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ...): com.muazdev.hijricalendar.core/NanakshahiDate // com.muazdev.hijricalendar.core/NanakshahiDate.copy|copy(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.core/NanakshahiDate.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiDate.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiDate.toString|toString(){}[0]
+}
+
+final class com.muazdev.hijricalendar.core/NanakshahiRules { // com.muazdev.hijricalendar.core/NanakshahiRules|null[0]
+    constructor <init>(com.muazdev.hijricalendar.core/NanakshahiVersion, com.muazdev.hijricalendar.core/NanakshahiLeapRule) // com.muazdev.hijricalendar.core/NanakshahiRules.<init>|<init>(com.muazdev.hijricalendar.core.NanakshahiVersion;com.muazdev.hijricalendar.core.NanakshahiLeapRule){}[0]
+
+    final val leapRule // com.muazdev.hijricalendar.core/NanakshahiRules.leapRule|{}leapRule[0]
+        final fun <get-leapRule>(): com.muazdev.hijricalendar.core/NanakshahiLeapRule // com.muazdev.hijricalendar.core/NanakshahiRules.leapRule.<get-leapRule>|<get-leapRule>(){}[0]
+    final val version // com.muazdev.hijricalendar.core/NanakshahiRules.version|{}version[0]
+        final fun <get-version>(): com.muazdev.hijricalendar.core/NanakshahiVersion // com.muazdev.hijricalendar.core/NanakshahiRules.version.<get-version>|<get-version>(){}[0]
+
+    final fun component1(): com.muazdev.hijricalendar.core/NanakshahiVersion // com.muazdev.hijricalendar.core/NanakshahiRules.component1|component1(){}[0]
+    final fun component2(): com.muazdev.hijricalendar.core/NanakshahiLeapRule // com.muazdev.hijricalendar.core/NanakshahiRules.component2|component2(){}[0]
+    final fun copy(com.muazdev.hijricalendar.core/NanakshahiVersion = ..., com.muazdev.hijricalendar.core/NanakshahiLeapRule = ...): com.muazdev.hijricalendar.core/NanakshahiRules // com.muazdev.hijricalendar.core/NanakshahiRules.copy|copy(com.muazdev.hijricalendar.core.NanakshahiVersion;com.muazdev.hijricalendar.core.NanakshahiLeapRule){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.muazdev.hijricalendar.core/NanakshahiRules.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiRules.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiRules.toString|toString(){}[0]
+
+    final object Companion { // com.muazdev.hijricalendar.core/NanakshahiRules.Companion|null[0]
+        final val DEFAULT // com.muazdev.hijricalendar.core/NanakshahiRules.Companion.DEFAULT|{}DEFAULT[0]
+            final fun <get-DEFAULT>(): com.muazdev.hijricalendar.core/NanakshahiRules // com.muazdev.hijricalendar.core/NanakshahiRules.Companion.DEFAULT.<get-DEFAULT>|<get-DEFAULT>(){}[0]
+    }
+}
+
 final class com.muazdev.hijricalendar.core/ObservedHijriDate : kotlin/Comparable<com.muazdev.hijricalendar.core/ObservedHijriDate> { // com.muazdev.hijricalendar.core/ObservedHijriDate|null[0]
     constructor <init>(kotlin/Int, kotlin/Int, kotlin/Int, kotlin/Int, kotlinx.datetime/LocalDate) // com.muazdev.hijricalendar.core/ObservedHijriDate.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Int;kotlinx.datetime.LocalDate){}[0]
 
@@ -574,6 +635,26 @@ final object com.muazdev.hijricalendar.core/HijriMonthOverrides { // com.muazdev
     final fun monthLength(kotlin/Int, kotlin/Int): kotlin/Int? // com.muazdev.hijricalendar.core/HijriMonthOverrides.monthLength|monthLength(kotlin.Int;kotlin.Int){}[0]
     final fun replaceAll(kotlin.collections/Map<kotlin/Pair<kotlin/Int, kotlin/Int>, kotlin/Int>) // com.muazdev.hijricalendar.core/HijriMonthOverrides.replaceAll|replaceAll(kotlin.collections.Map<kotlin.Pair<kotlin.Int,kotlin.Int>,kotlin.Int>){}[0]
     final fun setMonthLength(kotlin/Int, kotlin/Int, kotlin/Int) // com.muazdev.hijricalendar.core/HijriMonthOverrides.setMonthLength|setMonthLength(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+}
+
+final object com.muazdev.hijricalendar.core/NanakshahiCalendar { // com.muazdev.hijricalendar.core/NanakshahiCalendar|null[0]
+    final fun chetOneOf(kotlin/Int): kotlinx.datetime/LocalDate // com.muazdev.hijricalendar.core/NanakshahiCalendar.chetOneOf|chetOneOf(kotlin.Int){}[0]
+    final fun isLeapYear(kotlin/Int, com.muazdev.hijricalendar.core/NanakshahiRules = ...): kotlin/Boolean // com.muazdev.hijricalendar.core/NanakshahiCalendar.isLeapYear|isLeapYear(kotlin.Int;com.muazdev.hijricalendar.core.NanakshahiRules){}[0]
+    final fun monthLength(kotlin/Int, kotlin/Int, com.muazdev.hijricalendar.core/NanakshahiRules = ...): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiCalendar.monthLength|monthLength(kotlin.Int;kotlin.Int;com.muazdev.hijricalendar.core.NanakshahiRules){}[0]
+    final fun toGregorian(com.muazdev.hijricalendar.core/NanakshahiDate, com.muazdev.hijricalendar.core/NanakshahiRules = ...): kotlinx.datetime/LocalDate // com.muazdev.hijricalendar.core/NanakshahiCalendar.toGregorian|toGregorian(com.muazdev.hijricalendar.core.NanakshahiDate;com.muazdev.hijricalendar.core.NanakshahiRules){}[0]
+    final fun toNanakshahi(kotlinx.datetime/LocalDate, com.muazdev.hijricalendar.core/NanakshahiRules = ...): com.muazdev.hijricalendar.core/NanakshahiDate // com.muazdev.hijricalendar.core/NanakshahiCalendar.toNanakshahi|toNanakshahi(kotlinx.datetime.LocalDate;com.muazdev.hijricalendar.core.NanakshahiRules){}[0]
+    final fun yearLength(kotlin/Int, com.muazdev.hijricalendar.core/NanakshahiRules = ...): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiCalendar.yearLength|yearLength(kotlin.Int;com.muazdev.hijricalendar.core.NanakshahiRules){}[0]
+    final fun yearOf(kotlinx.datetime/LocalDate): kotlin/Int // com.muazdev.hijricalendar.core/NanakshahiCalendar.yearOf|yearOf(kotlinx.datetime.LocalDate){}[0]
+}
+
+final object com.muazdev.hijricalendar.core/NanakshahiMonthNames { // com.muazdev.hijricalendar.core/NanakshahiMonthNames|null[0]
+    final val english // com.muazdev.hijricalendar.core/NanakshahiMonthNames.english|{}english[0]
+        final fun <get-english>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/NanakshahiMonthNames.english.<get-english>|<get-english>(){}[0]
+    final val gurmukhi // com.muazdev.hijricalendar.core/NanakshahiMonthNames.gurmukhi|{}gurmukhi[0]
+        final fun <get-gurmukhi>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/NanakshahiMonthNames.gurmukhi.<get-gurmukhi>|<get-gurmukhi>(){}[0]
+
+    final fun englishName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiMonthNames.englishName|englishName(kotlin.Int){}[0]
+    final fun gurmukhiName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiMonthNames.gurmukhiName|gurmukhiName(kotlin.Int){}[0]
 }
 
 final object com.muazdev.hijricalendar.core/ObservedHijriCalendar { // com.muazdev.hijricalendar.core/ObservedHijriCalendar|null[0]

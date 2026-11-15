@@ -155,6 +155,27 @@ Shifts the whole calendar (day numbers, alignment, `isToday`, selection, bounds)
 
 `HijriCalendarState(..., pakistanDates = true)` (and `toCalendarMonth(pakistan = true)`) switches from the Umm al-Qura calculation to the Pakistan moon-sighting calendar. Months with an official Ruet-e-Hilal fix are pinned to the announced start and length; every month after the last verified fix falls back to Umm al-Qura as a proxy, so the further you look past the end of the verified table, the more Pakistany dates can drift by a day. The library ships the verified window in `calendar-core` (`pakistan-fixes.json`, a resource) and a `PakistanCalendarFreshnessTest` that fails when the table is more than 12 months old, so the proxy is never extended indefinitely by silence — if that test fails, re-check the Central Ruet-e-Hilal Committee's announcements and update `pakistan-fixes.json` rather than widening the test.
 
+## Nanakshahi Calendar
+
+`calendar-core` ships the Nanakshahi (Sikh solar) calendar — Mool 2003 version, approved in 2003.
+The default leap rule is `FEB29_IN_PHAGUN` (Phagun has 31 days when February 29 falls in Phagun).
+An alternative rule, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP`, is also available.
+
+```kotlin
+import com.muazdev.hijricalendar.core.*
+import kotlinx.datetime.LocalDate
+
+val date = LocalDate(2026, 3, 14)
+val ns = NanakshahiCalendar.toNanakshahi(date)
+// ns == NanakshahiDate(558, 1, 1) — 14 March 2026 is Chet 1, 558
+
+val back = NanakshahiCalendar.toGregorian(ns)
+// back == LocalDate(2026, 3, 14)
+```
+
+The Gregorian calendar is proleptic before 1582. The SGPC printed calendar is not included —
+it is a different, lunisolar calendar.
+
 ## Home-Screen Widgets
 
 A shared projection module (`calendar-widget-data`, `WidgetCalendar` framework on iOS) computes each month grid + "today" projection, keeping both platforms in sync.
