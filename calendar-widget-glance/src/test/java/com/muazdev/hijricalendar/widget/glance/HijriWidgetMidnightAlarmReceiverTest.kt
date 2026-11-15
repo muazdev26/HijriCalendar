@@ -24,7 +24,10 @@ class HijriWidgetMidnightAlarmReceiverTest {
     private val receiver = HijriWidgetMidnightAlarmReceiver()
 
     /** Drives one rollover with the render replaced by [refresh] and the re-arm recorded. */
-    private fun rollOver(refresh: suspend () -> Unit): Pair<Int, Int> {
+    private fun rollOver(
+        reason: String = "midnight",
+        refresh: suspend () -> Unit,
+    ): Pair<Int, Int> {
         var arms = 0
         val originalArm = HijriWidgetRefreshScheduler.armAction
         val originalRefresh = receiver.refreshAction
@@ -32,7 +35,7 @@ class HijriWidgetMidnightAlarmReceiverTest {
         receiver.refreshAction = { _, _ -> refresh() }
         var finishes = 0
         try {
-            runBlocking { receiver.rollOver(context) { finishes++ } }
+            runBlocking { receiver.rollOver(context, reason) { finishes++ } }
         } finally {
             HijriWidgetRefreshScheduler.armAction = originalArm
             receiver.refreshAction = originalRefresh
@@ -68,7 +71,7 @@ class HijriWidgetMidnightAlarmReceiverTest {
         receiver.refreshAction = { _, _ -> }
         var finishes = 0
         try {
-            runBlocking { receiver.rollOver(context) { finishes++ } }
+            runBlocking { receiver.rollOver(context, "midnight") { finishes++ } }
         } finally {
             HijriWidgetRefreshScheduler.armAction = originalArm
             receiver.refreshAction = originalRefresh
@@ -94,11 +97,37 @@ class HijriWidgetMidnightAlarmReceiverTest {
         val originalRefresh = receiver.refreshAction
         receiver.refreshAction = { _, reason -> seen = reason }
         try {
-            runBlocking { receiver.rollOver(context) {} }
+            runBlocking { receiver.rollOver(context, "midnight") {} }
         } finally {
             receiver.refreshAction = originalRefresh
         }
         assertEquals("midnight", seen)
+    }
+
+    @Test
+    fun theHeartbeatRolloverIsLoggedAsTheHeartbeatNotAsTheBoundary() {
+        // Both alarms share one rollover path, so the only thing that tells a device whose exact
+        // midnight alarm never fired apart from one that woke on schedule is this string. Passing
+        // "midnight" here would make the heartbeat's own wake-up look like a punctual boundary and
+        // hide exactly the failure the heartbeat exists to report.
+        var seen: String? = null
+        val originalRefresh = receiver.refreshAction
+        receiver.refreshAction = { _, reason -> seen = reason }
+        try {
+            runBlocking { receiver.rollOver(context, "heartbeat") {} }
+        } finally {
+            receiver.refreshAction = originalRefresh
+        }
+        assertEquals("heartbeat", seen)
+    }
+
+    @Test
+    fun onlyTheHeartbeatsActionMapsToTheHeartbeatReason() {
+        // `PendingIntent` identity is `requestCode` + `filterEquals(intent)`, and the boundary's
+        // intent is frozen with no action, so "no action" must keep meaning the boundary.
+        assertEquals("midnight", alarmReasonFor(null))
+        assertEquals("midnight", alarmReasonFor("com.muazdev.hijricalendar.widget.OTHER"))
+        assertEquals("heartbeat", alarmReasonFor(HijriWidgetRefreshScheduler.HEARTBEAT_ACTION))
     }
 
     private companion object {

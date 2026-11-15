@@ -130,6 +130,69 @@ class HijriWidgetRefreshSchedulerTest {
         assertEquals(0, armer.inexactCalls, "degrading there would be a needless loss of exactness")
     }
 
+    // ── the repeating heartbeat, and the host-sweep repair ────────────────
+
+    @Test
+    fun theHeartbeatIsArmedOneIntervalAheadAndDoesNotTouchTheBoundaryAlarm() {
+        val armer = RecordingArmer(apiLevel = 34, canScheduleExact = true)
+        val before = System.currentTimeMillis()
+
+        withArmer(armer) { HijriWidgetRefreshScheduler.armHeartbeatAlarm(context) }
+
+        assertEquals(1, armer.heartbeatCalls, "the second chance has to actually be armed")
+        assertEquals(
+            0,
+            armer.exactCalls + armer.inexactCalls,
+            "the heartbeat must not replace or spend the midnight boundary's alarm",
+        )
+        val expected = before + HijriWidgetRefreshScheduler.HEARTBEAT_INTERVAL_MS
+        assertTrue(
+            armer.heartbeatTriggerAt >= expected,
+            "the heartbeat fires one interval from now, not at the next midnight",
+        )
+        assertEquals(
+            6L * 60 * 60 * 1000,
+            HijriWidgetRefreshScheduler.HEARTBEAT_INTERVAL_MS,
+            "a longer interval than six hours no longer bounds a missed rollover to the same day",
+        )
+    }
+
+    @Test
+    fun reArmingForTheSameMidnightKeepsTheFirstArmTime() {
+        // The host sweep re-arms every 30 minutes, so a plain "last arm" stamp would make every
+        // device report "fired a few minutes after arming" and say nothing about whether it woke at
+        // midnight. The stamp is per boundary instead: this arm, a wait, then another arm for the
+        // same boundary must leave the age at roughly the wait, not reset it to zero.
+        val armer = RecordingArmer(apiLevel = 34, canScheduleExact = true)
+
+        withArmer(armer) {
+            HijriWidgetRefreshScheduler.armMidnightAlarm(context)
+            Thread.sleep(30)
+            HijriWidgetRefreshScheduler.armMidnightAlarm(context)
+
+            assertTrue(
+                HijriWidgetRefreshScheduler.lastArmedAtMillis() >= 25,
+                "a same-boundary re-arm must not restart the diagnostic clock",
+            )
+        }
+    }
+
+    @Test
+    fun theHostSweepRepairsTheMidnightAlarmOnlyWhileInstancesRemain() {
+        var arms = 0
+        val originalArm = HijriWidgetRefreshScheduler.armAction
+        HijriWidgetRefreshScheduler.armAction = { arms++ }
+        try {
+            HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, instanceCount = 0)
+            assertEquals(0, arms, "a sweep racing widget removal must not resurrect the alarm")
+
+            HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, instanceCount = 1)
+            assertEquals(1, arms, "the host's own sweep is the repair path when the alarm was lost")
+        } finally {
+            HijriWidgetRefreshScheduler.armAction = originalArm
+        }
+    }
+
     /** Records the arming call the real `armMidnightAlarmForReal` chooses. */
     private class RecordingArmer(
         private val apiLevel: Int,
@@ -137,6 +200,8 @@ class HijriWidgetRefreshSchedulerTest {
     ) : MidnightAlarmArmer {
         var exactCalls = 0
         var inexactCalls = 0
+        var heartbeatCalls = 0
+        var heartbeatTriggerAt = 0L
 
         override fun apiLevel(): Int = apiLevel
 
@@ -148,6 +213,11 @@ class HijriWidgetRefreshSchedulerTest {
 
         override fun armInexact(triggerAtMillis: Long) {
             inexactCalls++
+        }
+
+        override fun armHeartbeat(triggerAtMillis: Long) {
+            heartbeatCalls++
+            heartbeatTriggerAt = triggerAtMillis
         }
     }
 

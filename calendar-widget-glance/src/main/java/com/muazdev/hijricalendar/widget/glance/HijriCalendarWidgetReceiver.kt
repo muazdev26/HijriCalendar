@@ -39,6 +39,11 @@ public class HijriCalendarWidgetReceiver : GlanceAppWidgetReceiver() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
+        // The host's own periodic sweep is the family's most resilient trigger — the launcher owns
+        // that alarm, so it keeps firing on a device whose OEM power manager clears what the app
+        // scheduled. Repair the midnight alarm from it before anything else. See
+        // [HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate].
+        HijriWidgetRefreshScheduler.repairMidnightAlarmFromHostUpdate(context, appWidgetIds.size)
         // Picker previews are independent of re-render gating: publishing them is cheap, guarded
         // to once per day, and a host update is the natural moment after a widget is added.
         HijriWidgetPreviewPublisher.publishIfDueAsync(context)
