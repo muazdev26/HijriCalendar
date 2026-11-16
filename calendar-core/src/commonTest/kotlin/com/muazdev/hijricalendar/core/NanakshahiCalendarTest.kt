@@ -90,7 +90,6 @@ class NanakshahiCalendarTest {
     @Test
     fun monthStarts_nonLeapYear_eachMonthStartsOnFixedDate() {
         // NS 557: Chet 1 = 2025-03-14 (non-leap year for Gregorian 2025)
-        val rules = NanakshahiRules.DEFAULT
         val year = 557
 
         // Vaisakh 1 = 14 April 2025
@@ -155,17 +154,21 @@ class NanakshahiCalendarTest {
     @Test
     fun phagunLength_underFeb29Rule_555isLeap() {
         // NS 555's Phagun contains Feb 29, 2024 → leap
-        assertTrue(NanakshahiCalendar.isLeapYear(555, NanakshahiLeapRule.FEB29_IN_PHAGUN.let {
-            NanakshahiRules(NanakshahiVersion.MOOL_2003, it)
-        }))
+        val rules = NanakshahiRules(
+            NanakshahiVersion.MOOL_2003,
+            NanakshahiLeapRule.FEB29_IN_PHAGUN,
+        )
+        assertTrue(NanakshahiCalendar.isLeapYear(555, rules))
     }
 
     @Test
     fun phagunLength_underGregorianYearBeforeChetRule_555isNotLeap() {
         // NS 555's Chet begins 14 March 2023. 2023 is not a Gregorian leap year.
-        assertFalse(NanakshahiCalendar.isLeapYear(555, NanakshahiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP.let {
-            NanakshahiRules(NanakshahiVersion.MOOL_2003, it)
-        }))
+        val rules = NanakshahiRules(
+            NanakshahiVersion.MOOL_2003,
+            NanakshahiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP,
+        )
+        assertFalse(NanakshahiCalendar.isLeapYear(555, rules))
     }
 
     // ── year length ──────────────────────────────────────────────────────
@@ -210,8 +213,14 @@ class NanakshahiCalendarTest {
     fun leapRules_disagreeOnYear555() {
         // NS 555: Phagun contains Feb 29, 2024 (leap) → FEB29_IN_PHAGUN says leap
         // NS 555: Chet begins 14 March 2023 (not leap) → GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP says not leap
-        val feb29Rules = NanakshahiRules(NanakshahiVersion.MOOL_2003, NanakshahiLeapRule.FEB29_IN_PHAGUN)
-        val chetRules = NanakshahiRules(NanakshahiVersion.MOOL_2003, NanakshahiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP)
+        val feb29Rules = NanakshahiRules(
+            NanakshahiVersion.MOOL_2003,
+            NanakshahiLeapRule.FEB29_IN_PHAGUN,
+        )
+        val chetRules = NanakshahiRules(
+            NanakshahiVersion.MOOL_2003,
+            NanakshahiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP,
+        )
 
         assertTrue(NanakshahiCalendar.isLeapYear(555, feb29Rules))
         assertFalse(NanakshahiCalendar.isLeapYear(555, chetRules))
