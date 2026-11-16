@@ -11,11 +11,12 @@ import kotlin.native.ObjCName
  * A Hijri (AH) calendar date, owned by this library.
  *
  * **Why this exists.** The date arithmetic below this library is done by the third-party
- * `com.abdulrahman-b.hijrahdatetime` artifact, which is still `2.0.0-alpha07`. Its `HijrahDate`
- * appeared directly in this module's published signatures, so a 2.0.0 release that reshaped the
- * type would break every consumer at compile time — and there would be no workaround, because the
- * type is in *our* signature, not only in theirs. `HijriDate` is the boundary type: the alpha
- * dependency stays an implementation detail, and the public API names only this.
+ * `com.abdulrahman-b.hijrahdatetime` artifact, which was still pre-1.0 when this type was introduced
+ * (`2.0.0-beta01` today). Its `HijrahDate` appeared directly in this module's published signatures,
+ * so a 2.0.0 release that reshaped the type would break every consumer at compile time — and there
+ * would be no workaround, because the type is in *our* signature, not only in theirs. `HijriDate` is
+ * the boundary type: the third-party dependency stays an implementation detail, and the public API
+ * names only this.
  *
  * It is a plain value — no time zone, no clock, no calendar system flag. Two dates are equal when
  * their year, month and day are, which is the identity a grid cell actually needs.
@@ -64,7 +65,7 @@ public data class HijriDate(
  * A Hijri (AH) year and month, owned by this library.
  *
  * The month-level counterpart of [HijriDate], and the same argument: the month arithmetic belongs
- * to the alpha dependency, but a published signature must not. `month` is an `Int` rather than the
+ * to the pre-1.0 dependency, but a published signature must not. `month` is an `Int` rather than the
  * library's own month type so the value stays comparable, printable and serializable without
  * reaching into a dependency that may reshape it.
  *

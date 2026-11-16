@@ -29,10 +29,10 @@ public data class CalendarMonth(
      * Always the *calculated* month — the Pakistan and observed spaces reuse it as their month
      * label, so this alone never implies which space the cells are in.
      *
-     * @deprecated The type comes from the third-party alpha artifact. Use [hijriYearMonth].
+     * @deprecated The type comes from the third-party pre-1.0 artifact. Use [hijriYearMonth].
      */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use the library-owned `hijriYearMonth: HijriYearMonth` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -49,17 +49,17 @@ public data class CalendarMonth(
 
     val year: Int get() = yearMonth.year
 
-    /** @deprecated The type is from the third-party alpha artifact. Use [firstHijriDay]. */
+    /** @deprecated The type is from the third-party pre-1.0 artifact. Use [firstHijriDay]. */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use `firstHijriDay: HijriDate` instead.",
         level = DeprecationLevel.WARNING,
     )
     val firstDay: HijrahDate get() = yearMonth.firstDay
 
-    /** @deprecated The type is from the third-party alpha artifact. Use [lastHijriDay]. */
+    /** @deprecated The type is from the third-party pre-1.0 artifact. Use [lastHijriDay]. */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use `lastHijriDay: HijriDate` instead.",
         level = DeprecationLevel.WARNING,
     )

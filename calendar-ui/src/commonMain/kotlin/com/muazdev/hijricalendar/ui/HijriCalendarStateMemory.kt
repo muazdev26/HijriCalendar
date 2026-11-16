@@ -37,7 +37,7 @@ import kotlinx.datetime.minus
 @Composable
 @Suppress("DEPRECATION")
 @Deprecated(
-    message = "The parameter types are from the third-party alpha hijrah-datetime artifact. " +
+    message = "The parameter types are from the third-party pre-1.0 hijrah-datetime artifact. " +
         "Use the overload taking `initialHijriMonth: HijriYearMonth` and `HijriDate` values.",
     level = DeprecationLevel.WARNING,
 )
@@ -75,7 +75,7 @@ public fun rememberHijriCalendarState(
  * The library-owned-types variant of the state factory.
  *
  * Same behaviour and the same one-composition lifetime as the deprecated overload; it exists so a
- * caller starting from [HijriYearMonth] / [HijriDate] never names the third-party alpha type.
+ * caller starting from [HijriYearMonth] / [HijriDate] never names the third-party pre-1.0 type.
  */
 @Composable
 @Suppress("DEPRECATION")
@@ -116,7 +116,7 @@ public fun rememberHijriCalendarState(
 @Composable
 @Suppress("DEPRECATION")
 @Deprecated(
-    message = "The parameter types are from the third-party alpha hijrah-datetime artifact. " +
+    message = "The parameter types are from the third-party pre-1.0 hijrah-datetime artifact. " +
         "Use the overload taking `initialHijriMonth: HijriYearMonth` and `HijriDate` values.",
     level = DeprecationLevel.WARNING,
 )

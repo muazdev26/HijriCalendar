@@ -30,12 +30,12 @@ import kotlinx.datetime.plus
  * do not throw: they become disabled placeholders clamped to [HijrahDate.MIN] or
  * [HijrahDate.MAX].
  *
- * @deprecated The receiver and date parameters are types from the third-party alpha
+ * @deprecated The receiver and date parameters are types from the third-party pre-1.0
  *   `hijrah-datetime` artifact. Use the overload taking the library-owned [HijriYearMonth] and
  *   [HijriDate].
  */
 @Deprecated(
-    message = "The receiver and parameter types are from the third-party alpha " +
+    message = "The receiver and parameter types are from the third-party pre-1.0 " +
         "hijrah-datetime artifact. Use the overload taking the library-owned " +
         "`HijriYearMonth` / `HijriDate` instead.",
     level = DeprecationLevel.WARNING,
@@ -135,7 +135,7 @@ public fun HijrahYearMonth.toCalendarMonth(
  * Generates the 6-week grid for this library-owned Hijri month.
  *
  * The non-deprecated face of [HijrahYearMonth.toCalendarMonth]: every date-typed parameter is a
- * [HijriDate], so a caller never names the third-party alpha type. The receiver converts through
+ * [HijriDate], so a caller never names the third-party pre-1.0 type. The receiver converts through
  * [toHijrahYearMonth] and the dates through [HijriDate.toHijrahDate] internally; the semantics are
  * exactly the deprecated overload's.
  */

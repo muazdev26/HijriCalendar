@@ -9,7 +9,7 @@ package com.muazdev.hijricalendar.widgetdata
  * blank widget. `.first` being the year is a convention, not a constraint, and the whole point of
  * this module is that a renderer *cannot forget to thread a value through correctly*.
  *
- * **It now lives in `calendar-core`.** The type was introduced here to keep the third-party alpha
+ * **It now lives in `calendar-core`.** The type was introduced here to keep the third-party pre-1.0
  * `HijrahYearMonth` out of the widget ABI; the same argument applies to every module, so the value
  * moved to the data module and this name stays as an alias. Source compatibility is preserved
  * (`import com.muazdev.hijricalendar.widgetdata.HijriYearMonth` still compiles); the class is now

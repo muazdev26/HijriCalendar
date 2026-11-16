@@ -35,6 +35,9 @@ under the same version headings.
   keeps meaning "time since this boundary could first have been armed" now that the host sweep
   re-arms it every 30 minutes, and reads "no arm recorded" instead of a negative delta in a process
   that only ever ran because an alarm fired.
+- Build toolchain raised to Gradle 9.9.1, Kotlin 2.4.21, AGP 9.5.1 and Compose Multiplatform 1.12.2,
+  with kotlinx-serialization 1.13.0, DataStore 1.3.0, WorkManager 2.12.0, androidx-core 1.19.1 and
+  binary-compatibility-validator 0.18.2. No source changes were needed for any of them.
 
 ### Fixed
 
@@ -46,6 +49,15 @@ under the same version headings.
   second chance. One missed arm used to cost a full day of a stale date; the heartbeat bounds it to
   about six hours, and logs as `[heartbeat]` so a boundary that never fired is distinguishable from
   one that woke on schedule.
+
+### Migration
+
+- `calendar-core` now depends on `com.abdulrahman-b.hijrahdatetime` **`2.0.0-beta01`** (was
+  `2.0.0-alpha07`) and re-exports it as `api`, so it lands on your compile classpath. Nothing in this
+  library's owned API moved, but the deprecated pre-1.0-typed signatures (`CalendarDay.hijri`,
+  `CalendarMonth.hijriYearMonth`, the `HijriYearMonth` overloads, `todayHijriDate`) name that
+  library's types: recompile if you call them, and if you pin `alpha07` yourself, move that pin to
+  `beta01` so there is one version of the type rather than a resolution that picks one of the two.
 
 ## 2.5.0 - 2026-11-14
 
@@ -116,7 +128,7 @@ under the same version headings.
   compatible, but **binary incompatible**: the class moved package, so consumers compiled against
   2.3.x must recompile. Signatures that changed: `offsetHijriMonth`, `WidgetOptions.pinned`,
   `resolveGridMonth`, `resolveGridMonthOrNull`.
-- Replace the alpha types with the library-owned ones: `HijrahDate` → `HijriDate`,
+- Replace the pre-1.0 types with the library-owned ones: `HijrahDate` → `HijriDate`,
   `HijrahYearMonth` → `HijriYearMonth`, `CalendarDay.hijrahDate` → `CalendarDay.hijri`,
   `CalendarMonth.yearMonth` → `hijriYearMonth`, `firstDay` / `lastDay` → `firstHijriDay` /
   `lastHijriDay`, `HijriCalendarState.currentMonth` / `selectedDate` / `minDate` / `maxDate` →
