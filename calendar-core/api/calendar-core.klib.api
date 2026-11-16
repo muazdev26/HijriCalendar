@@ -652,9 +652,15 @@ final object com.muazdev.hijricalendar.core/NanakshahiMonthNames { // com.muazde
         final fun <get-english>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/NanakshahiMonthNames.english.<get-english>|<get-english>(){}[0]
     final val gurmukhi // com.muazdev.hijricalendar.core/NanakshahiMonthNames.gurmukhi|{}gurmukhi[0]
         final fun <get-gurmukhi>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/NanakshahiMonthNames.gurmukhi.<get-gurmukhi>|<get-gurmukhi>(){}[0]
+    final val hindi // com.muazdev.hijricalendar.core/NanakshahiMonthNames.hindi|{}hindi[0]
+        final fun <get-hindi>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/NanakshahiMonthNames.hindi.<get-hindi>|<get-hindi>(){}[0]
+    final val urdu // com.muazdev.hijricalendar.core/NanakshahiMonthNames.urdu|{}urdu[0]
+        final fun <get-urdu>(): kotlin.collections/List<kotlin/String> // com.muazdev.hijricalendar.core/NanakshahiMonthNames.urdu.<get-urdu>|<get-urdu>(){}[0]
 
     final fun englishName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiMonthNames.englishName|englishName(kotlin.Int){}[0]
     final fun gurmukhiName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiMonthNames.gurmukhiName|gurmukhiName(kotlin.Int){}[0]
+    final fun hindiName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiMonthNames.hindiName|hindiName(kotlin.Int){}[0]
+    final fun urduName(kotlin/Int): kotlin/String // com.muazdev.hijricalendar.core/NanakshahiMonthNames.urduName|urduName(kotlin.Int){}[0]
 }
 
 final object com.muazdev.hijricalendar.core/ObservedHijriCalendar { // com.muazdev.hijricalendar.core/ObservedHijriCalendar|null[0]

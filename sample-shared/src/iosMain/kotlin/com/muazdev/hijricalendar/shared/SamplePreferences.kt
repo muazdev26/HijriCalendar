@@ -22,6 +22,7 @@ internal object SamplePreferences {
     private const val KEY_PAKISTAN_DATES = "hijri_sample_pakistan_dates"
     private const val KEY_NANAKSHAHI_ENABLED = "hijri_sample_nanakshahi_enabled"
     private const val KEY_NANAKSHAHI_LEAP_RULE = "hijri_sample_nanakshahi_leap_rule"
+    private const val KEY_NANAKSHAHI_NAME_LANGUAGE = "hijri_sample_nanakshahi_name_language"
 
     private const val DEFAULT_ADJUSTMENT_DAYS = 0
     private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
@@ -87,6 +88,20 @@ internal object SamplePreferences {
 
     fun setNanakshahiRules(rules: NanakshahiRules) {
         defaults.setObject(rules.leapRule.name, KEY_NANAKSHAHI_LEAP_RULE)
+    }
+
+    /**
+     * The stored month-name script. Defaults to English, matching the Android store.
+     */
+    fun nanakshahiNameLanguage(): NanakshahiNameLanguage {
+        val saved = defaults.stringForKey(KEY_NANAKSHAHI_NAME_LANGUAGE)
+            ?: return NanakshahiNameLanguage.ENGLISH
+        return runCatching { NanakshahiNameLanguage.valueOf(saved) }
+            .getOrDefault(NanakshahiNameLanguage.ENGLISH)
+    }
+
+    fun setNanakshahiNameLanguage(language: NanakshahiNameLanguage) {
+        defaults.setObject(language.name, KEY_NANAKSHAHI_NAME_LANGUAGE)
     }
 
     /**

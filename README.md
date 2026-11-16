@@ -157,7 +157,7 @@ Shifts the whole calendar (day numbers, alignment, `isToday`, selection, bounds)
 
 ## Nanakshahi Calendar
 
-`calendar-core` ships the Nanakshahi (Sikh solar) calendar — Mool 2003 version, approved in 2003.
+`calendar-core` ships the Nanakshahi (solar) calendar — Mool 2003 version, approved in 2003.
 The default leap rule is `FEB29_IN_PHAGUN` (Phagun has 31 days when February 29 falls in Phagun).
 An alternative rule, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP`, is also available.
 

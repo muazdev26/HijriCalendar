@@ -1,7 +1,7 @@
 package com.muazdev.hijricalendar.core
 
 /**
- * A date in the Nanakshahi (Sikh solar) calendar.
+ * A date in the Nanakshahi (solar) calendar.
  *
  * @property year Nanakshahi year (e.g. 555 for 2023 CE).
  * @property month Month of year, `1` (Chet) to `12` (Phagun).

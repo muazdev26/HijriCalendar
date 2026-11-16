@@ -36,7 +36,6 @@ import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriEvents
 import com.muazdev.hijricalendar.core.NanakshahiCalendar
 import com.muazdev.hijricalendar.core.NanakshahiLeapRule
-import com.muazdev.hijricalendar.core.NanakshahiMonthNames
 import com.muazdev.hijricalendar.core.NanakshahiRules
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
@@ -103,7 +102,7 @@ fun CalendarScreen(
     showCellBordersToggle: Boolean = false,
     onShowCellBordersChange: ((Boolean) -> Unit)? = null,
     /**
-     * Whether the Nanakshahi (Sikh solar) controls are offered.
+     * Whether the Nanakshahi (solar) calendar controls are offered.
      *
      * The sample's way of reaching `calendar-core`'s [NanakshahiCalendar]: the library has no opinion
      * about where a second calendar belongs on screen, so nothing draws it unless a host asks.
@@ -113,6 +112,8 @@ fun CalendarScreen(
     onNanakshahiChange: ((Boolean) -> Unit)? = null,
     nanakshahiRules: NanakshahiRules = NanakshahiRules.DEFAULT,
     onNanakshahiRulesChange: ((NanakshahiRules) -> Unit)? = null,
+    nanakshahiNameLanguage: NanakshahiNameLanguage = NanakshahiNameLanguage.ENGLISH,
+    onNanakshahiNameLanguageChange: ((NanakshahiNameLanguage) -> Unit)? = null,
     showAutoSyncToggle: Boolean = false,
     autoSyncToWidget: Boolean = true,
     onAutoSyncToWidgetChange: ((Boolean) -> Unit)? = null,
@@ -238,8 +239,10 @@ fun CalendarScreen(
                 enabled = nanakshahiEnabled,
                 dateDisplayMode = dateDisplayMode,
                 rules = nanakshahiRules,
+                nameLanguage = nanakshahiNameLanguage,
                 onToggle = { enabled -> onNanakshahiChange?.invoke(enabled) },
                 onRulesChange = onNanakshahiRulesChange,
+                onNameLanguageChange = onNanakshahiNameLanguageChange,
             )
         }
 
@@ -290,7 +293,12 @@ fun CalendarScreen(
         // The Nanakshahi reading of the same selected day. Drawn here rather than only in the cell
         // because this card has room for the month name and the year, and because `BOTH` cells carry
         // no Nanakshahi line at all — this is the one place the date is stated in every mode.
-        val nanakshahiSelectedText = rememberNanakshahiSelectedText(state, nanakshahiEnabled, nanakshahiRules)
+        val nanakshahiSelectedText = rememberNanakshahiSelectedText(
+            state = state,
+            enabled = nanakshahiEnabled,
+            rules = nanakshahiRules,
+            nameLanguage = nanakshahiNameLanguage,
+        )
         if (nanakshahiSelectedText != null) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -408,16 +416,18 @@ private fun HijriCalendarState.selectedLocalDate(): LocalDate? {
  * The selected day's Nanakshahi date, or `null` when the calendar is switched off.
  *
  * Remembered on the selection keys rather than on the label bundle: this text carries no translated
- * words, only the month names the Nanakshahi table owns.
+ * words, only the month name the chosen script table owns.
  */
 @Composable
 private fun rememberNanakshahiSelectedText(
     state: HijriCalendarState,
     enabled: Boolean,
     rules: NanakshahiRules,
+    nameLanguage: NanakshahiNameLanguage,
 ): String? = remember(
     enabled,
     rules,
+    nameLanguage,
     state.selectedDate,
     state.selectedPakistanDate,
     state.selectedObservedDate,
@@ -426,18 +436,9 @@ private fun rememberNanakshahiSelectedText(
     if (!enabled) return@remember null
     state.selectedLocalDate()?.let { date ->
         val nanakshahi = NanakshahiCalendar.toNanakshahi(date, rules)
-        // Both name tables, because this is the sample and the Gurmukhi one is the half a Punjabi
-        // reader wants; `NanakshahiMonthNames` has no Shahmukhi yet.
-        buildString {
-            append("Nanakshahi: ")
-            append(nanakshahi.day)
-            append(' ')
-            append(NanakshahiMonthNames.englishName(nanakshahi.month))
-            append(" (")
-            append(NanakshahiMonthNames.gurmukhiName(nanakshahi.month))
-            append(") ")
-            append(nanakshahi.year)
-        }
+        // One script per line, chosen by the caller, rather than every table at once: the card is a
+        // date, and four spellings of the same month is a chart, not a date.
+        "Nanakshahi: ${nanakshahi.day} ${nameLanguage.monthName(nanakshahi.month)} ${nanakshahi.year}"
     }
 }
 
@@ -538,23 +539,29 @@ private fun nanakshahiCellColors(
 private val NanakshahiExtraLineCellSize = 56.dp
 
 /**
- * Show/hide the Nanakshahi date, and choose the leap rule behind it.
+ * Show/hide the Nanakshahi date, choose the script its month name is written in, and choose the leap
+ * rule behind it.
  *
  * The leap rule is a real choice, not a demo toggle: `FEB29_IN_PHAGUN` gives Phagun 31 days when the
  * Gregorian year containing it is a leap year, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP` when the year of
  * the preceding Chet 1 is. They disagree on some years, so the chips are labelled by rule rather than
  * as "on/off".
+ *
+ * The script chips are labelled in their own script, because "Urdu or Hindi?" is a question a reader
+ * answers by recognising the letters, not by reading a Latin word for them.
  */
 @Composable
 private fun NanakshahiSelector(
     enabled: Boolean,
     dateDisplayMode: DateDisplayMode,
     rules: NanakshahiRules,
+    nameLanguage: NanakshahiNameLanguage,
     onToggle: (Boolean) -> Unit,
     onRulesChange: ((NanakshahiRules) -> Unit)?,
+    onNameLanguageChange: ((NanakshahiNameLanguage) -> Unit)?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Nanakshahi (Sikh) calendar", style = MaterialTheme.typography.titleSmall)
+        Text("Nanakshahi calendar", style = MaterialTheme.typography.titleSmall)
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
                 selected = !enabled,
@@ -569,6 +576,21 @@ private fun NanakshahiSelector(
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
             ) {
                 Text("Show")
+            }
+        }
+        if (onNameLanguageChange != null) {
+            Text("Month-name script", style = MaterialTheme.typography.labelLarge)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                val languages = NanakshahiNameLanguage.entries
+                languages.forEachIndexed { index, language ->
+                    SegmentedButton(
+                        selected = nameLanguage == language,
+                        onClick = { onNameLanguageChange(language) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = languages.size),
+                    ) {
+                        Text(language.label)
+                    }
+                }
             }
         }
         if (onRulesChange != null) {
