@@ -17,12 +17,12 @@ public data class CalendarDay(
     /**
      * The Umm al-Qura date this cell represents, or `null` for a placeholder.
      *
-     * @deprecated The type comes from the third-party `hijrah-datetime` alpha artifact. Use
+     * @deprecated The type comes from the third-party pre-1.0 `hijrah-datetime` artifact. Use
      *   [hijri], which is this library's own [HijriDate] and converts back with
      *   [HijriDate.toHijrahDate].
      */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use the library-owned `hijri: HijriDate?` instead.",
         level = DeprecationLevel.WARNING,
     )

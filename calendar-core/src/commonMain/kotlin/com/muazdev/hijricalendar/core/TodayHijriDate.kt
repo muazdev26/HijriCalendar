@@ -24,11 +24,11 @@ import kotlinx.datetime.toLocalDateTime
  * The failure is reported to [CalendarLog] (silently discarded unless a consumer installs a
  * logger) so it is diagnosable in production without the library writing to standard out.
  *
- * @deprecated The return type is from the third-party alpha `hijrah-datetime` artifact. Use
+ * @deprecated The return type is from the third-party pre-1.0 `hijrah-datetime` artifact. Use
  *   [todayHijri], which returns the library-owned [HijriDate].
  */
 @Deprecated(
-    message = "The return type is from the third-party alpha hijrah-datetime artifact. " +
+    message = "The return type is from the third-party pre-1.0 hijrah-datetime artifact. " +
         "Use `todayHijri(adjustmentDays): HijriDate?` instead.",
     level = DeprecationLevel.WARNING,
 )

@@ -8,7 +8,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 /**
- * The library-owned date types (issue 07) and their bridge to the third-party alpha types the
+ * The library-owned date types (issue 07) and their bridge to the third-party pre-1.0 types the
  * calendar math still uses.
  *
  * The point of these values is that a published signature no longer names

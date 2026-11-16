@@ -75,6 +75,21 @@ the KDoc.
   `Box` (it paints nothing; the margin has to stay transparent). The Android 12-14 `previewLayout`
   mirror needs no change: it fills the cell, so the picker's own rounded frame is the clip.
 
+- **The build toolchain moved to Gradle 9.9.1 / Kotlin 2.4.21 / AGP 9.5.1 / Compose Multiplatform
+  1.12.2**, with kotlinx-serialization 1.13.0, DataStore 1.3.0, WorkManager 2.12.0, androidx-core
+  1.19.1 and binary-compatibility-validator 0.18.2 alongside. None of it needed a source change:
+  the library's own API dumps, the 304 `calendar-core` tests and the sample's debug APK were
+  unchanged by the move, which is the point of having a release train rather than pinning
+  indefinitely. Two things were *not* free. Gradle 9.9 starts reporting the deprecations that make
+  the build incompatible with Gradle 10; they are warnings today and a migration later, not a defect
+  now. And `hijrah-datetime` went from `2.0.0-alpha07` to `2.0.0-beta01` — the first non-alpha release
+  of the dependency this library's whole date arithmetic sits on. The owned boundary types
+  (`HijriDate`, `HijriYearMonth`) exist precisely so that move could not reach a consumer's source,
+  and it did not: the only consumer-visible consequence is that the pre-1.0-typed deprecated signatures
+  now name the beta's classes, which is a recompile and not a rewrite. That is the boundary type
+  earning its keep for the first time, and worth noting for the next time someone proposes putting a
+  dependency's type back into a public signature because "it is convenient".
+
 ## 2.5.0 - 2026-11-14
 
 ### Added
@@ -196,7 +211,7 @@ the KDoc.
   `com.muazdev.hijricalendar.core.HijriYearMonth` — recompile against 2.4.0. The methods whose
   signatures changed are `offsetHijriMonth`, `WidgetOptions.pinned` /
   `resolveGridMonth` / `resolveGridMonthOrNull`.
-- Replace deprecated alpha types with the library-owned ones: `HijrahDate` → `HijriDate`,
+- Replace deprecated pre-1.0 types with the library-owned ones: `HijrahDate` → `HijriDate`,
   `HijrahYearMonth` → `HijriYearMonth`; `CalendarDay.hijrahDate` → `CalendarDay.hijri`,
   `CalendarMonth.yearMonth` → `hijriYearMonth`, `firstDay` / `lastDay` → `firstHijriDay` /
   `lastHijriDay`, `HijriCalendarState.currentMonth` / `selectedDate` / `minDate` / `maxDate` →

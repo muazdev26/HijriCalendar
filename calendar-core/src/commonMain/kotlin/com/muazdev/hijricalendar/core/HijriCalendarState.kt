@@ -59,7 +59,7 @@ import kotlinx.datetime.plus
 @Suppress("DEPRECATION")
 public class HijriCalendarState
 @Deprecated(
-    message = "The constructor's date types come from the third-party alpha hijrah-datetime " +
+    message = "The constructor's date types come from the third-party pre-1.0 hijrah-datetime " +
         "artifact. Use the constructor taking `initialHijriMonth: HijriYearMonth` and " +
         "`HijriDate` values instead.",
     level = DeprecationLevel.WARNING,
@@ -80,10 +80,10 @@ public constructor(
      * edge [canGoToPreviousMonth] stops at. A `minDate` after the initial month leaves that month
      * unreachable and the grid opens on the nearest in-range month instead.
      *
-     * @deprecated The type is from the third-party alpha artifact. Use [minHijriDate].
+     * @deprecated The type is from the third-party pre-1.0 artifact. Use [minHijriDate].
      */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. Use " +
             "`minHijriDate: HijriDate?` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -96,10 +96,10 @@ public constructor(
      * An inverted range (`minDate` after `maxDate`) is not rejected. No month is navigable and no
      * day is selectable; the grid renders a single month and both arrow predicates answer false.
      *
-     * @deprecated The type is from the third-party alpha artifact. Use [maxHijriDate].
+     * @deprecated The type is from the third-party pre-1.0 artifact. Use [maxHijriDate].
      */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. Use " +
             "`maxHijriDate: HijriDate?` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -154,7 +154,7 @@ public constructor(
      * Constructs a state with the library-owned date types.
      *
      * The non-deprecated face of the primary constructor: a caller that starts from
-     * [initialHijriMonth] and a [HijriDate] selection never names the third-party alpha type.
+     * [initialHijriMonth] and a [HijriDate] selection never names the third-party pre-1.0 type.
      * Everything is converted exactly once here; the instance behaves identically to one built
      * through the deprecated parameters.
      */
@@ -306,10 +306,10 @@ public constructor(
     /**
      * The month the grid is showing.
      *
-     * @deprecated The type is from the third-party alpha artifact. Use [currentHijriMonth].
+     * @deprecated The type is from the third-party pre-1.0 artifact. Use [currentHijriMonth].
      */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. Use " +
             "`currentHijriMonth: HijriYearMonth` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -321,10 +321,10 @@ public constructor(
     /**
      * The Umm al-Qura selection, or `null` when nothing is selected.
      *
-     * @deprecated The type is from the third-party alpha artifact. Use [selectedHijriDate].
+     * @deprecated The type is from the third-party pre-1.0 artifact. Use [selectedHijriDate].
      */
     @Deprecated(
-        message = "The type is from the third-party alpha hijrah-datetime artifact. Use " +
+        message = "The type is from the third-party pre-1.0 hijrah-datetime artifact. Use " +
             "`selectedHijriDate: HijriDate?` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -390,7 +390,7 @@ public constructor(
      *   the pages either side of the visible one.
      */
     @Deprecated(
-        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The parameter type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use the overload taking `HijriYearMonth` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -454,7 +454,7 @@ public constructor(
      * [monthLengths] here rather than at their own call sites.
      */
     @Deprecated(
-        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The parameter type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use the overload taking `HijriYearMonth` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -597,7 +597,7 @@ public constructor(
     }
 
     @Deprecated(
-        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The parameter type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use the overload taking `HijriDate` instead.",
         level = DeprecationLevel.WARNING,
     )
@@ -616,7 +616,7 @@ public constructor(
     }
 
     @Deprecated(
-        message = "The parameter type is from the third-party alpha hijrah-datetime artifact. " +
+        message = "The parameter type is from the third-party pre-1.0 hijrah-datetime artifact. " +
             "Use the overload taking `HijriYearMonth` instead.",
         level = DeprecationLevel.WARNING,
     )

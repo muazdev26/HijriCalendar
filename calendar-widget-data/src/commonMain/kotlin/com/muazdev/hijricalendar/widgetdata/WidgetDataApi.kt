@@ -861,7 +861,7 @@ private fun pairedMonthOrdinal(month: Int): Int = when (month) {
  */
 public fun offsetHijriMonth(hijriYear: Int, hijriMonth: Int, offset: Int): HijriYearMonth? {
     if (hijriMonth !in 1..12) return null
-    // The alpha type stops here: it is an implementation detail of the arithmetic, not part
+    // The pre-1.0 type stops here: it is an implementation detail of the arithmetic, not part
     // of this module's contract.
     val result = try {
         HijrahYearMonth(hijriYear, hijriMonth).plusMonth(offset)
