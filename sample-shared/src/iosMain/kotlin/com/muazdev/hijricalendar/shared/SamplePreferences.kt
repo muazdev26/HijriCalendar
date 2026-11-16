@@ -1,5 +1,8 @@
 package com.muazdev.hijricalendar.shared
 
+import com.muazdev.hijricalendar.core.NanakshahiLeapRule
+import com.muazdev.hijricalendar.core.NanakshahiRules
+import com.muazdev.hijricalendar.core.NanakshahiVersion
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import platform.Foundation.NSUserDefaults
 
@@ -17,6 +20,8 @@ internal object SamplePreferences {
     private const val KEY_DATE_DISPLAY_MODE = "hijri_sample_date_display_mode"
     private const val KEY_ADJUSTMENT_DAYS = "hijri_sample_adjustment_days"
     private const val KEY_PAKISTAN_DATES = "hijri_sample_pakistan_dates"
+    private const val KEY_NANAKSHAHI_ENABLED = "hijri_sample_nanakshahi_enabled"
+    private const val KEY_NANAKSHAHI_LEAP_RULE = "hijri_sample_nanakshahi_leap_rule"
 
     private const val DEFAULT_ADJUSTMENT_DAYS = 0
     private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
@@ -53,6 +58,35 @@ internal object SamplePreferences {
 
     fun setPakistanDates(enabled: Boolean) {
         defaults.setBool(enabled, KEY_PAKISTAN_DATES)
+    }
+
+    /**
+     * Whether the sample should show the Nanakshahi date. Off by default, matching the Android store.
+     */
+    fun nanakshahiEnabled(): Boolean =
+        if (defaults.objectForKey(KEY_NANAKSHAHI_ENABLED) == null) {
+            false
+        } else {
+            defaults.boolForKey(KEY_NANAKSHAHI_ENABLED)
+        }
+
+    fun setNanakshahiEnabled(enabled: Boolean) {
+        defaults.setBool(enabled, KEY_NANAKSHAHI_ENABLED)
+    }
+
+    /**
+     * The stored Nanakshahi rules. An unknown value falls back to [NanakshahiRules.DEFAULT], which is
+     * the Android store's rule too.
+     */
+    fun nanakshahiRules(): NanakshahiRules {
+        val saved = defaults.stringForKey(KEY_NANAKSHAHI_LEAP_RULE) ?: return NanakshahiRules.DEFAULT
+        val rule = runCatching { NanakshahiLeapRule.valueOf(saved) }
+            .getOrDefault(NanakshahiLeapRule.FEB29_IN_PHAGUN)
+        return NanakshahiRules(NanakshahiVersion.MOOL_2003, rule)
+    }
+
+    fun setNanakshahiRules(rules: NanakshahiRules) {
+        defaults.setObject(rules.leapRule.name, KEY_NANAKSHAHI_LEAP_RULE)
     }
 
     /**

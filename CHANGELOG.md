@@ -18,7 +18,10 @@ under the same version headings.
   `toNanakshahi`/`toGregorian` conversions, `isLeapYear`, `monthLength`, `yearLength`, `chetOneOf`,
   and `yearOf`. The Gregorian calendar is proleptic before 1582. `NanakshahiMonthNames` carries
   English and Gurmukhi month names; Shahmukhi names are pending. The SGPC printed calendar is not
-  included — it is a different, lunisolar calendar.
+  included — it is a different, lunisolar calendar. The samples show it through
+  `CalendarScreen(dayContent = …)` behind a **Nanakshahi** switch: the day's Nanakshahi figure under
+  each single-figure cell, and the full date in the selected-date card. Nothing in the Hijri paths,
+  the widgets or `HijriCalendarState` reads it.
 
 ### Changed
 

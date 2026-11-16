@@ -10,6 +10,32 @@ the KDoc.
 
 ## Unreleased
 
+### Added
+
+- **The Nanakshahi (Sikh solar) calendar, as a standalone calculator.** `NanakshahiCalendar` converts
+  both ways against `kotlinx-datetime`'s `LocalDate` and every function takes a `NanakshahiRules`
+  explicitly, so there is no global mutable state and two callers can disagree about the leap rule
+  without seeing each other — the same shape the month-length overrides took in 2.5.0, and for the
+  same reason. `MOOL_2003` is the only version, because it is the one with a published month table;
+  the SGPC printed calendar is a *lunisolar* calendar and is deliberately not modelled, since calling
+  it a version of this one would make every conversion silently wrong for the months it shifts.
+
+  It is not wired into `HijriCalendarState`, the grids or the widgets, and that is a decision rather
+  than an unfinished edge: the library's one job is the Hijri calendar, a second calendar has no
+  agreed place on a 48dp cell, and wiring it into the state would put a `NanakshahiRules` parameter
+  into every public signature for a feature most consumers do not want.
+
+  The samples therefore reach it through `CalendarScreen`'s `dayContent` hook, behind a **Nanakshahi**
+  switch, which is the first real caller of that hook and exposed two things about it. First,
+  `dayContent` supplies the cell's **whole** contents, not an extra line — so the sample redraws the
+  figure the mode would have drawn, and `BOTH` is excluded because its two-line stack already fills the
+  cell by contract (the selected-date card states the date in that mode instead). Second, the hook is
+  handed the cell's box but **not** its resolved style: `DayCellStyle` is internal, so a replacement
+  cell has to re-state the precedence — selected, outside the month, notable, weekend — itself. The
+  sample does that against the public `HijriCalendarDefaults.colors()`, so the *values* cannot drift
+  even though the *order* is restated. A future `dayContent` overload taking the resolved style would
+  remove that duplication; it is not worth a public API change in this release.
+
 ### Changed
 
 - **The compact dual-date tile rounds its own square.** The report was that this widget alone looks
