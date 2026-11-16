@@ -1,7 +1,7 @@
 package com.muazdev.hijricalendar.core
 
 /**
- * A version of the Nanakshahi (Sikh solar) calendar.
+ * A version of the Nanakshahi (solar) calendar.
  *
  * Only the Mool 2003 version is supported in this release. The SGPC printed calendar is a
  * different, lunisolar calendar — not a version of the Mool Nanakshahi — and is a separate task.

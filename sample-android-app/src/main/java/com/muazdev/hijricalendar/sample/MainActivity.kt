@@ -78,12 +78,9 @@ private fun CalendarApp(
 ) {
     val wiring = rememberWidgetSyncWiring(viewModel, widgetSync)
     val syncIfEnabled = wiring.syncIfEnabled
-    // Nanakshahi is sample-only content, so it has its own store rather than the ViewModel's state.
     val context = LocalContext.current
     val nanakshahi = remember(context) { NanakshahiSampleState(context) }
-    LaunchedEffect(Unit) {
-        syncIfEnabled()
-    }
+    LaunchedEffect(Unit) { syncIfEnabled() }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -141,13 +138,14 @@ private fun CalendarApp(
                 viewModel.onShowCellBordersChange(show)
                 syncIfEnabled()
             },
-            // The Nanakshahi calendar is sample-only in-app content, not a widget option, so it is
-            // persisted in its own store and deliberately not mirrored onto the widgets.
+            // Sample-only content: its own store, deliberately not mirrored onto the widgets.
             showNanakshahiToggle = true,
             nanakshahiEnabled = nanakshahi.enabled,
             onNanakshahiChange = nanakshahi::updateEnabled,
             nanakshahiRules = nanakshahi.rules,
             onNanakshahiRulesChange = nanakshahi::updateRules,
+            nanakshahiNameLanguage = nanakshahi.nameLanguage,
+            onNanakshahiNameLanguageChange = nanakshahi::updateNameLanguage,
             showAutoSyncToggle = true,
             autoSyncToWidget = viewModel.autoSyncToWidget,
             onAutoSyncToWidgetChange = viewModel::onAutoSyncToWidgetChange,

@@ -12,7 +12,7 @@ the KDoc.
 
 ### Added
 
-- **The Nanakshahi (Sikh solar) calendar, as a standalone calculator.** `NanakshahiCalendar` converts
+- **The Nanakshahi (solar) calendar, as a standalone calculator.** `NanakshahiCalendar` converts
   both ways against `kotlinx-datetime`'s `LocalDate` and every function takes a `NanakshahiRules`
   explicitly, so there is no global mutable state and two callers can disagree about the leap rule
   without seeing each other — the same shape the month-length overrides took in 2.5.0, and for the
@@ -35,6 +35,26 @@ the KDoc.
   sample does that against the public `HijriCalendarDefaults.colors()`, so the *values* cannot drift
   even though the *order* is restated. A future `dayContent` overload taking the resolved style would
   remove that duplication; it is not worth a public API change in this release.
+
+  **The month names ship in four scripts, and the three the samples offer are `ENGLISH`, `URDU` and
+  `HINDI`.** `NanakshahiMonthNames` holds the same twelve months as `english`, `gurmukhi`, `urdu`
+  (Shahmukhi) and `hindi` (Devanagari) tables, indexed identically so they cannot drift apart in
+  ordering, with `englishName`/`gurmukhiName`/`urduName`/`hindiName` beside them. The three
+  non-Latin tables are **transliterations of the Nanakshahi names** — चेत, बैसाख, जेठ … — and
+  deliberately *not* the Hindu Bikrami set (चैत्र, वैशाख, ज्येष्ठ …). Those are a different naming for
+  a calendar whose months start on different days, so a table that drifted toward them would mislabel
+  every date while looking entirely plausible; `NanakshahiMonthNamesTest.hindiNames_areNotTheBikramiOnes`
+  is the guard, and the KDoc says so, because "add the Hindi names" is an invitation to reach for the
+  set a search engine returns. Gurmukhi stays in the library and is simply not one of the three the
+  sample selector offers — `NanakshahiNameLanguage` (the selector's enum) lives in `sample-shared`,
+  since which of the four tables a screen shows is a presentation choice and not something
+  `calendar-core` should have an opinion about.
+
+  The selector's default is **English**, so a reader who never touches the control sees no script
+  they did not choose, and the choice is persisted per platform (`NanakshahiSettingsStore` on Android,
+  `SamplePreferences` on iOS). Whichever script is chosen, the card prints *one* spelling of the
+  month — `Nanakshahi: 2 Jeth 558` — rather than stacking the tables: a date is a date, and four
+  spellings of one month is a chart.
 
 ### Changed
 

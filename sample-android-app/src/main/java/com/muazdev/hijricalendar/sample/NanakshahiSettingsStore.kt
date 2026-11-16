@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import com.muazdev.hijricalendar.core.NanakshahiLeapRule
 import com.muazdev.hijricalendar.core.NanakshahiRules
 import com.muazdev.hijricalendar.core.NanakshahiVersion
+import com.muazdev.hijricalendar.shared.NanakshahiNameLanguage
 
 /**
  * The screen's view of [NanakshahiSettingsStore]: Compose state that writes through on every change.
@@ -29,6 +30,9 @@ internal class NanakshahiSampleState(private val context: Context) {
     var rules by mutableStateOf(NanakshahiSettingsStore.read(context))
         private set
 
+    var nameLanguage by mutableStateOf(NanakshahiSettingsStore.nameLanguage(context))
+        private set
+
     fun updateEnabled(value: Boolean) {
         enabled = value
         NanakshahiSettingsStore.setEnabled(context, value)
@@ -37,6 +41,11 @@ internal class NanakshahiSampleState(private val context: Context) {
     fun updateRules(value: NanakshahiRules) {
         rules = value
         NanakshahiSettingsStore.write(context, value)
+    }
+
+    fun updateNameLanguage(value: NanakshahiNameLanguage) {
+        nameLanguage = value
+        NanakshahiSettingsStore.setNameLanguage(context, value)
     }
 }
 
@@ -56,6 +65,7 @@ internal object NanakshahiSettingsStore {
     private const val KEY_ENABLED = "nanakshahi_enabled"
     private const val KEY_VERSION = "nanakshahi_version"
     private const val KEY_LEAP_RULE = "nanakshahi_leap_rule"
+    private const val KEY_NAME_LANGUAGE = "nanakshahi_name_language"
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -89,6 +99,24 @@ internal object NanakshahiSettingsStore {
         }.getOrDefault(NanakshahiLeapRule.FEB29_IN_PHAGUN)
 
         return NanakshahiRules(version, leapRule)
+    }
+
+    /**
+     * The script the month name is written in. Defaults to English, so nothing a reader who never opens
+     * the control sees a script they did not choose.
+     */
+    fun nameLanguage(context: Context): NanakshahiNameLanguage {
+        val saved = prefs(context).getString(KEY_NAME_LANGUAGE, null)
+            ?: return NanakshahiNameLanguage.ENGLISH
+        return runCatching { NanakshahiNameLanguage.valueOf(saved) }
+            .getOrDefault(NanakshahiNameLanguage.ENGLISH)
+    }
+
+    /**
+     * Persists the chosen script.
+     */
+    fun setNameLanguage(context: Context, language: NanakshahiNameLanguage) {
+        prefs(context).edit().putString(KEY_NAME_LANGUAGE, language.name).apply()
     }
 
     /**

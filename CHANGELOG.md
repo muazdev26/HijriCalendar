@@ -12,15 +12,17 @@ under the same version headings.
 
 ### Added
 
-- Nanakshahi (Sikh solar) calendar in `calendar-core`: `NanakshahiVersion` (currently only
+- Nanakshahi (solar) calendar in `calendar-core`: `NanakshahiVersion` (currently only
   `MOOL_2003`), `NanakshahiLeapRule` (`FEB29_IN_PHAGUN` default, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP`
   alternative), `NanakshahiRules`, `NanakshahiDate`, and `NanakshahiCalendar` object with
   `toNanakshahi`/`toGregorian` conversions, `isLeapYear`, `monthLength`, `yearLength`, `chetOneOf`,
-  and `yearOf`. The Gregorian calendar is proleptic before 1582. `NanakshahiMonthNames` carries
-  English and Gurmukhi month names; Shahmukhi names are pending. The SGPC printed calendar is not
-  included — it is a different, lunisolar calendar. The samples show it through
-  `CalendarScreen(dayContent = …)` behind a **Nanakshahi** switch: the day's Nanakshahi figure under
-  each single-figure cell, and the full date in the selected-date card. Nothing in the Hijri paths,
+  and `yearOf`. The Gregorian calendar is proleptic before 1582. `NanakshahiMonthNames` carries the
+  same twelve months in English, Gurmukhi, Shahmukhi and Devanagari (Hindi) — the last three are
+  transliterations of the Nanakshahi names, deliberately **not** the Hindu Bikrami set. The SGPC
+  printed calendar is not included — it is a different, lunisolar calendar. The samples show it
+  through `CalendarScreen(dayContent = …)` behind a **Nanakshahi** switch: the day's Nanakshahi figure
+  under each single-figure cell, and the full date in the selected-date card with the month name in
+  whichever of English/Urdu/Hindi the caller selects (default English). Nothing in the Hijri paths,
   the widgets or `HijriCalendarState` reads it.
 
 ### Changed

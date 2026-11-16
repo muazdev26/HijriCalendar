@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 /**
- * Conversion functions between Gregorian and Nanakshahi (Sikh solar) dates.
+ * Conversion functions between Gregorian and Nanakshahi (solar) dates.
  *
  * The Gregorian calendar is proleptic for dates before 1582 — the same convention used by
  * `kotlinx-datetime`'s [LocalDate]. The Nanakshahi epoch is 14 March 1469 (Gregorian),

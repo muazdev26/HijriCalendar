@@ -399,7 +399,11 @@ public final class com/muazdev/hijricalendar/core/NanakshahiMonthNames {
 	public final fun englishName (I)Ljava/lang/String;
 	public final fun getEnglish ()Ljava/util/List;
 	public final fun getGurmukhi ()Ljava/util/List;
+	public final fun getHindi ()Ljava/util/List;
+	public final fun getUrdu ()Ljava/util/List;
 	public final fun gurmukhiName (I)Ljava/lang/String;
+	public final fun hindiName (I)Ljava/lang/String;
+	public final fun urduName (I)Ljava/lang/String;
 }
 
 public final class com/muazdev/hijricalendar/core/NanakshahiRules {
