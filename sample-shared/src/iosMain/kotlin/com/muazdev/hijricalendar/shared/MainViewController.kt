@@ -33,6 +33,8 @@ fun MainViewController() = ComposeUIViewController {
 
     MaterialTheme {
         var dateDisplayMode by remember { mutableStateOf(SamplePreferences.dateDisplayMode()) }
+        var nanakshahiEnabled by remember { mutableStateOf(SamplePreferences.nanakshahiEnabled()) }
+        var nanakshahiRules by remember { mutableStateOf(SamplePreferences.nanakshahiRules()) }
         val state = rememberHijriCalendarState(
             initialMonth = todayHijriYearMonth(),
             initialSelectedDate = todayHijriDate(),
@@ -70,6 +72,17 @@ fun MainViewController() = ComposeUIViewController {
             onAdjustmentDaysChange = { SamplePreferences.setAdjustmentDays(it) },
             showPakistanToggle = true,
             onPakistanDatesChange = { SamplePreferences.setPakistanDates(it) },
+            showNanakshahiToggle = true,
+            nanakshahiEnabled = nanakshahiEnabled,
+            onNanakshahiChange = { enabled ->
+                nanakshahiEnabled = enabled
+                SamplePreferences.setNanakshahiEnabled(enabled)
+            },
+            nanakshahiRules = nanakshahiRules,
+            onNanakshahiRulesChange = { rules ->
+                nanakshahiRules = rules
+                SamplePreferences.setNanakshahiRules(rules)
+            },
             showMonthLengthSettings = true,
             onMonthLengthOverridesChanged = { SamplePreferences.persistMonthLengthOverrides() },
         )

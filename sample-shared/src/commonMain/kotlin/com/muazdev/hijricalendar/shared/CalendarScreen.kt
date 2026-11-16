@@ -21,6 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.abdulrahman_b.hijrahdatetime.HijrahMonth
 import com.abdulrahman_b.hijrahdatetime.toLocalDate
@@ -31,10 +34,16 @@ import com.muazdev.hijricalendar.core.CalendarNames
 import com.muazdev.hijricalendar.core.HijriCalendarState
 import com.muazdev.hijricalendar.core.HijriEventLanguage
 import com.muazdev.hijricalendar.core.HijriEvents
+import com.muazdev.hijricalendar.core.NanakshahiCalendar
+import com.muazdev.hijricalendar.core.NanakshahiLeapRule
+import com.muazdev.hijricalendar.core.NanakshahiMonthNames
+import com.muazdev.hijricalendar.core.NanakshahiRules
 import com.muazdev.hijricalendar.core.ObservedHijriCalendar
 import com.muazdev.hijricalendar.core.PakistanHijriCalendar
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import com.muazdev.hijricalendar.ui.HijriCalendar
+import com.muazdev.hijricalendar.ui.HijriCalendarColors
+import com.muazdev.hijricalendar.ui.HijriCalendarDefaults
 import com.muazdev.hijricalendar.ui.HijriCalendarLabels
 import com.muazdev.hijricalendar.ui.PrimaryDate
 import com.muazdev.hijricalendar.ui.defaultOnDayClick
@@ -42,6 +51,7 @@ import com.muazdev.hijricalendar.ui.rememberHijriCalendarState
 import com.muazdev.hijricalendar.ui.withEventLanguage
 import com.muazdev.hijricalendar.widgetdata.WeekendPattern
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 
 /**
@@ -92,6 +102,17 @@ fun CalendarScreen(
     onWeekendPatternChange: ((WeekendPattern) -> Unit)? = null,
     showCellBordersToggle: Boolean = false,
     onShowCellBordersChange: ((Boolean) -> Unit)? = null,
+    /**
+     * Whether the Nanakshahi (Sikh solar) controls are offered.
+     *
+     * The sample's way of reaching `calendar-core`'s [NanakshahiCalendar]: the library has no opinion
+     * about where a second calendar belongs on screen, so nothing draws it unless a host asks.
+     */
+    showNanakshahiToggle: Boolean = false,
+    nanakshahiEnabled: Boolean = false,
+    onNanakshahiChange: ((Boolean) -> Unit)? = null,
+    nanakshahiRules: NanakshahiRules = NanakshahiRules.DEFAULT,
+    onNanakshahiRulesChange: ((NanakshahiRules) -> Unit)? = null,
     showAutoSyncToggle: Boolean = false,
     autoSyncToWidget: Boolean = true,
     onAutoSyncToWidgetChange: ((Boolean) -> Unit)? = null,
@@ -101,6 +122,10 @@ fun CalendarScreen(
      *
      * `null` — the default — uses the built-in cell rendering. A caller that wants to show
      * an additional date (e.g. Nanakshahi) in each cell can provide a composable here.
+     *
+     * Supplies the cell's **whole** contents, not an extra line, so the composable has to redraw
+     * the figure the mode would have drawn — see [NanakshahiCellContent] for how the sample does it.
+     * Precedence: an explicitly supplied `dayContent` wins over the built-in Nanakshahi line.
      */
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
 ) {
@@ -112,6 +137,11 @@ fun CalendarScreen(
         if (eventLanguage != null) base.withEventLanguage(eventLanguage) else base
     }
     val selectedDateText = rememberSelectedDateText(state, dateDisplayMode, primaryDate, effectiveLabels)
+    // Split out of the layout call because the two conditions are decisions about *content*, and
+    // stating them inline pushed this function past detekt's complexity budget for no gain.
+    val nanakshahiCellContent = nanakshahiCellFor(nanakshahiEnabled, dateDisplayMode, nanakshahiRules)
+    val cellContent = dayContent ?: nanakshahiCellContent
+    val cellSize = nanakshahiCellSize(dayContent != null, nanakshahiCellContent != null)
 
     Column(
         modifier = modifier
@@ -126,7 +156,8 @@ fun CalendarScreen(
             primaryDate = primaryDate,
             modifier = Modifier.fillMaxWidth(),
             labels = effectiveLabels,
-            dayContent = dayContent,
+            dayContent = cellContent,
+            dayCellSize = cellSize,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -201,6 +232,17 @@ fun CalendarScreen(
             )
         }
 
+        if (showNanakshahiToggle) {
+            Spacer(modifier = Modifier.height(16.dp))
+            NanakshahiSelector(
+                enabled = nanakshahiEnabled,
+                dateDisplayMode = dateDisplayMode,
+                rules = nanakshahiRules,
+                onToggle = { enabled -> onNanakshahiChange?.invoke(enabled) },
+                onRulesChange = onNanakshahiRulesChange,
+            )
+        }
+
         if (showWeekendPatternToggle) {
             Spacer(modifier = Modifier.height(16.dp))
             WeekendPatternSelector(
@@ -241,6 +283,19 @@ fun CalendarScreen(
             Text(
                 text = "No date selected",
                 style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // The Nanakshahi reading of the same selected day. Drawn here rather than only in the cell
+        // because this card has room for the month name and the year, and because `BOTH` cells carry
+        // no Nanakshahi line at all — this is the one place the date is stated in every mode.
+        val nanakshahiSelectedText = rememberNanakshahiSelectedText(state, nanakshahiEnabled, nanakshahiRules)
+        if (nanakshahiSelectedText != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = nanakshahiSelectedText,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -290,10 +345,9 @@ private fun selectedDateSummary(
             "${it.day} ${HijrahMonth.entries[it.month - 1].name} ${labels.hijriYearWithEra(it.year)}"
         }
         ?: plain?.let { "${it.day} ${it.month.name} ${labels.hijriYearWithEra(it.year)}" }
-    val gregorianDay = observed?.localDate ?: pakistan?.localDate ?: plain?.toLocalDate()
+    val gregorianDay = state.selectedLocalDate()
     val gregorian = gregorianDay?.let {
-        val real = it.minus(state.adjustmentDays, DateTimeUnit.DAY)
-        "${real.day} ${real.month.name} ${labels.gregorianYearWithEra(real.year)}"
+        "${it.day} ${it.month.name} ${labels.gregorianYearWithEra(it.year)}"
     }
 
     if (hijri == null || gregorian == null) return null
@@ -333,6 +387,217 @@ private fun selectedDateSummary(
         }
     }
     return if (eventLine == null) base else "$base\n$eventLine"
+}
+
+/**
+ * The real-world Gregorian day the selection names, already shifted by
+ * [HijriCalendarState.adjustmentDays].
+ *
+ * Selection lives in one of three spaces and the caller does not choose which, so this is the single
+ * resolution the selected-date card and its Nanakshahi reading share. Two copies would be two
+ * answers to the same question, and they would drift the first time a fourth space is added.
+ */
+private fun HijriCalendarState.selectedLocalDate(): LocalDate? {
+    val selected = selectedObservedDate?.localDate
+        ?: selectedPakistanDate?.localDate
+        ?: selectedDate?.toLocalDate()
+    return selected?.minus(adjustmentDays, DateTimeUnit.DAY)
+}
+
+/**
+ * The selected day's Nanakshahi date, or `null` when the calendar is switched off.
+ *
+ * Remembered on the selection keys rather than on the label bundle: this text carries no translated
+ * words, only the month names the Nanakshahi table owns.
+ */
+@Composable
+private fun rememberNanakshahiSelectedText(
+    state: HijriCalendarState,
+    enabled: Boolean,
+    rules: NanakshahiRules,
+): String? = remember(
+    enabled,
+    rules,
+    state.selectedDate,
+    state.selectedPakistanDate,
+    state.selectedObservedDate,
+    state.adjustmentDays,
+) {
+    if (!enabled) return@remember null
+    state.selectedLocalDate()?.let { date ->
+        val nanakshahi = NanakshahiCalendar.toNanakshahi(date, rules)
+        // Both name tables, because this is the sample and the Gurmukhi one is the half a Punjabi
+        // reader wants; `NanakshahiMonthNames` has no Shahmukhi yet.
+        buildString {
+            append("Nanakshahi: ")
+            append(nanakshahi.day)
+            append(' ')
+            append(NanakshahiMonthNames.englishName(nanakshahi.month))
+            append(" (")
+            append(NanakshahiMonthNames.gurmukhiName(nanakshahi.month))
+            append(") ")
+            append(nanakshahi.year)
+        }
+    }
+}
+
+/**
+ * The Nanakshahi cell composable to hand [HijriCalendar], or `null` when it should keep its own cells.
+ *
+ * `BOTH` is excluded on purpose: its two-line stack already fills the 48dp cell by contract, so there
+ * is no third line to give. The selected-date card states the date in that mode instead.
+ */
+private fun nanakshahiCellFor(
+    enabled: Boolean,
+    dateDisplayMode: DateDisplayMode,
+    rules: NanakshahiRules,
+): (@Composable (CalendarDay) -> Unit)? =
+    if (enabled && dateDisplayMode != DateDisplayMode.BOTH) {
+        { day -> NanakshahiCellContent(day, dateDisplayMode, rules) }
+    } else {
+        null
+    }
+
+/**
+ * The cell size for the current content: the bigger one only when the Nanakshahi line is the reason.
+ *
+ * A caller-supplied `dayContent` keeps the default size — its own contents are its business.
+ */
+private fun nanakshahiCellSize(customContent: Boolean, nanakshahiLineDrawn: Boolean): Dp? =
+    if (!customContent && nanakshahiLineDrawn) NanakshahiExtraLineCellSize else null
+
+/**
+ * A day cell that also prints the Nanakshahi day under the figure.
+ *
+ * `dayContent` supplies the cell's **whole** contents, so this redraws the figure the mode would
+ * have drawn (`HIJRI_ONLY` is the Hijri day, `GREGORIAN_ONLY` the Gregorian one) at the size and
+ * weight the built-in cell uses. The weight is a literal because `CellFigureWeight` is internal to
+ * `calendar-ui`; it is `ExtraBold`, the same value.
+ *
+ * `BOTH` never reaches here — [CalendarScreen] withholds the hook in that mode, because its two lines
+ * already fill the 48dp cell.
+ */
+@Composable
+private fun NanakshahiCellContent(
+    day: CalendarDay,
+    dateDisplayMode: DateDisplayMode,
+    rules: NanakshahiRules,
+) {
+    val colors = HijriCalendarDefaults.colors()
+    val nanakshahi = remember(day.localDate, rules) {
+        NanakshahiCalendar.toNanakshahi(day.localDate, rules)
+    }
+    val figure = when (dateDisplayMode) {
+        DateDisplayMode.HIJRI_ONLY -> day.dayOfMonth
+        DateDisplayMode.GREGORIAN_ONLY -> day.localDate.day
+        DateDisplayMode.BOTH -> return
+    }
+    val (figureColor, secondColor) = nanakshahiCellColors(day, colors)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = figure.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = figureColor,
+        )
+        Text(
+            text = nanakshahi.day.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            color = secondColor,
+        )
+    }
+}
+
+/**
+ * The cell's two ink colours, re-derived from the same palette the built-in cell reads.
+ *
+ * `dayContent` is handed the cell's box but **not** its resolved style: `DayCellStyle` is internal to
+ * `calendar-ui`, so a replacement cell has to state the precedence itself. The order below is the one
+ * `CalendarDay.cellStyle` documents and tests — selected, outside the month, notable, weekend — and
+ * the colours all come from [HijriCalendarDefaults.colors], so the values cannot drift. If the order
+ * ever does, the fix belongs in the library: a `dayContent` overload that passes the resolved style.
+ */
+private fun nanakshahiCellColors(
+    day: CalendarDay,
+    colors: HijriCalendarColors,
+): Pair<Color, Color> = when {
+    day.isSelected -> colors.selectedDayContentColor to colors.selectedDayContentColor.copy(alpha = 0.7f)
+    !day.isCurrentMonth ->
+        colors.outsideMonthDayContentColor to colors.outsideMonthDayContentColor.copy(alpha = 0.7f)
+    day.hasNotableEvent -> colors.eventDayContentColor to colors.eventDayContentColor.copy(alpha = 0.7f)
+    day.isWeekend -> colors.weekendDayContentColor to colors.weekendDayContentColor.copy(alpha = 0.7f)
+    else -> colors.dayContentColor to colors.gregorianDayContentColor
+}
+
+/**
+ * The cell's fixed size while it carries the extra Nanakshahi line.
+ *
+ * 56dp, not the default 48dp: the built-in single-figure line is a 20sp line box and the extra line a
+ * 16sp one, and the cell does not grow with the font scale, so the pair needs 54dp at the 1.5x cap.
+ */
+private val NanakshahiExtraLineCellSize = 56.dp
+
+/**
+ * Show/hide the Nanakshahi date, and choose the leap rule behind it.
+ *
+ * The leap rule is a real choice, not a demo toggle: `FEB29_IN_PHAGUN` gives Phagun 31 days when the
+ * Gregorian year containing it is a leap year, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP` when the year of
+ * the preceding Chet 1 is. They disagree on some years, so the chips are labelled by rule rather than
+ * as "on/off".
+ */
+@Composable
+private fun NanakshahiSelector(
+    enabled: Boolean,
+    dateDisplayMode: DateDisplayMode,
+    rules: NanakshahiRules,
+    onToggle: (Boolean) -> Unit,
+    onRulesChange: ((NanakshahiRules) -> Unit)?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Nanakshahi (Sikh) calendar", style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !enabled,
+                onClick = { onToggle(false) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) {
+                Text("Hide")
+            }
+            SegmentedButton(
+                selected = enabled,
+                onClick = { onToggle(true) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) {
+                Text("Show")
+            }
+        }
+        if (onRulesChange != null) {
+            Text("Phagun leap rule", style = MaterialTheme.typography.labelLarge)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                NanakshahiLeapRule.entries.forEachIndexed { index, rule ->
+                    SegmentedButton(
+                        selected = rules.leapRule == rule,
+                        onClick = { onRulesChange(rules.copy(leapRule = rule)) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = NanakshahiLeapRule.entries.size,
+                        ),
+                    ) {
+                        Text(if (rule == NanakshahiLeapRule.FEB29_IN_PHAGUN) "Feb 29" else "Year before Chet")
+                    }
+                }
+            }
+        }
+        Text(
+            text = when {
+                !enabled -> "Off: cells and the selected-date card show Hijri and Gregorian only."
+                dateDisplayMode == DateDisplayMode.BOTH ->
+                    "On. Both-date cells have no third line, so the Nanakshahi date is stated in the card below."
+                else -> "On: the Nanakshahi day is printed under each cell's figure and named in the card below."
+            },
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
 }
 
 @Composable
