@@ -16,16 +16,6 @@ A Compose Multiplatform calendar for displaying and interacting with Hijri (Isla
 Distributed via JitPack.
 
 ```kotlin
-dependencies {
-    implementation("com.muazdev.hijricalendar:hijri-calendar-compose:2.6.0")
-}
-```
-
-### Legacy: JitPack (2.4.x only)
-
-JitPack will not receive releases after 2.4.x.
-
-```kotlin
 repositories { maven("https://jitpack.io") }
 dependencies {
     implementation("com.github.muazdev26.HijriCalendar:hijri-calendar-compose:2.6.0")
