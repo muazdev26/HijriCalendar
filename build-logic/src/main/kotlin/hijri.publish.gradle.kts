@@ -17,8 +17,7 @@ val hasSigningCredentials = listOf(
 val signingEnabled = hasSigningCredentials
 
 mavenPublishing {
-    publishToMavenCentral()
-
+    // JitPack is the distribution route; Maven Central is not used.
     coordinates(publishGroup, publishArtifact, publishVersion)
 
     pom {
@@ -49,7 +48,7 @@ mavenPublishing {
     } else {
         logger.warn(
             "hijri.publish: signing disabled because no GPG key is configured. " +
-                "Artifacts will be UNSIGNED and Maven Central will reject them. " +
+                "Artifacts will be UNSIGNED. " +
                 "Configure signing.gnupg.keyName (or signing.keyId) before releasing."
         )
     }

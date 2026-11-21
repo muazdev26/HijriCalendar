@@ -13,7 +13,7 @@ A Compose Multiplatform calendar for displaying and interacting with Hijri (Isla
 
 ## Installation
 
-Distributed via Maven Central.
+Distributed via JitPack.
 
 ```kotlin
 dependencies {
