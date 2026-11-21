@@ -85,6 +85,15 @@ public fun HijriCalendar(
     onDayClick: (CalendarDay) -> Unit,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
     /**
+     * Like [dayContent], but also handed the cell's resolved [DayCellStyle].
+     *
+     * The reason to prefer it is duplication: a replacement cell that draws in the grid's colours has
+     * to re-derive which one applies — selected, disabled, outside the month, observance, weekend — and
+     * that order is [cellStyle]'s contract, not something a caller should restate. This hook hands over
+     * the value the built-in text would have been drawn with. Takes precedence over [dayContent].
+     */
+    dayContentWithStyle: (@Composable (CalendarDay, DayCellStyle) -> Unit)? = null,
+    /**
      * Replaces the built-in month header. `null` — the default — uses [HijriCalendarHeader].
      */
     header: (@Composable () -> Unit)? = null,
@@ -238,6 +247,7 @@ public fun HijriCalendar(
             primaryDate = primaryDate,
             dayCellSize = dayCellSize,
             dayContent = dayContent,
+            dayContentWithStyle = dayContentWithStyle,
             labels = labels,
         )
     }

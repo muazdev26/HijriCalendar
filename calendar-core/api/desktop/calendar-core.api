@@ -133,6 +133,82 @@ public final class com/muazdev/hijricalendar/core/CalendarNames {
 	public final fun getEnglishWeekdays ()Ljava/util/Map;
 }
 
+public final class com/muazdev/hijricalendar/core/DesiCalendar {
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/DesiCalendar;
+	public final fun chetOneOf (I)Lkotlinx/datetime/LocalDate;
+	public final fun isLeapYear (ILcom/muazdev/hijricalendar/core/DesiRules;)Z
+	public static synthetic fun isLeapYear$default (Lcom/muazdev/hijricalendar/core/DesiCalendar;ILcom/muazdev/hijricalendar/core/DesiRules;ILjava/lang/Object;)Z
+	public final fun monthLength (IILcom/muazdev/hijricalendar/core/DesiRules;)I
+	public static synthetic fun monthLength$default (Lcom/muazdev/hijricalendar/core/DesiCalendar;IILcom/muazdev/hijricalendar/core/DesiRules;ILjava/lang/Object;)I
+	public final fun toDesi (Lkotlinx/datetime/LocalDate;Lcom/muazdev/hijricalendar/core/DesiRules;)Lcom/muazdev/hijricalendar/core/DesiDate;
+	public static synthetic fun toDesi$default (Lcom/muazdev/hijricalendar/core/DesiCalendar;Lkotlinx/datetime/LocalDate;Lcom/muazdev/hijricalendar/core/DesiRules;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/DesiDate;
+	public final fun toGregorian (Lcom/muazdev/hijricalendar/core/DesiDate;Lcom/muazdev/hijricalendar/core/DesiRules;)Lkotlinx/datetime/LocalDate;
+	public static synthetic fun toGregorian$default (Lcom/muazdev/hijricalendar/core/DesiCalendar;Lcom/muazdev/hijricalendar/core/DesiDate;Lcom/muazdev/hijricalendar/core/DesiRules;ILjava/lang/Object;)Lkotlinx/datetime/LocalDate;
+	public final fun yearLength (ILcom/muazdev/hijricalendar/core/DesiRules;)I
+	public static synthetic fun yearLength$default (Lcom/muazdev/hijricalendar/core/DesiCalendar;ILcom/muazdev/hijricalendar/core/DesiRules;ILjava/lang/Object;)I
+	public final fun yearOf (Lkotlinx/datetime/LocalDate;)I
+}
+
+public final class com/muazdev/hijricalendar/core/DesiDate {
+	public fun <init> (III)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (III)Lcom/muazdev/hijricalendar/core/DesiDate;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/DesiDate;IIIILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/DesiDate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDay ()I
+	public final fun getMonth ()I
+	public final fun getYear ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/DesiLeapRule : java/lang/Enum {
+	public static final field FEB29_IN_PHAGUN Lcom/muazdev/hijricalendar/core/DesiLeapRule;
+	public static final field GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP Lcom/muazdev/hijricalendar/core/DesiLeapRule;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/DesiLeapRule;
+	public static fun values ()[Lcom/muazdev/hijricalendar/core/DesiLeapRule;
+}
+
+public final class com/muazdev/hijricalendar/core/DesiMonthNames {
+	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/DesiMonthNames;
+	public final fun englishName (I)Ljava/lang/String;
+	public final fun getEnglish ()Ljava/util/List;
+	public final fun getGurmukhi ()Ljava/util/List;
+	public final fun getHindi ()Ljava/util/List;
+	public final fun getUrdu ()Ljava/util/List;
+	public final fun gurmukhiName (I)Ljava/lang/String;
+	public final fun hindiName (I)Ljava/lang/String;
+	public final fun urduName (I)Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/DesiRules {
+	public static final field Companion Lcom/muazdev/hijricalendar/core/DesiRules$Companion;
+	public fun <init> (Lcom/muazdev/hijricalendar/core/DesiVersion;Lcom/muazdev/hijricalendar/core/DesiLeapRule;)V
+	public final fun component1 ()Lcom/muazdev/hijricalendar/core/DesiVersion;
+	public final fun component2 ()Lcom/muazdev/hijricalendar/core/DesiLeapRule;
+	public final fun copy (Lcom/muazdev/hijricalendar/core/DesiVersion;Lcom/muazdev/hijricalendar/core/DesiLeapRule;)Lcom/muazdev/hijricalendar/core/DesiRules;
+	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/DesiRules;Lcom/muazdev/hijricalendar/core/DesiVersion;Lcom/muazdev/hijricalendar/core/DesiLeapRule;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/DesiRules;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLeapRule ()Lcom/muazdev/hijricalendar/core/DesiLeapRule;
+	public final fun getVersion ()Lcom/muazdev/hijricalendar/core/DesiVersion;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/muazdev/hijricalendar/core/DesiRules$Companion {
+	public final fun getDEFAULT ()Lcom/muazdev/hijricalendar/core/DesiRules;
+}
+
+public final class com/muazdev/hijricalendar/core/DesiVersion : java/lang/Enum {
+	public static final field MOOL_2003 Lcom/muazdev/hijricalendar/core/DesiVersion;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/DesiVersion;
+	public static fun values ()[Lcom/muazdev/hijricalendar/core/DesiVersion;
+}
+
 public final class com/muazdev/hijricalendar/core/GregorianMonthRange {
 	public fun <init> (Lkotlinx/datetime/LocalDate;Lkotlinx/datetime/LocalDate;)V
 	public final fun component1 ()Lkotlinx/datetime/LocalDate;
@@ -353,82 +429,6 @@ public final synthetic class com/muazdev/hijricalendar/core/HijriYearMonth$$seri
 
 public final class com/muazdev/hijricalendar/core/HijriYearMonth$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiCalendar {
-	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/NanakshahiCalendar;
-	public final fun chetOneOf (I)Lkotlinx/datetime/LocalDate;
-	public final fun isLeapYear (ILcom/muazdev/hijricalendar/core/NanakshahiRules;)Z
-	public static synthetic fun isLeapYear$default (Lcom/muazdev/hijricalendar/core/NanakshahiCalendar;ILcom/muazdev/hijricalendar/core/NanakshahiRules;ILjava/lang/Object;)Z
-	public final fun monthLength (IILcom/muazdev/hijricalendar/core/NanakshahiRules;)I
-	public static synthetic fun monthLength$default (Lcom/muazdev/hijricalendar/core/NanakshahiCalendar;IILcom/muazdev/hijricalendar/core/NanakshahiRules;ILjava/lang/Object;)I
-	public final fun toGregorian (Lcom/muazdev/hijricalendar/core/NanakshahiDate;Lcom/muazdev/hijricalendar/core/NanakshahiRules;)Lkotlinx/datetime/LocalDate;
-	public static synthetic fun toGregorian$default (Lcom/muazdev/hijricalendar/core/NanakshahiCalendar;Lcom/muazdev/hijricalendar/core/NanakshahiDate;Lcom/muazdev/hijricalendar/core/NanakshahiRules;ILjava/lang/Object;)Lkotlinx/datetime/LocalDate;
-	public final fun toNanakshahi (Lkotlinx/datetime/LocalDate;Lcom/muazdev/hijricalendar/core/NanakshahiRules;)Lcom/muazdev/hijricalendar/core/NanakshahiDate;
-	public static synthetic fun toNanakshahi$default (Lcom/muazdev/hijricalendar/core/NanakshahiCalendar;Lkotlinx/datetime/LocalDate;Lcom/muazdev/hijricalendar/core/NanakshahiRules;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/NanakshahiDate;
-	public final fun yearLength (ILcom/muazdev/hijricalendar/core/NanakshahiRules;)I
-	public static synthetic fun yearLength$default (Lcom/muazdev/hijricalendar/core/NanakshahiCalendar;ILcom/muazdev/hijricalendar/core/NanakshahiRules;ILjava/lang/Object;)I
-	public final fun yearOf (Lkotlinx/datetime/LocalDate;)I
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiDate {
-	public fun <init> (III)V
-	public final fun component1 ()I
-	public final fun component2 ()I
-	public final fun component3 ()I
-	public final fun copy (III)Lcom/muazdev/hijricalendar/core/NanakshahiDate;
-	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/NanakshahiDate;IIIILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/NanakshahiDate;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getDay ()I
-	public final fun getMonth ()I
-	public final fun getYear ()I
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiLeapRule : java/lang/Enum {
-	public static final field FEB29_IN_PHAGUN Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;
-	public static final field GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;
-	public static fun values ()[Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiMonthNames {
-	public static final field INSTANCE Lcom/muazdev/hijricalendar/core/NanakshahiMonthNames;
-	public final fun englishName (I)Ljava/lang/String;
-	public final fun getEnglish ()Ljava/util/List;
-	public final fun getGurmukhi ()Ljava/util/List;
-	public final fun getHindi ()Ljava/util/List;
-	public final fun getUrdu ()Ljava/util/List;
-	public final fun gurmukhiName (I)Ljava/lang/String;
-	public final fun hindiName (I)Ljava/lang/String;
-	public final fun urduName (I)Ljava/lang/String;
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiRules {
-	public static final field Companion Lcom/muazdev/hijricalendar/core/NanakshahiRules$Companion;
-	public fun <init> (Lcom/muazdev/hijricalendar/core/NanakshahiVersion;Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;)V
-	public final fun component1 ()Lcom/muazdev/hijricalendar/core/NanakshahiVersion;
-	public final fun component2 ()Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;
-	public final fun copy (Lcom/muazdev/hijricalendar/core/NanakshahiVersion;Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;)Lcom/muazdev/hijricalendar/core/NanakshahiRules;
-	public static synthetic fun copy$default (Lcom/muazdev/hijricalendar/core/NanakshahiRules;Lcom/muazdev/hijricalendar/core/NanakshahiVersion;Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;ILjava/lang/Object;)Lcom/muazdev/hijricalendar/core/NanakshahiRules;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getLeapRule ()Lcom/muazdev/hijricalendar/core/NanakshahiLeapRule;
-	public final fun getVersion ()Lcom/muazdev/hijricalendar/core/NanakshahiVersion;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiRules$Companion {
-	public final fun getDEFAULT ()Lcom/muazdev/hijricalendar/core/NanakshahiRules;
-}
-
-public final class com/muazdev/hijricalendar/core/NanakshahiVersion : java/lang/Enum {
-	public static final field MOOL_2003 Lcom/muazdev/hijricalendar/core/NanakshahiVersion;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/muazdev/hijricalendar/core/NanakshahiVersion;
-	public static fun values ()[Lcom/muazdev/hijricalendar/core/NanakshahiVersion;
 }
 
 public final class com/muazdev/hijricalendar/core/ObservedHijriCalendar {

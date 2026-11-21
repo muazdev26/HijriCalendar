@@ -12,8 +12,8 @@ the KDoc.
 
 ### Added
 
-- **The Nanakshahi (solar) calendar, as a standalone calculator.** `NanakshahiCalendar` converts
-  both ways against `kotlinx-datetime`'s `LocalDate` and every function takes a `NanakshahiRules`
+- **The Desi (solar) calendar, as a standalone calculator.** `DesiCalendar` converts
+  both ways against `kotlinx-datetime`'s `LocalDate` and every function takes a `DesiRules`
   explicitly, so there is no global mutable state and two callers can disagree about the leap rule
   without seeing each other — the same shape the month-length overrides took in 2.5.0, and for the
   same reason. `MOOL_2003` is the only version, because it is the one with a published month table;
@@ -22,10 +22,10 @@ the KDoc.
 
   It is not wired into `HijriCalendarState`, the grids or the widgets, and that is a decision rather
   than an unfinished edge: the library's one job is the Hijri calendar, a second calendar has no
-  agreed place on a 48dp cell, and wiring it into the state would put a `NanakshahiRules` parameter
+  agreed place on a 48dp cell, and wiring it into the state would put a `DesiRules` parameter
   into every public signature for a feature most consumers do not want.
 
-  The samples therefore reach it through `CalendarScreen`'s `dayContent` hook, behind a **Nanakshahi**
+  The samples therefore reach it through `CalendarScreen`'s `dayContent` hook, behind a **Desi**
   switch, which is the first real caller of that hook and exposed two things about it. First,
   `dayContent` supplies the cell's **whole** contents, not an extra line — so the sample redraws the
   figure the mode would have drawn, and `BOTH` is excluded because its two-line stack already fills the
@@ -37,23 +37,23 @@ the KDoc.
   remove that duplication; it is not worth a public API change in this release.
 
   **The month names ship in four scripts, and the three the samples offer are `ENGLISH`, `URDU` and
-  `HINDI`.** `NanakshahiMonthNames` holds the same twelve months as `english`, `gurmukhi`, `urdu`
+  `HINDI`.** `DesiMonthNames` holds the same twelve months as `english`, `gurmukhi`, `urdu`
   (Shahmukhi) and `hindi` (Devanagari) tables, indexed identically so they cannot drift apart in
   ordering, with `englishName`/`gurmukhiName`/`urduName`/`hindiName` beside them. The three
-  non-Latin tables are **transliterations of the Nanakshahi names** — चेत, बैसाख, जेठ … — and
+  non-Latin tables are **transliterations of the Desi names** — चेत, बैसाख, जेठ … — and
   deliberately *not* the Hindu Bikrami set (चैत्र, वैशाख, ज्येष्ठ …). Those are a different naming for
   a calendar whose months start on different days, so a table that drifted toward them would mislabel
-  every date while looking entirely plausible; `NanakshahiMonthNamesTest.hindiNames_areNotTheBikramiOnes`
+  every date while looking entirely plausible; `DesiMonthNamesTest.hindiNames_areNotTheBikramiOnes`
   is the guard, and the KDoc says so, because "add the Hindi names" is an invitation to reach for the
   set a search engine returns. Gurmukhi stays in the library and is simply not one of the three the
-  sample selector offers — `NanakshahiNameLanguage` (the selector's enum) lives in `sample-shared`,
+  sample selector offers — `DesiNameLanguage` (the selector's enum) lives in `sample-shared`,
   since which of the four tables a screen shows is a presentation choice and not something
   `calendar-core` should have an opinion about.
 
   The selector's default is **English**, so a reader who never touches the control sees no script
-  they did not choose, and the choice is persisted per platform (`NanakshahiSettingsStore` on Android,
+  they did not choose, and the choice is persisted per platform (`DesiSettingsStore` on Android,
   `SamplePreferences` on iOS). Whichever script is chosen, the card prints *one* spelling of the
-  month — `Nanakshahi: 2 Jeth 558` — rather than stacking the tables: a date is a date, and four
+  month — `Desi: 2 Jeth 558` — rather than stacking the tables: a date is a date, and four
   spellings of one month is a chart.
 
 ### Changed

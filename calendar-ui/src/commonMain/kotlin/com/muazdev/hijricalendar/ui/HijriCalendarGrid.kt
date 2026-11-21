@@ -42,6 +42,7 @@ internal fun HijriCalendarGrid(
     dateDisplayMode: DateDisplayMode = DateDisplayMode.HIJRI_ONLY,
     dayCellSize: Dp? = null,
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    dayContentWithStyle: (@Composable (CalendarDay, DayCellStyle) -> Unit)? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     /** Which of the two figures is the top, bold line under [DateDisplayMode.BOTH]; see [PrimaryDate]. */
     primaryDate: PrimaryDate = PrimaryDate.HIJRI,
@@ -181,6 +182,7 @@ internal fun HijriCalendarGrid(
                 dayCellSize = dayCellSize,
                 labels = labels,
                 dayContent = dayContent,
+                dayContentWithStyle = dayContentWithStyle,
                 primaryDate = primaryDate,
             )
         }
@@ -283,6 +285,7 @@ private fun MonthGrid(
     dayCellSize: Dp?,
     labels: HijriCalendarLabels,
     dayContent: (@Composable (CalendarDay) -> Unit)?,
+    dayContentWithStyle: (@Composable (CalendarDay, DayCellStyle) -> Unit)?,
     primaryDate: PrimaryDate,
 ) {
     val weeks = remember(days, showAdjacentDays) { gridWeeks(days, showAdjacentDays) }
@@ -314,6 +317,7 @@ private fun MonthGrid(
                 dayCellSize = dayCellSize,
                 labels = labels,
                 dayContent = dayContent,
+                dayContentWithStyle = dayContentWithStyle,
                 primaryDate = primaryDate,
             )
         }

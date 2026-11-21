@@ -1,8 +1,8 @@
 package com.muazdev.hijricalendar.shared
 
-import com.muazdev.hijricalendar.core.NanakshahiLeapRule
-import com.muazdev.hijricalendar.core.NanakshahiRules
-import com.muazdev.hijricalendar.core.NanakshahiVersion
+import com.muazdev.hijricalendar.core.DesiLeapRule
+import com.muazdev.hijricalendar.core.DesiRules
+import com.muazdev.hijricalendar.core.DesiVersion
 import com.muazdev.hijricalendar.ui.DateDisplayMode
 import platform.Foundation.NSUserDefaults
 
@@ -15,17 +15,19 @@ import platform.Foundation.NSUserDefaults
  * month-length overrides use the same compact `"year-month:length"` CSV the Android app persists,
  * because plain maps are not reliably round-tripped through either store.
  */
+@Suppress("TooManyFunctions")
 internal object SamplePreferences {
 
     private const val KEY_DATE_DISPLAY_MODE = "hijri_sample_date_display_mode"
     private const val KEY_ADJUSTMENT_DAYS = "hijri_sample_adjustment_days"
     private const val KEY_PAKISTAN_DATES = "hijri_sample_pakistan_dates"
-    private const val KEY_NANAKSHAHI_ENABLED = "hijri_sample_nanakshahi_enabled"
-    private const val KEY_NANAKSHAHI_LEAP_RULE = "hijri_sample_nanakshahi_leap_rule"
-    private const val KEY_NANAKSHAHI_NAME_LANGUAGE = "hijri_sample_nanakshahi_name_language"
+    private const val KEY_NANAKSHAHI_ENABLED = "hijri_sample_desi_enabled"
+    private const val KEY_NANAKSHAHI_LEAP_RULE = "hijri_sample_desi_leap_rule"
+    private const val KEY_NANAKSHAHI_NAME_LANGUAGE = "hijri_sample_desi_name_language"
+    private const val KEY_NANAKSHAHI_CELL_PLACEMENT = "hijri_sample_desi_cell_placement"
 
     private const val DEFAULT_ADJUSTMENT_DAYS = 0
-    private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
+    private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.BOTH
 
     private val defaults: NSUserDefaults
         get() = NSUserDefaults.standardUserDefaults
@@ -62,46 +64,57 @@ internal object SamplePreferences {
     }
 
     /**
-     * Whether the sample should show the Nanakshahi date. Off by default, matching the Android store.
+     * Whether the sample should show the Desi date. Off by default, matching the Android store.
      */
-    fun nanakshahiEnabled(): Boolean =
+    fun desiEnabled(): Boolean =
         if (defaults.objectForKey(KEY_NANAKSHAHI_ENABLED) == null) {
             false
         } else {
             defaults.boolForKey(KEY_NANAKSHAHI_ENABLED)
         }
 
-    fun setNanakshahiEnabled(enabled: Boolean) {
+    fun setDesiEnabled(enabled: Boolean) {
         defaults.setBool(enabled, KEY_NANAKSHAHI_ENABLED)
     }
 
     /**
-     * The stored Nanakshahi rules. An unknown value falls back to [NanakshahiRules.DEFAULT], which is
+     * The stored Desi rules. An unknown value falls back to [DesiRules.DEFAULT], which is
      * the Android store's rule too.
      */
-    fun nanakshahiRules(): NanakshahiRules {
-        val saved = defaults.stringForKey(KEY_NANAKSHAHI_LEAP_RULE) ?: return NanakshahiRules.DEFAULT
-        val rule = runCatching { NanakshahiLeapRule.valueOf(saved) }
-            .getOrDefault(NanakshahiLeapRule.FEB29_IN_PHAGUN)
-        return NanakshahiRules(NanakshahiVersion.MOOL_2003, rule)
+    fun desiRules(): DesiRules {
+        val saved = defaults.stringForKey(KEY_NANAKSHAHI_LEAP_RULE) ?: return DesiRules.DEFAULT
+        val rule = runCatching { DesiLeapRule.valueOf(saved) }
+            .getOrDefault(DesiLeapRule.FEB29_IN_PHAGUN)
+        return DesiRules(DesiVersion.MOOL_2003, rule)
     }
 
-    fun setNanakshahiRules(rules: NanakshahiRules) {
+    fun setDesiRules(rules: DesiRules) {
         defaults.setObject(rules.leapRule.name, KEY_NANAKSHAHI_LEAP_RULE)
     }
 
     /**
      * The stored month-name script. Defaults to English, matching the Android store.
      */
-    fun nanakshahiNameLanguage(): NanakshahiNameLanguage {
+    fun desiNameLanguage(): DesiNameLanguage {
         val saved = defaults.stringForKey(KEY_NANAKSHAHI_NAME_LANGUAGE)
-            ?: return NanakshahiNameLanguage.ENGLISH
-        return runCatching { NanakshahiNameLanguage.valueOf(saved) }
-            .getOrDefault(NanakshahiNameLanguage.ENGLISH)
+            ?: return DesiNameLanguage.ENGLISH
+        return runCatching { DesiNameLanguage.valueOf(saved) }
+            .getOrDefault(DesiNameLanguage.ENGLISH)
     }
 
-    fun setNanakshahiNameLanguage(language: NanakshahiNameLanguage) {
+    fun setDesiNameLanguage(language: DesiNameLanguage) {
         defaults.setObject(language.name, KEY_NANAKSHAHI_NAME_LANGUAGE)
+    }
+
+    fun desiCellPlacement(): DesiCellPlacement {
+        val saved = defaults.stringForKey(KEY_NANAKSHAHI_CELL_PLACEMENT)
+            ?: return DesiCellPlacement.UNDER_DATE
+        return runCatching { DesiCellPlacement.valueOf(saved) }
+            .getOrDefault(DesiCellPlacement.UNDER_DATE)
+    }
+
+    fun setDesiCellPlacement(placement: DesiCellPlacement) {
+        defaults.setObject(placement.name, KEY_NANAKSHAHI_CELL_PLACEMENT)
     }
 
     /**
