@@ -1,16 +1,16 @@
 package com.muazdev.hijricalendar.shared
 
-import com.muazdev.hijricalendar.core.NanakshahiMonthNames
+import com.muazdev.hijricalendar.core.DesiMonthNames
 
 /**
- * Which script the Nanakshahi month name is written in.
+ * Which script the Desi month name is written in.
  *
  * A sample-level enum rather than a `calendar-core` one: the library owns the four name tables
- * ([NanakshahiMonthNames.english], [NanakshahiMonthNames.gurmukhi], [NanakshahiMonthNames.urdu],
- * [NanakshahiMonthNames.hindi]) and needs no opinion about which of them a screen offers. This names
+ * ([DesiMonthNames.english], [DesiMonthNames.gurmukhi], [DesiMonthNames.urdu],
+ * [DesiMonthNames.hindi]) and needs no opinion about which of them a screen offers. This names
  * the three the sample shows; Gurmukhi stays reachable for a host that wants it.
  */
-enum class NanakshahiNameLanguage {
+enum class DesiNameLanguage {
     /** Latin script: `Chet`, `Phagun`. */
     ENGLISH,
 
@@ -35,8 +35,8 @@ enum class NanakshahiNameLanguage {
      * The month's name in this script, `1`-indexed (1 = Chet).
      */
     fun monthName(month: Int): String = when (this) {
-        ENGLISH -> NanakshahiMonthNames.englishName(month)
-        URDU -> NanakshahiMonthNames.urduName(month)
-        HINDI -> NanakshahiMonthNames.hindiName(month)
+        ENGLISH -> DesiMonthNames.englishName(month)
+        URDU -> DesiMonthNames.urduName(month)
+        HINDI -> DesiMonthNames.hindiName(month)
     }
 }

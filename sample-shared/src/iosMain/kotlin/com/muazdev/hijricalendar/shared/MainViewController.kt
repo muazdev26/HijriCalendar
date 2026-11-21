@@ -33,10 +33,13 @@ fun MainViewController() = ComposeUIViewController {
 
     MaterialTheme {
         var dateDisplayMode by remember { mutableStateOf(SamplePreferences.dateDisplayMode()) }
-        var nanakshahiEnabled by remember { mutableStateOf(SamplePreferences.nanakshahiEnabled()) }
-        var nanakshahiRules by remember { mutableStateOf(SamplePreferences.nanakshahiRules()) }
-        var nanakshahiNameLanguage by remember {
-            mutableStateOf(SamplePreferences.nanakshahiNameLanguage())
+        var desiEnabled by remember { mutableStateOf(SamplePreferences.desiEnabled()) }
+        var desiRules by remember { mutableStateOf(SamplePreferences.desiRules()) }
+        var desiNameLanguage by remember {
+            mutableStateOf(SamplePreferences.desiNameLanguage())
+        }
+        var desiCellPlacement by remember {
+            mutableStateOf(SamplePreferences.desiCellPlacement())
         }
         val state = rememberHijriCalendarState(
             initialMonth = todayHijriYearMonth(),
@@ -75,21 +78,26 @@ fun MainViewController() = ComposeUIViewController {
             onAdjustmentDaysChange = { SamplePreferences.setAdjustmentDays(it) },
             showPakistanToggle = true,
             onPakistanDatesChange = { SamplePreferences.setPakistanDates(it) },
-            showNanakshahiToggle = true,
-            nanakshahiEnabled = nanakshahiEnabled,
-            onNanakshahiChange = { enabled ->
-                nanakshahiEnabled = enabled
-                SamplePreferences.setNanakshahiEnabled(enabled)
+            showDesiToggle = true,
+            desiEnabled = desiEnabled,
+            onDesiChange = { enabled ->
+                desiEnabled = enabled
+                SamplePreferences.setDesiEnabled(enabled)
             },
-            nanakshahiRules = nanakshahiRules,
-            onNanakshahiRulesChange = { rules ->
-                nanakshahiRules = rules
-                SamplePreferences.setNanakshahiRules(rules)
+            desiRules = desiRules,
+            onDesiRulesChange = { rules ->
+                desiRules = rules
+                SamplePreferences.setDesiRules(rules)
             },
-            nanakshahiNameLanguage = nanakshahiNameLanguage,
-            onNanakshahiNameLanguageChange = { language ->
-                nanakshahiNameLanguage = language
-                SamplePreferences.setNanakshahiNameLanguage(language)
+            desiNameLanguage = desiNameLanguage,
+            onDesiNameLanguageChange = { language ->
+                desiNameLanguage = language
+                SamplePreferences.setDesiNameLanguage(language)
+            },
+            desiCellPlacement = desiCellPlacement,
+            onDesiCellPlacementChange = { placement ->
+                desiCellPlacement = placement
+                SamplePreferences.setDesiCellPlacement(placement)
             },
             showMonthLengthSettings = true,
             onMonthLengthOverridesChanged = { SamplePreferences.persistMonthLengthOverrides() },

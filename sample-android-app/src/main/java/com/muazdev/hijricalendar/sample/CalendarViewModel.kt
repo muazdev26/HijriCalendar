@@ -428,7 +428,7 @@ class CalendarViewModel(
         private const val KEY_MONTH_LENGTH_OVERRIDES = "month_length_overrides"
 
         private val DEFAULT_MONTH = HijrahYearMonth(1447, 1)
-        private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.HIJRI_ONLY
+        private val DEFAULT_DATE_DISPLAY_MODE = DateDisplayMode.BOTH
         private val DEFAULT_PRIMARY_DATE = PrimaryDate.HIJRI
 
         // Urdu, matching the sample's label bundle: before this setting existed the banner named

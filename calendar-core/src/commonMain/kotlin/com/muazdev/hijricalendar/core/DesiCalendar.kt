@@ -5,16 +5,16 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 /**
- * Conversion functions between Gregorian and Nanakshahi (solar) dates.
+ * Conversion functions between Gregorian and Desi (solar) dates.
  *
  * The Gregorian calendar is proleptic for dates before 1582 — the same convention used by
- * `kotlinx-datetime`'s [LocalDate]. The Nanakshahi epoch is 14 March 1469 (Gregorian),
- * which is Chet 1 of Nanakshahi year 1.
+ * `kotlinx-datetime`'s [LocalDate]. The Desi epoch is 14 March 1469 (Gregorian),
+ * which is Chet 1 of Desi year 1.
  *
- * Every function takes [rules: NanakshahiRules] explicitly; there is no global mutable state.
- * The default parameter is [NanakshahiRules.DEFAULT] (Mool 2003, FEB29_IN_PHAGUN).
+ * Every function takes [rules: DesiRules] explicitly; there is no global mutable state.
+ * The default parameter is [DesiRules.DEFAULT] (Mool 2003, FEB29_IN_PHAGUN).
  */
-public object NanakshahiCalendar {
+public object DesiCalendar {
 
     // ── Mool 2003 month table ────────────────────────────────────────────
 
@@ -41,9 +41,9 @@ public object NanakshahiCalendar {
     // ── public API ───────────────────────────────────────────────────────
 
     /**
-     * Returns the Nanakshahi year for the given Gregorian [date].
+     * Returns the Desi year for the given Gregorian [date].
      *
-     * If the date is on or after 14 March of Gregorian year Y, the Nanakshahi year is
+     * If the date is on or after 14 March of Gregorian year Y, the Desi year is
      * `Y - 1468`. Otherwise it is `Y - 1469`.
      */
     public fun yearOf(date: LocalDate): Int {
@@ -53,19 +53,19 @@ public object NanakshahiCalendar {
     }
 
     /**
-     * Returns true when Nanakshahi [year] is a leap year under the given [rules].
+     * Returns true when Desi [year] is a leap year under the given [rules].
      *
      * A leap year means Phagun has 31 days instead of 30.
      */
-    public fun isLeapYear(year: Int, rules: NanakshahiRules = NanakshahiRules.DEFAULT): Boolean {
+    public fun isLeapYear(year: Int, rules: DesiRules = DesiRules.DEFAULT): Boolean {
         return when (rules.leapRule) {
-            NanakshahiLeapRule.FEB29_IN_PHAGUN -> {
+            DesiLeapRule.FEB29_IN_PHAGUN -> {
                 // Phagun runs 12 Feb to 13 Mar of Gregorian year (year + 1469).
                 // The year is leap when that Gregorian year contains Feb 29.
                 val gregorianYearContainingPhagun = year + 1469
                 isGregorianLeap(gregorianYearContainingPhagun)
             }
-            NanakshahiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP -> {
+            DesiLeapRule.GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP -> {
                 // Chet begins on 14 March of Gregorian year (year + 1468).
                 val gregorianYearOfChet = year + 1468
                 isGregorianLeap(gregorianYearOfChet)
@@ -74,23 +74,23 @@ public object NanakshahiCalendar {
     }
 
     /**
-     * Returns the total number of days in Nanakshahi [year] under the given [rules].
+     * Returns the total number of days in Desi [year] under the given [rules].
      *
      * Returns 365 in a common year, 366 in a leap year.
      */
-    public fun yearLength(year: Int, rules: NanakshahiRules = NanakshahiRules.DEFAULT): Int {
+    public fun yearLength(year: Int, rules: DesiRules = DesiRules.DEFAULT): Int {
         return if (isLeapYear(year, rules)) 366 else 365
     }
 
     /**
-     * Returns the number of days in [month] of Nanakshahi [year] under the given [rules].
+     * Returns the number of days in [month] of Desi [year] under the given [rules].
      *
      * Months 1-11 have fixed lengths. Month 12 (Phagun) is 30 or 31 depending on the leap rule.
      */
     public fun monthLength(
         year: Int,
         month: Int,
-        rules: NanakshahiRules = NanakshahiRules.DEFAULT,
+        rules: DesiRules = DesiRules.DEFAULT,
     ): Int {
         require(month in 1..12) { "month must be 1..12, was $month" }
         return if (month == 12) {
@@ -102,21 +102,21 @@ public object NanakshahiCalendar {
     }
 
     /**
-     * Returns the Gregorian date of Chet 1 in Nanakshahi [year].
+     * Returns the Gregorian date of Chet 1 in Desi [year].
      *
-     * Chet 1 is always 14 March of the Gregorian year that starts the Nanakshahi year.
+     * Chet 1 is always 14 March of the Gregorian year that starts the Desi year.
      */
     public fun chetOneOf(year: Int): LocalDate {
         return LocalDate(year + 1468, 3, 14)
     }
 
     /**
-     * Converts a Gregorian [date] to a [NanakshahiDate] under the given [rules].
+     * Converts a Gregorian [date] to a [DesiDate] under the given [rules].
      */
-    public fun toNanakshahi(
+    public fun toDesi(
         date: LocalDate,
-        rules: NanakshahiRules = NanakshahiRules.DEFAULT,
-    ): NanakshahiDate {
+        rules: DesiRules = DesiRules.DEFAULT,
+    ): DesiDate {
         val nsYear = yearOf(date)
         val chetOne = chetOneOf(nsYear)
         var dayIndex = (date.toEpochDays() - chetOne.toEpochDays()).toInt()
@@ -125,7 +125,7 @@ public object NanakshahiCalendar {
         while (true) {
             val len = monthLength(nsYear, month, rules)
             if (dayIndex < len) {
-                return NanakshahiDate(nsYear, month, dayIndex + 1)
+                return DesiDate(nsYear, month, dayIndex + 1)
             }
             dayIndex -= len
             month++
@@ -133,11 +133,11 @@ public object NanakshahiCalendar {
     }
 
     /**
-     * Converts a [NanakshahiDate] to a Gregorian [LocalDate] under the given [rules].
+     * Converts a [DesiDate] to a Gregorian [LocalDate] under the given [rules].
      */
     public fun toGregorian(
-        date: NanakshahiDate,
-        rules: NanakshahiRules = NanakshahiRules.DEFAULT,
+        date: DesiDate,
+        rules: DesiRules = DesiRules.DEFAULT,
     ): LocalDate {
         val chetOne = chetOneOf(date.year)
         var offsetDays = date.day - 1

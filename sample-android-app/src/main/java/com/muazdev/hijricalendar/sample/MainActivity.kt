@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun CalendarApp(
     viewModel: CalendarViewModel,
@@ -79,7 +80,7 @@ private fun CalendarApp(
     val wiring = rememberWidgetSyncWiring(viewModel, widgetSync)
     val syncIfEnabled = wiring.syncIfEnabled
     val context = LocalContext.current
-    val nanakshahi = remember(context) { NanakshahiSampleState(context) }
+    val desi = remember(context) { DesiSampleState(context) }
     LaunchedEffect(Unit) { syncIfEnabled() }
 
     Scaffold(
@@ -139,13 +140,15 @@ private fun CalendarApp(
                 syncIfEnabled()
             },
             // Sample-only content: its own store, deliberately not mirrored onto the widgets.
-            showNanakshahiToggle = true,
-            nanakshahiEnabled = nanakshahi.enabled,
-            onNanakshahiChange = nanakshahi::updateEnabled,
-            nanakshahiRules = nanakshahi.rules,
-            onNanakshahiRulesChange = nanakshahi::updateRules,
-            nanakshahiNameLanguage = nanakshahi.nameLanguage,
-            onNanakshahiNameLanguageChange = nanakshahi::updateNameLanguage,
+            showDesiToggle = true,
+            desiEnabled = desi.enabled,
+            onDesiChange = desi::updateEnabled,
+            desiRules = desi.rules,
+            onDesiRulesChange = desi::updateRules,
+            desiNameLanguage = desi.nameLanguage,
+            onDesiNameLanguageChange = desi::updateNameLanguage,
+            desiCellPlacement = desi.cellPlacement,
+            onDesiCellPlacementChange = desi::updateCellPlacement,
             showAutoSyncToggle = true,
             autoSyncToWidget = viewModel.autoSyncToWidget,
             onAutoSyncToWidgetChange = viewModel::onAutoSyncToWidgetChange,

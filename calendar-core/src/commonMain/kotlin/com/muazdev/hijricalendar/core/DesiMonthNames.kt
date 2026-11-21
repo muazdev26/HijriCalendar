@@ -1,18 +1,18 @@
 package com.muazdev.hijricalendar.core
 
 /**
- * The month names for the Nanakshahi (solar) calendar.
+ * The month names for the Desi (solar) calendar.
  *
  * Follows the same structure as [CalendarNames] and [UrduCalendarNames]: compiled-in constants,
  * not runtime data. The four tables are the same twelve months in four scripts — English, Gurmukhi,
  * Shahmukhi (Urdu script) and Devanagari (Hindi) — so they are indexed identically and cannot drift
  * apart in ordering.
  *
- * The non-Latin tables are **transliterations of the Nanakshahi month names**, not the Hindu Bikrami
+ * The non-Latin tables are **transliterations of the Desi month names**, not the Hindu Bikrami
  * month set (चैत्र, वैशाख, ज्येष्ठ …). Those are a different naming for a different calendar and their
  * month starts do not line up with these, so mixing the two would mislabel every date.
  */
-public object NanakshahiMonthNames {
+public object DesiMonthNames {
 
     /** The twelve English month names, 1-indexed (Chet .. Phagun). */
     public val english: List<String> = listOf(

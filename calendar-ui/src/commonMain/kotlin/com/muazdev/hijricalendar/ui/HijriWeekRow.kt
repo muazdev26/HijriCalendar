@@ -25,6 +25,7 @@ internal fun HijriWeekRow(
     dayCellSize: Dp? = null,
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     dayContent: (@Composable (CalendarDay) -> Unit)? = null,
+    dayContentWithStyle: (@Composable (CalendarDay, DayCellStyle) -> Unit)? = null,
     showAdjacentDays: Boolean = true,
     showCellBorders: Boolean = false,
     borderColor: Color = Color.Transparent,
@@ -93,6 +94,7 @@ internal fun HijriWeekRow(
                     labels = labels,
                     primaryDate = primaryDate,
                     content = dayContent,
+                    contentWithStyle = dayContentWithStyle,
                     visible = showAdjacentDays || day.isCurrentMonth,
                     cellHasDividers = showCellBorders,
                 )

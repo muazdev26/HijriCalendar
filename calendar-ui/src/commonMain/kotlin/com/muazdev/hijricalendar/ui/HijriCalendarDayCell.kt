@@ -68,6 +68,18 @@ public fun HijriCalendarDayCell(
     labels: HijriCalendarLabels = HijriCalendarDefaults.labels(),
     content: (@Composable (CalendarDay) -> Unit)? = null,
     /**
+     * Like [content], but also handed the cell's **resolved** [DayCellStyle].
+     *
+     * `content` draws inside a cell whose colours it has to re-derive, and a re-derivation is a
+     * second copy of the precedence [cellStyle] documents — selected, disabled, outside the month,
+     * observance, weekend — which drifts the first time one of them changes. This overload removes
+     * the copy: the style handed here is *the same value* the built-in text would have been drawn
+     * with.
+     *
+     * Takes precedence over [content] when both are supplied.
+     */
+    contentWithStyle: (@Composable (CalendarDay, DayCellStyle) -> Unit)? = null,
+    /**
      * Which date is the **top, bold** line under [DateDisplayMode.BOTH]. A single-figure mode
      * already names its primary, so this only changes the two-line cell. See [PrimaryDate].
      */
@@ -172,10 +184,10 @@ public fun HijriCalendarDayCell(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (content != null) {
-            content(day)
-        } else {
-            CellText(dateDisplayMode, hijriText, gregorianText, style, primaryDate)
+        when {
+            contentWithStyle != null -> contentWithStyle(day, style)
+            content != null -> content(day)
+            else -> CellText(dateDisplayMode, hijriText, gregorianText, style, primaryDate)
         }
     }
 }
@@ -206,16 +218,30 @@ internal fun Int.toArabicIndicNumerals(): String {
  * How one day cell is drawn: the resolved colours, the today border, and whether it is interactive.
  *
  * Extracted from the composable body because the rules it encodes are **design**, not plumbing, and
- * nothing asserted them. They are also order-dependent — see [dayCellStyle] — so leaving six
- * parallel `when` blocks inline meant a reorder would silently change which state wins.
+ * nothing asserted them. They are also order-dependent — see [cellStyle] — so leaving six parallel
+ * `when` blocks inline meant a reorder would silently change which state wins.
+ *
+ * Handed to `HijriCalendar`'s `dayContentWithStyle` so a replacement cell paints in the colours the
+ * built-in one would have used rather than re-deriving them: the precedence below is the whole point
+ * of the type, and a second copy of it in a caller drifts the first time one branch changes.
+ *
+ * @property contentColor The day figure's ink.
+ * @property secondaryColor The dimmed ink of a cell's second line.
+ * @property backgroundColor The fill: the selection container, an observance wash, or the grid's own
+ *   background.
+ * @property borderColor The today ring — or the selection's container colour, which makes the ring
+ *   invisible on a selected cell.
+ * @property borderWidth The ring's stroke; `0.dp` when the cell has no ring.
+ * @property enabled Whether the cell accepts taps. A cell that is both selected and disabled is drawn
+ *   as selected and still refuses input, so this is not inferable from the colours.
  */
-internal data class DayCellStyle(
-    val contentColor: Color,
-    val secondaryColor: Color,
-    val backgroundColor: Color,
-    val borderColor: Color,
-    val borderWidth: Dp,
-    val enabled: Boolean,
+public data class DayCellStyle(
+    public val contentColor: Color,
+    public val secondaryColor: Color,
+    public val backgroundColor: Color,
+    public val borderColor: Color,
+    public val borderWidth: Dp,
+    public val enabled: Boolean,
 )
 
 /**
@@ -240,7 +266,7 @@ internal data class DayCellStyle(
  * mutable `adjustmentDays` — and it is why the cell sets `disabled()` in semantics rather than
  * relying on its appearance.
  */
-internal fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
+public fun CalendarDay.cellStyle(colors: HijriCalendarColors): DayCellStyle {
     // An observance **fills** the cell. It used to be a 4dp dot above the day figure, which
     // was too small to survive on a busy grid and carried no information beyond "something is here":
     // the header and the summary card already name the observance, so a glance needed the day's

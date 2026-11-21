@@ -8,19 +8,19 @@ moved, a default that changed, an ABI that needs a recompile. The reasoning, the
 the alternatives that were tried live in [`docs/CHANGELOG-ARCHIVE.md`](docs/CHANGELOG-ARCHIVE.md),
 under the same version headings.
 
-## Unreleased
+## 2.6.0 - 2026-11-21
 
 ### Added
 
-- Nanakshahi (solar) calendar in `calendar-core`: `NanakshahiVersion` (currently only
-  `MOOL_2003`), `NanakshahiLeapRule` (`FEB29_IN_PHAGUN` default, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP`
-  alternative), `NanakshahiRules`, `NanakshahiDate`, and `NanakshahiCalendar` object with
-  `toNanakshahi`/`toGregorian` conversions, `isLeapYear`, `monthLength`, `yearLength`, `chetOneOf`,
-  and `yearOf`. The Gregorian calendar is proleptic before 1582. `NanakshahiMonthNames` carries the
+- Desi (solar) calendar in `calendar-core`: `DesiVersion` (currently only
+  `MOOL_2003`), `DesiLeapRule` (`FEB29_IN_PHAGUN` default, `GREGORIAN_YEAR_BEFORE_CHET_IS_LEAP`
+  alternative), `DesiRules`, `DesiDate`, and `DesiCalendar` object with
+  `toDesi`/`toGregorian` conversions, `isLeapYear`, `monthLength`, `yearLength`, `chetOneOf`,
+  and `yearOf`. The Gregorian calendar is proleptic before 1582. `DesiMonthNames` carries the
   same twelve months in English, Gurmukhi, Shahmukhi and Devanagari (Hindi) — the last three are
-  transliterations of the Nanakshahi names, deliberately **not** the Hindu Bikrami set. The SGPC
+  transliterations of the Desi names, deliberately **not** the Hindu Bikrami set. The SGPC
   printed calendar is not included — it is a different, lunisolar calendar. The samples show it
-  through `CalendarScreen(dayContent = …)` behind a **Nanakshahi** switch: the day's Nanakshahi figure
+  through `CalendarScreen(dayContent = …)` behind a **Desi** switch: the day's Desi figure
   under each single-figure cell, and the full date in the selected-date card with the month name in
   whichever of English/Urdu/Hindi the caller selects (default English). Nothing in the Hijri paths,
   the widgets or `HijriCalendarState` reads it.
